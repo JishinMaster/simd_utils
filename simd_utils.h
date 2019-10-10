@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include <math.h>
 
-#include <immintrin.h>
-
 #ifdef AVX
 #include "avx_mathfun.h"
 #endif
@@ -18,26 +16,12 @@
 #include <sys/time.h>
 #include <stdint.h>
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-#ifndef M_LN2
-#define M_LN2 0.69314718055994530942
-#endif
-
-
-#define LN10    2.30258509299
-#define INVLN10 1.0/LN10
-#define NEPER_E 2.71828182846
-
+#define INVLN10 0.4342944819
 
 #define SSE_LEN_BYTES 16
 #define AVX_LEN_BYTES 32
 #define SSE_LEN_FLOAT 4 //single float
 #define AVX_LEN_FLOAT 8 //single float
-
-#pragma warning "in sse and avx libraries log is ln not log10"
 
 /* LATENCIES
 SSE
@@ -73,20 +57,6 @@ typedef struct {
 } complex;
 
 
-typedef ALIGN16_BEG union {
-  float f[4];
-  int i[4];
-  v4sf  v;
-} ALIGN16_END V4SF;
-
-void print4(__m128 v) {
-  float *p = (float*)&v; 
-  #ifndef USE_SSE2
-  _mm_empty();
-  #endif
-  printf("[%13.8g, %13.8g, %13.8g, %13.8g]", p[0], p[1], p[2], p[3]);
-}
-
 #ifdef AVX
 
 __m256 _mm256_set_m128 ( __m128 H, __m128 L)
@@ -94,140 +64,11 @@ __m256 _mm256_set_m128 ( __m128 H, __m128 L)
       return _mm256_insertf128_ps(_mm256_castps128_ps256(L), H, 1);
 }
 
-typedef ALIGN32_BEG union {
-  float f[8];
-  int i[8];
-  v8sf  v;
-} ALIGN32_END V8SF;
-
-v8sf stupid_sincos256_ps(v8sf x) {
-  v8sf s, c;
-  sincos256_ps(x, &s, &c);
-  return s;
-}
-
-void print8(__m256 v) {
-  float *p = (float*)&v; 
-  #ifndef USE_SSE2
-  _mm_empty();
-  #endif
-  printf("[%13.8g, %13.8g, %13.8g, %13.8g %13.8g, %13.8g, %13.8g, %13.8g]", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
-}
-
-#define DECL_VECTOR_FN_AVX_BENCH(fn)                                        \
-  int bench_##fn() {                                                    \
-    int niter = 10000,i;                                                \
-    v8sf bmin = _mm256_set1_ps(0.5f), bmax = _mm256_set1_ps(1.0f);              \
-    v8sf x = _mm256_set1_ps(0.75f);                                         \
-    for (i=0; i < niter; ++i) {                                         \
-      x = fn(x); x = _mm256_min_ps(x, bmax); x = _mm256_max_ps(x, bmin);      \
-    }                                                                   \
-    if (((float*)&x)[0] == 2.32132323232f) niter--;                     \
-    return niter;                                                       \
-  } 
-
-#define DECL_SCALAR_FN8_BENCH(fn)                     \
-  int bench8_##fn() {                                 \
-    int niter = 10000,i,j;                           \
-    float x = 0.5f, y=0;                             \
-    for (i=0; i < niter; ++i) {                      \
-      for (j=0; j < 8; ++j) {                        \
-        x += 1e-6f;                                  \
-        y += fn(x+5*(j&1));                                  \
-      }                                              \
-    }                                                \
-    if (y == 2.32132323232f) niter--;                \
-    return niter;                                    \
-  } 
-  
-  
-#endif  
- 
-#if defined(HAVE_SYS_TIMES)
-  inline double uclock_sec(void) {
-    static double ttclk = 0.;
-    if (ttclk == 0.) ttclk = sysconf(_SC_CLK_TCK);
-    struct tms t; return ((double)times(&t)) / ttclk;
-  }
-# else
-  inline double uclock_sec(void)
-{ return (double)clock()/(double)CLOCKS_PER_SEC; }
-#endif
-
-#ifdef WINDOWS
-
+#ifdef WINDOWS // TODO : find a way to align on Windows
 void posix_memalign( void** inout , int alignement, size_t len){
 	*inout = malloc(len);
-}
-
-/*void clock_gettime(int a, struct timespec *b)
-{
-	b->tv_nsec = uclock_sec();
-	b->tv_sec = 0;
-}*/	
+}	
 #endif 
-
-
-void run_bench(const char *s, int (*fn)(),int vecsize) {
-  printf("benching %20s ..", s); fflush(stdout);
-  double t0 = uclock_sec(), t1, tmax = 1.0;
-  double niter = 0;
-  do {
-    niter += fn();
-    t1 = uclock_sec();
-  } while (t1 - t0 < tmax);
-#define REF_FREQ_MHZ 2600.0
-  printf(" -> %6.1f millions of vector evaluations/second -> %3.0f cycles/value on a %gMHz computer\n", floor(niter/(t1-t0)/1e5)/10, (t1-t0)*REF_FREQ_MHZ*1e6/niter/vecsize, REF_FREQ_MHZ);
-}
-
-#define DECL_VECTOR_FN_SSE_BENCH(fn)                                        \
-  int bench_##fn() {                                                    \
-    int niter = 10000,i;                                                \
-    v4sf bmin = _mm_set1_ps(0.5f), bmax = _mm_set1_ps(1.0f);              \
-    v4sf x = _mm_set1_ps(0.75f);                                         \
-    for (i=0; i < niter; ++i) {                                         \
-      x = fn(x); x = _mm_min_ps(x, bmax); x = _mm_max_ps(x, bmin);      \
-    }                                                                   \
-    if (((float*)&x)[0] == 2.32132323232f) niter--;                     \
-    return niter;                                                       \
-  } 
-
-#define DECL_SCALAR_FN4_BENCH(fn)                     \
-  int bench4_##fn() {                                 \
-    int niter = 10000,i,j;                           \
-    float x = 0.5f, y=0;                             \
-    for (i=0; i < niter; ++i) {                      \
-     \
-      for (j=0; j < 4; ++j) {                        \
-        x += 1e-6f;                                  \
-        y += fn(x+5*(j&1));                                  \
-      }                                              \
-    }                                                \
-    if (y == 2.32132323232f) niter--;                \
-    return niter;                                    \
-  } 
-
-v4sf stupid_sincos_ps(v4sf x) {
-  v4sf s, c;
-  sincos_ps(x, &s, &c);
-  return s;
-}
-
-DECL_SCALAR_FN4_BENCH(sinf);
-DECL_SCALAR_FN4_BENCH(cosf);
-DECL_SCALAR_FN4_BENCH(logf);
-DECL_SCALAR_FN4_BENCH(expf);
-
-DECL_VECTOR_FN_SSE_BENCH(sin_ps);
-DECL_VECTOR_FN_SSE_BENCH(cos_ps);
-DECL_VECTOR_FN_SSE_BENCH(exp_ps);
-DECL_VECTOR_FN_SSE_BENCH(log_ps);
-DECL_VECTOR_FN_SSE_BENCH(stupid_sincos_ps);
-
-v4sf vector_abs(v4sf src){
-    const __m128 mask = _mm_castsi128_ps (_mm_set1_epi32 (0x7FFFFFFF));
-    return _mm_and_ps (mask, src);		
-}
 
 
 void log10_128f(float* src, float* dst, int len)
@@ -395,7 +236,6 @@ void mulc128f( float* src, float value, float* dst, int len)
 }
 
 #pragma warning "src2 should have no 0.0f values!"
-
 void div128f( float* src1, float* src2, float* dst, int len)
 {
 
@@ -734,22 +574,6 @@ void mean128f( float* src, float* dst, int len)
 
 #ifdef AVX 
 
-DECL_SCALAR_FN8_BENCH(sinf);
-DECL_SCALAR_FN8_BENCH(cosf);
-DECL_SCALAR_FN8_BENCH(logf);
-DECL_SCALAR_FN8_BENCH(expf);
-
-DECL_VECTOR_FN_AVX_BENCH(sin256_ps);
-DECL_VECTOR_FN_AVX_BENCH(cos256_ps);
-DECL_VECTOR_FN_AVX_BENCH(exp256_ps);
-DECL_VECTOR_FN_AVX_BENCH(log256_ps);
-DECL_VECTOR_FN_AVX_BENCH(stupid_sincos256_ps);
-
-v8sf vector256_abs(v8sf src){
-    const __m256 mask = _mm256_castsi256_ps (_mm256_set1_epi32 (0x7FFFFFFF));
-    return _mm256_and_ps (mask, src);		
-}
-
 void log10_256f(float* src, float* dst, int len)
 {
 	float invln10f_mask = (float)INVLN10;
@@ -796,7 +620,6 @@ void ln_256f(float* src, float* dst, int len)
 		dst[i] = logf(src[i]);
 	}
 }
-
 
 void fabs256f(float* src, float* dst, int len)
 {
@@ -917,7 +740,6 @@ void mulc256f( float* src, float value, float* dst, int len)
 	}		
 }
 
-
 void div256f( float* src1, float* src2, float* dst, int len)
 {
 
@@ -939,7 +761,6 @@ void div256f( float* src1, float* src2, float* dst, int len)
 		dst[i] = src1[i] / src2[i];
 	}		
 }
-
 
 void convert256_64f32f(double* src, float* dst, int len)
 {
@@ -966,7 +787,6 @@ void convert256_64f32f(double* src, float* dst, int len)
 	}
 }
 
-
 void threshold256_lt_f( float* src, float* dst, float value, int len)
 {
 	__m256 tmp = _mm256_set1_ps(value);//_mm256_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
@@ -991,7 +811,6 @@ void threshold256_lt_f( float* src, float* dst, float value, int len)
 		dst[i] = src[i]<value?src[i]:value;
 	}	
 }
-
 
 void threshold256_gt_f( float* src, float* dst, float value, int len)
 {
@@ -1187,7 +1006,7 @@ void mean256f( float* src, float* dst, int len)
 #endif
 
 
-//C Test functions ////////////////
+//////////  C Test functions ////////////////
 void log10f_C(float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++) dst[i] = log10f(src[i]);
