@@ -56,14 +56,6 @@ typedef struct {
 	float im;
 } complex;
 
-
-#ifdef AVX
-
-__m256 _mm256_set_m128 ( __m128 H, __m128 L)
-{
-      return _mm256_insertf128_ps(_mm256_castps128_ps256(L), H, 1);
-}
-
 #ifdef WINDOWS // TODO : find a way to align on Windows
 void posix_memalign( void** inout , int alignement, size_t len){
 	*inout = malloc(len);
@@ -573,6 +565,13 @@ void mean128f( float* src, float* dst, int len)
 }
 
 #ifdef AVX 
+
+#ifdef AVX //not present on every GCC version
+__m256 _mm256_set_m128 ( __m128 H, __m128 L)
+{
+      return _mm256_insertf128_ps(_mm256_castps128_ps256(L), H, 1);
+}
+#endif
 
 void log10_256f(float* src, float* dst, int len)
 {
