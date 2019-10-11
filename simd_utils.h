@@ -1030,12 +1030,12 @@ void sqrt256f( float* src, float* dst, int len)
 
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-			_mm256_store_ps(dst + i, _mm256_sqrt_ps( _mm_load_ps(src + i) ) );
+			_mm256_store_ps(dst + i, _mm256_sqrt_ps( _mm256_load_ps(src + i) ) );
 		}
 	}
 	else{
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-			_mm256_storeu_ps(dst + i, _mm256_sqrt_ps( _mm_loadu_ps(src + i) ) );
+			_mm256_storeu_ps(dst + i, _mm256_sqrt_ps( _mm256_loadu_ps(src + i) ) );
 		}
 	}
 
