@@ -564,6 +564,27 @@ void mean128f( float* src, float* dst, int len)
 	*dst = tmp_acc;
 }
 
+void sqrt128f( float* src, float* dst, int len)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			_mm_store_ps(dst + i, _mm_sqrt_ps( _mm_load_ps(src + i) ) );
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			_mm_storeu_ps(dst + i, _mm_sqrt_ps( _mm_loadu_ps(src + i) ) );
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = sqrtf(src[i]);
+	}
+}
+
 #ifdef AVX 
 
 #ifdef AVX //not present on every GCC version
@@ -1000,6 +1021,27 @@ void mean256f( float* src, float* dst, int len)
 	tmp_acc /= (float)len;
 	
 	*dst = tmp_acc;
+}
+
+void sqrt256f( float* src, float* dst, int len)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			_mm256_store_ps(dst + i, _mm256_sqrt_ps( _mm_load_ps(src + i) ) );
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			_mm256_storeu_ps(dst + i, _mm256_sqrt_ps( _mm_loadu_ps(src + i) ) );
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = sqrtf(src[i]);
+	}
 }
 
 #endif
