@@ -23,6 +23,10 @@
 #define SSE_LEN_FLOAT 4 //single float
 #define AVX_LEN_FLOAT 8 //single float
 
+#define IMM8_FLIP_VEC  0x1B // change m128 from abcd to dcba
+#define IMM8_LO_HI_VEC 0x1E // change m128 from abcd to cdab
+#define IMM8_PERMUTE_128BITS_LANES 0x1 // reverse abcd efgh to efgh abcd
+
 /* LATENCIES
 SSE
 _mm_store_ps     lat 1, cpi 1 (ivy ) 0.5 (broadwell)
@@ -36,6 +40,7 @@ _mm_mul_ps	 lat 5 (ivy) 3 (broadwell), cpi 1 (ivy) 0.5 (broadwell)
 _mm_div_ps	 lat 11-14 (ivy) <11 (broadwell), cpi 6 (ivy) 4 (broadwell)
 _mm_movelh_ps    lat 1, cpi 1
 _mm_hadd_ps		 lat 5, cpi 2 => useful for reduction!
+_mm_shuffle_ps lat 1, cpi 1
 
 AVX/AVX2
 _mm256_store_ps  lat 1, cpi 1 (ivy ) 0.5 (broadwell)
@@ -48,7 +53,9 @@ _mm256_cvtpd_ps  lat 4 (ivy) 6 (broadwell), cpi 1 (ivy ) 1  (broadwell)
 _mm256_mul_ps	 lat 5 (ivy) 3 (broadwell), cpi 1 (ivy) 0.5 (broadwell)
 _mm256_div_ps	 lat 18-21 (ivy) 13-17 (broadwell), cpi 14 (ivy) 10 (broadwell)
 _mm256_set_m128  lat 3, cpi 1
-_mm256_hadd_ps	
+_mm256_hadd_ps
+_mm256_permute_ps lat 1, cpi 1
+_mm256_permute2f128_ps lat 2(ivy) 3 (broadwell) , cpi 1	
 */
 
 typedef struct {
@@ -180,7 +187,7 @@ void zero128f( float* src, int len)
 	}		
 }
 
-#pragma warning "Immediate add/mul?"
+//TODO : "Immediate add/mul?"
 void addc128f( float* src, float value, float* dst, int len)
 {
 	const __m128 tmp = _mm_set1_ps(value);
@@ -310,6 +317,63 @@ void convert128_64f32f(double* src, float* dst, int len)
 	
 	for(int i = stop_len; i < len; i++){
 		dst[i] = (float)src[i];
+	}
+}
+
+void convert128_32f64f(float* src, double* dst, int len)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			__m128 src_tmp = _mm_load_ps(src + i); //load a,b,c,d			
+			__m128 src_tmp_hi = _mm_shuffle_ps (src_tmp, src_tmp, IMM8_LO_HI_VEC);// rotate vec from abcd to cdab
+			_mm_store_pd(dst + i, _mm_cvtps_pd(src_tmp)); //store the c and d converted in 64bits 
+			_mm_store_pd(dst + i + 2, _mm_cvtps_pd(src_tmp_hi)); //store the a and b converted in 64bits 
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			__m128 src_tmp = _mm_loadu_ps(src + i); //load a,b,c,d			
+			__m128 src_tmp_hi = _mm_shuffle_ps (src_tmp, src_tmp, IMM8_LO_HI_VEC);// rotate vec from abcd to cdab
+			_mm_storeu_pd(dst + i, _mm_cvtps_pd(src_tmp)); //store the c and d converted in 64bits 
+			_mm_storeu_pd(dst + i + 2, _mm_cvtps_pd(src_tmp_hi)); //store the a and b converted in 64bits 
+		}
+	}
+	
+	for(int i = stop_len; i < len; i++){
+		dst[i] = (double)src[i];
+	}
+}
+
+//TODO : find a better way to work on aligned data
+void flip128f(float* src, float* dst, int len)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	for(int i = 0; i < SSE_LEN_FLOAT; i++){
+		dst[len  -i - 1] = src[i];
+	}
+
+	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+		for(int i = SSE_LEN_FLOAT; i < stop_len; i+= SSE_LEN_FLOAT){
+			__m128 src_tmp = _mm_load_ps(src + i);	//load a,b,c,d
+			__m128 src_tmp_flip = _mm_shuffle_ps (src_tmp, src_tmp, IMM8_FLIP_VEC);// rotate vec from abcd to bcba
+			_mm_storeu_ps(dst + len -i - SSE_LEN_FLOAT, src_tmp_flip); //store the flipped vector
+		}
+	}
+	else{
+		for(int i = SSE_LEN_FLOAT; i < stop_len; i+= SSE_LEN_FLOAT){
+			__m128 src_tmp = _mm_loadu_ps(src + i); //load a,b,c,d			
+			__m128 src_tmp_flip = _mm_shuffle_ps (src_tmp, src_tmp, IMM8_FLIP_VEC);// rotate vec from abcd to bcba
+			_mm_storeu_ps(dst + len -i - SSE_LEN_FLOAT, src_tmp_flip); //store the flipped vector
+		}
+	}
+
+	for(int i = stop_len; i <  len; i++){
+		dst[len  -i - 1] = src[i];
 	}
 }
 
@@ -585,6 +649,76 @@ void sqrt128f( float* src, float* dst, int len)
 	}
 }
 
+void round128f( float* src, float* dst, int len)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+		  __m128 src_tmp   = _mm_load_ps(src + i);
+		  _mm_store_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC ));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+		  __m128 src_tmp   = _mm_loadu_ps(src + i);
+		  _mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC ));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = roundf(src[i]);
+	}
+}
+
+void ceil128f( float* src, float* dst, int len)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+		  __m128 src_tmp   = _mm_load_ps(src + i);
+		  _mm_store_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_POS_INF |_MM_FROUND_NO_EXC ));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+		  __m128 src_tmp   = _mm_loadu_ps(src + i);
+		  _mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_POS_INF |_MM_FROUND_NO_EXC ));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = ceilf(src[i]);
+	}
+}
+
+void floor128f( float* src, float* dst, int len)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+		  __m128 src_tmp   = _mm_load_ps(src + i);
+		  _mm_store_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC ));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+		  __m128 src_tmp   = _mm_loadu_ps(src + i);
+		  _mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC ));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = floorf(src[i]);
+	}
+}
+
+
 #ifdef AVX 
 
 #ifdef AVX //not present on every GCC version
@@ -807,6 +941,58 @@ void convert256_64f32f(double* src, float* dst, int len)
 	}
 }
 
+void convert256_32f64f(float* src, double* dst, int len)
+{
+	int stop_len = len/AVX_LEN_FLOAT;
+	stop_len    *= AVX_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(src) % AVX_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){ 
+			__m128 src_tmp = _mm_load_ps(src + i); //load a,b,c,d
+			_mm256_store_pd(dst + i, _mm256_cvtps_pd(src_tmp)); //store the abcd converted in 64bits 
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			__m128 src_tmp = _mm_loadu_ps(src + i); //load a,b,c,d
+			_mm256_storeu_pd(dst + i, _mm256_cvtps_pd(src_tmp)); //store the c and d converted in 64bits 
+		}
+	}
+	
+	for(int i = stop_len; i < len; i++){
+		dst[i] = (double)src[i];
+	}
+}
+
+void flip256f(float* src, float* dst, int len)
+{
+	int stop_len = len/AVX_LEN_FLOAT;
+	stop_len    *= AVX_LEN_FLOAT;
+
+	for(int i = 0; i < AVX_LEN_FLOAT; i++){
+		dst[len  -i - 1] = src[i];
+	}
+
+	if( ( (uintptr_t)(const void*)(src) % AVX_LEN_BYTES) == 0){
+		for(int i = AVX_LEN_FLOAT; i < stop_len; i+= AVX_LEN_FLOAT){
+			__m256 src_tmp = _mm256_load_ps(src + i);	//load a,b,c,d,e,f,g,h
+ 			__m256 src_tmp_flip = _mm256_permute2f128_ps (src_tmp, src_tmp, IMM8_PERMUTE_128BITS_LANES); // reverse lanes abcdefgh to efghabcd
+			_mm256_storeu_ps(dst + len -i - AVX_LEN_FLOAT, _mm256_permute_ps (src_tmp_flip, IMM8_FLIP_VEC)); //store the flipped vector
+		}
+	}
+	else{
+		/*for(int i = AVX_LEN_FLOAT; i < stop_len; i+= AVX_LEN_FLOAT){
+			__m128 src_tmp = _mm_loadu_ps(src + i); //load a,b,c,d,e,f,g,h		
+			__m128 src_tmp_flip = _mm_shuffle_ps (src_tmp, src_tmp, IMM8_FLIP_VEC);// rotate vec from abcd to bcba
+			_mm_storeu_ps(dst + len -i - AVX_LEN_FLOAT, src_tmp_flip); //store the flipped vector
+		}*/
+	}
+
+	for(int i = stop_len; i <  len; i++){
+		dst[len  -i - 1] = src[i];
+	}
+}
+
 void threshold256_lt_f( float* src, float* dst, float value, int len)
 {
 	__m256 tmp = _mm256_set1_ps(value);//_mm256_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
@@ -1025,22 +1211,92 @@ void mean256f( float* src, float* dst, int len)
 
 void sqrt256f( float* src, float* dst, int len)
 {
-	int stop_len = len/SSE_LEN_FLOAT;
-	stop_len    *= SSE_LEN_FLOAT;
+	int stop_len = len/AVX_LEN_FLOAT;
+	stop_len    *= AVX_LEN_FLOAT;
 
-	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
-		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+	if( ( (uintptr_t)(const void*)(src) % AVX_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
 			_mm256_store_ps(dst + i, _mm256_sqrt_ps( _mm256_load_ps(src + i) ) );
 		}
 	}
 	else{
-		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
 			_mm256_storeu_ps(dst + i, _mm256_sqrt_ps( _mm256_loadu_ps(src + i) ) );
 		}
 	}
 
 	for(int i = stop_len; i < len; i++){
 		dst[i] = sqrtf(src[i]);
+	}
+}
+
+
+void round256f( float* src, float* dst, int len)
+{
+	int stop_len = len/AVX_LEN_FLOAT;
+	stop_len    *= AVX_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(src) % AVX_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+		  __m256 src_tmp   = _mm256_load_ps(src + i);
+		  _mm256_store_ps(dst + i, _mm256_round_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC ));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+		  __m256 src_tmp   = _mm256_loadu_ps(src + i);
+		  _mm256_storeu_ps(dst + i, _mm256_round_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC ));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = roundf(src[i]);
+	}
+}
+
+void floor256f( float* src, float* dst, int len)
+{
+	int stop_len = len/AVX_LEN_FLOAT;
+	stop_len    *= AVX_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(src) % AVX_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+		  __m256 src_tmp   = _mm256_load_ps(src + i);
+		  _mm256_store_ps(dst + i, _mm256_round_ps(src_tmp, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC ));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+		  __m256 src_tmp   = _mm256_loadu_ps(src + i);
+		  _mm256_storeu_ps(dst + i, _mm256_round_ps(src_tmp, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC ));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = floorf(src[i]);
+	}
+}
+
+void ceil256f( float* src, float* dst, int len)
+{
+	int stop_len = len/AVX_LEN_FLOAT;
+	stop_len    *= AVX_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(src) % AVX_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+		  __m256 src_tmp   = _mm256_load_ps(src + i);
+		  _mm256_store_ps(dst + i, _mm256_round_ps(src_tmp, _MM_FROUND_TO_POS_INF |_MM_FROUND_NO_EXC ));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+		  __m256 src_tmp   = _mm256_loadu_ps(src + i);
+		  _mm256_storeu_ps(dst + i, _mm256_round_ps(src_tmp, _MM_FROUND_TO_POS_INF |_MM_FROUND_NO_EXC ));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = ceilf(src[i]);
 	}
 }
 
@@ -1053,7 +1309,7 @@ void log10f_C(float* src, float* dst, int len)
 	for(int i = 0; i < len; i++) dst[i] = log10f(src[i]);
 }
 
-void ln_C(float* src, float* dst, int len)
+void lnf_C(float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++) dst[i] = logf(src[i]);
 }
@@ -1115,6 +1371,16 @@ void convert_64f32f_C(double* src, float* dst, int len)
 	}
 }
 
+void convert_32f64f_C(float* src, double* dst, int len)
+{
+	#ifdef OMP
+	#pragma omp simd
+	#endif	
+	for(int i = 0; i < len; i++){
+		dst[i] = (double)src[i];
+	}
+}
+
 void threshold_lt_f_C( float* src, float* dst, float value, int len)
 {
 	for(int i = 0; i < len; i++){
@@ -1130,21 +1396,21 @@ void threshold_gt_f_C( float* src, float* dst, float value, int len)
 	}
 }
 
-void magnitude_C_interleaved( complex* src, float* dst, int len)
+void magnitudef_C_interleaved( complex* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = sqrtf(src[i].re*src[i].re + src[i].im*src[i].im);
 	}
 }
 
-void magnitude_C_split( float* srcRe, float* srcIm, float* dst, int len)
+void magnitudef_C_split( float* srcRe, float* srcIm, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = sqrtf(srcRe[i]*srcRe[i] + srcIm[i]*srcIm[i]);
 	}
 }
 
-void mean_C(float* src, float* dst, int len)
+void meanf_C(float* src, float* dst, int len)
 {
 	float acc = 0.0f;
 	int i;
@@ -1158,4 +1424,47 @@ void mean_C(float* src, float* dst, int len)
 	acc  = acc/(float)len;
 	*dst = acc;
 }
+
+void flipf_C(float* src, float* dst, int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[len  -i - 1] = src[i];
+	}
+}
+
+void sinf_C( float* src, float* dst, int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = sinf(src[i]);
+	}
+}
+
+void cosf_C( float* src, float* dst, int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = cosf(src[i]);
+	}
+}
+
+void floorf_C( float* src, float* dst, int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = floorf(src[i]);
+	}
+}
+
+void ceilf_C( float* src, float* dst, int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = ceilf(src[i]);
+	}
+}
+
+void roundf_C( float* src, float* dst, int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = roundf(src[i]);
+	}
+}
+
 ////////////////////////
