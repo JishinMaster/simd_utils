@@ -8,6 +8,23 @@
 #include <stdint.h>
 #include "immintrin.h"
 
+// For tanf
+_PS_CONST(DP123, 0.78515625 + 2.4187564849853515625e-4 + 3.77489497744594108e-8);
+
+// Neg values to better migrate to FMA
+_PS_CONST(DP1,   -0.78515625);
+_PS_CONST(DP2,   -2.4187564849853515625e-4);
+_PS_CONST(DP3,   -3.77489497744594108e-8);
+
+_PS_CONST(FOPI, 1.27323954473516); /* 4/pi */
+_PS_CONST(TAN_P0, 9.38540185543E-3);
+_PS_CONST(TAN_P1, 3.11992232697E-3);
+_PS_CONST(TAN_P2, 2.44301354525E-2);
+_PS_CONST(TAN_P3, 5.34112807005E-2);
+_PS_CONST(TAN_P4, 1.33387994085E-1);
+_PS_CONST(TAN_P5, 3.33331568548E-1);
+
+
 void log10_128f(float* src, float* dst, int len)
 {
 	const __m128 invln10f = _mm_set1_ps((float)INVLN10);
@@ -96,7 +113,7 @@ void set128f( float* src, float value, int len)
 			_mm_storeu_ps(src + i, tmp);
 		}
 	}
-	
+
 	for(int i = stop_len; i < len; i++){
 		src[i] = value;
 	}		
@@ -119,7 +136,7 @@ void zero128f( float* src, int len)
 			_mm_storeu_ps(src + i, tmp);
 		}
 	}
-	
+
 	for(int i = stop_len; i < len; i++){
 		src[i] = 0.0f;
 	}		
@@ -201,7 +218,7 @@ void cplxtoreal128f( float* src, float* dstRe, float* dstIm, int len)
 {
 	int stop_len = len/SSE_LEN_FLOAT;
 	stop_len    *= SSE_LEN_FLOAT;
-	
+
 	int j = 0;
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
@@ -252,7 +269,7 @@ void convert128_64f32f(double* src, float* dst, int len)
 			_mm_storeu_ps(dst + i, tmp);
 		}
 	}
-	
+
 	for(int i = stop_len; i < len; i++){
 		dst[i] = (float)src[i];
 	}
@@ -279,7 +296,7 @@ void convert128_32f64f(float* src, double* dst, int len)
 			_mm_storeu_pd(dst + i + 2, _mm_cvtps_pd(src_tmp_hi)); //store the a and b converted in 64bits 
 		}
 	}
-	
+
 	for(int i = stop_len; i < len; i++){
 		dst[i] = (double)src[i];
 	}
@@ -445,8 +462,95 @@ void sincos128f( float* src, float* dst_sin, float* dst_cos, int len)
 	}
 }
 
+v4sf tanf_ps(v4sf xx, const __m128 positive_mask, const __m128 negative_mask)
+{
+	v4sf x, y, z, zz;
+	v4si j; //long?
+	v4sf sign, xsupem4;
+	v4sf tmp;
+	v4si jandone, jandtwo;
+
+	x = _mm_and_ps (positive_mask, xx); //fabs(xx)
+
+	/* compute x mod PIO4 */
+	j = _mm_cvtps_epi32( _mm_round_ps(_mm_mul_ps(*(v4sf*)_ps_FOPI,x), _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC )); /* integer part of x/(PI/4) */
+	y = _mm_cvtepi32_ps(j);
+
+	jandone = _mm_cmpgt_epi32(_mm_and_si128(j,*(v4si*)_pi32_1),_mm_setzero_si128 ());
+	y = _mm_blendv_ps ( y, _mm_add_ps(y,*(v4sf*)_ps_1),_mm_cvtepi32_ps(jandone));
+	j = _mm_cvtps_epi32( y); // no need to round again
+
+	//z = ((x - y * DP1) - y * DP2) - y * DP3;
+
+#if 1
+	tmp = _mm_mul_ps(y, *(v4sf*)_ps_DP1);
+	z   = _mm_add_ps(x, tmp);
+	tmp = _mm_mul_ps(y, *(v4sf*)_ps_DP2);
+	z   = _mm_add_ps(z, tmp);
+	tmp = _mm_mul_ps(y, *(v4sf*)_ps_DP3);
+	z   = _mm_add_ps(z, tmp);
+#else // faster but less precision
+	tmp = _mm_mul_ps(y,*(v4sf*)_ps_DP123);
+	z   = _mm_sub_ps(x, tmp);
+#endif
+	zz = _mm_mul_ps(z,z); //z*z
+
+	//TODO : should not be computed if X < 10e-4
+	/* 1.7e-8 relative error in [-pi/4, +pi/4] */
+	tmp =  _mm_mul_ps(*(v4sf*)_ps_TAN_P0, zz);
+	tmp =  _mm_add_ps(*(v4sf*)_ps_TAN_P1, tmp);
+	tmp =  _mm_mul_ps(zz, tmp);
+	tmp =  _mm_add_ps(*(v4sf*)_ps_TAN_P2, tmp);
+	tmp =  _mm_mul_ps(zz, tmp);
+	tmp =  _mm_add_ps(*(v4sf*)_ps_TAN_P3, tmp);
+	tmp =  _mm_mul_ps(zz, tmp);
+	tmp =  _mm_add_ps(*(v4sf*)_ps_TAN_P4, tmp);
+	tmp =  _mm_mul_ps(zz, tmp);
+	tmp =  _mm_add_ps(*(v4sf*)_ps_TAN_P5, tmp);
+	tmp =  _mm_mul_ps(zz, tmp);
+	tmp =  _mm_mul_ps(z, tmp);
+	tmp =  _mm_add_ps(z, tmp);
+
+	xsupem4 = _mm_cmpgt_ps(x,_mm_set1_ps(1.0e-4)); 	//if( x > 1.0e-4 )
+	y      = _mm_blendv_ps ( z, tmp, xsupem4);
+
+	jandtwo = _mm_cmpgt_epi32(_mm_and_si128(j,*(v4si*)_pi32_2),_mm_setzero_si128 ());
+	y = _mm_blendv_ps ( y, _mm_div_ps(_mm_set1_ps(-1.0f),y),_mm_cvtepi32_ps(jandtwo));
+
+	sign   = _mm_cmplt_ps(xx,_mm_setzero_ps()); //0xFFFFFFFF if xx < 0.0
+	y = _mm_blendv_ps (y, _mm_xor_ps(negative_mask,y), sign);
+	return( y );
+}
+
+
 #warning "TODO : create a single function, avoid div"
 void tan128f( float* src, float* dst, int len)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	const __m128 positive_mask = _mm_castsi128_ps (_mm_set1_epi32 (0x7FFFFFFF));
+	const __m128 negative_mask = _mm_castsi128_ps (_mm_set1_epi32 (~0x7FFFFFFF));
+
+	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			__m128 src_tmp = _mm_load_ps(src + i);
+			_mm_store_ps(dst + i, tanf_ps(src_tmp, positive_mask, negative_mask));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			__m128 src_tmp = _mm_loadu_ps(src + i);
+			_mm_storeu_ps(dst + i, tanf_ps(src_tmp, positive_mask, negative_mask));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = tanf(src[i]);
+	}
+}
+
+void tan128f_naive( float* src, float* dst, int len)
 {
 	int stop_len = len/SSE_LEN_FLOAT;
 	stop_len    *= SSE_LEN_FLOAT;
@@ -537,8 +641,8 @@ void mean128f( float* src, float* dst, int len)
 {
 	int stop_len = len/SSE_LEN_FLOAT;
 	stop_len    *= SSE_LEN_FLOAT;
-	
-	 __attribute__ ((aligned (SSE_LEN_BYTES))) float accumulate[SSE_LEN_FLOAT] = {0.0f,0.0f,0.0f,0.0f};
+
+	__attribute__ ((aligned (SSE_LEN_BYTES))) float accumulate[SSE_LEN_FLOAT] = {0.0f,0.0f,0.0f,0.0f};
 	float tmp_acc = 0.0f;
 	__m128 vec_acc = _mm_setzero_ps(); //initialize the vector accumulator
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
@@ -555,14 +659,14 @@ void mean128f( float* src, float* dst, int len)
 	}
 
 	_mm_store_ps(accumulate , vec_acc);
-	
+
 	for(int i = stop_len; i < len; i++){
 		tmp_acc = src[i];
 	}
-	
+
 	tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3];
 	tmp_acc /= (float)len;
-	
+
 	*dst = tmp_acc;
 }
 
@@ -594,14 +698,14 @@ void round128f( float* src, float* dst, int len)
 
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-		  __m128 src_tmp   = _mm_load_ps(src + i);
-		  _mm_store_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC ));
+			__m128 src_tmp   = _mm_load_ps(src + i);
+			_mm_store_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC ));
 		}
 	}
 	else{
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-		  __m128 src_tmp   = _mm_loadu_ps(src + i);
-		  _mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC ));
+			__m128 src_tmp   = _mm_loadu_ps(src + i);
+			_mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC ));
 		}
 	}
 
@@ -617,14 +721,14 @@ void ceil128f( float* src, float* dst, int len)
 
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-		  __m128 src_tmp   = _mm_load_ps(src + i);
-		  _mm_store_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_POS_INF |_MM_FROUND_NO_EXC ));
+			__m128 src_tmp   = _mm_load_ps(src + i);
+			_mm_store_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_POS_INF |_MM_FROUND_NO_EXC ));
 		}
 	}
 	else{
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-		  __m128 src_tmp   = _mm_loadu_ps(src + i);
-		  _mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_POS_INF |_MM_FROUND_NO_EXC ));
+			__m128 src_tmp   = _mm_loadu_ps(src + i);
+			_mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_POS_INF |_MM_FROUND_NO_EXC ));
 		}
 	}
 
@@ -640,14 +744,14 @@ void floor128f( float* src, float* dst, int len)
 
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-		  __m128 src_tmp   = _mm_load_ps(src + i);
-		  _mm_store_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC ));
+			__m128 src_tmp   = _mm_load_ps(src + i);
+			_mm_store_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC ));
 		}
 	}
 	else{
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-		  __m128 src_tmp   = _mm_loadu_ps(src + i);
-		  _mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC ));
+			__m128 src_tmp   = _mm_loadu_ps(src + i);
+			_mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC ));
 		}
 	}
 
