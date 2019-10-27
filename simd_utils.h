@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1
+ * Version : 0.1.1
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -22,6 +22,7 @@
 #define IMM8_PERMUTE_128BITS_LANES 0x1 // reverse abcd efgh to efgh abcd
 #define M_PI 3.14159265358979323846
 
+#warning "TODO : add better alignment checks"
 
 /* LATENCIES
 SSE
@@ -71,6 +72,7 @@ typedef struct {
 
 #ifdef SSE
 #define SSE_LEN_BYTES 16 // Size of SSE lane
+#define SSE_LEN_INT32  4 // number of int32 with an SSE lane
 #define SSE_LEN_FLOAT  4 // number of float with an SSE lane
 #define SSE_LEN_DOUBLE 2 // number of double with an SSE lane
 #include "sse_mathfun.h"
@@ -131,6 +133,7 @@ _PD_CONST(cephes_exp_C2, 1.42860682030941723212e-6);
 
 #include "simd_utils_sse_float.h"
 #include "simd_utils_sse_double.h"
+#include "simd_utils_sse_int32.h"
 #endif
 
 #ifdef AVX
@@ -139,11 +142,13 @@ __m256 _mm256_set_m128 ( __m128 H, __m128 L) //not present on every GCC version
 	return _mm256_insertf128_ps(_mm256_castps128_ps256(L), H, 1);
 }
 #define AVX_LEN_BYTES 32 // Size of AVX lane
+#define AVX_LEN_INT32  4 // number of int32 with an AVX lane
 #define AVX_LEN_FLOAT  8 // number of float with an AVX lane
 #define AVX_LEN_DOUBLE 4 // number of double with an AVX lane
 #include "avx_mathfun.h"
 #include "simd_utils_avx_float.h"
 #include "simd_utils_avx_double.h"
+#include "simd_utils_avx_int32.h"
 #endif
 
 
