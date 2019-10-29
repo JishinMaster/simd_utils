@@ -61,6 +61,15 @@ _PS256_CONST(TAN_P3, 5.34112807005E-2);
 _PS256_CONST(TAN_P4, 1.33387994085E-1);
 _PS256_CONST(TAN_P5, 3.33331568548E-1);
 
+_PS256_CONST(ASIN_P0, 4.2163199048E-2);
+_PS256_CONST(ASIN_P1, 2.4181311049E-2);
+_PS256_CONST(ASIN_P2, 4.5470025998E-2);
+_PS256_CONST(ASIN_P3, 7.4953002686E-2);
+_PS256_CONST(ASIN_P4, 1.6666752422E-1);
+
+_PS256_CONST(PIF, 3.14159265358979323846); // PI
+_PS256_CONST(PIO2F, 1.570796326794896619); // PI/2
+
 void log10_256f(float* src, float* dst, int len)
 {
 	float invln10f_mask = (float)INVLN10;
@@ -587,8 +596,85 @@ void sincos256f( float* src, float* dst_sin, float* dst_cos, int len)
 AVX2_INTOP_USING_SSE2(cmpgt_epi32)
 #endif
 
-#if 1
 
+v8sf asin256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
+{
+	v8sf a, x, z, x_tmp, z_tmp;
+	v8sf sign, flag;
+	v8sf ainfem4, asup0p5;
+	v8sf tmp;
+	x    = xx;
+	a    = _mm256_and_ps (positive_mask, x); //fabs(x)
+	sign = _mm256_cmp_ps(x,_mm256_setzero_ps(), _CMP_LT_OS); //0xFFFFFFFF if x < 0.0
+
+	//TODO : vectorize this
+	/*if( a > 1.0f )
+	{
+		return( 0.0f );
+	}*/
+
+
+	ainfem4 = _mm256_cmp_ps(a,_mm256_set1_ps(1.0e-4), _CMP_LT_OS);	//if( a < 1.0e-4f )
+
+	asup0p5 = _mm256_cmp_ps(a,*(v8sf*)_ps256_0p5, _CMP_GT_OS); //if( a > 0.5f ) flag = 1 else 0
+	z_tmp   = _mm256_sub_ps(*(v8sf*)_ps256_1,a);
+	z_tmp   = _mm256_mul_ps(*(v8sf*)_ps256_0p5,z_tmp);
+	z       = _mm256_blendv_ps (_mm256_mul_ps(a,a), z_tmp, asup0p5);
+	x       = _mm256_blendv_ps ( a, _mm256_sqrt_ps(z), asup0p5);
+
+	tmp     =  _mm256_mul_ps(*(v8sf*)_ps256_ASIN_P0, z);
+	tmp     =  _mm256_add_ps(*(v8sf*)_ps256_ASIN_P1, tmp);
+	tmp     =  _mm256_mul_ps(z, tmp);
+	tmp     =  _mm256_add_ps(*(v8sf*)_ps256_ASIN_P2, tmp);
+	tmp     =  _mm256_mul_ps(z, tmp);
+	tmp     =  _mm256_add_ps(*(v8sf*)_ps256_ASIN_P3, tmp);
+	tmp     =  _mm256_mul_ps(z, tmp);
+	tmp     =  _mm256_add_ps(*(v8sf*)_ps256_ASIN_P4, tmp);
+	tmp     =  _mm256_mul_ps(z, tmp);
+	tmp     =  _mm256_mul_ps(x, tmp);
+	tmp     =  _mm256_add_ps(x, tmp);
+
+	z       = tmp;
+
+	z_tmp   = _mm256_add_ps(z, z);
+	z_tmp   = _mm256_sub_ps(*(v8sf*)_ps256_PIO2F, z_tmp);
+	z       = _mm256_blendv_ps (z, z_tmp, asup0p5);
+
+	//done:
+	z       = _mm256_blendv_ps (z, a, ainfem4);
+	z       = _mm256_blendv_ps (z, _mm256_xor_ps(negative_mask,z), sign);
+
+	return( z );
+}
+
+void asin256f( float* src, float* dst, int len)
+{
+	int stop_len = len/AVX_LEN_FLOAT;
+	stop_len    *= AVX_LEN_FLOAT;
+
+	const v8sf positive_mask = _mm256_castsi256_ps (_mm256_set1_epi32 (0x7FFFFFFF));
+	const v8sf negative_mask = _mm256_castsi256_ps (_mm256_set1_epi32 (~0x7FFFFFFF));
+
+	if( ( (uintptr_t)(const void*)(src) % AVX_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+			v8sf src_tmp = _mm256_load_ps(src + i);
+			_mm256_store_ps(dst + i, asin256f_ps(src_tmp, positive_mask, negative_mask));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+			v8sf src_tmp = _mm256_loadu_ps(src + i);
+			_mm256_storeu_ps(dst + i, asin256f_ps(src_tmp, positive_mask, negative_mask));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = asinf(src[i]);
+	}
+}
+
+
+#if 1
 v8sf tan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 {
 	v8sf x, y, z, zz;

@@ -24,6 +24,14 @@ _PS_CONST(TAN_P3, 5.34112807005E-2);
 _PS_CONST(TAN_P4, 1.33387994085E-1);
 _PS_CONST(TAN_P5, 3.33331568548E-1);
 
+_PS_CONST(ASIN_P0, 4.2163199048E-2);
+_PS_CONST(ASIN_P1, 2.4181311049E-2);
+_PS_CONST(ASIN_P2, 4.5470025998E-2);
+_PS_CONST(ASIN_P3, 7.4953002686E-2);
+_PS_CONST(ASIN_P4, 1.6666752422E-1);
+
+_PS_CONST(PIF, 3.14159265358979323846); // PI
+_PS_CONST(PIO2F, 1.570796326794896619); // PI/2
 
 void log10_128f(float* src, float* dst, int len)
 {
@@ -586,6 +594,83 @@ void sincos128f( float* src, float* dst_sin, float* dst_cos, int len)
 	for(int i = stop_len; i < len; i++){
 		dst_sin[i] = sinf(src[i]);
 		dst_cos[i] = cosf(src[i]);
+	}
+}
+
+
+v4sf asinf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
+{
+	v4sf a, x, z, x_tmp, z_tmp;
+	v4sf sign, flag;
+	v4sf ainfem4, asup0p5;
+	v4sf tmp;
+	x    = xx;
+	a    = _mm_and_ps (positive_mask, x); //fabs(x)
+	sign = _mm_cmplt_ps(x,_mm_setzero_ps()); //0xFFFFFFFF if x < 0.0
+
+	//TODO : vectorize this
+	/*if( a > 1.0f )
+	{
+		return( 0.0f );
+	}*/
+
+
+	ainfem4 = _mm_cmplt_ps(a,_mm_set1_ps(1.0e-4)); 	//if( a < 1.0e-4f )
+
+	asup0p5 = _mm_cmpgt_ps(a,*(v4sf*)_ps_0p5); //if( a > 0.5f ) flag = 1 else 0
+	z_tmp   = _mm_sub_ps(*(v4sf*)_ps_1,a);
+	z_tmp   = _mm_mul_ps(*(v4sf*)_ps_0p5,z_tmp);
+	z       = _mm_blendv_ps (_mm_mul_ps(a,a), z_tmp, asup0p5);
+	x       = _mm_blendv_ps ( a, _mm_sqrt_ps(z), asup0p5);
+
+	tmp     =  _mm_mul_ps(*(v4sf*)_ps_ASIN_P0, z);
+	tmp     =  _mm_add_ps(*(v4sf*)_ps_ASIN_P1, tmp);
+	tmp     =  _mm_mul_ps(z, tmp);
+	tmp     =  _mm_add_ps(*(v4sf*)_ps_ASIN_P2, tmp);
+	tmp     =  _mm_mul_ps(z, tmp);
+	tmp     =  _mm_add_ps(*(v4sf*)_ps_ASIN_P3, tmp);
+	tmp     =  _mm_mul_ps(z, tmp);
+	tmp     =  _mm_add_ps(*(v4sf*)_ps_ASIN_P4, tmp);
+	tmp     =  _mm_mul_ps(z, tmp);
+	tmp     =  _mm_mul_ps(x, tmp);
+	tmp     =  _mm_add_ps(x, tmp);
+
+	z       = tmp;
+
+	z_tmp   = _mm_add_ps(z, z);
+	z_tmp   = _mm_sub_ps(*(v4sf*)_ps_PIO2F, z_tmp);
+	z       = _mm_blendv_ps (z, z_tmp, asup0p5);
+
+	//done:
+	z       = _mm_blendv_ps (z, a, ainfem4);
+	z       = _mm_blendv_ps (z, _mm_xor_ps(negative_mask,z), sign);
+
+	return( z );
+}
+
+void asin128f( float* src, float* dst, int len)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	const v4sf positive_mask = _mm_castsi128_ps (_mm_set1_epi32 (0x7FFFFFFF));
+	const v4sf negative_mask = _mm_castsi128_ps (_mm_set1_epi32 (~0x7FFFFFFF));
+
+	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			v4sf src_tmp = _mm_load_ps(src + i);
+			_mm_store_ps(dst + i, asinf_ps(src_tmp, positive_mask, negative_mask));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			v4sf src_tmp = _mm_loadu_ps(src + i);
+			_mm_storeu_ps(dst + i, asinf_ps(src_tmp, positive_mask, negative_mask));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = asinf(src[i]);
 	}
 }
 

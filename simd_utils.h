@@ -288,6 +288,20 @@ void flipf_C(float* src, float* dst, int len)
 	}
 }
 
+void asinf_C( float* src, float* dst, int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = asinf(src[i]);
+	}
+}
+
+void tanf_C( float* src, float* dst, int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = tanf(src[i]);
+	}
+}
+
 void sinf_C( float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
