@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.1
+ * Version : 0.1.2
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -38,7 +38,9 @@ _PS_CONST(ASIN_P3, 7.4953002686E-2);
 _PS_CONST(ASIN_P4, 1.6666752422E-1);
 
 _PS_CONST(PIF  , 3.14159265358979323846); // PI
+_PS_CONST(mPIF  , -3.14159265358979323846); // -PI
 _PS_CONST(PIO2F, 1.57079632679489661923); // PI/2 1.570796326794896619
+_PS_CONST(mPIO2F, -1.57079632679489661923); // -PI/2 1.570796326794896619
 _PS_CONST(PIO4F, 0.785398163397448309615); // PI/4 0.7853981633974483096
 
 _PS_CONST(TANPI8F , 0.414213562373095048802); // tan(pi/8) => 0.4142135623730950
@@ -616,7 +618,6 @@ void sincos128f( float* src, float* dst_sin, float* dst_cos, int len)
 	}
 }
 
-
 v4sf atanf_ps( v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 {
 	v4sf x, y, z;
@@ -683,6 +684,58 @@ void atan128f( float* src, float* dst, int len)
 		dst[i] = atanf(src[i]);
 	}
 }
+
+v4sf atan2f_ps( v4sf y, v4sf x, const v4sf positive_mask, const v4sf negative_mask)
+{
+	v4sf  z,  w;
+	v4sf  xinfzero,  yinfzero,   xeqzero,  yeqzero;
+	v4sf  xeqzeroandyinfzero,  yeqzeroandxinfzero;
+	v4sf  specialcase;
+
+	xinfzero = _mm_cmplt_ps(x,_mm_setzero_ps()); // code =2
+	yinfzero = _mm_cmplt_ps(y,_mm_setzero_ps()); // code = code |1;
+
+	xeqzero = _mm_cmpeq_ps(x, _mm_setzero_ps());
+	yeqzero = _mm_cmpeq_ps(y, _mm_setzero_ps());
+
+	z = *(v4sf*)_ps_PIO2F;
+	xeqzeroandyinfzero = _mm_and_ps(xeqzero,yinfzero);
+	z = _mm_blendv_ps (z, *(v4sf*)_ps_mPIO2F, xeqzeroandyinfzero);
+	z = _mm_blendv_ps (z, _mm_setzero_ps(), yeqzero);
+	yeqzeroandxinfzero = _mm_and_ps(yeqzero,xinfzero);
+	z = _mm_blendv_ps (z, *(v4sf*)_ps_PIF, yeqzeroandxinfzero);
+	specialcase = _mm_or_ps(xeqzero,yeqzero);
+	w = _mm_setzero_ps();
+	w = _mm_blendv_ps (w, *(v4sf*)_ps_PIF, _mm_andnot_ps(yinfzero,xinfzero)); // y >= 0 && x<0
+	w = _mm_blendv_ps (w, *(v4sf*)_ps_mPIF, _mm_and_ps(yinfzero,xinfzero)); // y < 0 && x<0
+	z = _mm_blendv_ps (_mm_add_ps( w, atanf_ps( _mm_div_ps(y,x) , positive_mask, negative_mask)), z, specialcase); // atanf(y/x) if not in special case
+	return( z);
+}
+
+void atan2128f( float* src1, float* src2, float* dst, int len)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	const v4sf positive_mask = _mm_castsi128_ps (_mm_set1_epi32 (0x7FFFFFFF));
+	const v4sf negative_mask = _mm_castsi128_ps (_mm_set1_epi32 (~0x7FFFFFFF));
+
+	if( ( (uintptr_t)(const void*)(src1) % SSE_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			_mm_store_ps(dst + i, atan2f_ps(_mm_load_ps(src1 + i), _mm_load_ps(src2 + i), positive_mask, negative_mask));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			_mm_storeu_ps(dst + i, atan2f_ps(_mm_loadu_ps(src1 + i), _mm_loadu_ps(src2 + i), positive_mask, negative_mask));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = atan2f(src1[i],src2[i]);
+	}
+}
+
 
 v4sf asinf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 {

@@ -1,16 +1,9 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.1
+ * Version : 0.1.2
  * Author  : JishinMaster
  * Licence : BSD-2
  */
-
-/*#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <time.h>
-#include <sys/time.h>*/
-
 
 #ifdef OMP
 #include <omp.h>
