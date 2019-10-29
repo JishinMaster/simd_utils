@@ -361,17 +361,17 @@ void convert256_64f32f(double* src, float* dst, int len)
 
 void convert256_32f64f(float* src, double* dst, int len)
 {
-	int stop_len = len/AVX_LEN_FLOAT;
-	stop_len    *= AVX_LEN_FLOAT;
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
 
 	if( ( (uintptr_t)(const void*)(src) % AVX_LEN_BYTES) == 0){
-		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			__m128 src_tmp = _mm_load_ps(src + i); //load a,b,c,d
 			_mm256_store_pd(dst + i, _mm256_cvtps_pd(src_tmp)); //store the abcd converted in 64bits 
 		}
 	}
 	else{
-		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			__m128 src_tmp = _mm_loadu_ps(src + i); //load a,b,c,d
 			_mm256_storeu_pd(dst + i, _mm256_cvtps_pd(src_tmp)); //store the c and d converted in 64bits 
 		}
@@ -582,7 +582,13 @@ void sincos256f( float* src, float* dst_sin, float* dst_cos, int len)
 }
 
 
-#ifdef __AVX2__ // Needs AVX2 to  get _mm256_cmpgt_epi32
+#ifndef __AVX2__ // Needs AVX2 to  get _mm256_cmpgt_epi32
+#warning "Using SSE2 to perform AVX2 integer ops"
+AVX2_INTOP_USING_SSE2(cmpgt_epi32)
+#endif
+
+#if 1
+
 v8sf tan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 {
 	v8sf x, y, z, zz;
@@ -599,7 +605,22 @@ v8sf tan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 	j = _mm256_cvtps_epi32( _mm256_round_ps(_mm256_mul_ps(*(v8sf*)_ps256_FOPI,x), _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC )); /* integer part of x/(PI/4), using floor */
 	y = _mm256_cvtepi32_ps(j);
 
-	jandone = _mm256_cmpgt_epi32(_mm256_and_si256(j,*(v8si*)_pi32_256_1),_mm256_setzero_si256 ());
+
+#ifndef __AVX2__
+  v4si andone_gt_0, andone_gt_1;
+  v8si andone_gt;
+  v4si j_0, j_1;
+  COPY_IMM_TO_XMM(j,j_0,j_1);
+
+  //FT: 0 1 and not 1 0?
+  andone_gt_0 = _mm_and_si128(j_0,*(v4si*)_pi32avx_1);
+  andone_gt_1 = _mm_and_si128(j_1,*(v4si*)_pi32avx_1);
+  COPY_XMM_TO_IMM(andone_gt_0,andone_gt_1,andone_gt);
+  jandone = _mm256_cmpgt_epi32(andone_gt,_mm256_setzero_si256 ());
+#else
+  jandone = _mm256_cmpgt_epi32(_mm256_and_si256(j,*(v8si*)_pi32_256_1),_mm256_setzero_si256 ());
+#endif
+
 	y = _mm256_blendv_ps ( y, _mm256_add_ps(y,*(v8sf*)_ps256_1),_mm256_cvtepi32_ps(jandone));
 	j = _mm256_cvtps_epi32( y); // no need to round again
 
@@ -634,14 +655,26 @@ v8sf tan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 	tmp =  _mm256_mul_ps(z, tmp);
 	tmp =  _mm256_add_ps(z, tmp);
 
-	xsupem4 = _mm256_cmp_ps(x,_mm256_set1_ps(1.0e-4), _CMP_GT_OQ); 	//if( x > 1.0e-4 )
+	xsupem4 = _mm256_cmp_ps(x,_mm256_set1_ps(1.0e-4), _CMP_GT_OS); 	//if( x > 1.0e-4 )
 	y       = _mm256_blendv_ps ( z, tmp, xsupem4);
 
-	jandtwo = _mm256_cmpgt_epi32(_mm256_and_si256(j,*(v8si*)_pi32_256_2),_mm256_setzero_si256 ());
+#ifndef __AVX2__
+  v4si andtwo_gt_0, andtwo_gt_1;
+  v8si andtwo_gt;
+  COPY_IMM_TO_XMM(j,j_0,j_1);
+  andtwo_gt_0 = _mm_and_si128(j_0,*(v4si*)_pi32avx_2);
+  andtwo_gt_1 = _mm_and_si128(j_1,*(v4si*)_pi32avx_2);
+  COPY_XMM_TO_IMM(andtwo_gt_0,andtwo_gt_1,andtwo_gt);
+  jandtwo = _mm256_cmpgt_epi32(andtwo_gt,_mm256_setzero_si256 ());
+#else
+  jandtwo = _mm256_cmpgt_epi32(_mm256_and_si256(j,*(v8si*)_pi32_256_2),_mm256_setzero_si256 ());
+#endif
+
 	y       = _mm256_blendv_ps ( y, _mm256_div_ps(_mm256_set1_ps(-1.0f),y),_mm256_cvtepi32_ps(jandtwo));
 
-	sign   = _mm256_cmp_ps(xx,_mm256_setzero_ps(), _CMP_LT_OQ); //0xFFFFFFFF if xx < 0.0
+	sign   = _mm256_cmp_ps(xx,_mm256_setzero_ps(), _CMP_LT_OS); //0xFFFFFFFF if xx < 0.0
 	y      = _mm256_blendv_ps (y, _mm256_xor_ps(negative_mask,y), sign);
+
 	return( y );
 }
 
@@ -672,6 +705,7 @@ void tan256f( float* src, float* dst, int len)
 }
 
 #else
+
 void tan256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
