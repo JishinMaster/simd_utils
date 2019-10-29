@@ -45,6 +45,7 @@ _CMP_GT_OQ    0x1e /* Greater-than (ordered, non-signaling)  */
 _CMP_TRUE_US  0x1f /* True (unordered, signaling)  */
 #endif
 
+_PS256_CONST(min1  , -1.0f);
 // For tanf
 _PS256_CONST(DP123, 0.78515625 + 2.4187564849853515625e-4 + 3.77489497744594108e-8);
 
@@ -67,8 +68,20 @@ _PS256_CONST(ASIN_P2, 4.5470025998E-2);
 _PS256_CONST(ASIN_P3, 7.4953002686E-2);
 _PS256_CONST(ASIN_P4, 1.6666752422E-1);
 
-_PS256_CONST(PIF, 3.14159265358979323846); // PI
-_PS256_CONST(PIO2F, 1.570796326794896619); // PI/2
+_PS256_CONST(PIF  , 3.14159265358979323846); // PI
+_PS256_CONST(PIO2F, 1.57079632679489661923); // PI/2 1.570796326794896619
+_PS256_CONST(PIO4F, 0.785398163397448309615); // PI/4 0.7853981633974483096
+
+_PS256_CONST(TANPI8F , 0.414213562373095048802); // tan(pi/8) => 0.4142135623730950
+_PS256_CONST(TAN3PI8F, 2.414213562373095048802); // tan(3*pi/8) => 2.414213562373095
+
+_PS256_CONST(ATAN_P0, 8.05374449538e-2);
+_PS256_CONST(ATAN_P1, -1.38776856032E-1);
+_PS256_CONST(ATAN_P2, 1.99777106478E-1);
+_PS256_CONST(ATAN_P3, -3.33329491539E-1);
+
+
+
 
 void log10_256f(float* src, float* dst, int len)
 {
@@ -596,6 +609,72 @@ void sincos256f( float* src, float* dst_sin, float* dst_cos, int len)
 AVX2_INTOP_USING_SSE2(cmpgt_epi32)
 #endif
 
+v8sf atan256f_ps( v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
+{
+	v8sf x, y, z;
+	v8sf sign;
+	v8sf suptan3pi8, inftan3pi8suppi8;
+	v8sf tmp;
+
+	x    = _mm256_and_ps (positive_mask, xx);
+	sign = _mm256_cmp_ps(xx,_mm256_setzero_ps(), _CMP_LT_OS); //0xFFFFFFFF if x < 0.0, sign = -1
+
+	/* range reduction */
+
+	y          = _mm256_setzero_ps();
+	suptan3pi8 = _mm256_cmp_ps(x,*(v8sf*)_ps256_TAN3PI8F,  _CMP_GT_OS); 	// if( x > tan 3pi/8 )
+	x          = _mm256_blendv_ps ( x, _mm256_div_ps(*(v8sf*)_ps256_min1, x), suptan3pi8);
+	y          = _mm256_blendv_ps ( y, *(v8sf*)_ps256_PIO2F, suptan3pi8);
+
+
+	inftan3pi8suppi8 = _mm256_and_ps(_mm256_cmp_ps(x,*(v8sf*)_ps256_TAN3PI8F, _CMP_LT_OS),_mm256_cmp_ps(x,*(v8sf*)_ps256_TANPI8F, _CMP_GT_OS)); 	// if( x > tan 3pi/8 )
+	x = _mm256_blendv_ps ( x, _mm256_div_ps( _mm256_sub_ps(x, *(v8sf*)_ps_1), _mm256_add_ps(x, *(v8sf*)_ps256_1)), inftan3pi8suppi8);
+	y = _mm256_blendv_ps ( y, *(v8sf*)_ps256_PIO4F, inftan3pi8suppi8);
+
+	z   = _mm256_mul_ps(x,x);
+
+	tmp = _mm256_mul_ps(*(v8sf*)_ps256_ATAN_P0, z);
+	tmp = _mm256_add_ps(*(v8sf*)_ps256_ATAN_P1, tmp);
+	tmp = _mm256_mul_ps(z, tmp);
+	tmp = _mm256_add_ps(*(v8sf*)_ps256_ATAN_P2, tmp);
+	tmp = _mm256_mul_ps(z, tmp);
+	tmp = _mm256_add_ps(*(v8sf*)_ps256_ATAN_P3, tmp);
+	tmp = _mm256_mul_ps(z, tmp);
+	tmp = _mm256_mul_ps(x, tmp);
+	tmp = _mm256_add_ps(x, tmp);
+
+	y  = _mm256_add_ps(y, tmp);
+
+	y  = _mm256_blendv_ps (y, _mm256_xor_ps(negative_mask,y), sign);
+
+	return( y );
+}
+
+void atan256f( float* src, float* dst, int len)
+{
+	int stop_len = len/AVX_LEN_FLOAT;
+	stop_len    *= AVX_LEN_FLOAT;
+
+	const v8sf positive_mask = _mm256_castsi256_ps (_mm256_set1_epi32 (0x7FFFFFFF));
+	const v8sf negative_mask = _mm256_castsi256_ps (_mm256_set1_epi32 (~0x7FFFFFFF));
+
+	if( ( (uintptr_t)(const void*)(src) % AVX_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+			v8sf src_tmp = _mm256_load_ps(src + i);
+			_mm256_store_ps(dst + i, atan256f_ps(src_tmp, positive_mask, negative_mask));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+			v8sf src_tmp = _mm256_loadu_ps(src + i);
+			_mm256_storeu_ps(dst + i, atan256f_ps(src_tmp, positive_mask, negative_mask));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = atanf(src[i]);
+	}
+}
 
 v8sf asin256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 {

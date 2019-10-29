@@ -132,7 +132,9 @@ _PD_CONST(cephes_exp_C1, 0.693145751953125);
 _PD_CONST(cephes_exp_C2, 1.42860682030941723212e-6);
 
 #include "simd_utils_sse_float.h"
+#ifndef ARM
 #include "simd_utils_sse_double.h"
+#endif
 #include "simd_utils_sse_int32.h"
 #endif
 

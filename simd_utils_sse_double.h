@@ -6,7 +6,11 @@
  */
 
 #include <stdint.h>
-#include "immintrin.h"
+#ifndef ARM
+#include <immintrin.h>
+#else
+#include "sse2neon.h"
+#endif
 
 
 typedef __m128d  v2sd; // vector of 2 double (sse)

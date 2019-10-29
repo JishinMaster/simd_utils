@@ -6,7 +6,14 @@
  */
 
 #include <stdint.h>
-#include "immintrin.h"
+#ifndef ARM
+#include <immintrin.h>
+#else
+#include "sse2neon.h"
+#endif
+
+
+_PS_CONST(min1  , -1.0f);
 
 // For tanf
 _PS_CONST(DP123, 0.78515625 + 2.4187564849853515625e-4 + 3.77489497744594108e-8);
@@ -30,8 +37,18 @@ _PS_CONST(ASIN_P2, 4.5470025998E-2);
 _PS_CONST(ASIN_P3, 7.4953002686E-2);
 _PS_CONST(ASIN_P4, 1.6666752422E-1);
 
-_PS_CONST(PIF, 3.14159265358979323846); // PI
-_PS_CONST(PIO2F, 1.570796326794896619); // PI/2
+_PS_CONST(PIF  , 3.14159265358979323846); // PI
+_PS_CONST(PIO2F, 1.57079632679489661923); // PI/2 1.570796326794896619
+_PS_CONST(PIO4F, 0.785398163397448309615); // PI/4 0.7853981633974483096
+
+_PS_CONST(TANPI8F , 0.414213562373095048802); // tan(pi/8) => 0.4142135623730950
+_PS_CONST(TAN3PI8F, 2.414213562373095048802); // tan(3*pi/8) => 2.414213562373095
+
+_PS_CONST(ATAN_P0, 8.05374449538e-2);
+_PS_CONST(ATAN_P1, -1.38776856032E-1);
+_PS_CONST(ATAN_P2, 1.99777106478E-1);
+_PS_CONST(ATAN_P3, -3.33329491539E-1);
+
 
 void log10_128f(float* src, float* dst, int len)
 {
@@ -343,6 +360,7 @@ void cplxtoreal128f( float* src, float* dstRe, float* dstIm, int len)
 	}		
 }
 
+#ifndef ARM
 void convert128_64f32f(double* src, float* dst, int len)
 {
 	int stop_len = len/SSE_LEN_FLOAT;
@@ -396,6 +414,7 @@ void convert128_32f64f(float* src, double* dst, int len)
 		dst[i] = (double)src[i];
 	}
 }
+#endif
 
 //TODO : find a better way to work on aligned data
 void flip128f(float* src, float* dst, int len)
@@ -597,6 +616,73 @@ void sincos128f( float* src, float* dst_sin, float* dst_cos, int len)
 	}
 }
 
+
+v4sf atanf_ps( v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
+{
+	v4sf x, y, z;
+	v4sf sign;
+	v4sf suptan3pi8, inftan3pi8suppi8;
+	v4sf tmp;
+
+	x    = _mm_and_ps (positive_mask, xx);
+	sign = _mm_cmplt_ps(xx,_mm_setzero_ps()); //0xFFFFFFFF if x < 0.0, sign = -1
+
+	/* range reduction */
+
+	y = _mm_setzero_ps();
+	suptan3pi8 = _mm_cmpgt_ps(x,*(v4sf*)_ps_TAN3PI8F); 	// if( x > tan 3pi/8 )
+	x = _mm_blendv_ps ( x, _mm_div_ps(*(v4sf*)_ps_min1, x), suptan3pi8);
+	y = _mm_blendv_ps ( y, *(v4sf*)_ps_PIO2F, suptan3pi8);
+
+
+	inftan3pi8suppi8 = _mm_and_ps(_mm_cmplt_ps(x,*(v4sf*)_ps_TAN3PI8F),_mm_cmpgt_ps(x,*(v4sf*)_ps_TANPI8F)); 	// if( x > tan 3pi/8 )
+	x = _mm_blendv_ps ( x, _mm_div_ps( _mm_sub_ps(x, *(v4sf*)_ps_1), _mm_add_ps(x, *(v4sf*)_ps_1)), inftan3pi8suppi8);
+	y = _mm_blendv_ps ( y, *(v4sf*)_ps_PIO4F, inftan3pi8suppi8);
+
+	z = _mm_mul_ps(x,x);
+
+	tmp =  _mm_mul_ps(*(v4sf*)_ps_ATAN_P0, z);
+	tmp =  _mm_add_ps(*(v4sf*)_ps_ATAN_P1, tmp);
+	tmp =  _mm_mul_ps(z, tmp);
+	tmp =  _mm_add_ps(*(v4sf*)_ps_ATAN_P2, tmp);
+	tmp =  _mm_mul_ps(z, tmp);
+	tmp =  _mm_add_ps(*(v4sf*)_ps_ATAN_P3, tmp);
+	tmp =  _mm_mul_ps(z, tmp);
+	tmp =  _mm_mul_ps(x, tmp);
+	tmp =  _mm_add_ps(x, tmp);
+
+	y =  _mm_add_ps(y, tmp);
+
+	y = _mm_blendv_ps (y, _mm_xor_ps(negative_mask,y), sign);
+
+	return( y );
+}
+
+void atan128f( float* src, float* dst, int len)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	const v4sf positive_mask = _mm_castsi128_ps (_mm_set1_epi32 (0x7FFFFFFF));
+	const v4sf negative_mask = _mm_castsi128_ps (_mm_set1_epi32 (~0x7FFFFFFF));
+
+	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			v4sf src_tmp = _mm_load_ps(src + i);
+			_mm_store_ps(dst + i, atanf_ps(src_tmp, positive_mask, negative_mask));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			v4sf src_tmp = _mm_loadu_ps(src + i);
+			_mm_storeu_ps(dst + i, atanf_ps(src_tmp, positive_mask, negative_mask));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = atanf(src[i]);
+	}
+}
 
 v4sf asinf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 {
