@@ -759,6 +759,35 @@ void magnitude256f_split( float* srcRe, float* srcIm, float* dst, int len)
 	}
 }
 
+void powerspect256f_split( float* srcRe, float* srcIm, float* dst, int len)
+{
+	int stop_len = len/AVX_LEN_FLOAT;
+	stop_len    *= AVX_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(srcRe) % AVX_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+			v8sf re_tmp = _mm256_load_ps(srcRe + i);
+			v8sf re2    = _mm256_mul_ps(re_tmp,re_tmp);
+			v8sf im_tmp = _mm256_load_ps(srcIm + i);
+			v8sf im2    = _mm256_mul_ps(im_tmp,im_tmp);
+			_mm256_store_ps(dst + i, _mm256_add_ps(re2,im2));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= AVX_LEN_FLOAT){
+			v8sf re_tmp = _mm256_loadu_ps(srcRe + i);
+			v8sf re2    = _mm256_mul_ps(re_tmp,re_tmp);
+			v8sf im_tmp = _mm256_loadu_ps(srcIm + i);
+			v8sf im2    = _mm256_mul_ps(im_tmp,im_tmp);
+			_mm256_store_ps(dst + i, _mm256_add_ps(re2,im2));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = srcRe[i]*srcRe[i] + srcIm[i]*srcIm[i];
+	}
+}
+
 void subcrev256f( float* src, float value, float* dst, int len)
 {
 	const v8sf tmp = _mm256_set1_ps(value);

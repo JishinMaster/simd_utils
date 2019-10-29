@@ -648,6 +648,7 @@ v4sf tanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 
 	sign   = _mm_cmplt_ps(xx,_mm_setzero_ps()); //0xFFFFFFFF if xx < 0.0
 	y = _mm_blendv_ps (y, _mm_xor_ps(negative_mask,y), sign);
+
 	return( y );
 }
 
@@ -726,6 +727,35 @@ void magnitude128f_split( float* srcRe, float* srcIm, float* dst, int len)
 
 	for(int i = stop_len; i < len; i++){
 		dst[i] = sqrtf(srcRe[i]*srcRe[i] + srcIm[i]*srcIm[i]);
+	}
+}
+
+void powerspect128f_split( float* srcRe, float* srcIm, float* dst, int len)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(srcRe) % SSE_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			v4sf re_tmp = _mm_load_ps(srcRe + i);
+			v4sf re2    = _mm_mul_ps(re_tmp,re_tmp);
+			v4sf im_tmp = _mm_load_ps(srcIm + i);
+			v4sf im2    = _mm_mul_ps(im_tmp,im_tmp);
+			_mm_store_ps(dst + i, _mm_add_ps(re2,im2));
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			v4sf re_tmp = _mm_loadu_ps(srcRe + i);
+			v4sf re2    = _mm_mul_ps(re_tmp,re_tmp);
+			v4sf im_tmp = _mm_loadu_ps(srcIm + i);
+			v4sf im2    = _mm_mul_ps(im_tmp,im_tmp);
+			_mm_storeu_ps(dst + i, _mm_add_ps(re2,im2));
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = srcRe[i]*srcRe[i] + srcIm[i]*srcIm[i];
 	}
 }
 
