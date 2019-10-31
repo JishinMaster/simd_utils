@@ -358,6 +358,52 @@ void div256f( float* src1, float* src2, float* dst, int len)
 	}		
 }
 
+// converts 32bits complex float to two arrays real and im
+//Work in progress
+#if 0
+void cplxtoreal256f( float* src, float* dstRe, float* dstIm, int len)
+{
+	int stop_len = 2*len/(AVX_LEN_FLOAT);
+	stop_len    *= AVX_LEN_FLOAT;
+
+	int j = 0;
+	if( ( (uintptr_t)(const void*)(src) % AVX_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= 2*AVX_LEN_FLOAT){
+			v8sf vec1        = _mm256_load_ps(src + i);
+			v8sf vec2        = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+			v8sf tmp1        = _mm256_shuffle_ps(vec1, vec2,  _MM_SHUFFLE(2, 0, 2, 0));
+			v8sf tmp2        = _mm256_shuffle_ps(vec1, vec2,  _MM_SHUFFLE(3, 1, 3, 1));
+			v8sf tmp1permute = _mm256_permute2f128_ps(tmp1,tmp1, IMM8_PERMUTE_128BITS_LANES);
+			v8sf tmp2permute = _mm256_permute2f128_ps(tmp2,tmp2, IMM8_PERMUTE_128BITS_LANES);
+			_mm256_store_ps(dstRe + j, _mm256_shuffle_ps(tmp1, tmp1permute,  _MM_SHUFFLE(1, 0, 1, 0)));
+			_mm256_store_ps(dstIm + j, _mm256_shuffle_ps(tmp2, tmp2permute,  _MM_SHUFFLE(1, 0, 1, 0)));
+			j+=AVX_LEN_FLOAT;
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= 2*AVX_LEN_FLOAT){
+			v8sf vec1        = _mm256_loadu_ps(src + i);
+			v8sf vec2        = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+			v8sf tmp1        = _mm256_shuffle_ps(vec1, vec2,  _MM_SHUFFLE(2, 0, 2, 0));
+			v8sf tmp2        = _mm256_shuffle_ps(vec1, vec2,  _MM_SHUFFLE(3, 1, 3, 1));
+			v8sf tmp1permute = _mm256_permute2f128_ps(tmp1,tmp1, IMM8_PERMUTE_128BITS_LANES);
+			v8sf tmp2permute = _mm256_permute2f128_ps(tmp2,tmp2, IMM8_PERMUTE_128BITS_LANES);
+			tmp1             = _mm256_shuffle_ps(tmp1, tmp1permute,  _MM_SHUFFLE(1, 0, 1, 0));
+			tmp2             = _mm256_shuffle_ps(tmp2, tmp2permute,  _MM_SHUFFLE(1, 0, 1, 0));
+			_mm256_storeu_ps(dstRe + j, tmp1);
+			_mm256_storeu_ps(dstIm + j, tmp2);
+			j+=AVX_LEN_FLOAT;
+		}
+	}
+
+	for(int i = stop_len; i < 2*len; i+=2){
+		dstRe[j]   = src[i];
+		dstIm[j]   = src[i+1];
+		j++;
+	}
+}
+#endif
+
 void convert256_64f32f(double* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
@@ -824,7 +870,8 @@ v8sf tan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 	/* compute x mod PIO4 */
 
 	//TODO : on neg values should be ceil and not floor
-	j = _mm256_cvtps_epi32( _mm256_round_ps(_mm256_mul_ps(*(v8sf*)_ps256_FOPI,x), _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC )); /* integer part of x/(PI/4), using floor */
+	//j = _mm256_cvtps_epi32( _mm256_round_ps(_mm256_mul_ps(*(v8sf*)_ps256_FOPI,x), _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC )); /* integer part of x/(PI/4), using floor */
+	j = _mm256_cvttps_epi32(_mm256_mul_ps(*(v8sf*)_ps256_FOPI,x));
 	y = _mm256_cvtepi32_ps(j);
 
 
@@ -844,7 +891,7 @@ v8sf tan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 #endif
 
 	y = _mm256_blendv_ps ( y, _mm256_add_ps(y,*(v8sf*)_ps256_1),_mm256_cvtepi32_ps(jandone));
-	j = _mm256_cvtps_epi32( y); // no need to round again
+	j = _mm256_cvttps_epi32( y); // no need to round again
 
 	//z = ((x - y * DP1) - y * DP2) - y * DP3;
 

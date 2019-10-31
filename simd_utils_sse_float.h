@@ -12,6 +12,8 @@
 #include "sse2neon.h"
 #endif
 
+#include <math.h>
+#include <fenv.h>
 
 _PS_CONST(min1  , -1.0f);
 
@@ -51,6 +53,10 @@ _PS_CONST(ATAN_P1, -1.38776856032E-1);
 _PS_CONST(ATAN_P2, 1.99777106478E-1);
 _PS_CONST(ATAN_P3, -3.33329491539E-1);
 
+#define ROUNDTONEAREST (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC)
+#define ROUNDTOFLOOR   (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC)
+#define ROUNDTOCEIL    (_MM_FROUND_TO_POS_INF |_MM_FROUND_NO_EXC)
+#define ROUNDTOZERO    (_MM_FROUND_TO_ZERO |_MM_FROUND_NO_EXC)
 
 void log10_128f(float* src, float* dst, int len)
 {
@@ -326,39 +332,129 @@ void div128f( float* src1, float* src2, float* dst, int len)
 	}		
 }
 
+typedef enum {
+    RndZero,
+    RndNear,
+    RndFinancial,
+} FloatRoundingMode;
+void convertFloat32ToU8_128(float* src, uint8_t* dst, int len, int rounding_mode, int scale_factor)
+{
+
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	float scale_fact_mult = 1.0f/(float)(1 << scale_factor);
+	v4sf  scale_fact_vec  = _mm_set1_ps(scale_fact_mult);
+
+	// Default bankers rounding => round to nearest even
+	if(rounding_mode == RndFinancial){
+		if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+			for(int i = 0; i < stop_len; i+= 4*SSE_LEN_FLOAT){
+				v4sf tmp1 = _mm_mul_ps(_mm_load_ps(src + i                  ), scale_fact_vec);
+				v4sf tmp2 = _mm_mul_ps(_mm_load_ps(src + i +   SSE_LEN_FLOAT), scale_fact_vec);
+				v4sf tmp3 = _mm_mul_ps(_mm_load_ps(src + i + 2*SSE_LEN_FLOAT), scale_fact_vec);
+				v4sf tmp4 = _mm_mul_ps(_mm_load_ps(src + i + 3*SSE_LEN_FLOAT), scale_fact_vec);
+
+				v4si tmp5 = _mm_set_epi64( _mm_cvtps_pi16(tmp2), _mm_cvtps_pi16(tmp1));
+				v4si tmp6 = _mm_set_epi64( _mm_cvtps_pi16(tmp4), _mm_cvtps_pi16(tmp3));
+
+				_mm_store_si128(dst + i, _mm_packus_epi16(tmp5,tmp6));
+			}
+		}
+		else{
+			for(int i = 0; i < stop_len; i+= 2*SSE_LEN_FLOAT){
+				v4sf tmp1 = _mm_mul_ps(_mm_loadu_ps(src + i                  ), scale_fact_vec);
+				v4sf tmp2 = _mm_mul_ps(_mm_loadu_ps(src + i +   SSE_LEN_FLOAT), scale_fact_vec);
+				v4sf tmp3 = _mm_mul_ps(_mm_loadu_ps(src + i + 2*SSE_LEN_FLOAT), scale_fact_vec);
+				v4sf tmp4 = _mm_mul_ps(_mm_loadu_ps(src + i + 3*SSE_LEN_FLOAT), scale_fact_vec);
+
+				v4si tmp5 = _mm_set_epi64( _mm_cvtps_pi16(tmp2), _mm_cvtps_pi16(tmp1));
+				v4si tmp6 = _mm_set_epi64( _mm_cvtps_pi16(tmp4), _mm_cvtps_pi16(tmp3));
+
+				_mm_storeu_si128(dst + i, _mm_packus_epi16(tmp5,tmp6));
+			}
+		}
+
+		for(int i = stop_len; i < len; i++){
+			dst[i] = (uint8_t)(roundf(src[i] * scale_fact_mult * 0.5f)) << 1; //round to nearest even with round(x/2)*2
+		}
+	}
+	else{
+		int rounding_vec;
+		if(rounding_mode == RndZero){
+			_MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);//rounding_vec = ROUNDTOZERO;
+			fesetround(FE_TOWARDZERO);
+		}
+		else{
+			_MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);//rounding_vec = ROUNDTONEAREST;
+			fesetround(FE_TONEAREST);
+		}
+
+		if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+			for(int i = 0; i < stop_len; i+= 4*SSE_LEN_FLOAT){
+				v4sf tmp1 = _mm_mul_ps(_mm_load_ps(src + i                  ), scale_fact_vec);
+				v4sf tmp2 = _mm_mul_ps(_mm_load_ps(src + i +   SSE_LEN_FLOAT), scale_fact_vec);
+				v4sf tmp3 = _mm_mul_ps(_mm_load_ps(src + i + 2*SSE_LEN_FLOAT), scale_fact_vec);
+				v4sf tmp4 = _mm_mul_ps(_mm_load_ps(src + i + 3*SSE_LEN_FLOAT), scale_fact_vec);
+
+				v4si tmp5 = _mm_set_epi64( _mm_cvtps_pi16(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION )), _mm_cvtps_pi16(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION )));
+				v4si tmp6 = _mm_set_epi64( _mm_cvtps_pi16(_mm_round_ps(tmp4, _MM_FROUND_CUR_DIRECTION )), _mm_cvtps_pi16(_mm_round_ps(tmp3, _MM_FROUND_CUR_DIRECTION )));
+
+				_mm_store_si128(dst + i, _mm_packus_epi16(tmp5,tmp6));
+			}
+		}
+		else{
+			for(int i = 0; i < stop_len; i+= 2*SSE_LEN_FLOAT){
+				v4sf tmp1 = _mm_mul_ps(_mm_loadu_ps(src + i                  ), scale_fact_vec);
+				v4sf tmp2 = _mm_mul_ps(_mm_loadu_ps(src + i +   SSE_LEN_FLOAT), scale_fact_vec);
+				v4sf tmp3 = _mm_mul_ps(_mm_loadu_ps(src + i + 2*SSE_LEN_FLOAT), scale_fact_vec);
+				v4sf tmp4 = _mm_mul_ps(_mm_loadu_ps(src + i + 3*SSE_LEN_FLOAT), scale_fact_vec);
+
+				v4si tmp5 = _mm_set_epi64( _mm_cvtps_pi16(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION )), _mm_cvtps_pi16(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION )));
+				v4si tmp6 = _mm_set_epi64( _mm_cvtps_pi16(_mm_round_ps(tmp4, _MM_FROUND_CUR_DIRECTION )), _mm_cvtps_pi16(_mm_round_ps(tmp3, _MM_FROUND_CUR_DIRECTION )));
+
+				_mm_storeu_si128(dst + i, _mm_packus_epi16(tmp5,tmp6));
+			}
+		}
+
+		// Default round toward zero
+		for(int i = stop_len; i < len; i++){
+			dst[i] = (uint8_t)nearbyintf(src[i] * scale_fact_mult);
+		}
+	}
+
+}
+
 // converts 32bits complex float to two arrays real and im
-//TODO : find efficient intrinsics
 void cplxtoreal128f( float* src, float* dstRe, float* dstIm, int len)
 {
-	int stop_len = len/SSE_LEN_FLOAT;
+	int stop_len = 2*len/(SSE_LEN_FLOAT);
 	stop_len    *= SSE_LEN_FLOAT;
 
 	int j = 0;
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
-		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-			dstRe[j]   = src[i];
-			dstIm[j]   = src[i+1];
-			dstRe[j+1] = src[i+2];
-			dstIm[j+1] = src[i+3];
-			j+=2;
+		for(int i = 0; i < stop_len; i+= 2*SSE_LEN_FLOAT){
+			v4sf vec1 = _mm_load_ps(src + i);
+			v4sf vec2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+			_mm_store_ps(dstRe + j, _mm_shuffle_ps(vec1, vec2,  _MM_SHUFFLE(2,0, 2, 0)));
+			_mm_store_ps(dstIm + j, _mm_shuffle_ps(vec1, vec2,  _MM_SHUFFLE(3,1, 3, 1)));
+			j+=SSE_LEN_FLOAT;
 		}
 	}
 	else{
-		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-			dstRe[j]   = src[i];
-			dstIm[j]   = src[i+1];
-			dstRe[j+1] = src[i+2];
-			dstIm[j+1] = src[i+3];
-			j+=2;
+		for(int i = 0; i < stop_len; i+= 2*SSE_LEN_FLOAT){
+			v4sf vec1 = _mm_loadu_ps(src + i);
+			v4sf vec2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+			_mm_storeu_ps(dstRe + j, _mm_shuffle_ps(vec1, vec2,  _MM_SHUFFLE(2,0, 2, 0)));
+			_mm_storeu_ps(dstIm + j, _mm_shuffle_ps(vec1, vec2,  _MM_SHUFFLE(3,1, 3, 1)));
+			j+=SSE_LEN_FLOAT;
 		}
 	}
 
-	for(int i = stop_len; i < len; i++){
+	for(int i = stop_len; i < 2*len; i+=2){
 		dstRe[j]   = src[i];
 		dstIm[j]   = src[i+1];
-		dstRe[j+1] = src[i+2];
-		dstIm[j+1] = src[i+3];
-		j+=2;
+		j++;
 	}		
 }
 
@@ -826,12 +922,13 @@ v4sf tanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 	/* compute x mod PIO4 */
 
 	//TODO : on neg values should be ceil and not floor
-	j = _mm_cvtps_epi32( _mm_round_ps(_mm_mul_ps(*(v4sf*)_ps_FOPI,x), _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC )); /* integer part of x/(PI/4), using floor */
+	//j = _mm_cvtps_epi32( _mm_round_ps(_mm_mul_ps(*(v4sf*)_ps_FOPI,x), _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC )); /* integer part of x/(PI/4), using floor */
+	j = _mm_cvttps_epi32(_mm_mul_ps(*(v4sf*)_ps_FOPI,x));
 	y = _mm_cvtepi32_ps(j);
 
 	jandone = _mm_cmpgt_epi32(_mm_and_si128(j,*(v4si*)_pi32_1),_mm_setzero_si128 ());
 	y = _mm_blendv_ps ( y, _mm_add_ps(y,*(v4sf*)_ps_1),_mm_cvtepi32_ps(jandone));
-	j = _mm_cvtps_epi32( y); // no need to round again
+	j = _mm_cvttps_epi32( y); // no need to round again
 
 	//z = ((x - y * DP1) - y * DP2) - y * DP3;
 
@@ -1135,13 +1232,13 @@ void round128f( float* src, float* dst, int len)
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp   = _mm_load_ps(src + i);
-			_mm_store_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC ));
+			_mm_store_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTONEAREST ));
 		}
 	}
 	else{
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp   = _mm_loadu_ps(src + i);
-			_mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC ));
+			_mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTONEAREST ));
 		}
 	}
 
@@ -1158,13 +1255,13 @@ void ceil128f( float* src, float* dst, int len)
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp   = _mm_load_ps(src + i);
-			_mm_store_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_POS_INF |_MM_FROUND_NO_EXC ));
+			_mm_store_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOFLOOR ));
 		}
 	}
 	else{
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp   = _mm_loadu_ps(src + i);
-			_mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_POS_INF |_MM_FROUND_NO_EXC ));
+			_mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOCEIL ));
 		}
 	}
 
@@ -1181,13 +1278,13 @@ void floor128f( float* src, float* dst, int len)
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp   = _mm_load_ps(src + i);
-			_mm_store_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC ));
+			_mm_store_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOFLOOR ));
 		}
 	}
 	else{
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp   = _mm_loadu_ps(src + i);
-			_mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC ));
+			_mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOFLOOR ));
 		}
 	}
 

@@ -154,6 +154,7 @@ void posix_memalign( void** inout , int alignement, size_t len){
 #endif 
 
 
+
 //////////  C Test functions ////////////////
 void log10f_C(float* src, float* dst, int len)
 {
@@ -203,12 +204,10 @@ void divf_C( float* src1, float* src2, float* dst, int len)
 void cplxtorealf_C( float* src, float* dstRe, float* dstIm, int len)
 {
 	int j = 0;
-	for(int i = 0; i < len; i++){
+	for(int i = 0; i < 2*len; i+=2){
 		dstRe[j]   = src[i];
 		dstIm[j]   = src[i+1];
-		dstRe[j+1] = src[i+2];
-		dstIm[j+1] = src[i+3];
-		j+=2;
+		j++;
 	}		
 }
 
