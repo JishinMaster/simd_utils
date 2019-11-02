@@ -333,9 +333,9 @@ void div128f( float* src1, float* src2, float* dst, int len)
 }
 
 typedef enum {
-    RndZero,
-    RndNear,
-    RndFinancial,
+	RndZero,
+	RndNear,
+	RndFinancial,
 } FloatRoundingMode;
 void convertFloat32ToU8_128(float* src, uint8_t* dst, int len, int rounding_mode, int scale_factor)
 {
@@ -424,6 +424,58 @@ void convertFloat32ToU8_128(float* src, uint8_t* dst, int len, int rounding_mode
 	}
 
 }
+
+
+//TODO : find a way to avoid __m64
+typedef union xmm_mm_union_int {
+	__m128i xmm;
+	__m64 mm[2];
+} xmm_mm_union_int;
+
+#define COPY_XMM_TO_MM_INT(xmm_, mm0_, mm1_) {          \
+		xmm_mm_union_int u; u.xmm = xmm_;                   \
+		mm0_ = u.mm[0];                                 \
+		mm1_ = u.mm[1];                                 \
+}
+
+void convertInt16ToFloat32_128(int16_t* src, float* dst, int len, int scale_factor)
+{
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	float scale_fact_mult = 1.0f/(float)(1 << scale_factor);
+	v4sf  scale_fact_vec  = _mm_set1_ps(scale_fact_mult);
+
+	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+		for(int i = 0; i < stop_len; i+= 2*SSE_LEN_FLOAT){
+			__m64 shortlo, shorthi;
+			COPY_XMM_TO_MM_INT(_mm_load_si128(src + i),shortlo, shorthi);
+
+			v4sf floatlo = _mm_mul_ps(_mm_cvtpi16_ps(shortlo), scale_fact_vec);
+			v4sf floathi = _mm_mul_ps(_mm_cvtpi16_ps(shorthi), scale_fact_vec);
+
+			_mm_store_ps(dst + i				, floatlo);
+			_mm_store_ps(dst + i + SSE_LEN_FLOAT, floathi);
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= 2*SSE_LEN_FLOAT){
+			__m64 shortlo, shorthi;
+			COPY_XMM_TO_MM_INT(_mm_loadu_si128(src + i),shortlo, shorthi);
+
+			v4sf floatlo = _mm_mul_ps(_mm_cvtpi16_ps(shortlo), scale_fact_vec);
+			v4sf floathi = _mm_mul_ps(_mm_cvtpi16_ps(shorthi), scale_fact_vec);
+
+			_mm_storeu_ps(dst + i				, floatlo);
+			_mm_storeu_ps(dst + i + SSE_LEN_FLOAT, floathi);
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = (float)src[i] * scale_fact_mult;
+	}
+}
+
 
 // converts 32bits complex float to two arrays real and im
 void cplxtoreal128f( float* src, float* dstRe, float* dstIm, int len)
