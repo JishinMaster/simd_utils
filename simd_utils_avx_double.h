@@ -298,3 +298,37 @@ void floor256d( double* src, double* dst, int len)
 		dst[i] = floor(src[i]);
 	}
 }
+
+void vectorSlope256d(double* dst, int len, double offset, double slope)
+{
+	v4sd coef        = _mm256_set_pd(3.0*slope, 2.0*slope, slope, 0.0);
+	v4sd slope4_vec  = _mm256_set1_pd(4.0*slope);
+	v4sd curVal      = _mm256_add_pd(_mm256_set1_pd(offset),coef);
+
+	int stop_len = len/AVX_LEN_DOUBLE;
+	stop_len    *= AVX_LEN_DOUBLE;
+
+	if( ( (uintptr_t)(const void*)(dst) % AVX_LEN_BYTES) == 0){
+		_mm256_store_pd(dst + 0, curVal);
+	}
+	else{
+		_mm256_storeu_pd(dst + 0, curVal);
+	}
+
+	if( ( (uintptr_t)(const void*)(dst) % AVX_LEN_BYTES) == 0){
+		for(int i = AVX_LEN_DOUBLE; i < stop_len; i+= AVX_LEN_DOUBLE){
+			curVal = _mm256_add_pd(curVal,slope4_vec);
+			_mm256_store_pd(dst + i, curVal);
+		}
+	}
+	else{
+		for(int i = AVX_LEN_DOUBLE; i < stop_len; i+= AVX_LEN_DOUBLE){
+			curVal = _mm256_add_pd(curVal,slope4_vec);
+			_mm256_storeu_pd(dst + i, curVal);
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = offset + slope*(double)i;
+	}
+}

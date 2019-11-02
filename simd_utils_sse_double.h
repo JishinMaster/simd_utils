@@ -304,3 +304,39 @@ void floor128d( double* src, double* dst, int len)
 		dst[i] = floor(src[i]);
 	}
 }
+
+
+
+void vectorSlope128d(double* dst, int len, double offset, double slope)
+{
+	v2sd coef        = _mm_set_pd(slope, 0.0);
+	v2sd slope2_vec  = _mm_set1_pd(2.0*slope);
+	v2sd curVal      = _mm_add_pd(_mm_set1_pd(offset),coef);
+
+	int stop_len = len/SSE_LEN_DOUBLE;
+	stop_len    *= SSE_LEN_DOUBLE;
+
+	if( ( (uintptr_t)(const void*)(dst) % SSE_LEN_BYTES) == 0){
+		_mm_store_pd(dst + 0, curVal);
+	}
+	else{
+		_mm_storeu_pd(dst + 0, curVal);
+	}
+
+	if( ( (uintptr_t)(const void*)(dst) % SSE_LEN_BYTES) == 0){
+		for(int i = SSE_LEN_DOUBLE; i < stop_len; i+= SSE_LEN_DOUBLE){
+			curVal = _mm_add_pd(curVal,slope2_vec);
+			_mm_store_pd(dst + i, curVal);
+		}
+	}
+	else{
+		for(int i = SSE_LEN_DOUBLE; i < stop_len; i+= SSE_LEN_DOUBLE){
+			curVal = _mm_add_pd(curVal,slope2_vec);
+			_mm_storeu_pd(dst + i, curVal);
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = offset + slope*(double)i;
+	}
+}
