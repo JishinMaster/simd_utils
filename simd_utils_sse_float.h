@@ -332,6 +332,41 @@ void div128f( float* src1, float* src2, float* dst, int len)
 	}		
 }
 
+// TODO : remove previous index dependency to become Out Of Order
+void vectorSlope128f(float* dst, int len, float offset, float slope)
+{
+	v4sf coef        = _mm_set_ps(3.0f*slope,2.0f*slope, slope, 0.0f);
+	v4sf slope4_vec  = _mm_set1_ps(4.0f*slope);
+	v4sf curVal      = _mm_add_ps(_mm_set1_ps(offset),coef);
+
+	int stop_len = len/SSE_LEN_FLOAT;
+	stop_len    *= SSE_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(dst) % SSE_LEN_BYTES) == 0){
+		_mm_store_ps(dst + 0, curVal);
+	}
+	else{
+		_mm_storeu_ps(dst + 0, curVal);
+	}
+
+	if( ( (uintptr_t)(const void*)(dst) % SSE_LEN_BYTES) == 0){
+		for(int i = SSE_LEN_FLOAT; i < stop_len; i+= SSE_LEN_FLOAT){
+			curVal = _mm_add_ps(curVal,slope4_vec);
+			_mm_store_ps(dst + i, curVal);
+		}
+	}
+	else{
+		for(int i = SSE_LEN_FLOAT; i < stop_len; i+= SSE_LEN_FLOAT){
+			curVal = _mm_add_ps(curVal,slope4_vec);
+			_mm_storeu_ps(dst + i, curVal);
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = offset + slope*(float)i;
+	}
+}
+
 typedef enum {
 	RndZero,
 	RndNear,

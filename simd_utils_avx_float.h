@@ -358,6 +358,41 @@ void div256f( float* src1, float* src2, float* dst, int len)
 	}		
 }
 
+// TODO : remove previous index dependency to become Out Of Order
+void vectorSlope256f(float* dst, int len, float offset, float slope)
+{
+	v8sf coef        = _mm256_set_ps(7.0f*slope,6.0f*slope,5.0f*slope,4.0f*slope,3.0f*slope,2.0f*slope, slope, 0.0f);
+	v8sf slope8_vec  = _mm256_set1_ps(8.0f*slope);
+	v8sf curVal      = _mm256_add_ps(_mm256_set1_ps(offset),coef);
+
+	int stop_len = len/AVX_LEN_FLOAT;
+	stop_len    *= AVX_LEN_FLOAT;
+
+	if( ( (uintptr_t)(const void*)(dst) % AVX_LEN_BYTES) == 0){
+		_mm256_store_ps(dst + 0, curVal);
+	}
+	else{
+		_mm256_storeu_ps(dst + 0, curVal);
+	}
+
+	if( ( (uintptr_t)(const void*)(dst) % AVX_LEN_BYTES) == 0){
+		for(int i = AVX_LEN_FLOAT; i < stop_len; i+= AVX_LEN_FLOAT){
+			curVal = _mm256_add_ps(curVal,slope8_vec);
+			_mm256_storeu_ps(dst + i, curVal);
+		}
+	}
+	else{
+		for(int i = AVX_LEN_FLOAT; i < stop_len; i+= AVX_LEN_FLOAT){
+			curVal = _mm256_add_ps(curVal,slope8_vec);
+			_mm256_storeu_ps(dst + i, curVal);
+		}
+	}
+
+	for(int i = stop_len; i < len; i++){
+		dst[i] = offset + slope*(float)i;
+	}
+}
+
 // converts 32bits complex float to two arrays real and im
 //Work in progress
 #if 0
