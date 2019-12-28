@@ -63,12 +63,39 @@ typedef struct {
 	double im;
 } complex64_t;
 
+
 #ifdef SSE
 #define SSE_LEN_BYTES 16 // Size of SSE lane
 #define SSE_LEN_INT32  4 // number of int32 with an SSE lane
 #define SSE_LEN_FLOAT  4 // number of float with an SSE lane
 #define SSE_LEN_DOUBLE 2 // number of double with an SSE lane
+#ifndef ARM
 #include "sse_mathfun.h"
+
+#ifndef FMA //AVX2 comes with fma
+/*__m128 _mm_fmadd_ps (__m128 a, __m128 b, __m128 c) 
+{
+   return _mm_add_ps( _mm_mul_ps(a,b), c);
+}
+
+__m128d _mm_fmadd_pd (__m128d a, __m128d b, __m128d c) 
+{
+   return _mm_add_pd( _mm_mul_pd(a,b), c);
+}*/
+
+#endif // FMA
+
+#else
+#include "neon_mathfun.h"
+
+#define _PS_CONST(Name, Val)                                            \
+		static const ALIGN16_BEG float _ps_##Name[4] ALIGN16_END = { Val, Val, Val, Val }
+#define _PI32_CONST(Name, Val)                                            \
+		static const ALIGN16_BEG int _pi32_##Name[4] ALIGN16_END = { Val, Val, Val, Val }
+#define _PS_CONST_TYPE(Name, Type, Val)                                 \
+		static const ALIGN16_BEG Type _ps_##Name[4] ALIGN16_END = { Val, Val, Val, Val }
+
+#endif
 
 #define _PD_CONST(Name, Val)                                            \
 		static const ALIGN16_BEG double _pd_##Name[2] ALIGN16_END = { Val, Val}
@@ -82,6 +109,62 @@ _PD_CONST_TYPE(mant_mask, long int, 0xFFFFFFFFFFFFFL);
 _PD_CONST_TYPE(inv_mant_mask, long int, ~0xFFFFFFFFFFFFFL);
 _PD_CONST_TYPE(sign_mask, long int, (long int)0x8000000000000000L);
 _PD_CONST_TYPE(inv_sign_mask, long int, ~0x8000000000000000L);
+
+#ifdef ARM
+
+_PS_CONST(1  , 1.0f);
+_PS_CONST(0p5, 0.5f);
+/* the smallest non denormalized float number */
+_PS_CONST_TYPE(min_norm_pos, int, 0x00800000);
+_PS_CONST_TYPE(mant_mask, int, 0x7f800000);
+_PS_CONST_TYPE(inv_mant_mask, int, ~0x7f800000);
+
+_PS_CONST_TYPE(sign_mask, int, (int)0x80000000);
+_PS_CONST_TYPE(inv_sign_mask, int, ~0x80000000);
+
+_PI32_CONST(1, 1);
+_PI32_CONST(inv1, ~1);
+_PI32_CONST(2, 2);
+_PI32_CONST(4, 4);
+_PI32_CONST(0x7f, 0x7f);
+
+_PS_CONST(cephes_SQRTHF, 0.707106781186547524);
+_PS_CONST(cephes_log_p0, 7.0376836292E-2);
+_PS_CONST(cephes_log_p1, - 1.1514610310E-1);
+_PS_CONST(cephes_log_p2, 1.1676998740E-1);
+_PS_CONST(cephes_log_p3, - 1.2420140846E-1);
+_PS_CONST(cephes_log_p4, + 1.4249322787E-1);
+_PS_CONST(cephes_log_p5, - 1.6668057665E-1);
+_PS_CONST(cephes_log_p6, + 2.0000714765E-1);
+_PS_CONST(cephes_log_p7, - 2.4999993993E-1);
+_PS_CONST(cephes_log_p8, + 3.3333331174E-1);
+_PS_CONST(cephes_log_q1, -2.12194440e-4);
+_PS_CONST(cephes_log_q2, 0.693359375);
+_PS_CONST(exp_hi,	88.3762626647949f);
+_PS_CONST(exp_lo,	-88.3762626647949f);
+
+_PS_CONST(cephes_LOG2EF, 1.44269504088896341);
+_PS_CONST(cephes_exp_C1, 0.693359375);
+_PS_CONST(cephes_exp_C2, -2.12194440e-4);
+
+_PS_CONST(cephes_exp_p0, 1.9875691500E-4);
+_PS_CONST(cephes_exp_p1, 1.3981999507E-3);
+_PS_CONST(cephes_exp_p2, 8.3334519073E-3);
+_PS_CONST(cephes_exp_p3, 4.1665795894E-2);
+_PS_CONST(cephes_exp_p4, 1.6666665459E-1);
+_PS_CONST(cephes_exp_p5, 5.0000001201E-1);
+
+_PS_CONST(minus_cephes_DP1, -0.78515625);
+_PS_CONST(minus_cephes_DP2, -2.4187564849853515625e-4);
+_PS_CONST(minus_cephes_DP3, -3.77489497744594108e-8);
+_PS_CONST(sincof_p0, -1.9515295891E-4);
+_PS_CONST(sincof_p1,  8.3321608736E-3);
+_PS_CONST(sincof_p2, -1.6666654611E-1);
+_PS_CONST(coscof_p0,  2.443315711809948E-005);
+_PS_CONST(coscof_p1, -1.388731625493765E-003);
+_PS_CONST(coscof_p2,  4.166664568298827E-002);
+_PS_CONST(cephes_FOPI, 1.27323954473516); // 4 / M_PI
+#endif
 
 _PD_CONST(1 , 1.0);
 _PD_CONST(0p5, 0.5);
@@ -124,14 +207,17 @@ _PD_CONST(cephes_exp_q3, 2.00000000000000000009e0);
 _PD_CONST(cephes_exp_C1, 0.693145751953125);
 _PD_CONST(cephes_exp_C2, 1.42860682030941723212e-6);
 
+
 #include "simd_utils_sse_float.h"
 #ifndef ARM
 #include "simd_utils_sse_double.h"
-#endif
 #include "simd_utils_sse_int32.h"
 #endif
 
+#endif
+
 #ifdef AVX
+
 __m256 _mm256_set_m128 ( __m128 H, __m128 L) //not present on every GCC version
 {
 	return _mm256_insertf128_ps(_mm256_castps128_ps256(L), H, 1);
@@ -144,6 +230,7 @@ __m256 _mm256_set_m128 ( __m128 H, __m128 L) //not present on every GCC version
 #include "simd_utils_avx_float.h"
 #include "simd_utils_avx_double.h"
 #include "simd_utils_avx_int32.h"
+
 #endif
 
 
@@ -184,6 +271,13 @@ void addcf_C( float* src, float value, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = src[i] + value;
+	}		
+}
+
+void mulf_C( float* src1, float* src2, float* dst, int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = src1[i] * src2[i];
 	}		
 }
 
@@ -295,6 +389,21 @@ void tanf_C( float* src, float* dst, int len)
 		dst[i] = tanf(src[i]);
 	}
 }
+
+void atanf_C( float* src, float* dst, int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = atanf(src[i]);
+	}
+}
+
+void atan2f_C( float* src1, float* src2, float* dst, int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = atan2f(src1[i],src2[i]);
+	}
+}
+
 
 void sinf_C( float* src, float* dst, int len)
 {

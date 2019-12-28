@@ -8,12 +8,13 @@
 #include <stdint.h>
 #ifndef ARM
 #include <immintrin.h>
+#include <fenv.h>
 #else
 #include "sse2neon.h"
 #endif
 
 #include <math.h>
-#include <fenv.h>
+
 
 _PS_CONST(min1  , -1.0f);
 
@@ -367,6 +368,7 @@ void vectorSlope128f(float* dst, int len, float offset, float slope)
 	}
 }
 
+#ifndef ARM
 typedef enum {
 	RndZero,
 	RndNear,
@@ -510,7 +512,7 @@ void convertInt16ToFloat32_128(int16_t* src, float* dst, int len, int scale_fact
 		dst[i] = (float)src[i] * scale_fact_mult;
 	}
 }
-
+#endif
 
 // converts 32bits complex float to two arrays real and im
 void cplxtoreal128f( float* src, float* dstRe, float* dstIm, int len)
@@ -825,15 +827,11 @@ v4sf atanf_ps( v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 
 	z = _mm_mul_ps(x,x);
 
-	tmp =  _mm_mul_ps(*(v4sf*)_ps_ATAN_P0, z);
-	tmp =  _mm_add_ps(*(v4sf*)_ps_ATAN_P1, tmp);
+	tmp = _mm_fmadd_ps(*(v4sf*)_ps_ATAN_P0, z, *(v4sf*)_ps_ATAN_P1);
+	tmp = _mm_fmadd_ps(tmp, z, *(v4sf*)_ps_ATAN_P2);
+	tmp = _mm_fmadd_ps(tmp, z, *(v4sf*)_ps_ATAN_P3);
 	tmp =  _mm_mul_ps(z, tmp);
-	tmp =  _mm_add_ps(*(v4sf*)_ps_ATAN_P2, tmp);
-	tmp =  _mm_mul_ps(z, tmp);
-	tmp =  _mm_add_ps(*(v4sf*)_ps_ATAN_P3, tmp);
-	tmp =  _mm_mul_ps(z, tmp);
-	tmp =  _mm_mul_ps(x, tmp);
-	tmp =  _mm_add_ps(x, tmp);
+	tmp = _mm_fmadd_ps(tmp, x, x);
 
 	y =  _mm_add_ps(y, tmp);
 
@@ -1004,7 +1002,7 @@ v4sf tanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 	v4sf tmp;
 	v4si jandone, jandtwo;
 
-	x = _mm_and_ps (positive_mask, xx); //fabs(xx)
+	x = _mm_and_ps (positive_mask, xx); //fabs(xx) //OK
 
 	/* compute x mod PIO4 */
 
@@ -1013,46 +1011,37 @@ v4sf tanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 	j = _mm_cvttps_epi32(_mm_mul_ps(*(v4sf*)_ps_FOPI,x));
 	y = _mm_cvtepi32_ps(j);
 
-	jandone = _mm_cmpgt_epi32(_mm_and_si128(j,*(v4si*)_pi32_1),_mm_setzero_si128 ());
-	y = _mm_blendv_ps ( y, _mm_add_ps(y,*(v4sf*)_ps_1),_mm_cvtepi32_ps(jandone));
+	jandone = _mm_cmpgt_epi32(_mm_and_si128(j,*(v4si*)_pi32_1),_mm_setzero_si128 ()); //Ok?
+
+	y = _mm_blendv_ps ( y, _mm_add_ps(y,*(v4sf*)_ps_1),(v4sf)jandone);
+
 	j = _mm_cvttps_epi32( y); // no need to round again
 
-	//z = ((x - y * DP1) - y * DP2) - y * DP3;
-
 #if 1
-	tmp = _mm_mul_ps(y, *(v4sf*)_ps_DP1);
-	z   = _mm_add_ps(x, tmp);
-	tmp = _mm_mul_ps(y, *(v4sf*)_ps_DP2);
-	z   = _mm_add_ps(z, tmp);
-	tmp = _mm_mul_ps(y, *(v4sf*)_ps_DP3);
-	z   = _mm_add_ps(z, tmp);
-#else // faster but less precision
-	tmp = _mm_mul_ps(y,*(v4sf*)_ps_DP123);
-	z   = _mm_sub_ps(x, tmp);
-#endif
+	//z = ((x - y * DP1) - y * DP2) - y * DP3;
+	z = _mm_fmadd_ps(y, *(v4sf*)_ps_DP1, x);
+	z = _mm_fmadd_ps(y, *(v4sf*)_ps_DP2, z);
+	z = _mm_fmadd_ps(y, *(v4sf*)_ps_DP3, z);
+
 	zz = _mm_mul_ps(z,z); //z*z
 
 	//TODO : should not be computed if X < 10e-4
 	/* 1.7e-8 relative error in [-pi/4, +pi/4] */
-	tmp =  _mm_mul_ps(*(v4sf*)_ps_TAN_P0, zz);
-	tmp =  _mm_add_ps(*(v4sf*)_ps_TAN_P1, tmp);
-	tmp =  _mm_mul_ps(zz, tmp);
-	tmp =  _mm_add_ps(*(v4sf*)_ps_TAN_P2, tmp);
-	tmp =  _mm_mul_ps(zz, tmp);
-	tmp =  _mm_add_ps(*(v4sf*)_ps_TAN_P3, tmp);
-	tmp =  _mm_mul_ps(zz, tmp);
-	tmp =  _mm_add_ps(*(v4sf*)_ps_TAN_P4, tmp);
-	tmp =  _mm_mul_ps(zz, tmp);
-	tmp =  _mm_add_ps(*(v4sf*)_ps_TAN_P5, tmp);
-	tmp =  _mm_mul_ps(zz, tmp);
-	tmp =  _mm_mul_ps(z, tmp);
-	tmp =  _mm_add_ps(z, tmp);
+	tmp = _mm_fmadd_ps(*(v4sf*)_ps_TAN_P0, zz,  *(v4sf*)_ps_TAN_P1);
+	tmp = _mm_fmadd_ps(tmp, zz,  *(v4sf*)_ps_TAN_P2);
+	tmp = _mm_fmadd_ps(tmp, zz,  *(v4sf*)_ps_TAN_P3);
+	tmp = _mm_fmadd_ps(tmp, zz,  *(v4sf*)_ps_TAN_P4);
+	tmp = _mm_fmadd_ps(tmp, zz,  *(v4sf*)_ps_TAN_P5);
+	tmp = _mm_mul_ps(zz, tmp);
+	tmp = _mm_fmadd_ps(tmp, z,  z);
+#endif
 
 	xsupem4 = _mm_cmpgt_ps(x,_mm_set1_ps(1.0e-4)); 	//if( x > 1.0e-4 )
 	y      = _mm_blendv_ps ( z, tmp, xsupem4);
 
 	jandtwo = _mm_cmpgt_epi32(_mm_and_si128(j,*(v4si*)_pi32_2),_mm_setzero_si128 ());
-	y = _mm_blendv_ps ( y, _mm_div_ps(_mm_set1_ps(-1.0f),y),_mm_cvtepi32_ps(jandtwo));
+	
+	y = _mm_blendv_ps ( y, _mm_div_ps(_mm_set1_ps(-1.0f),y),(v4sf)(jandtwo));
 
 	sign   = _mm_cmplt_ps(xx,_mm_setzero_ps()); //0xFFFFFFFF if xx < 0.0
 	y = _mm_blendv_ps (y, _mm_xor_ps(negative_mask,y), sign);
@@ -1069,6 +1058,7 @@ void tan128f( float* src, float* dst, int len)
 	const v4sf negative_mask = _mm_castsi128_ps (_mm_set1_epi32 (~0x7FFFFFFF));
 
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
+
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp = _mm_load_ps(src + i);
 			_mm_store_ps(dst + i, tanf_ps(src_tmp, positive_mask, negative_mask));
@@ -1311,6 +1301,7 @@ void sqrt128f( float* src, float* dst, int len)
 	}
 }
 
+#ifndef ARM
 void round128f( float* src, float* dst, int len)
 {
 	int stop_len = len/SSE_LEN_FLOAT;
@@ -1379,3 +1370,4 @@ void floor128f( float* src, float* dst, int len)
 		dst[i] = floorf(src[i]);
 	}
 }
+#endif
