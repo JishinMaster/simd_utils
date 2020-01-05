@@ -827,11 +827,11 @@ v4sf atanf_ps( v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 
 	z = _mm_mul_ps(x,x);
 
-	tmp = _mm_fmadd_ps(*(v4sf*)_ps_ATAN_P0, z, *(v4sf*)_ps_ATAN_P1);
-	tmp = _mm_fmadd_ps(tmp, z, *(v4sf*)_ps_ATAN_P2);
-	tmp = _mm_fmadd_ps(tmp, z, *(v4sf*)_ps_ATAN_P3);
+	tmp = _mm_fmadd_ps_custom(*(v4sf*)_ps_ATAN_P0, z, *(v4sf*)_ps_ATAN_P1);
+	tmp = _mm_fmadd_ps_custom(tmp, z, *(v4sf*)_ps_ATAN_P2);
+	tmp = _mm_fmadd_ps_custom(tmp, z, *(v4sf*)_ps_ATAN_P3);
 	tmp =  _mm_mul_ps(z, tmp);
-	tmp = _mm_fmadd_ps(tmp, x, x);
+	tmp = _mm_fmadd_ps_custom(tmp, x, x);
 
 	y =  _mm_add_ps(y, tmp);
 
@@ -1019,21 +1019,21 @@ v4sf tanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 
 #if 1
 	//z = ((x - y * DP1) - y * DP2) - y * DP3;
-	z = _mm_fmadd_ps(y, *(v4sf*)_ps_DP1, x);
-	z = _mm_fmadd_ps(y, *(v4sf*)_ps_DP2, z);
-	z = _mm_fmadd_ps(y, *(v4sf*)_ps_DP3, z);
+	z = _mm_fmadd_ps_custom(y, *(v4sf*)_ps_DP1, x);
+	z = _mm_fmadd_ps_custom(y, *(v4sf*)_ps_DP2, z);
+	z = _mm_fmadd_ps_custom(y, *(v4sf*)_ps_DP3, z);
 
 	zz = _mm_mul_ps(z,z); //z*z
 
 	//TODO : should not be computed if X < 10e-4
 	/* 1.7e-8 relative error in [-pi/4, +pi/4] */
-	tmp = _mm_fmadd_ps(*(v4sf*)_ps_TAN_P0, zz,  *(v4sf*)_ps_TAN_P1);
-	tmp = _mm_fmadd_ps(tmp, zz,  *(v4sf*)_ps_TAN_P2);
-	tmp = _mm_fmadd_ps(tmp, zz,  *(v4sf*)_ps_TAN_P3);
-	tmp = _mm_fmadd_ps(tmp, zz,  *(v4sf*)_ps_TAN_P4);
-	tmp = _mm_fmadd_ps(tmp, zz,  *(v4sf*)_ps_TAN_P5);
+	tmp = _mm_fmadd_ps_custom(*(v4sf*)_ps_TAN_P0, zz,  *(v4sf*)_ps_TAN_P1);
+	tmp = _mm_fmadd_ps_custom(tmp, zz,  *(v4sf*)_ps_TAN_P2);
+	tmp = _mm_fmadd_ps_custom(tmp, zz,  *(v4sf*)_ps_TAN_P3);
+	tmp = _mm_fmadd_ps_custom(tmp, zz,  *(v4sf*)_ps_TAN_P4);
+	tmp = _mm_fmadd_ps_custom(tmp, zz,  *(v4sf*)_ps_TAN_P5);
 	tmp = _mm_mul_ps(zz, tmp);
-	tmp = _mm_fmadd_ps(tmp, z,  z);
+	tmp = _mm_fmadd_ps_custom(tmp, z,  z);
 #endif
 
 	xsupem4 = _mm_cmpgt_ps(x,_mm_set1_ps(1.0e-4)); 	//if( x > 1.0e-4 )
@@ -1333,7 +1333,7 @@ void ceil128f( float* src, float* dst, int len)
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp   = _mm_load_ps(src + i);
-			_mm_store_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOFLOOR ));
+			_mm_store_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOCEIL ));
 		}
 	}
 	else{

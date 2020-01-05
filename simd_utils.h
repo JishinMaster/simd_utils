@@ -69,22 +69,9 @@ typedef struct {
 #define SSE_LEN_INT32  4 // number of int32 with an SSE lane
 #define SSE_LEN_FLOAT  4 // number of float with an SSE lane
 #define SSE_LEN_DOUBLE 2 // number of double with an SSE lane
+
 #ifndef ARM
 #include "sse_mathfun.h"
-
-#ifndef FMA //AVX2 comes with fma
-/*__m128 _mm_fmadd_ps (__m128 a, __m128 b, __m128 c) 
-{
-   return _mm_add_ps( _mm_mul_ps(a,b), c);
-}
-
-__m128d _mm_fmadd_pd (__m128d a, __m128d b, __m128d c) 
-{
-   return _mm_add_pd( _mm_mul_pd(a,b), c);
-}*/
-
-#endif // FMA
-
 #else
 #include "neon_mathfun.h"
 
@@ -95,6 +82,26 @@ __m128d _mm_fmadd_pd (__m128d a, __m128d b, __m128d c)
 #define _PS_CONST_TYPE(Name, Type, Val)                                 \
 		static const ALIGN16_BEG Type _ps_##Name[4] ALIGN16_END = { Val, Val, Val, Val }
 
+#endif
+
+inline __m128 _mm_fmadd_ps_custom (__m128 a, __m128 b, __m128 c) 
+{
+	#ifndef FMA //Haswell comes with avx2 and fma
+   	return _mm_add_ps( _mm_mul_ps(a,b), c);
+	#else
+		return _mm_fmadd_ps( a, b, c);
+	#endif
+}
+
+#ifndef ARM // no support for 64bit float with ARM yet
+inline __m128d _mm_fmadd_pd_custom (__m128d a, __m128d b, __m128d c) 
+{
+	#ifndef FMA //Haswell comes with avx2 and fma
+   	return _mm_add_pd( _mm_mul_pd(a,b), c);
+	#else
+		return _mm_fmadd_pd( a, b, c);
+	#endif
+}
 #endif
 
 #define _PD_CONST(Name, Val)                                            \
