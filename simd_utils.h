@@ -477,4 +477,12 @@ void roundf_C( float* src, float* dst, int len)
 	}
 }
 
+
+void cplxvecmul_C(float* src1, float* src2, float* dst, int len)
+{
+	for(int i = 0; i < len; i+=2){
+		dst[i]   = src1[i]*src2[i]   - src1[i+1]*src2[i+1];
+		dst[i+1] = src1[i]*src2[i+1] + src2[i]*src1[i+1];
+	}	
+}
 ////////////////////////

@@ -1389,3 +1389,122 @@ void floor128f( float* src, float* dst, int len)
 	}
 }
 #endif
+
+
+void cplxvecmul_C(float* src1, float* src2, float* dst, int len)
+{
+	for(int i = 0; i < 2*len; i+=2){
+		dst[i]   = src1[i]*src2[i]   - src1[i+1]*src2[i+1];
+		dst[i+1] = src1[i]*src2[i+1] + src2[i]*src1[i+1];
+	}	
+}
+
+void cplxvecmul128f(float* src1, float* src2, float* dst, int len)
+{
+	int stop_len = len/(SSE_LEN_FLOAT);  //(len << 1) >> 2;
+	stop_len    = stop_len*SSE_LEN_FLOAT; //stop_len << 2;
+       
+    int condition = (uintptr_t)(const void*)(src1) % SSE_LEN_BYTES; 
+	if( condition == 0){
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			v4sf src1_tmp = _mm_load_ps(src1 + i); // src1 = b1,a1,b0,a0 (little endian)
+			v4sf src2_tmp = _mm_load_ps(src2 + i); // src2 = d1,c1,d0,c0
+			v4sf tmp1     = _mm_moveldup_ps(src1_tmp); //a1,a1,a0,a0
+			v4sf tmp2     = _mm_mul_ps(tmp1,src2_tmp); //a1d1,a1c1,a0d0,a0c0
+			src2_tmp      = _mm_shuffle_ps (src2_tmp, src2_tmp, _MM_SHUFFLE(2,3, 0, 1)); //c1,d1,c0,d0
+			tmp1          = _mm_movehdup_ps(src1_tmp); //b1,b1,b0,b0
+			v4sf out      = _mm_mul_ps(src2_tmp,tmp1);
+			out           = _mm_addsub_ps(tmp2,out);
+			_mm_store_ps(dst + i, out);
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+			v4sf src1_tmp = _mm_loadu_ps(src1 + i); // src1 = b1,a1,b0,a0 (little endian)
+			v4sf src2_tmp = _mm_loadu_ps(src2 + i); // src2 = d1,c1,d0,c0
+			v4sf tmp1     = _mm_moveldup_ps(src1_tmp); //a1,a1,a0,a0
+			v4sf tmp2     = _mm_mul_ps(tmp1,src2_tmp); //a1d1,a1c1,a0d0,a0c0
+			src2_tmp      = _mm_shuffle_ps (src2_tmp, src2_tmp, _MM_SHUFFLE(2,3, 0, 1)); //c1,d1,c0,d0
+			tmp1          = _mm_movehdup_ps(src1_tmp); //b1,b1,b0,b0
+			v4sf out      = _mm_mul_ps(src2_tmp,tmp1);
+			out           = _mm_addsub_ps(tmp2,out);
+			_mm_storeu_ps(dst + i, out);
+		}
+	}
+
+
+	for(int i = stop_len; i < len; i+=2){
+		dst[i]   = src1[i]*src2[i]   - src1[i+1]*src2[i+1];
+		dst[i+1] = src1[i]*src2[i+1] + src2[i]*src1[i+1];
+	}	
+}
+
+
+
+void cplxvecmul128f(float* src1, float* src2, float* dst, int len)
+{
+	int stop_len = 2*len/(SSE_LEN_FLOAT);  //(len << 1) >> 2;
+	stop_len    = stop_len*SSE_LEN_FLOAT; //stop_len << 2;
+       
+    int condition = (uintptr_t)(const void*)(src1) % SSE_LEN_BYTES; 
+	if( condition == 0){
+		for(int i = 0; i < stop_len; i+= 2*SSE_LEN_FLOAT){
+			v4sf src1_tmp  = _mm_load_ps(src1 + i); // src1 = b1,a1,b0,a0 (little endian)
+			v4sf src2_tmp  = _mm_load_ps(src2 + i); // src2 = d1,c1,d0,c0
+			v4sf tmp1      = _mm_moveldup_ps(src1_tmp); //a1,a1,a0,a0
+            tmp1           = _mm_mul_ps(tmp1,src2_tmp); //a1d1,a1c1,a0d0,a0c0
+            v4sf tmp2      = _mm_movehdup_ps(src1_tmp); //b1,b1,b0,b0
+			v4sf src2_tmp2 = _mm_shuffle_ps (src2_tmp, src2_tmp, _MM_SHUFFLE(2,3, 0, 1));//0xB1); //c1,d1,c0,d0
+			tmp2           = _mm_mul_ps(src2_tmp2,tmp2);
+			_mm_store_ps(dst + i, _mm_addsub_ps(tmp1,tmp2));		
+			
+			v4sf src1_tmp_  = _mm_load_ps(src1 + i + SSE_LEN_FLOAT); // src1 = b1,a1,b0,a0 (little endian)
+			v4sf src2_tmp_  = _mm_load_ps(src2 + i + SSE_LEN_FLOAT); // src2 = d1,c1,d0,c0
+			v4sf tmp1_      = _mm_moveldup_ps(src1_tmp_); //a1,a1,a0,a0
+            tmp1_           = _mm_mul_ps(tmp1,src2_tmp_); //a1d1,a1c1,a0d0,a0c0
+            v4sf tmp2_      = _mm_movehdup_ps(src1_tmp_); //b1,b1,b0,b0
+			v4sf src2_tmp2_ = _mm_shuffle_ps (src2_tmp_, src2_tmp_, _MM_SHUFFLE(2,3, 0, 1));//0xB1); //c1,d1,c0,d0
+			tmp2_           = _mm_mul_ps(src2_tmp2_,tmp2_);
+			_mm_store_ps(dst + i + SSE_LEN_FLOAT, _mm_addsub_ps(tmp1_,tmp2_));	
+			
+				
+		#if 0 // AVX
+			/* Step 1: Multiply vec1 and vec2 */
+            v4sf tmp1 = _mm_mul_ps(src1_tmp, src2_tmp);
+            /* Step 2: Switch the real and imaginary elements of vec2 */
+            v4sf tmp2 = _mm_permute_ps(src2_tmp, 0x5);
+            /* Step 3: Negate the imaginary elements of vec2 */
+            tmp2 = _mm_mul_ps(tmp2, neg);  
+            /* Step 4: Multiply vec1 and the modified vec2 */
+            v4sf tmp3  = _mm_mul_ps(tmp1, tmp2);
+            /* Horizontally subtract the elements in vec3 and vec4 */
+            src1_tmp = _mm_hsub_ps(tmp2, tmp3);
+			_mm_store_ps(dst + i, src1_tmp);
+		#endif	
+		}
+	}
+	else{
+		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
+		    printf("NON\n");
+			/*v4sf src1_tmp = _mm_loadu_ps(src1 + i); // src1 = b1,a1,b0,a0 (little endian)
+			v4sf src2_tmp = _mm_loadu_ps(src2 + i); // src2 = d1,c1,d0,c0
+			v4sf tmp1     = _mm_moveldup_ps(src1_tmp); //a1,a1,a0,a0
+			v4sf tmp2     = _mm_mul_ps(tmp1,src2_tmp); //a1d1,a1c1,a0d0,a0c0
+			src2_tmp      = _mm_shuffle_ps (src2_tmp, src2_tmp, shuffle_val); //c1,d1,c0,d0
+			tmp1          = _mm_movehdup_ps(src1_tmp); //b1,b1,b0,b0
+			v4sf out      = _mm_mul_ps(src2_tmp,tmp1);
+			out           = _mm_addsub_ps(tmp2,out);
+			_mm_storeu_ps(dst + i, out);*/
+		}
+	}
+
+
+	for(int i = stop_len; i < 2*len; i+=2){
+	    printf("Entering\n");
+		dst[i]   = src1[i]*src2[i]   - src1[i+1]*src2[i+1];
+		dst[i+1] = src1[i]*src2[i+1] + src2[i]*src1[i+1];
+	}	
+
+}
+
+
