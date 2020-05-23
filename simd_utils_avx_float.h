@@ -713,16 +713,11 @@ v8sf atan256f_ps( v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 	y = _mm256_blendv_ps ( y, *(v8sf*)_ps256_PIO4F, inftan3pi8suppi8);
 
 	z   = _mm256_mul_ps(x,x);
-
-	tmp = _mm256_mul_ps(*(v8sf*)_ps256_ATAN_P0, z);
-	tmp = _mm256_add_ps(*(v8sf*)_ps256_ATAN_P1, tmp);
-	tmp = _mm256_mul_ps(z, tmp);
-	tmp = _mm256_add_ps(*(v8sf*)_ps256_ATAN_P2, tmp);
-	tmp = _mm256_mul_ps(z, tmp);
-	tmp = _mm256_add_ps(*(v8sf*)_ps256_ATAN_P3, tmp);
-	tmp = _mm256_mul_ps(z, tmp);
-	tmp = _mm256_mul_ps(x, tmp);
-	tmp = _mm256_add_ps(x, tmp);
+	tmp = _mm256_fmadd_ps_custom(*(v8sf*)_ps256_ATAN_P0, z, *(v8sf*)_ps256_ATAN_P1);
+	tmp = _mm256_fmadd_ps_custom(tmp, z, *(v8sf*)_ps256_ATAN_P2);
+	tmp = _mm256_fmadd_ps_custom(tmp, z, *(v8sf*)_ps256_ATAN_P3);
+	tmp =  _mm256_mul_ps(z, tmp);
+	tmp = _mm256_fmadd_ps_custom(tmp, x, x);
 
 	y  = _mm256_add_ps(y, tmp);
 
@@ -839,17 +834,12 @@ v8sf asin256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 	z       = _mm256_blendv_ps (_mm256_mul_ps(a,a), z_tmp, asup0p5);
 	x       = _mm256_blendv_ps ( a, _mm256_sqrt_ps(z), asup0p5);
 
-	tmp     =  _mm256_mul_ps(*(v8sf*)_ps256_ASIN_P0, z);
-	tmp     =  _mm256_add_ps(*(v8sf*)_ps256_ASIN_P1, tmp);
+	tmp     =  _mm256_fmadd_ps_custom(*(v8sf*)_ps256_ASIN_P0, z,*(v8sf*)_ps256_ASIN_P1);
+	tmp     =  _mm256_fmadd_ps_custom(z, tmp, *(v8sf*)_ps256_ASIN_P2);
+	tmp     =  _mm256_fmadd_ps_custom(z, tmp,*(v8sf*)_ps256_ASIN_P3);
+	tmp     =  _mm256_fmadd_ps_custom(z, tmp,*(v8sf*)_ps256_ASIN_P4);	
 	tmp     =  _mm256_mul_ps(z, tmp);
-	tmp     =  _mm256_add_ps(*(v8sf*)_ps256_ASIN_P2, tmp);
-	tmp     =  _mm256_mul_ps(z, tmp);
-	tmp     =  _mm256_add_ps(*(v8sf*)_ps256_ASIN_P3, tmp);
-	tmp     =  _mm256_mul_ps(z, tmp);
-	tmp     =  _mm256_add_ps(*(v8sf*)_ps256_ASIN_P4, tmp);
-	tmp     =  _mm256_mul_ps(z, tmp);
-	tmp     =  _mm256_mul_ps(x, tmp);
-	tmp     =  _mm256_add_ps(x, tmp);
+	tmp     =  _mm256_fmadd_ps_custom(x, tmp, x);
 
 	z       = tmp;
 
@@ -931,12 +921,10 @@ v8sf tan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 	//z = ((x - y * DP1) - y * DP2) - y * DP3;
 
 #if 1
-	tmp = _mm256_mul_ps(y, *(v8sf*)_ps256_DP1);
-	z   = _mm256_add_ps(x, tmp);
-	tmp = _mm256_mul_ps(y, *(v8sf*)_ps256_DP2);
-	z   = _mm256_add_ps(z, tmp);
-	tmp = _mm256_mul_ps(y, *(v8sf*)_ps256_DP3);
-	z   = _mm256_add_ps(z, tmp);
+	
+	z = _mm256_fmadd_ps_custom(y, *(v8sf*)_ps256_DP1, x);
+	z = _mm256_fmadd_ps_custom(y, *(v8sf*)_ps256_DP2, z);
+	z = _mm256_fmadd_ps_custom(y, *(v8sf*)_ps256_DP3, z);
 #else // faster but less precision
 	tmp = _mm256_mul_ps(y,*(v8sf*)_ps256_DP123);
 	z   = _mm256_sub_ps(x, tmp);
@@ -945,19 +933,13 @@ v8sf tan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 
 	//TODO : should not be computed if X < 10e-4
 	/* 1.7e-8 relative error in [-pi/4, +pi/4] */
-	tmp =  _mm256_mul_ps(*(v8sf*)_ps256_TAN_P0, zz);
-	tmp =  _mm256_add_ps(*(v8sf*)_ps256_TAN_P1, tmp);
-	tmp =  _mm256_mul_ps(zz, tmp);
-	tmp =  _mm256_add_ps(*(v8sf*)_ps256_TAN_P2, tmp);
-	tmp =  _mm256_mul_ps(zz, tmp);
-	tmp =  _mm256_add_ps(*(v8sf*)_ps256_TAN_P3, tmp);
-	tmp =  _mm256_mul_ps(zz, tmp);
-	tmp =  _mm256_add_ps(*(v8sf*)_ps256_TAN_P4, tmp);
-	tmp =  _mm256_mul_ps(zz, tmp);
-	tmp =  _mm256_add_ps(*(v8sf*)_ps256_TAN_P5, tmp);
-	tmp =  _mm256_mul_ps(zz, tmp);
-	tmp =  _mm256_mul_ps(z, tmp);
-	tmp =  _mm256_add_ps(z, tmp);
+	tmp = _mm256_fmadd_ps_custom(*(v8sf*)_ps256_TAN_P0, zz,  *(v8sf*)_ps256_TAN_P1);
+	tmp = _mm256_fmadd_ps_custom(tmp, zz,  *(v8sf*)_ps256_TAN_P2);
+	tmp = _mm256_fmadd_ps_custom(tmp, zz,  *(v8sf*)_ps256_TAN_P3);
+	tmp = _mm256_fmadd_ps_custom(tmp, zz,  *(v8sf*)_ps256_TAN_P4);
+	tmp = _mm256_fmadd_ps_custom(tmp, zz,  *(v8sf*)_ps256_TAN_P5);
+	tmp = _mm256_mul_ps(zz, tmp);
+	tmp = _mm256_fmadd_ps_custom(tmp, z,  z);
 
 	xsupem4 = _mm256_cmp_ps(x,_mm256_set1_ps(1.0e-4), _CMP_GT_OS); 	//if( x > 1.0e-4 )
 	y       = _mm256_blendv_ps ( z, tmp, xsupem4);

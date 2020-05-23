@@ -22,9 +22,9 @@ _PS_CONST(min1  , -1.0f);
 _PS_CONST(DP123, 0.78515625 + 2.4187564849853515625e-4 + 3.77489497744594108e-8);
 
 // Neg values to better migrate to FMA
-_PS_CONST(DP1,   -0.78515625);
-_PS_CONST(DP2,   -2.4187564849853515625e-4);
-_PS_CONST(DP3,   -3.77489497744594108e-8);
+_PS_CONST(DP1,   -0.78515625f);
+_PS_CONST(DP2,   -2.4187564849853515625E-4f);
+_PS_CONST(DP3,   -3.77489497744594108E-8f);
 
 _PS_CONST(FOPI, 1.27323954473516); /* 4/pi */
 _PS_CONST(TAN_P0, 9.38540185543E-3);
@@ -943,17 +943,12 @@ v4sf asinf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 	z       = _mm_blendv_ps (_mm_mul_ps(a,a), z_tmp, asup0p5);
 	x       = _mm_blendv_ps ( a, _mm_sqrt_ps(z), asup0p5);
 
-	tmp     =  _mm_mul_ps(*(v4sf*)_ps_ASIN_P0, z);
-	tmp     =  _mm_add_ps(*(v4sf*)_ps_ASIN_P1, tmp);
+	tmp     =  _mm_fmadd_ps_custom(*(v4sf*)_ps_ASIN_P0, z,*(v4sf*)_ps_ASIN_P1);
+	tmp     =  _mm_fmadd_ps_custom(z, tmp, *(v4sf*)_ps_ASIN_P2);
+	tmp     =  _mm_fmadd_ps_custom(z, tmp,*(v4sf*)_ps_ASIN_P3);
+	tmp     =  _mm_fmadd_ps_custom(z, tmp,*(v4sf*)_ps_ASIN_P4);	
 	tmp     =  _mm_mul_ps(z, tmp);
-	tmp     =  _mm_add_ps(*(v4sf*)_ps_ASIN_P2, tmp);
-	tmp     =  _mm_mul_ps(z, tmp);
-	tmp     =  _mm_add_ps(*(v4sf*)_ps_ASIN_P3, tmp);
-	tmp     =  _mm_mul_ps(z, tmp);
-	tmp     =  _mm_add_ps(*(v4sf*)_ps_ASIN_P4, tmp);
-	tmp     =  _mm_mul_ps(z, tmp);
-	tmp     =  _mm_mul_ps(x, tmp);
-	tmp     =  _mm_add_ps(x, tmp);
+	tmp     =  _mm_fmadd_ps_custom(x, tmp, x);
 
 	z       = tmp;
 
@@ -994,6 +989,15 @@ void asin128f( float* src, float* dst, int len)
 	}
 }
 
+
+void print4(__m128 v) {
+	float *p = (float*)&v;
+#ifndef USE_SSE2
+	_mm_empty();
+#endif
+	printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
+}
+
 v4sf tanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 {
 	v4sf x, y, z, zz;
@@ -1019,9 +1023,19 @@ v4sf tanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 
 #if 1
 	//z = ((x - y * DP1) - y * DP2) - y * DP3;
+	/*tmp = _mm_mul_ps(y, *(v4sf*)_ps_DP1);
+	z   = _mm_add_ps(x, tmp);
+	tmp = _mm_mul_ps(y, *(v4sf*)_ps_DP2);
+	z   = _mm_add_ps(z, tmp);
+	tmp = _mm_mul_ps(y, *(v4sf*)_ps_DP3);
+	z   = _mm_add_ps(z, tmp);*/
+
 	z = _mm_fmadd_ps_custom(y, *(v4sf*)_ps_DP1, x);
 	z = _mm_fmadd_ps_custom(y, *(v4sf*)_ps_DP2, z);
 	z = _mm_fmadd_ps_custom(y, *(v4sf*)_ps_DP3, z);
+	//print4(*(v4sf*)_ps_DP1);print4(*(v4sf*)_ps_DP2);print4(*(v4sf*)_ps_DP3);printf("\n");
+	//print4(y);printf("\n");
+
 
 	zz = _mm_mul_ps(z,z); //z*z
 
@@ -1084,13 +1098,17 @@ void tan128f_naive( float* src, float* dst, int len)
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp = _mm_load_ps(src + i);
-			_mm_store_ps(dst + i, _mm_div_ps(sin_ps(src_tmp),cos_ps(src_tmp)));
+			v4sf sin_tmp, cos_tmp;
+			sincos_ps(src_tmp,&sin_tmp,&cos_tmp);
+			_mm_store_ps(dst + i, _mm_div_ps(sin_tmp,cos_tmp));
+			//_mm_store_ps(dst + i, _mm_div_ps(sin_ps(src_tmp),cos_ps(src_tmp)));
 		}
 	}
 	else{
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp = _mm_loadu_ps(src + i);
 			_mm_storeu_ps(dst + i, _mm_div_ps(sin_ps(src_tmp),cos_ps(src_tmp)));
+			//_mm_storeu_ps(dst + i, _mm_div_ps(sin_ps(src_tmp),cos_ps(src_tmp)));
 		}
 	}
 

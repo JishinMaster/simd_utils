@@ -233,6 +233,25 @@ __m256 _mm256_set_m128 ( __m128 H, __m128 L) //not present on every GCC version
 #define AVX_LEN_INT32  4 // number of int32 with an AVX lane
 #define AVX_LEN_FLOAT  8 // number of float with an AVX lane
 #define AVX_LEN_DOUBLE 4 // number of double with an AVX lane
+
+inline __m256 _mm256_fmadd_ps_custom (__m256 a, __m256 b, __m256 c) 
+{
+	#ifndef FMA //Haswell comes with avx2 and fma
+   		return _mm256_add_ps( _mm256_mul_ps(a,b), c);
+	#else
+		return _mm256_fmadd_ps( a, b, c);
+	#endif
+}
+
+inline __m256d _mm256_fmadd_pd_custom (__m256d a, __m256d b, __m256d c) 
+{
+	#ifndef FMA //Haswell comes with avx2 and fma
+   		return _mm256_add_pd( _mm256_mul_pd(a,b), c);
+	#else
+		return _mm256_fmadd_pd( a, b, c);
+	#endif
+}
+
 #include "avx_mathfun.h"
 #include "simd_utils_avx_float.h"
 #include "simd_utils_avx_double.h"
@@ -241,10 +260,21 @@ __m256 _mm256_set_m128 ( __m128 H, __m128 L) //not present on every GCC version
 #endif
 
 
-#ifdef WINDOWS // TODO : find a way to align on Windows
-void posix_memalign( void** inout , int alignement, size_t len){
-	*inout = malloc(len);
-}	
+#ifdef WINDOWS
+//Thanks to Jpommier pfft https://bitbucket.org/jpommier/pffft/src/default/pffft.c
+
+void *aligned_malloc(size_t len, int alignement) {
+  void *p, *p0 = malloc(len + alignement);
+  if (!p0) return (void *) 0;
+  p = (void *) (((size_t) p0 + alignement) & (~((size_t) (alignement-1))));
+  *((void **) p - 1) = p0;
+  return p;
+}
+
+void aligned_free(void *p) {
+  if (p) free(*((void **) p - 1));
+}
+	
 #endif 
 
 
