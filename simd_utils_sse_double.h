@@ -5,6 +5,7 @@
  * Licence : BSD-2
  */
 
+
 #include <stdint.h>
 #ifndef ARM
 #include <immintrin.h>

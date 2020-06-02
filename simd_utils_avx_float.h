@@ -4,7 +4,6 @@
  * Author  : JishinMaster
  * Licence : BSD-2
  */
-
 #include <stdint.h>
 #include "immintrin.h"
 
@@ -87,7 +86,6 @@ _PS256_CONST(ATAN_P3, -3.33329491539E-1);
 
 void log10_256f(float* src, float* dst, int len)
 {
-	float invln10f_mask = (float)INVLN10;
 	const v8sf invln10f = _mm256_set1_ps((float)INVLN10); //_mm256_broadcast_ss(&invln10f_mask);
 
 	int stop_len = len/AVX_LEN_FLOAT;
@@ -811,8 +809,8 @@ void atan2256f( float* src1, float* src2, float* dst, int len)
 
 v8sf asin256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 {
-	v8sf a, x, z, x_tmp, z_tmp;
-	v8sf sign, flag;
+	v8sf a, x, z, z_tmp;
+	v8sf sign;
 	v8sf ainfem4, asup0p5;
 	v8sf tmp;
 	x    = xx;
@@ -1252,5 +1250,4 @@ void floor256f( float* src, float* dst, int len)
 		dst[i] = floorf(src[i]);
 	}
 }
-
 

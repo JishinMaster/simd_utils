@@ -5,6 +5,10 @@
  * Licence : BSD-2
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef OMP
 #include <omp.h>
 #endif
@@ -262,15 +266,26 @@ inline __m256d _mm256_fmadd_pd_custom (__m256d a, __m256d b, __m256d c)
 
 #ifdef WINDOWS
 //Thanks to Jpommier pfft https://bitbucket.org/jpommier/pffft/src/default/pffft.c
+int posix_memalign(void **pointer, size_t len, int alignement) {
+  void *p, *p0 = malloc(len + alignement);
+  if (!p0) return (void *) NULL;
+  p = (void *) (((size_t) p0 + alignement) & (~((size_t) (alignement-1))));
+  *((void **) p - 1) = p0;
+  
+  *pointer = p;
+  return 0;
+}
+
 
 void *aligned_malloc(size_t len, int alignement) {
   void *p, *p0 = malloc(len + alignement);
-  if (!p0) return (void *) 0;
+  if (!p0) return (void *) NULL;
   p = (void *) (((size_t) p0 + alignement) & (~((size_t) (alignement-1))));
   *((void **) p - 1) = p0;
   return p;
 }
 
+//Work in progress
 void aligned_free(void *p) {
   if (p) free(*((void **) p - 1));
 }
@@ -485,4 +500,7 @@ void cplxvecmul_C(float* src1, float* src2, float* dst, int len)
 		dst[i+1] = src1[i]*src2[i+1] + src2[i]*src1[i+1];
 	}	
 }
-////////////////////////
+
+#ifdef __cplusplus
+}
+#endif

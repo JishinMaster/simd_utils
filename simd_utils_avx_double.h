@@ -332,3 +332,4 @@ void vectorSlope256d(double* dst, int len, double offset, double slope)
 		dst[i] = offset + slope*(double)i;
 	}
 }
+

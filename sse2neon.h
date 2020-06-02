@@ -3074,6 +3074,23 @@ FORCE_INLINE __m128d _mm_castsi128_pd(__m128i a)
 {
     return vreinterpretq_m128d_s64(vreinterpretq_s64_m128i(a));
 }
+
+
+FORCE_INLINE __m128 _mm_cvtpi16_ps(__m64 a)
+{
+	return vreinterpretq_m128_f32(vcvtq_f32_s32(vmovl_s16(vreinterpret_s16_f32(a))));
+}
+
+
+FORCE_INLINE __m128 _mm_moveldup_ps(__m128 a)
+{
+	return _mm_shuffle_ps(a,a, _MM_SHUFFLE(0,0, 2, 2));
+}
+
+FORCE_INLINE __m128 _mm_movehdup_ps(__m128 a)
+{
+	return _mm_shuffle_ps(a,a, _MM_SHUFFLE(1,1, 3, 3));
+}
 /////Jishin
 
 
@@ -3826,6 +3843,18 @@ FORCE_INLINE __m128 _mm_fmadd_ps (__m128 a, __m128 b, __m128 c)
         vfmaq_f32( vreinterpretq_f32_m128(c), vreinterpretq_f32_m128(b), vreinterpretq_f32_m128(a)) );  
 }
 
+//Armv8.3+
+FORCE_INLINE __m128 _mm_cplx_mul_ps(__m128 r, __m128 a, __m128 b)
+{
+	return vreinterpretq_m128_f32(vcmlaq_f32(vreinterpretq_f32_m128(r), vreinterpretq_f32_m128(a),vreinterpretq_f32_m128(b)));
+}
+
+FORCE_INLINE __m128 _mm_addsub_ps(__m128 a, __m128 b)
+{
+	__m128 mask = {1.0f,-1.0f,1.0f,-1.0f};
+	return _mm_fmadd_ps(b,mask,a);
+}
+
 // Returns the __m128i structure with its two 64-bit integer values
 // initialized to the values of the two 64-bit integers passed in.
 // https://msdn.microsoft.com/en-us/library/dk2sdw0h(v=vs.120).aspx
@@ -3950,4 +3979,5 @@ FORCE_INLINE void _mm_empty(){
 #endif
 
 #endif
+
 

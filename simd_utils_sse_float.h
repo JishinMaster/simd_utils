@@ -4,7 +4,6 @@
  * Author  : JishinMaster
  * Licence : BSD-2
  */
-
 #include <stdint.h>
 #ifndef ARM
 #include <immintrin.h>
@@ -310,7 +309,7 @@ void mulc128f( float* src, float value, float* dst, int len)
 	}		
 }
 
-#pragma warning "src2 should have no 0.0f values!"
+#warning "src2 should have no 0.0f values!"
 void div128f( float* src1, float* src2, float* dst, int len)
 {
 
@@ -376,7 +375,6 @@ typedef enum {
 } FloatRoundingMode;
 void convertFloat32ToU8_128(float* src, uint8_t* dst, int len, int rounding_mode, int scale_factor)
 {
-
 	int stop_len = len/SSE_LEN_FLOAT;
 	stop_len    *= SSE_LEN_FLOAT;
 
@@ -394,8 +392,7 @@ void convertFloat32ToU8_128(float* src, uint8_t* dst, int len, int rounding_mode
 
 				v4si tmp5 = _mm_set_epi64( _mm_cvtps_pi16(tmp2), _mm_cvtps_pi16(tmp1));
 				v4si tmp6 = _mm_set_epi64( _mm_cvtps_pi16(tmp4), _mm_cvtps_pi16(tmp3));
-
-				_mm_store_si128(dst + i, _mm_packus_epi16(tmp5,tmp6));
+				_mm_store_si128((__m128i*)(dst + i), _mm_packus_epi16(tmp5,tmp6));
 			}
 		}
 		else{
@@ -407,8 +404,7 @@ void convertFloat32ToU8_128(float* src, uint8_t* dst, int len, int rounding_mode
 
 				v4si tmp5 = _mm_set_epi64( _mm_cvtps_pi16(tmp2), _mm_cvtps_pi16(tmp1));
 				v4si tmp6 = _mm_set_epi64( _mm_cvtps_pi16(tmp4), _mm_cvtps_pi16(tmp3));
-
-				_mm_storeu_si128(dst + i, _mm_packus_epi16(tmp5,tmp6));
+				_mm_storeu_si128((__m128i*)(dst + i), _mm_packus_epi16(tmp5,tmp6));
 			}
 		}
 
@@ -417,7 +413,6 @@ void convertFloat32ToU8_128(float* src, uint8_t* dst, int len, int rounding_mode
 		}
 	}
 	else{
-		int rounding_vec;
 		if(rounding_mode == RndZero){
 			_MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);//rounding_vec = ROUNDTOZERO;
 			fesetround(FE_TOWARDZERO);
@@ -436,8 +431,7 @@ void convertFloat32ToU8_128(float* src, uint8_t* dst, int len, int rounding_mode
 
 				v4si tmp5 = _mm_set_epi64( _mm_cvtps_pi16(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION )), _mm_cvtps_pi16(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION )));
 				v4si tmp6 = _mm_set_epi64( _mm_cvtps_pi16(_mm_round_ps(tmp4, _MM_FROUND_CUR_DIRECTION )), _mm_cvtps_pi16(_mm_round_ps(tmp3, _MM_FROUND_CUR_DIRECTION )));
-
-				_mm_store_si128(dst + i, _mm_packus_epi16(tmp5,tmp6));
+				_mm_store_si128((__m128i*)(dst + i), _mm_packus_epi16(tmp5,tmp6));
 			}
 		}
 		else{
@@ -449,8 +443,7 @@ void convertFloat32ToU8_128(float* src, uint8_t* dst, int len, int rounding_mode
 
 				v4si tmp5 = _mm_set_epi64( _mm_cvtps_pi16(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION )), _mm_cvtps_pi16(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION )));
 				v4si tmp6 = _mm_set_epi64( _mm_cvtps_pi16(_mm_round_ps(tmp4, _MM_FROUND_CUR_DIRECTION )), _mm_cvtps_pi16(_mm_round_ps(tmp3, _MM_FROUND_CUR_DIRECTION )));
-
-				_mm_storeu_si128(dst + i, _mm_packus_epi16(tmp5,tmp6));
+				_mm_storeu_si128((__m128i*)(dst + i), _mm_packus_epi16(tmp5,tmp6));
 			}
 		}
 
@@ -486,7 +479,7 @@ void convertInt16ToFloat32_128(int16_t* src, float* dst, int len, int scale_fact
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= 2*SSE_LEN_FLOAT){
 			__m64 shortlo, shorthi;
-			COPY_XMM_TO_MM_INT(_mm_load_si128(src + i),shortlo, shorthi);
+			COPY_XMM_TO_MM_INT(_mm_load_si128((__m128i*)(src + i)),shortlo, shorthi);
 
 			v4sf floatlo = _mm_mul_ps(_mm_cvtpi16_ps(shortlo), scale_fact_vec);
 			v4sf floathi = _mm_mul_ps(_mm_cvtpi16_ps(shorthi), scale_fact_vec);
@@ -498,7 +491,7 @@ void convertInt16ToFloat32_128(int16_t* src, float* dst, int len, int scale_fact
 	else{
 		for(int i = 0; i < stop_len; i+= 2*SSE_LEN_FLOAT){
 			__m64 shortlo, shorthi;
-			COPY_XMM_TO_MM_INT(_mm_loadu_si128(src + i),shortlo, shorthi);
+			COPY_XMM_TO_MM_INT(_mm_loadu_si128((__m128i*)(src + i)),shortlo, shorthi);
 
 			v4sf floatlo = _mm_mul_ps(_mm_cvtpi16_ps(shortlo), scale_fact_vec);
 			v4sf floathi = _mm_mul_ps(_mm_cvtpi16_ps(shorthi), scale_fact_vec);
@@ -512,7 +505,7 @@ void convertInt16ToFloat32_128(int16_t* src, float* dst, int len, int scale_fact
 		dst[i] = (float)src[i] * scale_fact_mult;
 	}
 }
-#endif
+#endif //ARM
 
 // converts 32bits complex float to two arrays real and im
 void cplxtoreal128f( float* src, float* dstRe, float* dstIm, int len)
@@ -920,8 +913,8 @@ void atan2128f( float* src1, float* src2, float* dst, int len)
 
 v4sf asinf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 {
-	v4sf a, x, z, x_tmp, z_tmp;
-	v4sf sign, flag;
+	v4sf a, x, z, z_tmp;
+	v4sf sign;
 	v4sf ainfem4, asup0p5;
 	v4sf tmp;
 	x    = xx;
@@ -1184,24 +1177,24 @@ void magnitude128f_interleaved( complex32_t* src, float* dst, int len)
 	int j = 0;
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){ 
-			v4sf cplx01          = _mm_load_ps(src + j);
-			v4sf cplx23          = _mm_load_ps(src + j + 2 ); // complex is 2 floats
+			v4sf cplx01          = _mm_load_ps((const float*)src + j);
+			v4sf cplx23          = _mm_load_ps((const float*)src + j + SSE_LEN_FLOAT ); // complex is 2 floats
 			v4sf cplx01_square   = _mm_mul_ps(cplx01,cplx01);
 			v4sf cplx23_square   = _mm_mul_ps(cplx23,cplx23);
 			v4sf square_sum_0123 = _mm_hadd_ps(cplx01_square, cplx23_square);
 			_mm_store_ps(dst + i, _mm_sqrt_ps(square_sum_0123));
-			j+= SSE_LEN_BYTES;
+			j+= 2*SSE_LEN_FLOAT;
 		}
 	}
 	else{
 		for(int i = 0; i < stop_len; i+= 2*SSE_LEN_FLOAT){
-			v4sf cplx01          = _mm_loadu_ps(src + j);
-			v4sf cplx23          = _mm_loadu_ps(src + j + 2 );
+			v4sf cplx01          = _mm_loadu_ps((const float*)src + j);
+			v4sf cplx23          = _mm_loadu_ps((const float*)src + j +  SSE_LEN_FLOAT); // complex is 2 floats
 			v4sf cplx01_square   = _mm_mul_ps(cplx01,cplx01);
 			v4sf cplx23_square   = _mm_mul_ps(cplx23,cplx23);
 			v4sf square_sum_0123 = _mm_hadd_ps(cplx01_square, cplx23_square);
 			_mm_storeu_ps(dst + i, _mm_sqrt_ps(square_sum_0123));
-			j+= SSE_LEN_BYTES;
+			j+= 2*SSE_LEN_FLOAT;
 		}
 	}
 
@@ -1388,18 +1381,10 @@ void floor128f( float* src, float* dst, int len)
 		dst[i] = floorf(src[i]);
 	}
 }
+
 #endif
 
-
-void cplxvecmul_C(float* src1, float* src2, float* dst, int len)
-{
-	for(int i = 0; i < 2*len; i+=2){
-		dst[i]   = src1[i]*src2[i]   - src1[i+1]*src2[i+1];
-		dst[i+1] = src1[i]*src2[i+1] + src2[i]*src1[i+1];
-	}	
-}
-
-void cplxvecmul128f(float* src1, float* src2, float* dst, int len)
+void cplxvecmul128f(complex32_t* src1, complex32_t* src2, complex32_t* dst, int len)
 {
 	int stop_len = len/(SSE_LEN_FLOAT);  //(len << 1) >> 2;
 	stop_len    = stop_len*SSE_LEN_FLOAT; //stop_len << 2;
@@ -1407,104 +1392,34 @@ void cplxvecmul128f(float* src1, float* src2, float* dst, int len)
     int condition = (uintptr_t)(const void*)(src1) % SSE_LEN_BYTES; 
 	if( condition == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-			v4sf src1_tmp = _mm_load_ps(src1 + i); // src1 = b1,a1,b0,a0 (little endian)
-			v4sf src2_tmp = _mm_load_ps(src2 + i); // src2 = d1,c1,d0,c0
+			v4sf src1_tmp = _mm_load_ps((float*)(src1 + i)); // src1 = b1,a1,b0,a0 (little endian)
+			v4sf src2_tmp = _mm_load_ps((float*)(src2 + i)); // src2 = d1,c1,d0,c0
 			v4sf tmp1     = _mm_moveldup_ps(src1_tmp); //a1,a1,a0,a0
 			v4sf tmp2     = _mm_mul_ps(tmp1,src2_tmp); //a1d1,a1c1,a0d0,a0c0
 			src2_tmp      = _mm_shuffle_ps (src2_tmp, src2_tmp, _MM_SHUFFLE(2,3, 0, 1)); //c1,d1,c0,d0
 			tmp1          = _mm_movehdup_ps(src1_tmp); //b1,b1,b0,b0
 			v4sf out      = _mm_mul_ps(src2_tmp,tmp1);
 			out           = _mm_addsub_ps(tmp2,out);
-			_mm_store_ps(dst + i, out);
+			_mm_store_ps((float*)(dst + i), out);
 		}
 	}
 	else{
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-			v4sf src1_tmp = _mm_loadu_ps(src1 + i); // src1 = b1,a1,b0,a0 (little endian)
-			v4sf src2_tmp = _mm_loadu_ps(src2 + i); // src2 = d1,c1,d0,c0
+			v4sf src1_tmp = _mm_loadu_ps((float*)(src1 + i)); // src1 = b1,a1,b0,a0 (little endian)
+			v4sf src2_tmp = _mm_loadu_ps((float*)(src2 + i)); // src2 = d1,c1,d0,c0
 			v4sf tmp1     = _mm_moveldup_ps(src1_tmp); //a1,a1,a0,a0
 			v4sf tmp2     = _mm_mul_ps(tmp1,src2_tmp); //a1d1,a1c1,a0d0,a0c0
 			src2_tmp      = _mm_shuffle_ps (src2_tmp, src2_tmp, _MM_SHUFFLE(2,3, 0, 1)); //c1,d1,c0,d0
 			tmp1          = _mm_movehdup_ps(src1_tmp); //b1,b1,b0,b0
 			v4sf out      = _mm_mul_ps(src2_tmp,tmp1);
 			out           = _mm_addsub_ps(tmp2,out);
-			_mm_storeu_ps(dst + i, out);
+			_mm_storeu_ps((float*)(dst + i), out);
 		}
 	}
 
 
-	for(int i = stop_len; i < len; i+=2){
-		dst[i]   = src1[i]*src2[i]   - src1[i+1]*src2[i+1];
-		dst[i+1] = src1[i]*src2[i+1] + src2[i]*src1[i+1];
+	for(int i = stop_len; i < len; i++){
+		dst[i].re   = src1[i].re*src2[i].re - src1[i].im*src2[i].im;
+		dst[i].im   = src1[i].re*src2[i].im + src2[i].re*src1[i].im;
 	}	
 }
-
-
-
-void cplxvecmul128f(float* src1, float* src2, float* dst, int len)
-{
-	int stop_len = 2*len/(SSE_LEN_FLOAT);  //(len << 1) >> 2;
-	stop_len    = stop_len*SSE_LEN_FLOAT; //stop_len << 2;
-       
-    int condition = (uintptr_t)(const void*)(src1) % SSE_LEN_BYTES; 
-	if( condition == 0){
-		for(int i = 0; i < stop_len; i+= 2*SSE_LEN_FLOAT){
-			v4sf src1_tmp  = _mm_load_ps(src1 + i); // src1 = b1,a1,b0,a0 (little endian)
-			v4sf src2_tmp  = _mm_load_ps(src2 + i); // src2 = d1,c1,d0,c0
-			v4sf tmp1      = _mm_moveldup_ps(src1_tmp); //a1,a1,a0,a0
-            tmp1           = _mm_mul_ps(tmp1,src2_tmp); //a1d1,a1c1,a0d0,a0c0
-            v4sf tmp2      = _mm_movehdup_ps(src1_tmp); //b1,b1,b0,b0
-			v4sf src2_tmp2 = _mm_shuffle_ps (src2_tmp, src2_tmp, _MM_SHUFFLE(2,3, 0, 1));//0xB1); //c1,d1,c0,d0
-			tmp2           = _mm_mul_ps(src2_tmp2,tmp2);
-			_mm_store_ps(dst + i, _mm_addsub_ps(tmp1,tmp2));		
-			
-			v4sf src1_tmp_  = _mm_load_ps(src1 + i + SSE_LEN_FLOAT); // src1 = b1,a1,b0,a0 (little endian)
-			v4sf src2_tmp_  = _mm_load_ps(src2 + i + SSE_LEN_FLOAT); // src2 = d1,c1,d0,c0
-			v4sf tmp1_      = _mm_moveldup_ps(src1_tmp_); //a1,a1,a0,a0
-            tmp1_           = _mm_mul_ps(tmp1,src2_tmp_); //a1d1,a1c1,a0d0,a0c0
-            v4sf tmp2_      = _mm_movehdup_ps(src1_tmp_); //b1,b1,b0,b0
-			v4sf src2_tmp2_ = _mm_shuffle_ps (src2_tmp_, src2_tmp_, _MM_SHUFFLE(2,3, 0, 1));//0xB1); //c1,d1,c0,d0
-			tmp2_           = _mm_mul_ps(src2_tmp2_,tmp2_);
-			_mm_store_ps(dst + i + SSE_LEN_FLOAT, _mm_addsub_ps(tmp1_,tmp2_));	
-			
-				
-		#if 0 // AVX
-			/* Step 1: Multiply vec1 and vec2 */
-            v4sf tmp1 = _mm_mul_ps(src1_tmp, src2_tmp);
-            /* Step 2: Switch the real and imaginary elements of vec2 */
-            v4sf tmp2 = _mm_permute_ps(src2_tmp, 0x5);
-            /* Step 3: Negate the imaginary elements of vec2 */
-            tmp2 = _mm_mul_ps(tmp2, neg);  
-            /* Step 4: Multiply vec1 and the modified vec2 */
-            v4sf tmp3  = _mm_mul_ps(tmp1, tmp2);
-            /* Horizontally subtract the elements in vec3 and vec4 */
-            src1_tmp = _mm_hsub_ps(tmp2, tmp3);
-			_mm_store_ps(dst + i, src1_tmp);
-		#endif	
-		}
-	}
-	else{
-		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
-		    printf("NON\n");
-			/*v4sf src1_tmp = _mm_loadu_ps(src1 + i); // src1 = b1,a1,b0,a0 (little endian)
-			v4sf src2_tmp = _mm_loadu_ps(src2 + i); // src2 = d1,c1,d0,c0
-			v4sf tmp1     = _mm_moveldup_ps(src1_tmp); //a1,a1,a0,a0
-			v4sf tmp2     = _mm_mul_ps(tmp1,src2_tmp); //a1d1,a1c1,a0d0,a0c0
-			src2_tmp      = _mm_shuffle_ps (src2_tmp, src2_tmp, shuffle_val); //c1,d1,c0,d0
-			tmp1          = _mm_movehdup_ps(src1_tmp); //b1,b1,b0,b0
-			v4sf out      = _mm_mul_ps(src2_tmp,tmp1);
-			out           = _mm_addsub_ps(tmp2,out);
-			_mm_storeu_ps(dst + i, out);*/
-		}
-	}
-
-
-	for(int i = stop_len; i < 2*len; i+=2){
-	    printf("Entering\n");
-		dst[i]   = src1[i]*src2[i]   - src1[i+1]*src2[i+1];
-		dst[i+1] = src1[i]*src2[i+1] + src2[i]*src1[i+1];
-	}	
-
-}
-
-
