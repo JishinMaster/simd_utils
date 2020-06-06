@@ -5,7 +5,7 @@
  * Licence : BSD-2
  */
 
-
+#pragma once
 #include <stdint.h>
 #ifndef ARM
 #include <immintrin.h>
@@ -17,7 +17,7 @@
 typedef __m128d  v2sd; // vector of 2 double (sse)
 typedef __m128i  v2si; // vector of 2 int 64 (sse)
 
-void set128d( double* src, double value, int len)
+static inline void set128d( double* src, double value, int len)
 {
 	const v2sd tmp = _mm_set1_pd(value);
 
@@ -40,7 +40,7 @@ void set128d( double* src, double value, int len)
 	}
 }
 
-void zero128d( double* src, int len)
+static inline void zero128d( double* src, int len)
 {
 	const v2sd tmp = _mm_setzero_pd();
 
@@ -63,7 +63,7 @@ void zero128d( double* src, int len)
 	}
 }
 
-void copy128d( double* src,  double* dst, int len)
+static inline void copy128d( double* src,  double* dst, int len)
 {
 	int stop_len = len/SSE_LEN_DOUBLE;
 	stop_len    *= SSE_LEN_DOUBLE;
@@ -84,7 +84,7 @@ void copy128d( double* src,  double* dst, int len)
 	}
 }
 
-void sqrt128d( double* src, double* dst, int len)
+static inline void sqrt128d( double* src, double* dst, int len)
 {
 	int stop_len = len/SSE_LEN_DOUBLE;
 	stop_len    *= SSE_LEN_DOUBLE;
@@ -105,7 +105,7 @@ void sqrt128d( double* src, double* dst, int len)
 	}
 }
 
-void add128d( double* src1, double* src2, double* dst, int len)
+static inline void add128d( double* src1, double* src2, double* dst, int len)
 {
 	int stop_len = len/SSE_LEN_DOUBLE;
 	stop_len    *= SSE_LEN_DOUBLE;
@@ -126,7 +126,7 @@ void add128d( double* src1, double* src2, double* dst, int len)
 	}
 }
 
-void mul128d( double* src1, double* src2, double* dst, int len)
+static inline void mul128d( double* src1, double* src2, double* dst, int len)
 {
 	int stop_len = len/SSE_LEN_DOUBLE;
 	stop_len    *= SSE_LEN_DOUBLE;
@@ -147,7 +147,7 @@ void mul128d( double* src1, double* src2, double* dst, int len)
 	}
 }
 
-void sub128d( double* src1, double* src2, double* dst, int len)
+static inline void sub128d( double* src1, double* src2, double* dst, int len)
 {
 	int stop_len = len/SSE_LEN_DOUBLE;
 	stop_len    *= SSE_LEN_DOUBLE;
@@ -168,7 +168,7 @@ void sub128d( double* src1, double* src2, double* dst, int len)
 	}
 }
 
-void div128d( double* src1, double* src2, double* dst, int len)
+static inline void div128d( double* src1, double* src2, double* dst, int len)
 {
 
 	int stop_len = len/SSE_LEN_DOUBLE;
@@ -191,7 +191,7 @@ void div128d( double* src1, double* src2, double* dst, int len)
 }
 
 //TODO : "Immediate add/mul?"
-void addc128d( double* src, double value, double* dst, int len)
+static inline void addc128d( double* src, double value, double* dst, int len)
 {
 	const v2sd tmp = _mm_set1_pd(value);
 
@@ -214,7 +214,7 @@ void addc128d( double* src, double value, double* dst, int len)
 	}
 }
 
-void mulc128d( double* src, double value, double* dst, int len)
+static inline void mulc128d( double* src, double value, double* dst, int len)
 {
 	const v2sd tmp = _mm_set1_pd(value);
 
@@ -237,7 +237,7 @@ void mulc128d( double* src, double value, double* dst, int len)
 	}
 }
 
-void round128d( double* src, double* dst, int len)
+static inline void round128d( double* src, double* dst, int len)
 {
 	int stop_len = len/SSE_LEN_DOUBLE;
 	stop_len    *= SSE_LEN_DOUBLE;
@@ -260,7 +260,7 @@ void round128d( double* src, double* dst, int len)
 	}
 }
 
-void ceil128d( double* src, double* dst, int len)
+static inline void ceil128d( double* src, double* dst, int len)
 {
 	int stop_len = len/SSE_LEN_DOUBLE;
 	stop_len    *= SSE_LEN_DOUBLE;
@@ -283,7 +283,7 @@ void ceil128d( double* src, double* dst, int len)
 	}
 }
 
-void floor128d( double* src, double* dst, int len)
+static inline void floor128d( double* src, double* dst, int len)
 {
 	int stop_len = len/SSE_LEN_DOUBLE;
 	stop_len    *= SSE_LEN_DOUBLE;
@@ -308,7 +308,7 @@ void floor128d( double* src, double* dst, int len)
 
 
 
-void vectorSlope128d(double* dst, int len, double offset, double slope)
+static inline void vectorSlope128d(double* dst, int len, double offset, double slope)
 {
 	v2sd coef        = _mm_set_pd(slope, 0.0);
 	v2sd slope2_vec  = _mm_set1_pd(2.0*slope);

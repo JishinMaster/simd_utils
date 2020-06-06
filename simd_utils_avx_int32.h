@@ -4,12 +4,12 @@
  * Author  : JishinMaster
  * Licence : BSD-2
  */
-
+#pragma once
 #include <stdint.h>
 #include "immintrin.h"
 
 #ifdef __AVX2__
-void add256s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
+static inline void add256s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
 {
 	int stop_len = len/AVX_LEN_INT32;
 	stop_len    *= AVX_LEN_INT32;
@@ -30,7 +30,7 @@ void add256s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
 	}
 }
 
-void mul256s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
+static inline void mul256s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
 {
 	int stop_len = len/AVX_LEN_INT32;
 	stop_len    *= AVX_LEN_INT32;
@@ -51,7 +51,7 @@ void mul256s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
 	}
 }
 
-void sub256s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
+static inline void sub256s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
 {
 	int stop_len = len/AVX_LEN_INT32;
 	stop_len    *= AVX_LEN_INT32;
@@ -72,7 +72,7 @@ void sub256s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
 	}
 }
 
-void addc256s( int32_t* src, int32_t value, int32_t* dst, int len)
+static inline void addc256s( int32_t* src, int32_t value, int32_t* dst, int len)
 {
 	int stop_len = len/AVX_LEN_INT32;
 	stop_len    *= AVX_LEN_INT32;

@@ -4,13 +4,14 @@
  * Author  : JishinMaster
  * Licence : BSD-2
  */
+#pragma once
 
 #include <stdint.h>
 #include "immintrin.h"
 
 typedef __m256d  v4sd; // vector of 4 double (avx)
 
-void set256d( double* src, double value, int len)
+static inline void set256d( double* src, double value, int len)
 {
 	const v4sd tmp = _mm256_set1_pd(value);
 
@@ -33,7 +34,7 @@ void set256d( double* src, double value, int len)
 	}
 }
 
-void zero256d( double* src, int len)
+static inline void zero256d( double* src, int len)
 {
 	const v4sd tmp = _mm256_setzero_pd();
 
@@ -56,7 +57,7 @@ void zero256d( double* src, int len)
 	}
 }
 
-void copy256d( double* src,  double* dst, int len)
+static inline void copy256d( double* src,  double* dst, int len)
 {
 	int stop_len = len/AVX_LEN_DOUBLE;
 	stop_len    *= AVX_LEN_DOUBLE;
@@ -77,7 +78,7 @@ void copy256d( double* src,  double* dst, int len)
 	}
 }
 
-void sqrt256d( double* src, double* dst, int len)
+static inline void sqrt256d( double* src, double* dst, int len)
 {
 	int stop_len = len/AVX_LEN_DOUBLE;
 	stop_len    *= AVX_LEN_DOUBLE;
@@ -98,7 +99,7 @@ void sqrt256d( double* src, double* dst, int len)
 	}
 }
 
-void add256d( double* src1, double* src2, double* dst, int len)
+static inline void add256d( double* src1, double* src2, double* dst, int len)
 {
 	int stop_len = len/AVX_LEN_DOUBLE;
 	stop_len    *= AVX_LEN_DOUBLE;
@@ -119,7 +120,7 @@ void add256d( double* src1, double* src2, double* dst, int len)
 	}
 }
 
-void mul256d( double* src1, double* src2, double* dst, int len)
+static inline void mul256d( double* src1, double* src2, double* dst, int len)
 {
 	int stop_len = len/AVX_LEN_DOUBLE;
 	stop_len    *= AVX_LEN_DOUBLE;
@@ -140,7 +141,7 @@ void mul256d( double* src1, double* src2, double* dst, int len)
 	}
 }
 
-void sub256d( double* src1, double* src2, double* dst, int len)
+static inline void sub256d( double* src1, double* src2, double* dst, int len)
 {
 	int stop_len = len/AVX_LEN_DOUBLE;
 	stop_len    *= AVX_LEN_DOUBLE;
@@ -161,7 +162,7 @@ void sub256d( double* src1, double* src2, double* dst, int len)
 	}
 }
 
-void div256d( double* src1, double* src2, double* dst, int len)
+static inline void div256d( double* src1, double* src2, double* dst, int len)
 {
 
 	int stop_len = len/AVX_LEN_DOUBLE;
@@ -184,7 +185,7 @@ void div256d( double* src1, double* src2, double* dst, int len)
 }
 
 //TODO : "Immediate add/mul?"
-void addc256d( double* src, double value, double* dst, int len)
+static inline void addc256d( double* src, double value, double* dst, int len)
 {
 	const v4sd tmp = _mm256_set1_pd(value);
 
@@ -207,7 +208,7 @@ void addc256d( double* src, double value, double* dst, int len)
 	}
 }
 
-void mulc256d( double* src, double value, double* dst, int len)
+static inline void mulc256d( double* src, double value, double* dst, int len)
 {
 	const v4sd tmp = _mm256_set1_pd(value);
 
@@ -230,7 +231,7 @@ void mulc256d( double* src, double value, double* dst, int len)
 	}
 }
 
-void round256d( double* src, double* dst, int len)
+static inline void round256d( double* src, double* dst, int len)
 {
 	int stop_len = len/AVX_LEN_DOUBLE;
 	stop_len    *= AVX_LEN_DOUBLE;
@@ -253,7 +254,7 @@ void round256d( double* src, double* dst, int len)
 	}
 }
 
-void ceil256d( double* src, double* dst, int len)
+static inline void ceil256d( double* src, double* dst, int len)
 {
 	int stop_len = len/AVX_LEN_DOUBLE;
 	stop_len    *= AVX_LEN_DOUBLE;
@@ -276,7 +277,7 @@ void ceil256d( double* src, double* dst, int len)
 	}
 }
 
-void floor256d( double* src, double* dst, int len)
+static inline void floor256d( double* src, double* dst, int len)
 {
 	int stop_len = len/AVX_LEN_DOUBLE;
 	stop_len    *= AVX_LEN_DOUBLE;
@@ -299,7 +300,7 @@ void floor256d( double* src, double* dst, int len)
 	}
 }
 
-void vectorSlope256d(double* dst, int len, double offset, double slope)
+static inline void vectorSlope256d(double* dst, int len, double offset, double slope)
 {
 	v4sd coef        = _mm256_set_pd(3.0*slope, 2.0*slope, slope, 0.0);
 	v4sd slope4_vec  = _mm256_set1_pd(4.0*slope);

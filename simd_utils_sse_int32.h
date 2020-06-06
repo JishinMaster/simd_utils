@@ -4,6 +4,8 @@
  * Author  : JishinMaster
  * Licence : BSD-2
  */
+ 
+#pragma once
 
 #include <stdint.h>
 #ifndef ARM
@@ -13,7 +15,7 @@
 #endif
 
 
-void add128s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
+static inline void add128s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
 {
 	int stop_len = len/SSE_LEN_INT32;
 	stop_len    *= SSE_LEN_INT32;
@@ -34,7 +36,7 @@ void add128s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
 	}
 }
 
-void mul128s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
+static inline void mul128s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
 {
 	int stop_len = len/SSE_LEN_INT32;
 	stop_len    *= SSE_LEN_INT32;
@@ -55,7 +57,7 @@ void mul128s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
 	}
 }
 
-void sub128s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
+static inline void sub128s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
 {
 	int stop_len = len/SSE_LEN_INT32;
 	stop_len    *= SSE_LEN_INT32;
@@ -76,7 +78,7 @@ void sub128s( int32_t* src1, int32_t* src2, int32_t* dst, int len)
 	}
 }
 
-void addc128s( int32_t* src, int32_t value, int32_t* dst, int len)
+static inline void addc128s( int32_t* src, int32_t value, int32_t* dst, int len)
 {
 	int stop_len = len/SSE_LEN_INT32;
 	stop_len    *= SSE_LEN_INT32;

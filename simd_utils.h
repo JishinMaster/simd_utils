@@ -5,6 +5,8 @@
  * Licence : BSD-2
  */
 
+#pragma once
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -88,7 +90,7 @@ typedef struct {
 
 #endif
 
-inline __m128 _mm_fmadd_ps_custom (__m128 a, __m128 b, __m128 c) 
+static inline __m128 _mm_fmadd_ps_custom (__m128 a, __m128 b, __m128 c) 
 {
 	#ifndef FMA //Haswell comes with avx2 and fma
    	return _mm_add_ps( _mm_mul_ps(a,b), c);
@@ -98,7 +100,7 @@ inline __m128 _mm_fmadd_ps_custom (__m128 a, __m128 b, __m128 c)
 }
 
 #ifndef ARM // no support for 64bit float with ARM yet
-inline __m128d _mm_fmadd_pd_custom (__m128d a, __m128d b, __m128d c) 
+static inline __m128d _mm_fmadd_pd_custom (__m128d a, __m128d b, __m128d c) 
 {
 	#ifndef FMA //Haswell comes with avx2 and fma
    	return _mm_add_pd( _mm_mul_pd(a,b), c);
@@ -229,7 +231,7 @@ _PD_CONST(cephes_exp_C2, 1.42860682030941723212e-6);
 
 #ifdef AVX
 
-__m256 _mm256_set_m128 ( __m128 H, __m128 L) //not present on every GCC version
+static inline __m256 _mm256_set_m128 ( __m128 H, __m128 L) //not present on every GCC version
 {
 	return _mm256_insertf128_ps(_mm256_castps128_ps256(L), H, 1);
 }
@@ -238,7 +240,7 @@ __m256 _mm256_set_m128 ( __m128 H, __m128 L) //not present on every GCC version
 #define AVX_LEN_FLOAT  8 // number of float with an AVX lane
 #define AVX_LEN_DOUBLE 4 // number of double with an AVX lane
 
-inline __m256 _mm256_fmadd_ps_custom (__m256 a, __m256 b, __m256 c) 
+static inline __m256 _mm256_fmadd_ps_custom (__m256 a, __m256 b, __m256 c) 
 {
 	#ifndef FMA //Haswell comes with avx2 and fma
    		return _mm256_add_ps( _mm256_mul_ps(a,b), c);
@@ -247,7 +249,7 @@ inline __m256 _mm256_fmadd_ps_custom (__m256 a, __m256 b, __m256 c)
 	#endif
 }
 
-inline __m256d _mm256_fmadd_pd_custom (__m256d a, __m256d b, __m256d c) 
+static inline __m256d _mm256_fmadd_pd_custom (__m256d a, __m256d b, __m256d c) 
 {
 	#ifndef FMA //Haswell comes with avx2 and fma
    		return _mm256_add_pd( _mm256_mul_pd(a,b), c);
@@ -266,7 +268,7 @@ inline __m256d _mm256_fmadd_pd_custom (__m256d a, __m256d b, __m256d c)
 
 #ifdef WINDOWS
 //Thanks to Jpommier pfft https://bitbucket.org/jpommier/pffft/src/default/pffft.c
-int posix_memalign(void **pointer, size_t len, int alignement) {
+static inline int posix_memalign(void **pointer, size_t len, int alignement) {
   void *p, *p0 = malloc(len + alignement);
   if (!p0) return (void *) NULL;
   p = (void *) (((size_t) p0 + alignement) & (~((size_t) (alignement-1))));
@@ -277,7 +279,7 @@ int posix_memalign(void **pointer, size_t len, int alignement) {
 }
 
 
-void *aligned_malloc(size_t len, int alignement) {
+static inline void *aligned_malloc(size_t len, int alignement) {
   void *p, *p0 = malloc(len + alignement);
   if (!p0) return (void *) NULL;
   p = (void *) (((size_t) p0 + alignement) & (~((size_t) (alignement-1))));
@@ -286,7 +288,7 @@ void *aligned_malloc(size_t len, int alignement) {
 }
 
 //Work in progress
-void aligned_free(void *p) {
+static inline void aligned_free(void *p) {
   if (p) free(*((void **) p - 1));
 }
 	
@@ -295,59 +297,59 @@ void aligned_free(void *p) {
 
 
 //////////  C Test functions ////////////////
-void log10f_C(float* src, float* dst, int len)
+static inline void log10f_C(float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++) dst[i] = log10f(src[i]);
 }
 
-void lnf_C(float* src, float* dst, int len)
+static inline void lnf_C(float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++) dst[i] = logf(src[i]);
 }
 
-void fabsf_C(float* src, float* dst, int len)
+static inline void fabsf_C(float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = fabsf(src[i]);
 	}		
 }
 
-void setf_C( float* src, float value, int len)
+static inline void setf_C( float* src, float value, int len)
 {
 	for(int i = 0; i < len; i++){
 		src[i] = value;
 	}		
 }
 
-void addcf_C( float* src, float value, float* dst, int len)
+static inline void addcf_C( float* src, float value, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = src[i] + value;
 	}		
 }
 
-void mulf_C( float* src1, float* src2, float* dst, int len)
+static inline void mulf_C( float* src1, float* src2, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = src1[i] * src2[i];
 	}		
 }
 
-void mulcf_C( float* src, float value, float* dst, int len)
+static inline void mulcf_C( float* src, float value, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = src[i] * value;
 	}		
 }
 
-void divf_C( float* src1, float* src2, float* dst, int len)
+static inline void divf_C( float* src1, float* src2, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = src1[i] / src2[i];
 	}		
 }
 
-void cplxtorealf_C( float* src, float* dstRe, float* dstIm, int len)
+static inline void cplxtorealf_C( float* src, float* dstRe, float* dstIm, int len)
 {
 	int j = 0;
 	for(int i = 0; i < 2*len; i+=2){
@@ -357,7 +359,7 @@ void cplxtorealf_C( float* src, float* dstRe, float* dstIm, int len)
 	}		
 }
 
-void convert_64f32f_C(double* src, float* dst, int len)
+static inline void convert_64f32f_C(double* src, float* dst, int len)
 {
 #ifdef OMP
 #pragma omp simd
@@ -367,7 +369,7 @@ void convert_64f32f_C(double* src, float* dst, int len)
 	}
 }
 
-void convert_32f64f_C(float* src, double* dst, int len)
+static inline void convert_32f64f_C(float* src, double* dst, int len)
 {
 #ifdef OMP
 #pragma omp simd
@@ -377,7 +379,7 @@ void convert_32f64f_C(float* src, double* dst, int len)
 	}
 }
 
-void threshold_lt_f_C( float* src, float* dst, float value, int len)
+static inline void threshold_lt_f_C( float* src, float* dst, float value, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = src[i]<value?src[i]:value;
@@ -385,28 +387,28 @@ void threshold_lt_f_C( float* src, float* dst, float value, int len)
 }
 
 
-void threshold_gt_f_C( float* src, float* dst, float value, int len)
+static inline void threshold_gt_f_C( float* src, float* dst, float value, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = src[i]>value?src[i]:value;
 	}
 }
 
-void magnitudef_C_interleaved( complex32_t* src, float* dst, int len)
+static inline void magnitudef_C_interleaved( complex32_t* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = sqrtf(src[i].re*src[i].re + src[i].im*src[i].im);
 	}
 }
 
-void magnitudef_C_split( float* srcRe, float* srcIm, float* dst, int len)
+static inline void magnitudef_C_split( float* srcRe, float* srcIm, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = sqrtf(srcRe[i]*srcRe[i] + srcIm[i]*srcIm[i]);
 	}
 }
 
-void meanf_C(float* src, float* dst, int len)
+static inline void meanf_C(float* src, float* dst, int len)
 {
 	float acc = 0.0f;
 	int i;
@@ -421,35 +423,35 @@ void meanf_C(float* src, float* dst, int len)
 	*dst = acc;
 }
 
-void flipf_C(float* src, float* dst, int len)
+static inline void flipf_C(float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[len  -i - 1] = src[i];
 	}
 }
 
-void asinf_C( float* src, float* dst, int len)
+static inline void asinf_C( float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = asinf(src[i]);
 	}
 }
 
-void tanf_C( float* src, float* dst, int len)
+static inline void tanf_C( float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = tanf(src[i]);
 	}
 }
 
-void atanf_C( float* src, float* dst, int len)
+static inline void atanf_C( float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = atanf(src[i]);
 	}
 }
 
-void atan2f_C( float* src1, float* src2, float* dst, int len)
+static inline void atan2f_C( float* src1, float* src2, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = atan2f(src1[i],src2[i]);
@@ -457,35 +459,35 @@ void atan2f_C( float* src1, float* src2, float* dst, int len)
 }
 
 
-void sinf_C( float* src, float* dst, int len)
+static inline void sinf_C( float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = sinf(src[i]);
 	}
 }
 
-void cosf_C( float* src, float* dst, int len)
+static inline void cosf_C( float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = cosf(src[i]);
 	}
 }
 
-void floorf_C( float* src, float* dst, int len)
+static inline void floorf_C( float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = floorf(src[i]);
 	}
 }
 
-void ceilf_C( float* src, float* dst, int len)
+static inline void ceilf_C( float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = ceilf(src[i]);
 	}
 }
 
-void roundf_C( float* src, float* dst, int len)
+static inline void roundf_C( float* src, float* dst, int len)
 {
 	for(int i = 0; i < len; i++){
 		dst[i] = roundf(src[i]);
@@ -493,11 +495,11 @@ void roundf_C( float* src, float* dst, int len)
 }
 
 
-void cplxvecmul_C(float* src1, float* src2, float* dst, int len)
+static inline void cplxvecmul_C(complex32_t* src1, complex32_t* src2, complex32_t* dst, int len)
 {
-	for(int i = 0; i < len; i+=2){
-		dst[i]   = src1[i]*src2[i]   - src1[i+1]*src2[i+1];
-		dst[i+1] = src1[i]*src2[i+1] + src2[i]*src1[i+1];
+	for(int i = 0; i < len; i++){
+		dst[i].re   = src1[i].re*src2[i].re - src1[i].im*src2[i].im;
+		dst[i].im   = src1[i].re*src2[i].im + src2[i].re*src1[i].im;
 	}	
 }
 

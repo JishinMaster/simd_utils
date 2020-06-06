@@ -4,6 +4,8 @@
  * Author  : JishinMaster
  * Licence : BSD-2
  */
+ 
+#pragma once
 #include <stdint.h>
 #include "immintrin.h"
 
@@ -84,7 +86,7 @@ _PS256_CONST(ATAN_P3, -3.33329491539E-1);
 
 
 
-void log10_256f(float* src, float* dst, int len)
+static inline void log10_256f(float* src, float* dst, int len)
 {
 	const v8sf invln10f = _mm256_set1_ps((float)INVLN10); //_mm256_broadcast_ss(&invln10f_mask);
 
@@ -109,7 +111,7 @@ void log10_256f(float* src, float* dst, int len)
 	}
 }
 
-void ln_256f(float* src, float* dst, int len)
+static inline void ln_256f(float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -130,7 +132,7 @@ void ln_256f(float* src, float* dst, int len)
 	}
 }
 
-void fabs256f(float* src, float* dst, int len)
+static inline void fabs256f(float* src, float* dst, int len)
 {
 	const v8sf mask = _mm256_castsi256_ps (_mm256_set1_epi32 (0x7FFFFFFF));
 
@@ -155,7 +157,7 @@ void fabs256f(float* src, float* dst, int len)
 	}		
 }
 
-void set256f( float* src, float value, int len)
+static inline void set256f( float* src, float value, int len)
 {
 	const v8sf tmp = _mm256_set1_ps(value); //_mm256_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
 
@@ -178,7 +180,7 @@ void set256f( float* src, float value, int len)
 	}		
 }
 
-void zero256f( float* src, int len)
+static inline void zero256f( float* src, int len)
 {
 	const v8sf tmp = _mm256_setzero_ps();
 
@@ -202,7 +204,7 @@ void zero256f( float* src, int len)
 }
 
 
-void copy256f( float* src,  float* dst, int len)
+static inline void copy256f( float* src,  float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -223,7 +225,7 @@ void copy256f( float* src,  float* dst, int len)
 	}
 }
 
-void add256f( float* src1, float* src2, float* dst, int len)
+static inline void add256f( float* src1, float* src2, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -245,7 +247,7 @@ void add256f( float* src1, float* src2, float* dst, int len)
 }
 
 
-void mul256f( float* src1, float* src2, float* dst, int len)
+static inline void mul256f( float* src1, float* src2, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -266,7 +268,7 @@ void mul256f( float* src1, float* src2, float* dst, int len)
 	}
 }
 
-void sub256f( float* src1, float* src2, float* dst, int len)
+static inline void sub256f( float* src1, float* src2, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -288,7 +290,7 @@ void sub256f( float* src1, float* src2, float* dst, int len)
 }
 
 
-void addc256f( float* src, float value, float* dst, int len)
+static inline void addc256f( float* src, float value, float* dst, int len)
 {
 	const v8sf tmp = _mm256_set1_ps(value); //_mm256_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
 
@@ -311,7 +313,7 @@ void addc256f( float* src, float value, float* dst, int len)
 	}		
 }
 
-void mulc256f( float* src, float value, float* dst, int len)
+static inline void mulc256f( float* src, float value, float* dst, int len)
 {
 	const v8sf tmp = _mm256_set1_ps(value); //_mm256_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
 
@@ -334,7 +336,7 @@ void mulc256f( float* src, float value, float* dst, int len)
 	}		
 }
 
-void div256f( float* src1, float* src2, float* dst, int len)
+static inline void div256f( float* src1, float* src2, float* dst, int len)
 {
 
 	int stop_len = len/AVX_LEN_FLOAT;
@@ -357,7 +359,7 @@ void div256f( float* src1, float* src2, float* dst, int len)
 }
 
 // TODO : remove previous index dependency to become Out Of Order
-void vectorSlope256f(float* dst, int len, float offset, float slope)
+static inline void vectorSlope256f(float* dst, int len, float offset, float slope)
 {
 	v8sf coef        = _mm256_set_ps(7.0f*slope,6.0f*slope,5.0f*slope,4.0f*slope,3.0f*slope,2.0f*slope, slope, 0.0f);
 	v8sf slope8_vec  = _mm256_set1_ps(8.0f*slope);
@@ -437,7 +439,7 @@ void cplxtoreal256f( float* src, float* dstRe, float* dstIm, int len)
 }
 #endif
 
-void convert256_64f32f(double* src, float* dst, int len)
+static inline void convert256_64f32f(double* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -462,7 +464,7 @@ void convert256_64f32f(double* src, float* dst, int len)
 	}
 }
 
-void convert256_32f64f(float* src, double* dst, int len)
+static inline void convert256_32f64f(float* src, double* dst, int len)
 {
 	int stop_len = len/SSE_LEN_FLOAT;
 	stop_len    *= SSE_LEN_FLOAT;
@@ -485,7 +487,7 @@ void convert256_32f64f(float* src, double* dst, int len)
 	}
 }
 
-void flip256f(float* src, float* dst, int len)
+static inline void flip256f(float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -514,7 +516,7 @@ void flip256f(float* src, float* dst, int len)
 	}
 }
 
-void maxevery256f( float* src1, float* src2, float* dst,  int len)
+static inline void maxevery256f( float* src1, float* src2, float* dst,  int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -535,7 +537,7 @@ void maxevery256f( float* src1, float* src2, float* dst,  int len)
 	}
 }
 
-void minevery256f( float* src1, float* src2, float* dst,  int len)
+static inline void minevery256f( float* src1, float* src2, float* dst,  int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -556,7 +558,7 @@ void minevery256f( float* src1, float* src2, float* dst,  int len)
 	}
 }
 
-void threshold256_lt_f( float* src, float* dst, float value, int len)
+static inline void threshold256_lt_f( float* src, float* dst, float value, int len)
 {
 	v8sf tmp = _mm256_set1_ps(value);//_mm256_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
 
@@ -581,7 +583,7 @@ void threshold256_lt_f( float* src, float* dst, float value, int len)
 	}	
 }
 
-void threshold256_gt_f( float* src, float* dst, float value, int len)
+static inline void threshold256_gt_f( float* src, float* dst, float value, int len)
 {
 	v8sf tmp = _mm256_set1_ps(value);//_mm256_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
 
@@ -606,7 +608,7 @@ void threshold256_gt_f( float* src, float* dst, float value, int len)
 	}	
 }
 
-void sin256f( float* src, float* dst, int len)
+static inline void sin256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -629,7 +631,7 @@ void sin256f( float* src, float* dst, int len)
 	}
 }
 
-void cos256f( float* src, float* dst, int len)
+static inline void cos256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -652,7 +654,7 @@ void cos256f( float* src, float* dst, int len)
 	}
 }
 
-void sincos256f( float* src, float* dst_sin, float* dst_cos, int len)
+static inline void sincos256f( float* src, float* dst_sin, float* dst_cos, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -724,7 +726,7 @@ v8sf atan256f_ps( v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 	return( y );
 }
 
-void atan256f( float* src, float* dst, int len)
+static inline void atan256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -783,7 +785,7 @@ v8sf atan2256f_ps( v8sf y, v8sf x, const v8sf positive_mask, const v8sf negative
 	return( z);
 }
 
-void atan2256f( float* src1, float* src2, float* dst, int len)
+static inline void atan2256f( float* src1, float* src2, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -852,7 +854,7 @@ v8sf asin256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 	return( z );
 }
 
-void asin256f( float* src, float* dst, int len)
+static inline void asin256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -962,7 +964,7 @@ v8sf tan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 	return( y );
 }
 
-void tan256f( float* src, float* dst, int len)
+static inline void tan256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -990,7 +992,7 @@ void tan256f( float* src, float* dst, int len)
 
 #else
 
-void tan256f( float* src, float* dst, int len)
+static inline void tan256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -1014,7 +1016,7 @@ void tan256f( float* src, float* dst, int len)
 }
 #endif
 
-void magnitude256f_split( float* srcRe, float* srcIm, float* dst, int len)
+static inline void magnitude256f_split( float* srcRe, float* srcIm, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -1043,7 +1045,7 @@ void magnitude256f_split( float* srcRe, float* srcIm, float* dst, int len)
 	}
 }
 
-void powerspect256f_split( float* srcRe, float* srcIm, float* dst, int len)
+static inline void powerspect256f_split( float* srcRe, float* srcIm, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -1072,7 +1074,7 @@ void powerspect256f_split( float* srcRe, float* srcIm, float* dst, int len)
 	}
 }
 
-void subcrev256f( float* src, float value, float* dst, int len)
+static inline void subcrev256f( float* src, float value, float* dst, int len)
 {
 	const v8sf tmp = _mm256_set1_ps(value);
 
@@ -1095,7 +1097,7 @@ void subcrev256f( float* src, float value, float* dst, int len)
 	}
 }
 
-void sum256f( float* src, float* dst, int len)
+static inline void sum256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -1128,7 +1130,7 @@ void sum256f( float* src, float* dst, int len)
 }
 
 
-void mean256f( float* src, float* dst, int len)
+static inline void mean256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -1161,7 +1163,7 @@ void mean256f( float* src, float* dst, int len)
 	*dst = tmp_acc;
 }
 
-void sqrt256f( float* src, float* dst, int len)
+static inline void sqrt256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -1182,7 +1184,7 @@ void sqrt256f( float* src, float* dst, int len)
 	}
 }
 
-void round256f( float* src, float* dst, int len)
+static inline void round256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -1205,7 +1207,7 @@ void round256f( float* src, float* dst, int len)
 	}
 }
 
-void ceil256f( float* src, float* dst, int len)
+static inline void ceil256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
@@ -1228,7 +1230,7 @@ void ceil256f( float* src, float* dst, int len)
 	}
 }
 
-void floor256f( float* src, float* dst, int len)
+static inline void floor256f( float* src, float* dst, int len)
 {
 	int stop_len = len/AVX_LEN_FLOAT;
 	stop_len    *= AVX_LEN_FLOAT;
