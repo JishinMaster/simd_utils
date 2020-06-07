@@ -3109,18 +3109,19 @@ FORCE_INLINE __m128d _mm_castsi128_pd(__m128i a)
     return vreinterpretq_m128d_s64(vreinterpretq_s64_m128i(a));
 }
 
-
+//TO BE TESTED
 FORCE_INLINE __m128 _mm_cvtpi16_ps(__m64 a)
 {
 	return vreinterpretq_m128_f32(vcvtq_f32_s32(vmovl_s16(vreinterpret_s16_f32(a))));
 }
 
-
+//TO BE TESTED
 FORCE_INLINE __m128 _mm_moveldup_ps(__m128 a)
 {
 	return _mm_shuffle_ps(a,a, _MM_SHUFFLE(0,0, 2, 2));
 }
 
+//TO BE TESTED
 FORCE_INLINE __m128 _mm_movehdup_ps(__m128 a)
 {
 	return _mm_shuffle_ps(a,a, _MM_SHUFFLE(1,1, 3, 3));
@@ -3153,6 +3154,7 @@ typedef union{
     uint64_t value;
 } reg;
 
+//TO BE TESTED
 FORCE_INLINE void _MM_SET_ROUNDING_MODE (int rounding){
 
     reg r;
@@ -3177,6 +3179,7 @@ FORCE_INLINE void _MM_SET_ROUNDING_MODE (int rounding){
     asm volatile("msr FPCR, %0" :: "r"(r)); /* write */
 }
 
+//TO BE TESTED
 FORCE_INLINE __m128 _mm_round_ps(__m128 a, int rounding)
 {
 	if( (rounding ==  _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC) || (rounding ==  _MM_ROUND_NEAREST)){
@@ -3193,6 +3196,7 @@ FORCE_INLINE __m128 _mm_round_ps(__m128 a, int rounding)
 	}*/
 }
 
+//TO BE TESTED
 FORCE_INLINE __m64 _mm_cvtps_pi16( __m128 a ){
     return vmovn_s32(vcvtnq_s32_f32(a));
 }
