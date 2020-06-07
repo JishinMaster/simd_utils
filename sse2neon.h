@@ -88,6 +88,40 @@ typedef float32x2_t __m64;
 typedef float32x4_t __m128;
 typedef int64x2_t __m128i;
 
+
+//Jishin
+//Round types
+#define _MM_ROUND_MASK        0x6000
+#define _MM_ROUND_NEAREST     0x0000
+#define _MM_ROUND_DOWN        0x2000
+#define _MM_ROUND_UP          0x4000
+#define _MM_ROUND_TOWARD_ZERO 0x6000
+/* Rounding mode macros. */
+#define _MM_FROUND_TO_NEAREST_INT	0x00
+#define _MM_FROUND_TO_NEG_INF		0x01
+#define _MM_FROUND_TO_POS_INF		0x02
+#define _MM_FROUND_TO_ZERO		0x03
+#define _MM_FROUND_CUR_DIRECTION	0x04
+
+#define _MM_FROUND_RAISE_EXC		0x00
+#define _MM_FROUND_NO_EXC		0x08
+
+#define _MM_FROUND_NINT		\
+  (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_RAISE_EXC)
+#define _MM_FROUND_FLOOR	\
+  (_MM_FROUND_TO_NEG_INF | _MM_FROUND_RAISE_EXC)
+#define _MM_FROUND_CEIL		\
+  (_MM_FROUND_TO_POS_INF | _MM_FROUND_RAISE_EXC)
+#define _MM_FROUND_TRUNC	\
+  (_MM_FROUND_TO_ZERO | _MM_FROUND_RAISE_EXC)
+#define _MM_FROUND_RINT		\
+  (_MM_FROUND_CUR_DIRECTION | _MM_FROUND_RAISE_EXC)
+#define _MM_FROUND_NEARBYINT	\
+  (_MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC)
+//! Jishin
+
+
+
 // ******************************************
 // type-safe casting between types
 // ******************************************
@@ -3090,6 +3124,77 @@ FORCE_INLINE __m128 _mm_moveldup_ps(__m128 a)
 FORCE_INLINE __m128 _mm_movehdup_ps(__m128 a)
 {
 	return _mm_shuffle_ps(a,a, _MM_SHUFFLE(1,1, 3, 3));
+}
+
+
+
+/*
+From https://developer.arm.com/docs/ddi0595/e/aarch64-system-registers/fpcr
+RMode, bits [23:22] 
+Rounding Mode control field. The encoding of this field is:
+RMode	Meaning
+0b00	Round to Nearest (RN) mode.
+0b01	Round towards Plus Infinity (RP) mode.
+0b10	Round towards Minus Infinity (RM) mode.
+0b11	Round towards Zero (RZ) mode.
+*/
+
+typedef struct{
+    uint16_t res0;
+    uint16_t res1 : 6;
+    uint8_t  bit21 : 1;
+    uint8_t  bit22 : 1;
+    uint32_t res3;
+
+} fpcr_bitfield;
+
+typedef union{
+    fpcr_bitfield field;
+    uint64_t value;
+} reg;
+
+FORCE_INLINE void _MM_SET_ROUNDING_MODE (int rounding){
+
+    reg r;
+    asm volatile("mrs %0, FPCR" : "=r"(r.value)); /* read */
+    
+    if( (rounding ==  _MM_ROUND_TOWARD_ZERO){
+        r.fpcr_bitfield.bit21 = 1;
+        r.fpcr_bitfield.bit22 = 1;
+    }
+    else if(rounding ==  _MM_FROUND_TO_NEG_INF ){
+        r.fpcr_bitfield.bit21 = 0;
+        r.fpcr_bitfield.bit22 = 1;
+    }
+    else if(rounding ==  _MM_FROUND_TO_POS_INF ){
+        r.fpcr_bitfield.bit21 = 1;
+        r.fpcr_bitfield.bit22 = 0;
+    }
+    else{ //_MM_ROUND_NEAREST
+        r.fpcr_bitfield.bit21 = 0;
+        r.fpcr_bitfield.bit22 = 0;
+    }
+    asm volatile("msr FPCR, %0" :: "r"(r)); /* write */
+}
+
+FORCE_INLINE __m128 _mm_round_ps(__m128 a, int rounding)
+{
+	if( (rounding ==  _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC) || (rounding ==  _MM_ROUND_NEAREST)){
+	    return vreinterpretq_m128_f32(vrndnq_f32(vreinterpretq_f32_m128(a)));	 
+	}
+	else if(rounding == _MM_FROUND_CUR_DIRECTION){
+	    return vreinterpretq_m128_f32(vrndiq_f32(vreinterpretq_f32_m128(a)));
+	}
+	else{ //_MM_ROUND_TOWARD_ZERO
+	    return vreinterpretq_m128_f32(vrndnq_f32(vreinterpretq_f32_m128(a)));	 
+	}
+	/*else {// Round toward nearest int
+	    return vreinterpretq_m128_f32(vcvtq_f32_s32(vreinterpretq_f32_m128(a)));	
+	}*/
+}
+
+FORCE_INLINE __m64 _mm_cvtps_pi16( __m128 a ){
+    return vmovn_s32(vcvtnq_s32_f32(a));
 }
 /////Jishin
 
