@@ -69,6 +69,11 @@ typedef struct {
 	double im;
 } complex64_t;
 
+typedef enum {
+	RndZero,
+	RndNear,
+	RndFinancial,
+} FloatRoundingMode;
 
 #ifdef SSE
 #define SSE_LEN_BYTES 16 // Size of SSE lane
@@ -379,6 +384,38 @@ static inline void convert_32f64f_C(float* src, double* dst, int len)
 	}
 }
 
+
+static inline void convertFloat32ToU8_C(float* src, uint8_t* dst, int len, int rounding_mode, int scale_factor)
+{
+    float scale_fact_mult = 1.0f/(float)(1 << scale_factor);
+    
+    if(rounding_mode == RndZero){
+	    for(int i = 0; i < len; i++){
+		    dst[i] = (uint8_t)floorf(src[i] * scale_fact_mult);
+	    }
+	}
+	else if (rounding_mode == RndNear){
+		for(int i = 0; i < len; i++){
+		    dst[i] = (uint8_t)roundf(src[i] * scale_fact_mult);
+	    }
+	}
+	else{
+		for(int i = 0; i < len; i++){
+		    dst[i] = (uint8_t)(src[i] * scale_fact_mult);
+	    }
+	}
+}
+
+static inline void convertInt16ToFloat32_C(int16_t* src, float* dst, int len, int scale_factor)
+{
+	float scale_fact_mult = 1.0f/(float)(1 << scale_factor);
+	
+	for(int i = 0; i < len; i++){
+		dst[i] = (float)src[i] * scale_fact_mult;
+	}
+
+}
+
 static inline void threshold_lt_f_C( float* src, float* dst, float value, int len)
 {
 	for(int i = 0; i < len; i++){
@@ -501,6 +538,21 @@ static inline void cplxvecmul_C(complex32_t* src1, complex32_t* src2, complex32_
 		dst[i].re   = src1[i].re*src2[i].re - src1[i].im*src2[i].im;
 		dst[i].im   = src1[i].re*src2[i].im + src2[i].re*src1[i].im;
 	}	
+}
+
+
+static inline void vectorSlopef_C(float* dst, int len, float offset, float slope)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = (float)i * slope + offset;
+	}
+}
+
+static inline void vectorSloped_C(double* dst, int len, double offset, double slope)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = (double)i * slope + offset;
+	}
 }
 
 #ifdef __cplusplus

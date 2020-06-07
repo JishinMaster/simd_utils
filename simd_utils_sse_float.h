@@ -371,11 +371,7 @@ static inline void vectorSlope128f(float* dst, int len, float offset, float slop
 }
 
 #ifndef ARM
-typedef enum {
-	RndZero,
-	RndNear,
-	RndFinancial,
-} FloatRoundingMode;
+
 static inline void convertFloat32ToU8_128(float* src, uint8_t* dst, int len, int rounding_mode, int scale_factor)
 {
 	int stop_len = len/SSE_LEN_FLOAT;
@@ -1171,7 +1167,7 @@ static inline void powerspect128f_split( float* srcRe, float* srcIm, float* dst,
 	}
 }
 
-#warning "TODO : needs to be tested!"
+
 static inline void magnitude128f_interleaved( complex32_t* src, float* dst, int len)
 {
 	int stop_len = len/SSE_LEN_FLOAT;
