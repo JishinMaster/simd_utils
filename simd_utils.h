@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.2
+ * Version : 0.1.3
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -14,6 +14,8 @@ extern "C" {
 #ifdef OMP
 #include <omp.h>
 #endif
+
+#include <math.h>
 
 #define INVLN10 0.4342944819
 #define IMM8_FLIP_VEC  0x1B // change m128 from abcd to dcba
@@ -241,7 +243,7 @@ static inline __m256 _mm256_set_m128 ( __m128 H, __m128 L) //not present on ever
 	return _mm256_insertf128_ps(_mm256_castps128_ps256(L), H, 1);
 }
 #define AVX_LEN_BYTES 32 // Size of AVX lane
-#define AVX_LEN_INT32  4 // number of int32 with an AVX lane
+#define AVX_LEN_INT32  8 // number of int32 with an AVX lane
 #define AVX_LEN_FLOAT  8 // number of float with an AVX lane
 #define AVX_LEN_DOUBLE 4 // number of double with an AVX lane
 
@@ -271,7 +273,7 @@ static inline __m256d _mm256_fmadd_pd_custom (__m256d a, __m256d b, __m256d c)
 #endif
 
 
-#ifdef WINDOWS
+#ifdef CUSTOM_MALLOC
 //Thanks to Jpommier pfft https://bitbucket.org/jpommier/pffft/src/default/pffft.c
 static inline int posix_memalign(void **pointer, size_t len, int alignement) {
   void *p, *p0 = malloc(len + alignement);
@@ -314,6 +316,7 @@ static inline void lnf_C(float* src, float* dst, int len)
 
 static inline void fabsf_C(float* src, float* dst, int len)
 {
+
 	for(int i = 0; i < len; i++){
 		dst[i] = fabsf(src[i]);
 	}		
@@ -321,13 +324,30 @@ static inline void fabsf_C(float* src, float* dst, int len)
 
 static inline void setf_C( float* src, float value, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		src[i] = value;
 	}		
 }
 
+static inline void copyf_C( float* src, float* dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+	for(int i = 0; i < len; i++){
+		dst[i] = src[i];
+	}		
+}
+
+
 static inline void addcf_C( float* src, float value, float* dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[i] = src[i] + value;
 	}		
@@ -335,6 +355,9 @@ static inline void addcf_C( float* src, float value, float* dst, int len)
 
 static inline void mulf_C( float* src1, float* src2, float* dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[i] = src1[i] * src2[i];
 	}		
@@ -342,6 +365,9 @@ static inline void mulf_C( float* src1, float* src2, float* dst, int len)
 
 static inline void mulcf_C( float* src, float value, float* dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[i] = src[i] * value;
 	}		
@@ -349,6 +375,9 @@ static inline void mulcf_C( float* src, float value, float* dst, int len)
 
 static inline void divf_C( float* src1, float* src2, float* dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[i] = src1[i] / src2[i];
 	}		
@@ -357,6 +386,9 @@ static inline void divf_C( float* src1, float* src2, float* dst, int len)
 static inline void cplxtorealf_C( float* src, float* dstRe, float* dstIm, int len)
 {
 	int j = 0;
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < 2*len; i+=2){
 		dstRe[j]   = src[i];
 		dstIm[j]   = src[i+1];
@@ -384,7 +416,6 @@ static inline void convert_32f64f_C(float* src, double* dst, int len)
 	}
 }
 
-
 static inline void convertFloat32ToU8_C(float* src, uint8_t* dst, int len, int rounding_mode, int scale_factor)
 {
     float scale_fact_mult = 1.0f/(float)(1 << scale_factor);
@@ -400,6 +431,9 @@ static inline void convertFloat32ToU8_C(float* src, uint8_t* dst, int len, int r
 	    }
 	}
 	else{
+	#ifdef OMP
+	#pragma omp simd
+	#endif
 		for(int i = 0; i < len; i++){
 		    dst[i] = (uint8_t)(src[i] * scale_fact_mult);
 	    }
@@ -409,23 +443,34 @@ static inline void convertFloat32ToU8_C(float* src, uint8_t* dst, int len, int r
 static inline void convertInt16ToFloat32_C(int16_t* src, float* dst, int len, int scale_factor)
 {
 	float scale_fact_mult = 1.0f/(float)(1 << scale_factor);
-	
+
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[i] = (float)src[i] * scale_fact_mult;
 	}
 
 }
 
-static inline void threshold_lt_f_C( float* src, float* dst, float value, int len)
+static inline void threshold_gt_f_C( float* src, float* dst, float value, int len)
 {
+
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[i] = src[i]<value?src[i]:value;
 	}	
 }
 
 
-static inline void threshold_gt_f_C( float* src, float* dst, float value, int len)
+static inline void threshold_lt_f_C( float* src, float* dst, float value, int len)
 {
+
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[i] = src[i]>value?src[i]:value;
 	}
@@ -433,6 +478,10 @@ static inline void threshold_gt_f_C( float* src, float* dst, float value, int le
 
 static inline void magnitudef_C_interleaved( complex32_t* src, float* dst, int len)
 {
+
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[i] = sqrtf(src[i].re*src[i].re + src[i].im*src[i].im);
 	}
@@ -440,6 +489,10 @@ static inline void magnitudef_C_interleaved( complex32_t* src, float* dst, int l
 
 static inline void magnitudef_C_split( float* srcRe, float* srcIm, float* dst, int len)
 {
+
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[i] = sqrtf(srcRe[i]*srcRe[i] + srcIm[i]*srcIm[i]);
 	}
@@ -449,6 +502,7 @@ static inline void meanf_C(float* src, float* dst, int len)
 {
 	float acc = 0.0f;
 	int i;
+
 #ifdef OMP
 #pragma omp simd reduction(+:acc)
 #endif
@@ -462,6 +516,10 @@ static inline void meanf_C(float* src, float* dst, int len)
 
 static inline void flipf_C(float* src, float* dst, int len)
 {
+
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[len  -i - 1] = src[i];
 	}
@@ -534,6 +592,9 @@ static inline void roundf_C( float* src, float* dst, int len)
 
 static inline void cplxvecmul_C(complex32_t* src1, complex32_t* src2, complex32_t* dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[i].re   = src1[i].re*src2[i].re - src1[i].im*src2[i].im;
 		dst[i].im   = src1[i].re*src2[i].im + src2[i].re*src1[i].im;
@@ -543,6 +604,9 @@ static inline void cplxvecmul_C(complex32_t* src1, complex32_t* src2, complex32_
 
 static inline void vectorSlopef_C(float* dst, int len, float offset, float slope)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[i] = (float)i * slope + offset;
 	}
@@ -550,6 +614,9 @@ static inline void vectorSlopef_C(float* dst, int len, float offset, float slope
 
 static inline void vectorSloped_C(double* dst, int len, double offset, double slope)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
 	for(int i = 0; i < len; i++){
 		dst[i] = (double)i * slope + offset;
 	}

@@ -612,6 +612,30 @@ FORCE_INLINE __m128 _mm_loadu_ps(const float *p)
     return vreinterpretq_m128_f32(vld1q_f32(p));
 }
 
+//Jishin
+FORCE_INLINE __m128d _mm_load_pd(const double *p)
+{
+    return (__m128d)(vld1q_f64(p));
+}
+
+FORCE_INLINE __m128d _mm_loadu_pd(const double *p)
+{
+    return (__m128d)(vld1q_f64(p));
+}
+
+
+FORCE_INLINE void _mm_store_pd(double *p, __m128d a)
+{
+    vst1q_f64(p, (__m128d)(a));
+}
+
+// Stores four single-precision, floating-point values.
+// https://msdn.microsoft.com/en-us/library/44e30x22(v=vs.100).aspx
+FORCE_INLINE void _mm_storeu_pd(double *p, __m128d a)
+{
+    vst1q_f64(p, (__m128d)(a));
+}
+
 // Loads an single - precision, floating - point value into the low word and
 // clears the upper three words.
 // https://msdn.microsoft.com/en-us/library/548bb9h4%28v=vs.90%29.aspx
@@ -2247,6 +2271,9 @@ FORCE_INLINE __m128 _mm_rcp_ps(__m128 in)
     return vreinterpretq_m128_f32(recip);
 }
 
+
+//Jishin
+#if 0 // Not precise enough!
 // Computes the approximations of square roots of the four single-precision,
 // floating-point values of a. First computes reciprocal square roots and then
 // reciprocals of the four values.
@@ -2264,6 +2291,13 @@ FORCE_INLINE __m128 _mm_sqrt_ps(__m128 in)
     // ??? use step versions of both sqrt and recip for better accuracy?
     return vreinterpretq_m128_f32(sq);
 }
+#else
+FORCE_INLINE __m128 _mm_sqrt_ps(__m128 in)
+{
+    return vreinterpretq_m128_f32(vsqrtq_f32(vreinterpretq_f32_m128(in)));
+}
+
+#endif
 
 // Computes the approximation of the square root of the scalar single-precision
 // floating point value of in.
@@ -3091,10 +3125,6 @@ FORCE_INLINE __m128d _mm_shuffle_pd(__m128d a,
     return ret;
 }
 
-FORCE_INLINE __m128i _mm_castpd_si128(__m128d a)
-{
-    return vreinterpretq_m128i_s64(vreinterpretq_s64_m128d(a));
-}
 
 // Applies a type cast to reinterpret four 32-bit integers passed in as a
 // 128-bit parameter as packed 32-bit floating point values.
@@ -3118,13 +3148,13 @@ FORCE_INLINE __m128 _mm_cvtpi16_ps(__m64 a)
 //TO BE TESTED
 FORCE_INLINE __m128 _mm_moveldup_ps(__m128 a)
 {
-	return _mm_shuffle_ps(a,a, _MM_SHUFFLE(0,0, 2, 2));
+	return _mm_shuffle_ps(a,a, _MM_SHUFFLE(2,2, 0, 0));
 }
 
 //TO BE TESTED
 FORCE_INLINE __m128 _mm_movehdup_ps(__m128 a)
 {
-	return _mm_shuffle_ps(a,a, _MM_SHUFFLE(1,1, 3, 3));
+	return _mm_shuffle_ps(a,a, _MM_SHUFFLE(3,3, 1, 1));
 }
 
 
@@ -3160,21 +3190,21 @@ FORCE_INLINE void _MM_SET_ROUNDING_MODE (int rounding){
     reg r;
     asm volatile("mrs %0, FPCR" : "=r"(r.value)); /* read */
     
-    if( (rounding ==  _MM_ROUND_TOWARD_ZERO){
-        r.fpcr_bitfield.bit21 = 1;
-        r.fpcr_bitfield.bit22 = 1;
+    if( rounding ==  _MM_ROUND_TOWARD_ZERO){
+        r.field.bit21 = 1;
+        r.field.bit22 = 1;
     }
     else if(rounding ==  _MM_FROUND_TO_NEG_INF ){
-        r.fpcr_bitfield.bit21 = 0;
-        r.fpcr_bitfield.bit22 = 1;
+        r.field.bit21 = 0;
+        r.field.bit22 = 1;
     }
     else if(rounding ==  _MM_FROUND_TO_POS_INF ){
-        r.fpcr_bitfield.bit21 = 1;
-        r.fpcr_bitfield.bit22 = 0;
+        r.field.bit21 = 1;
+        r.field.bit22 = 0;
     }
     else{ //_MM_ROUND_NEAREST
-        r.fpcr_bitfield.bit21 = 0;
-        r.fpcr_bitfield.bit22 = 0;
+        r.field.bit21 = 0;
+        r.field.bit22 = 0;
     }
     asm volatile("msr FPCR, %0" :: "r"(r)); /* write */
 }
@@ -3198,7 +3228,7 @@ FORCE_INLINE __m128 _mm_round_ps(__m128 a, int rounding)
 
 //TO BE TESTED
 FORCE_INLINE __m64 _mm_cvtps_pi16( __m128 a ){
-    return vmovn_s32(vcvtnq_s32_f32(a));
+    return (__m64)vmovn_s32(vcvtnq_s32_f32(a));
 }
 /////Jishin
 
@@ -3960,7 +3990,7 @@ FORCE_INLINE __m128 _mm_cplx_mul_ps(__m128 r, __m128 a, __m128 b)
 
 FORCE_INLINE __m128 _mm_addsub_ps(__m128 a, __m128 b)
 {
-	__m128 mask = {1.0f,-1.0f,1.0f,-1.0f};
+	__m128 mask = {-1.0f,1.0f,-1.0f,1.0f};
 	return _mm_fmadd_ps(b,mask,a);
 }
 
@@ -3975,13 +4005,13 @@ FORCE_INLINE __m128i _mm_set_epi64(__m64 i1, __m64 i2)
 // Compare packed unsigned 32-bit integers in a and b, and store packed maximum values in dst.
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_max_epu32&expand=5217,3606
 FORCE_INLINE __m128i _mm_max_epu32(__m128i a, __m128i b) {
-	return vmaxq_u32(a, b);
+	return (__m128i)vmaxq_u32((uint32x4_t)a, (uint32x4_t)b);
 }
 
 // Compare packed unsigned 32-bit integers in a and b, and store packed minimum values in dst.
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_max_epu32&expand=5217,3606
 FORCE_INLINE __m128i _mm_min_epu32(__m128i a, __m128i b) {
-	return vminq_u32(a, b);
+	return (__m128i)vminq_u32((uint32x4_t)a, (uint32x4_t)b);
 }
 
 // Store the lower single-precision (32-bit) floating-point element from a into 4 contiguous elements in memory. mem_addr must be aligned on a 16-byte boundary or a general-protection exception may be generated.
@@ -4079,6 +4109,22 @@ FORCE_INLINE void _mm_empty(){
 	return;
 }
 
+
+FORCE_INLINE __m128 _mm_cvtpd_ps(__m128d a)
+{
+    __m64 tmp = vcvtx_f32_f64((float64x2_t)a);
+    return (__m128)_mm_set_epi64(tmp, tmp);
+}
+
+FORCE_INLINE __m128d _mm_cvtps_pd(__m128 a)
+{
+    return (__m128d)vcvt_high_f64_f32((float32x4_t)a);
+}
+
+FORCE_INLINE __m128i _mm_castpd_si128(__m128d a)
+{
+    return vreinterpretq_m128i_s64(vreinterpretq_s64_m128d(a));
+}
 
 /// Jishin
 

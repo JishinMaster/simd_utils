@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.2
+ * Version : 0.1.3
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -92,6 +92,100 @@ static inline void addc256s( int32_t* src, int32_t value, int32_t* dst, int len)
 
 	for(int i = stop_len; i < len; i++){
 		dst[i] = src[i] + value;
+	}
+}
+
+// Experimental
+
+static inline void copy256s( int32_t* src,  int32_t* dst, int len)
+{
+	int stop_len = len/AVX_LEN_INT32;
+	stop_len    *= AVX_LEN_INT32;
+
+    #pragma omp parallel for schedule(auto) num_threads(NBTHREADS)	
+	for(int i = 0; i < stop_len; i+= AVX_LEN_INT32){
+			_mm256_store_si256 ((__m256i*)(dst + i), _mm256_load_si256  ( (__m256i*)(src + i) ) );
+	}
+	
+	for(int i = stop_len; i < len; i++){
+		dst[i] = src[i];
+	}
+}
+
+static inline void copy256s_2( int32_t* src,  int32_t* dst, int len)
+{
+	int stop_len = len/(2*AVX_LEN_INT32);
+	stop_len    *= (2*AVX_LEN_INT32);
+	
+	#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+	for(int i = 0; i < stop_len; i+= 2*AVX_LEN_INT32){
+	    __m256i tmp1 = _mm256_load_si256  ( (__m256i*)(src + i) );	    
+	    __m256i tmp2 = _mm256_load_si256  ( (__m256i*)(src + i + AVX_LEN_INT32) );
+		_mm256_store_si256 ((__m256i*)(dst + i),  tmp1);
+		_mm256_store_si256 ((__m256i*)(dst + i + AVX_LEN_INT32),  tmp2);
+	}
+	
+	for(int i = stop_len; i < len; i++){
+		dst[i] = src[i];
+	}
+}
+
+static inline void fast_copy256s( int32_t* src,  int32_t* dst, int len)
+{
+	int stop_len = len/AVX_LEN_INT32;
+	stop_len    *= AVX_LEN_INT32;
+	
+	#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+	for(int i = 0; i < stop_len; i+= AVX_LEN_INT32){
+			_mm256_stream_si256 ( (__m256i*)(dst + i), _mm256_stream_load_si256 ( (__m256i*)(src + i) ) );
+	}
+	_mm_mfence();
+	
+	for(int i = stop_len; i < len; i++){
+		dst[i] = src[i];
+	}
+}
+
+
+static inline void fast_copy256s_2( int32_t* src,  int32_t* dst, int len)
+{
+	int stop_len = len/(2*AVX_LEN_INT32);
+	stop_len    *= (2*AVX_LEN_INT32);
+	
+	#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+	for(int i = 0; i < stop_len; i+= 2*AVX_LEN_INT32){
+	    __m256i tmp1 = _mm256_stream_load_si256  ( (__m256i*)(src + i) );	    
+	    __m256i tmp2 = _mm256_stream_load_si256  ( (__m256i*)(src + i + AVX_LEN_INT32) );
+		_mm256_stream_si256 ((__m256i*)(dst + i),  tmp1);
+		_mm256_stream_si256 ((__m256i*)(dst + i + AVX_LEN_INT32),  tmp2);
+	}
+    _mm_mfence();
+     
+	for(int i = stop_len; i < len; i++){
+		dst[i] = src[i];
+	}
+}
+
+static inline void fast_copy256s_4( int32_t* src,  int32_t* dst, int len)
+{
+	int stop_len = len/(4*AVX_LEN_INT32);
+	stop_len    *= (4*AVX_LEN_INT32);
+	
+	#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+	for(int i = 0; i < stop_len; i+= 4*AVX_LEN_INT32){
+	    __m256i tmp1 = _mm256_stream_load_si256  ( (__m256i*)(src + i) );	    
+	    __m256i tmp2 = _mm256_stream_load_si256  ( (__m256i*)(src + i + AVX_LEN_INT32) );
+	    __m256i tmp3 = _mm256_stream_load_si256  ( (__m256i*)(src + i + 2*AVX_LEN_INT32) );	    
+	    __m256i tmp4 = _mm256_stream_load_si256  ( (__m256i*)(src + i + 3*AVX_LEN_INT32) );
+		_mm256_stream_si256 ((__m256i*)(dst + i),  tmp1);
+		_mm256_stream_si256 ((__m256i*)(dst + i + AVX_LEN_INT32),  tmp2);
+		_mm256_stream_si256 ((__m256i*)(dst + i + 2*AVX_LEN_INT32),  tmp3);
+		_mm256_stream_si256 ((__m256i*)(dst + i + 3*AVX_LEN_INT32),  tmp4);
+	}
+    _mm_mfence();
+     
+	for(int i = stop_len; i < len; i++){
+		dst[i] = src[i];
 	}
 }
 #endif

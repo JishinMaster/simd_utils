@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.2
+ * Version : 0.1.3
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -558,7 +558,7 @@ static inline void minevery256f( float* src1, float* src2, float* dst,  int len)
 	}
 }
 
-static inline void threshold256_lt_f( float* src, float* dst, float value, int len)
+static inline void threshold256_gt_f( float* src, float* dst, float value, int len)
 {
 	v8sf tmp = _mm256_set1_ps(value);//_mm256_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
 
@@ -583,7 +583,7 @@ static inline void threshold256_lt_f( float* src, float* dst, float value, int l
 	}	
 }
 
-static inline void threshold256_gt_f( float* src, float* dst, float value, int len)
+static inline void threshold256_lt_f( float* src, float* dst, float value, int len)
 {
 	v8sf tmp = _mm256_set1_ps(value);//_mm256_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
 

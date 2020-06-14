@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.2
+ * Version : 0.1.3
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -166,7 +166,9 @@ static inline void zero128f( float* src, int len)
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			_mm_store_ps(src + i, tmp);
+			//_mm_stream_si128(src + i, (__m128i)tmp);
 		}
+		//_mm_sfence();
 	}
 	else{
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
@@ -454,6 +456,7 @@ static inline void convertFloat32ToU8_128(float* src, uint8_t* dst, int len, int
 
 }
 
+#endif //ARM
 
 //TODO : find a way to avoid __m64
 typedef union xmm_mm_union_int {
@@ -504,7 +507,7 @@ static inline void convertInt16ToFloat32_128(int16_t* src, float* dst, int len, 
 		dst[i] = (float)src[i] * scale_fact_mult;
 	}
 }
-#endif //ARM
+
 
 // converts 32bits complex float to two arrays real and im
 static inline void cplxtoreal128f( float* src, float* dstRe, float* dstIm, int len)
@@ -539,7 +542,7 @@ static inline void cplxtoreal128f( float* src, float* dstRe, float* dstIm, int l
 	}		
 }
 
-#ifndef ARM
+
 static inline void convert128_64f32f(double* src, float* dst, int len)
 {
 	int stop_len = len/SSE_LEN_FLOAT;
@@ -567,15 +570,18 @@ static inline void convert128_64f32f(double* src, float* dst, int len)
 	}
 }
 
+#ifndef ARM
 static inline void convert128_32f64f(float* src, double* dst, int len)
 {
 	int stop_len = len/SSE_LEN_FLOAT;
 	stop_len    *= SSE_LEN_FLOAT;
+	
+	unsigned int imm8 = _MM_SHUFFLE(1,0, 3, 2);
 
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp = _mm_load_ps(src + i); //load a,b,c,d
-			v4sf src_tmp_hi = _mm_shuffle_ps (src_tmp, src_tmp, IMM8_LO_HI_VEC);// rotate vec from abcd to cdab
+			v4sf src_tmp_hi = _mm_shuffle_ps (src_tmp, src_tmp, imm8);// rotate vec from abcd to cdab
 			_mm_store_pd(dst + i, _mm_cvtps_pd(src_tmp)); //store the c and d converted in 64bits 
 			_mm_store_pd(dst + i + 2, _mm_cvtps_pd(src_tmp_hi)); //store the a and b converted in 64bits 
 		}
@@ -583,7 +589,7 @@ static inline void convert128_32f64f(float* src, double* dst, int len)
 	else{
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp = _mm_loadu_ps(src + i); //load a,b,c,d
-			v4sf src_tmp_hi = _mm_shuffle_ps (src_tmp, src_tmp, IMM8_LO_HI_VEC);// rotate vec from abcd to cdab
+			v4sf src_tmp_hi = _mm_shuffle_ps (src_tmp, src_tmp, imm8);// rotate vec from abcd to cdab
 			_mm_storeu_pd(dst + i, _mm_cvtps_pd(src_tmp)); //store the c and d converted in 64bits 
 			_mm_storeu_pd(dst + i + 2, _mm_cvtps_pd(src_tmp_hi)); //store the a and b converted in 64bits 
 		}
@@ -667,7 +673,7 @@ static inline void minevery128f( float* src1, float* src2, float* dst,  int len)
 	}
 }
 
-static inline void threshold128_lt_f( float* src, float* dst, float value, int len)
+static inline void threshold128_gt_f( float* src, float* dst, float value, int len)
 {
 	const v4sf tmp = _mm_set1_ps(value);
 
@@ -692,7 +698,7 @@ static inline void threshold128_lt_f( float* src, float* dst, float value, int l
 	}	
 }
 
-static inline void threshold128_gt_f( float* src, float* dst, float value, int len)
+static inline void threshold128_lt_f( float* src, float* dst, float value, int len)
 {
 	const v4sf tmp = _mm_set1_ps(value);
 
@@ -1311,7 +1317,7 @@ static inline void sqrt128f( float* src, float* dst, int len)
 	}
 }
 
-#ifndef ARM
+
 static inline void round128f( float* src, float* dst, int len)
 {
 	int stop_len = len/SSE_LEN_FLOAT;
@@ -1381,7 +1387,7 @@ static inline void floor128f( float* src, float* dst, int len)
 	}
 }
 
-#endif
+
 
 static inline void cplxvecmul128f(complex32_t* src1, complex32_t* src2, complex32_t* dst, int len)
 {
@@ -1391,7 +1397,7 @@ static inline void cplxvecmul128f(complex32_t* src1, complex32_t* src2, complex3
     int condition = (uintptr_t)(const void*)(src1) % SSE_LEN_BYTES; 
     int i;
 	if( condition == 0){
-	printf("Aligned\n");
+	//printf("Aligned\n");
 		for(i = 0; i < 2*stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src1_tmp = _mm_load_ps((float*)(src1) + i); // src1 = b1,a1,b0,a0 (little endian)
 			v4sf src2_tmp = _mm_load_ps((float*)(src2 )+ i); // src2 = d1,c1,d0,c0
@@ -1405,7 +1411,7 @@ static inline void cplxvecmul128f(complex32_t* src1, complex32_t* src2, complex3
 		}
 	}
 	else{
-	printf("Unaligned\n");
+	//printf("Unaligned\n");
 		for(i = 0; i < 2*stop_len; i+= SSE_LEN_FLOAT){
 		
 			v4sf src1_tmp = _mm_loadu_ps((float*)(src1) + i); // src1 = b1,a1,b0,a0 (little endian)
