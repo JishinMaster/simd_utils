@@ -622,6 +622,38 @@ static inline void vectorSloped_C(double* dst, int len, double offset, double sl
 	}
 }
 
+
+static inline void maxeveryf_c( float* src1, float* src2, float* dst,  int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = src1[i]>src2[i]?src1[i]:src2[i];
+	}
+}
+
+static inline void mineveryf_c( float* src1, float* src2, float* dst,  int len)
+{
+	for(int i = 0; i < len; i++){
+		dst[i] = src1[i]<src2[i]?src1[i]:src2[i];
+	}
+}
+
+void addf_c(float* a, float* b, float* c,int n){
+	for(int i = 0; i < n; i++){
+		c[i] = a[i] + b[i];
+	}
+}
+
+void adds_c(int32_t* a, int32_t* b, int32_t* c,int n){
+	for(int i = 0; i < n; i++){
+		c[i] = a[i] + b[i];
+	}
+}
+
+void subf_c(float* a, float* b, float* c,int n){
+	for(int i = 0; i < n; i++){
+		c[i] = a[i] - b[i];
+	}
+}
 #ifdef __cplusplus
 }
 #endif
