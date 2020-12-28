@@ -35,15 +35,7 @@
 #define _MM_ROUND_DOWN        0x2000
 #define _MM_ROUND_UP          0x4000
 #define _MM_ROUND_TOWARD_ZERO 0x6000
-/* Rounding mode macros. */
-#define _MM_FROUND_TO_NEAREST_INT	0x00
-#define _MM_FROUND_TO_NEG_INF		0x01
-#define _MM_FROUND_TO_POS_INF		0x02
-#define _MM_FROUND_TO_ZERO		0x03
-#define _MM_FROUND_CUR_DIRECTION	0x04
 
-#define _MM_FROUND_RAISE_EXC		0x00
-#define _MM_FROUND_NO_EXC		0x08
 
 #define _MM_FROUND_NINT		\
   (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_RAISE_EXC)
@@ -193,6 +185,57 @@ FORCE_INLINE void _mm_mfence(void)
     __sync_synchronize();
 }
 
+
+
+// Multiply packed single-precision (32-bit) floating-point elements in a and b,
+// substract packed elements in c from the intermediate result,
+// and store the results in dst.
+// dst = a * b - c
+// AARCH64 NEON has vfmsq_f32 but it computes A- B*C instead of A*B - C,
+// an extra multiplication by -1.0f might not be worth it.
+FORCE_INLINE __m128 _mm_fmsub_ps(__m128 a, __m128 b, __m128 c)
+{
+    return _mm_sub_ps(_mm_mul_ps(a, b), c);
+}
+
+// Negate Multiply packed single-precision (32-bit) floating-point elements in a
+// and b, add packed elements in c from the intermediate result,
+// and store the results in dst.
+// dst =  - ( a * b ) + c
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_fnmadd_ps
+FORCE_INLINE __m128 _mm_fnmadd_ps(__m128 a, __m128 b, __m128 c)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128_f32(vfmsq_f32(vreinterpretq_f32_m128(c),
+                                            vreinterpretq_f32_m128(b),
+                                            vreinterpretq_f32_m128(a)));
+#else
+    return _mm_sub_ps(c, _mm_mul_ps(a, b));
+#endif
+}
+
+// Negate Multiply packed single-precision (32-bit) floating-point elements in a
+// and b, substract packed elements in c from the intermediate result,
+// and store the results in dst.
+// dst =  - ( a * b ) - c
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_fnmsub_ps
+FORCE_INLINE __m128 _mm_fnmsub_ps(__m128 a, __m128 b, __m128 c)
+{
+    __m128 negate_mask = {-1.0f, -1.0f, -1.0f, -1.0f};
+    return _mm_mul_ps(negate_mask, _mm_fmadd_ps(a, b, c));
+}
+
+FORCE_INLINE __m128i _mm_cmple_epi32(__m128i a, __m128i b)
+{
+    return vreinterpretq_m128i_u32(
+        vcleq_s32(vreinterpretq_s32_m128i(a), vreinterpretq_s32_m128i(b)));
+}
+
+FORCE_INLINE __m128i _mm_cmpge_epi32(__m128i a, __m128i b)
+{
+    return vreinterpretq_m128i_u32(
+        vcgeq_s32(vreinterpretq_s32_m128i(a), vreinterpretq_s32_m128i(b)));
+}
 
 #if defined(__GNUC__) || defined(__clang__)
 #pragma pop_macro("ALIGN_STRUCT")
