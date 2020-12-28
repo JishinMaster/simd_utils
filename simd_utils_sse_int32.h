@@ -11,7 +11,7 @@
 #ifndef ARM
 #include <immintrin.h>
 #else
-#include "sse2neon.h"
+#include "sse2neon_wrapper.h"
 #endif
 
 static inline void add128s( int32_t* src1, int32_t* src2, int32_t* dst, int len)

@@ -97,6 +97,7 @@ typedef enum {
 
 #endif
 
+
 static inline __m128 _mm_fmadd_ps_custom (__m128 a, __m128 b, __m128 c) 
 {
 	#ifndef FMA //Haswell comes with avx2 and fma
@@ -229,9 +230,11 @@ _PD_CONST(cephes_exp_C2, 1.42860682030941723212e-6);
 
 
 #include "simd_utils_sse_float.h"
+#include "simd_utils_sse_int32.h"
+
 #ifndef ARM
 #include "simd_utils_sse_double.h"
-#include "simd_utils_sse_int32.h"
+
 #endif
 
 #endif

@@ -29,7 +29,8 @@
   (this is the zlib license)
  */
 
-#include <xmmintrin.h>
+#include "immintrin.h"
+//#include <xmmintrin.h>
 
 /* yes I know, the top of this file is quite ugly */
 
@@ -44,9 +45,7 @@
 /* __m128 is ugly to write */
 typedef __m128 v4sf;  // vector of 4 float (sse1)
 
-#ifdef USE_SSE2
-
-#include <emmintrin.h>
+#ifdef __SSE2__
 
 typedef __m128i v4si; // vector of 4 int (sse2)
 #else
@@ -90,7 +89,7 @@ _PS_CONST(cephes_log_p8, + 3.3333331174E-1);
 _PS_CONST(cephes_log_q1, -2.12194440e-4);
 _PS_CONST(cephes_log_q2, 0.693359375);
 
-#ifndef USE_SSE2
+#ifndef __SSE2__
 typedef union xmm_mm_union {
 	__m128 xmm;
 	__m64 mm[2];
@@ -112,7 +111,7 @@ typedef union xmm_mm_union {
    return NaN for x <= 0
  */
 static inline v4sf log_ps(v4sf x) {
-#ifdef USE_SSE2
+#ifdef __SSE2__
 	v4si emm0;
 #else
 	v2si mm0, mm1;
@@ -123,7 +122,7 @@ static inline v4sf log_ps(v4sf x) {
 
 	x = _mm_max_ps(x, *(v4sf*)_ps_min_norm_pos);  /* cut off denormalized stuff */
 
-#ifndef USE_SSE2
+#ifndef __SSE2__
 	/* part 1: x = frexpf(x, &e); */
 	COPY_XMM_TO_MM(x, mm0, mm1);
 	mm0 = _mm_srli_pi32(mm0, 23);
@@ -135,7 +134,7 @@ static inline v4sf log_ps(v4sf x) {
 	x = _mm_and_ps(x, *(v4sf*)_ps_inv_mant_mask);
 	x = _mm_or_ps(x, *(v4sf*)_ps_0p5);
 
-#ifndef USE_SSE2
+#ifndef __SSE2__
 	/* now e=mm0:mm1 contain the really base-2 exponent */
 	mm0 = _mm_sub_pi32(mm0, *(v2si*)_pi32_0x7f);
 	mm1 = _mm_sub_pi32(mm1, *(v2si*)_pi32_0x7f);
@@ -215,7 +214,7 @@ _PS_CONST(cephes_exp_p5, 5.0000001201E-1);
 
 static inline v4sf exp_ps(v4sf x) {
 	v4sf tmp = _mm_setzero_ps(), fx;
-#ifdef USE_SSE2
+#ifdef __SSE2__
 	v4si emm0;
 #else
 	v2si mm0, mm1;
@@ -230,7 +229,7 @@ static inline v4sf exp_ps(v4sf x) {
 	fx = _mm_add_ps(fx, *(v4sf*)_ps_0p5);
 
 	/* how to perform a floorf with SSE: just below */
-#ifndef USE_SSE2
+#ifndef __SSE2__
 	/* step 1 : cast to int */
 	tmp = _mm_movehl_ps(tmp, fx);
 	mm0 = _mm_cvttps_pi32(fx);
@@ -269,7 +268,7 @@ static inline v4sf exp_ps(v4sf x) {
 	y = _mm_add_ps(y, one);
 
 	/* build 2^n */
-#ifndef USE_SSE2
+#ifndef __SSE2__
 	z = _mm_movehl_ps(z, fx);
 	mm0 = _mm_cvttps_pi32(fx);
 	mm1 = _mm_cvttps_pi32(z);
@@ -334,7 +333,7 @@ _PS_CONST(cephes_FOPI, 1.27323954473516); // 4 / M_PI
 static inline v4sf sin_ps(v4sf x) { // any x
 	v4sf xmm1, xmm2 = _mm_setzero_ps(), xmm3, sign_bit, y;
 
-#ifdef USE_SSE2
+#ifdef __SSE2__
 	v4si emm0, emm2;
 #else
 	v2si mm0, mm1, mm2, mm3;
@@ -348,7 +347,7 @@ static inline v4sf sin_ps(v4sf x) { // any x
 	/* scale by 4/Pi */
 	y = _mm_mul_ps(x, *(v4sf*)_ps_cephes_FOPI);
 
-#ifdef USE_SSE2
+#ifdef __SSE2__
 	/* store the integer part of y in mm0 */
 	emm2 = _mm_cvttps_epi32(y);
 	/* j=(j+1) & (~1) (see the cephes sources) */
@@ -450,7 +449,7 @@ static inline v4sf sin_ps(v4sf x) { // any x
 /* almost the same as sin_ps */
 static inline v4sf cos_ps(v4sf x) { // any x
 	v4sf xmm1, xmm2 = _mm_setzero_ps(), xmm3, y;
-#ifdef USE_SSE2
+#ifdef __SSE2__
 	v4si emm0, emm2;
 #else
 	v2si mm0, mm1, mm2, mm3;
@@ -461,7 +460,7 @@ static inline v4sf cos_ps(v4sf x) { // any x
 	/* scale by 4/Pi */
 	y = _mm_mul_ps(x, *(v4sf*)_ps_cephes_FOPI);
 
-#ifdef USE_SSE2
+#ifdef __SSE2__
 	/* store the integer part of y in mm0 */
 	emm2 = _mm_cvttps_epi32(y);
 	/* j=(j+1) & (~1) (see the cephes sources) */
@@ -569,7 +568,7 @@ static inline v4sf cos_ps(v4sf x) { // any x
    it is almost as fast, and gives you a free cosine with your sine */
 static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c) {
 	v4sf xmm1, xmm2, xmm3 = _mm_setzero_ps(), sign_bit_sin, y;
-#ifdef USE_SSE2
+#ifdef __SSE2__
 	v4si emm0, emm2, emm4;
 #else
 	v2si mm0, mm1, mm2, mm3, mm4, mm5;
@@ -583,7 +582,7 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c) {
 	/* scale by 4/Pi */
 	y = _mm_mul_ps(x, *(v4sf*)_ps_cephes_FOPI);
 
-#ifdef USE_SSE2
+#ifdef __SSE2__
 	/* store the integer part of y in emm2 */
 	emm2 = _mm_cvttps_epi32(y);
 
@@ -650,7 +649,7 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c) {
 	x = _mm_add_ps(x, xmm2);
 	x = _mm_add_ps(x, xmm3);
 
-#ifdef USE_SSE2
+#ifdef __SSE2__
 	emm4 = _mm_sub_epi32(emm4, *(v4si*)_pi32_2);
 	emm4 = _mm_andnot_si128(emm4, *(v4si*)_pi32_4);
 	emm4 = _mm_slli_epi32(emm4, 29);

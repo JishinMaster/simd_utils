@@ -32,7 +32,7 @@
 
 #include <arm_neon.h>
 
-#include "sse2neon.h"
+#include "sse2neon_wrapper.h"
 
 # define ALIGN16_BEG
 # define ALIGN16_END __attribute__((aligned(16)))

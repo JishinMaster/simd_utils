@@ -10,7 +10,7 @@
 #ifndef ARM
 #include <immintrin.h>
 #else
-#include "sse2neon.h"
+#include "sse2neon_wrapper.h"
 #endif
 
 

@@ -12,7 +12,7 @@
 #include <immintrin.h>
 #include <fenv.h>
 #else
-#include "sse2neon.h"
+#include "sse2neon_wrapper.h"
 #endif
 
 #include <math.h>
@@ -575,13 +575,11 @@ static inline void convert128_32f64f(float* src, double* dst, int len)
 {
 	int stop_len = len/SSE_LEN_FLOAT;
 	stop_len    *= SSE_LEN_FLOAT;
-	
-	unsigned int imm8 = _MM_SHUFFLE(1,0, 3, 2);
 
 	if( ( (uintptr_t)(const void*)(src) % SSE_LEN_BYTES) == 0){
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp = _mm_load_ps(src + i); //load a,b,c,d
-			v4sf src_tmp_hi = _mm_shuffle_ps (src_tmp, src_tmp, imm8);// rotate vec from abcd to cdab
+			v4sf src_tmp_hi = _mm_shuffle_ps (src_tmp, src_tmp, _MM_SHUFFLE(1,0, 3, 2));// rotate vec from abcd to cdab
 			_mm_store_pd(dst + i, _mm_cvtps_pd(src_tmp)); //store the c and d converted in 64bits 
 			_mm_store_pd(dst + i + 2, _mm_cvtps_pd(src_tmp_hi)); //store the a and b converted in 64bits 
 		}
@@ -589,7 +587,7 @@ static inline void convert128_32f64f(float* src, double* dst, int len)
 	else{
 		for(int i = 0; i < stop_len; i+= SSE_LEN_FLOAT){
 			v4sf src_tmp = _mm_loadu_ps(src + i); //load a,b,c,d
-			v4sf src_tmp_hi = _mm_shuffle_ps (src_tmp, src_tmp, imm8);// rotate vec from abcd to cdab
+			v4sf src_tmp_hi = _mm_shuffle_ps (src_tmp, src_tmp, _MM_SHUFFLE(1,0, 3, 2));// rotate vec from abcd to cdab
 			_mm_storeu_pd(dst + i, _mm_cvtps_pd(src_tmp)); //store the c and d converted in 64bits 
 			_mm_storeu_pd(dst + i + 2, _mm_cvtps_pd(src_tmp_hi)); //store the a and b converted in 64bits 
 		}
@@ -990,7 +988,7 @@ static inline void asin128f( float* src, float* dst, int len)
 
 static inline void print4(__m128 v) {
 	float *p = (float*)&v;
-#ifndef USE_SSE2
+#ifndef __SSE2__
 	_mm_empty();
 #endif
 	printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
