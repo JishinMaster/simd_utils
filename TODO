@@ -1,5 +1,4 @@
 - Add more 256 bit SIMD support through AVX2 (int)*
-- Add better ARM support : double precision, and FPU rounding mode control
 - Add loop unrolling for some operations
 - Do CPU fine tuning
 - Add documentation
