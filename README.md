@@ -10,6 +10,7 @@ Thanks to the DLTcollab team for their work on sse2neon.
 
 The purpose of this library is to give an open-source implementation of SIMD optimized commonly used algorithms, such as type conversion (float32, float64, uint16, ...), trigonometry (sin, cos, atan, ...), log/exp, min/max, and other functions.
 Its API was thought as a simple replacement for Intel IPP/MKL libraries.
+Some of the functions are vectorised version of the cephes maths library (https://www.netlib.org/cephes/)
 
 ## Targets
 

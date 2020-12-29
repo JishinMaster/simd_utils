@@ -2184,8 +2184,6 @@ printf("\n");
 	elapsed = (stop.tv_sec - start.tv_sec)*1e6 + (stop.tv_nsec - start.tv_nsec)*1e-3;
 	printf("vectorSloped_C %d %lf\n",len, elapsed);
 
-#ifndef ARM
-
 #ifdef IPP
 	clock_gettime(CLOCK_REALTIME,&start);
 	ippsVectorSlope_64f(inoutd_ref, len, 2.5, 3.0);
@@ -2229,9 +2227,6 @@ printf("\n");
 	printf("vectorSlope256d %d %lf\n",len, elapsed);
 	l2_errd(inoutd_ref,inoutd,len);	
 #endif
-
-#endif //ARM
-
 
     double GB = (double)(len*sizeof(int32_t))/1e9;
     

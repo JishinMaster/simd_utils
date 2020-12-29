@@ -107,7 +107,6 @@ static inline __m128 _mm_fmadd_ps_custom (__m128 a, __m128 b, __m128 c)
 	#endif
 }
 
-#ifndef ARM // no support for 64bit float with ARM yet
 static inline __m128d _mm_fmadd_pd_custom (__m128d a, __m128d b, __m128d c) 
 {
 	#ifndef FMA //Haswell comes with avx2 and fma
@@ -116,7 +115,6 @@ static inline __m128d _mm_fmadd_pd_custom (__m128d a, __m128d b, __m128d c)
 		return _mm_fmadd_pd( a, b, c);
 	#endif
 }
-#endif
 
 #define _PD_CONST(Name, Val)                                            \
 		static const ALIGN16_BEG double _pd_##Name[2] ALIGN16_END = { Val, Val}
@@ -230,12 +228,8 @@ _PD_CONST(cephes_exp_C2, 1.42860682030941723212e-6);
 
 
 #include "simd_utils_sse_float.h"
-#include "simd_utils_sse_int32.h"
-
-#ifndef ARM
 #include "simd_utils_sse_double.h"
-
-#endif
+#include "simd_utils_sse_int32.h"
 
 #endif
 

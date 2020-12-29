@@ -237,6 +237,112 @@ FORCE_INLINE __m128i _mm_cmpge_epi32(__m128i a, __m128i b)
         vcgeq_s32(vreinterpretq_s32_m128i(a), vreinterpretq_s32_m128i(b)));
 }
 
+FORCE_INLINE __m128d _mm_sqrt_pd(__m128d in)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128d_f64(vsqrtq_f64(vreinterpretq_f64_m128d(in)));
+#else
+#pragma error "Not yet implemented"
+#endif
+}
+
+FORCE_INLINE __m128d _mm_sub_pd(__m128d a, __m128d b)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128d_f64(
+        vsubq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+#else
+    double *da = (double *) &a;
+    double *db = (double *) &b;
+    double c[2];
+    c[0] = da[0] - db[0];
+    c[1] = da[1] - db[1];
+    return vld1q_f32((float32_t *) c);
+#endif
+}
+
+FORCE_INLINE __m128d _mm_div_pd(__m128d a, __m128d b)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128d_f64(
+        vdivq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+#else
+    double *da = (double *) &a;
+    double *db = (double *) &b;
+    double c[2];
+    c[0] = da[0] / db[0];
+    c[1] = da[1] / db[1];
+    return vld1q_f32((float32_t *) c);
+#endif
+}
+
+FORCE_INLINE __m128d _mm_cvtepi64_pd(__m128i a)
+{
+    return vreinterpretq_m128d_f64(vcvtq_f64_s64(vreinterpretq_s64_m128i(a)));
+}
+
+FORCE_INLINE __m128i _mm_cvtpd_epi64(__m128d a)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128i_s64(vcvtnq_s64_f64(a));
+#else
+#pragma error "Not yet implemented"
+#endif
+}
+
+FORCE_INLINE __m128d _mm_round_pd(__m128d a, int rounding)
+{
+#if defined(__aarch64__)
+    switch (rounding) {
+    case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC):
+        return vreinterpretq_m128d_f64(vrndnq_f64(vreinterpretq_f64_m128d(a)));
+    case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC):
+        return vreinterpretq_m128d_f64(vrndmq_f64(vreinterpretq_f64_m128d(a)));
+    case (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC):
+        return vreinterpretq_m128d_f64(vrndpq_f64(vreinterpretq_f64_m128d(a)));
+    case (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC):
+        return vreinterpretq_m128d_f64(vrndq_f64(vreinterpretq_f64_m128d(a)));
+    default:  //_MM_FROUND_CUR_DIRECTION
+        return vreinterpretq_m128d_f64(vrndiq_f64(vreinterpretq_f64_m128d(a)));
+    }
+#else
+    double *v_double = (double *) &a;
+    __m128d zero, neg_inf, pos_inf;
+
+    switch (rounding) {
+    case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC):
+        return _mm_cvtepi64_pd(_mm_cvtpd_epi64(a));
+    case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC):
+        return (__m128d){floor(v_double[0]), floorf(v_double[1])};
+    case (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC):
+        return (__m128d){ceil(v_double[0]), ceil(v_double[1])};
+    case (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC):
+        zero = _mm_set_pd(0.0, 0.0);
+        neg_inf = _mm_set_pd(floor(v_double[0]), floor(v_double[1]));
+        pos_inf = _mm_set_pd(ceil(v_double[0]), ceil(v_double[1]));
+        return _mm_blendv_pd(pos_inf, neg_inf, _mm_cmple_pd(a, zero));
+    default:  //_MM_FROUND_CUR_DIRECTION
+        return (__m128d){round(v_double[0]), round(v_double[1])};
+    }
+#endif
+}
+
+FORCE_INLINE __m128d _mm_set1_pd(double _w)
+{
+    return vreinterpretq_m128d_f64(vdupq_n_f64(_w));
+}
+
+FORCE_INLINE __m128d _mm_fmadd_pd(__m128d a, __m128d b, __m128d c)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128d_f64(vfmaq_f64(vreinterpretq_f64_m128d(c),
+                                            vreinterpretq_f64_m128d(b),
+                                            vreinterpretq_f64_m128d(a)));
+#else
+    return _mm_add_pd(_mm_mul_pd(a, b), c);
+#endif
+}
+
 #if defined(__GNUC__) || defined(__clang__)
 #pragma pop_macro("ALIGN_STRUCT")
 #pragma pop_macro("FORCE_INLINE")
