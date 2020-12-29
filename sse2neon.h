@@ -658,9 +658,9 @@ FORCE_INLINE __m128i _mm_set_epi8(signed char b15,
                                   signed char b0)
 {
     int8_t ALIGN_STRUCT(16)
-        data[16] = {(int8_t) b0,  (int8_t) b1,  (int8_t) b2,  (int8_t) b3,
-                    (int8_t) b4,  (int8_t) b5,  (int8_t) b6,  (int8_t) b7,
-                    (int8_t) b8,  (int8_t) b9,  (int8_t) b10, (int8_t) b11,
+        data[16] = {(int8_t) b0, (int8_t) b1, (int8_t) b2, (int8_t) b3,
+                    (int8_t) b4, (int8_t) b5, (int8_t) b6, (int8_t) b7,
+                    (int8_t) b8, (int8_t) b9, (int8_t) b10, (int8_t) b11,
                     (int8_t) b12, (int8_t) b13, (int8_t) b14, (int8_t) b15};
     return (__m128i) vld1q_s8(data);
 }
@@ -700,9 +700,9 @@ FORCE_INLINE __m128i _mm_setr_epi8(signed char b0,
                                    signed char b15)
 {
     int8_t ALIGN_STRUCT(16)
-        data[16] = {(int8_t) b0,  (int8_t) b1,  (int8_t) b2,  (int8_t) b3,
-                    (int8_t) b4,  (int8_t) b5,  (int8_t) b6,  (int8_t) b7,
-                    (int8_t) b8,  (int8_t) b9,  (int8_t) b10, (int8_t) b11,
+        data[16] = {(int8_t) b0, (int8_t) b1, (int8_t) b2, (int8_t) b3,
+                    (int8_t) b4, (int8_t) b5, (int8_t) b6, (int8_t) b7,
+                    (int8_t) b8, (int8_t) b9, (int8_t) b10, (int8_t) b11,
                     (int8_t) b12, (int8_t) b13, (int8_t) b14, (int8_t) b15};
     return (__m128i) vld1q_s8(data);
 }
@@ -1724,8 +1724,8 @@ FORCE_INLINE __m128i _mm_shuffle_epi8(__m128i a, __m128i b)
     __asm__ __volatile__(
         "vtbl.8  %e[ret], {%e[tbl], %f[tbl]}, %e[idx]\n"
         "vtbl.8  %f[ret], {%e[tbl], %f[tbl]}, %f[idx]\n"
-        : [ret] "=&w"(ret)
-        : [tbl] "w"(tbl), [idx] "w"(idx_masked));
+        : [ ret ] "=&w"(ret)
+        : [ tbl ] "w"(tbl), [ idx ] "w"(idx_masked));
     return vreinterpretq_m128i_s8(ret);
 #else
     // use this line if testing on aarch64
@@ -4814,7 +4814,7 @@ FORCE_INLINE __m128i _mm_cvtps_epi32(__m128 a)
                                  vdupq_n_s32(1)); /* ([a] + {0,1}) & ~1 */
     float32x4_t delta = vsubq_f32(
         vreinterpretq_f32_m128(a),
-        vcvtq_f32_s32(r_trunc)); /* compute delta: delta = (a - [a]) */
+        vcvtq_f32_s32(r_trunc));                       /* compute delta: delta = (a - [a]) */
     uint32x4_t is_delta_half = vceqq_f32(delta, half); /* delta == +/- 0.5 */
     return vreinterpretq_m128i_s32(vbslq_s32(is_delta_half, r_even, r_normal));
 #endif
@@ -6127,8 +6127,8 @@ FORCE_INLINE uint32_t _mm_crc32_u8(uint32_t crc, uint8_t v)
 {
 #if defined(__aarch64__) && defined(__ARM_FEATURE_CRC32)
     __asm__ __volatile__("crc32cb %w[c], %w[c], %w[v]\n\t"
-                         : [c] "+r"(crc)
-                         : [v] "r"(v));
+                         : [ c ] "+r"(crc)
+                         : [ v ] "r"(v));
 #else
     crc ^= v;
     for (int bit = 0; bit < 8; bit++) {
@@ -6148,8 +6148,8 @@ FORCE_INLINE uint32_t _mm_crc32_u16(uint32_t crc, uint16_t v)
 {
 #if defined(__aarch64__) && defined(__ARM_FEATURE_CRC32)
     __asm__ __volatile__("crc32ch %w[c], %w[c], %w[v]\n\t"
-                         : [c] "+r"(crc)
-                         : [v] "r"(v));
+                         : [ c ] "+r"(crc)
+                         : [ v ] "r"(v));
 #else
     crc = _mm_crc32_u8(crc, v & 0xff);
     crc = _mm_crc32_u8(crc, (v >> 8) & 0xff);
@@ -6164,8 +6164,8 @@ FORCE_INLINE uint32_t _mm_crc32_u32(uint32_t crc, uint32_t v)
 {
 #if defined(__aarch64__) && defined(__ARM_FEATURE_CRC32)
     __asm__ __volatile__("crc32cw %w[c], %w[c], %w[v]\n\t"
-                         : [c] "+r"(crc)
-                         : [v] "r"(v));
+                         : [ c ] "+r"(crc)
+                         : [ v ] "r"(v));
 #else
     crc = _mm_crc32_u16(crc, v & 0xffff);
     crc = _mm_crc32_u16(crc, (v >> 16) & 0xffff);
@@ -6180,8 +6180,8 @@ FORCE_INLINE uint64_t _mm_crc32_u64(uint64_t crc, uint64_t v)
 {
 #if defined(__aarch64__) && defined(__ARM_FEATURE_CRC32)
     __asm__ __volatile__("crc32cx %w[c], %w[c], %x[v]\n\t"
-                         : [c] "+r"(crc)
-                         : [v] "r"(v));
+                         : [ c ] "+r"(crc)
+                         : [ v ] "r"(v));
 #else
     crc = _mm_crc32_u32((uint32_t)(crc), v & 0xffffffff);
     crc = _mm_crc32_u32((uint32_t)(crc), (v >> 32) & 0xffffffff);
@@ -6199,4 +6199,3 @@ FORCE_INLINE uint64_t _mm_crc32_u64(uint64_t crc, uint64_t v)
 #endif
 
 #endif
-
