@@ -404,22 +404,22 @@ int main(int argc, char **argv)
         printf("posix_memalign inout4 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_ref, atoi(argv[2]), len * sizeof(float));
+    posix_memalign((void **) &inout_ref, atoi(argv[2]), 2* len * sizeof(float));
     if (inout_ref == NULL) {
         printf("posix_memalign inout_ref failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout2_ref, atoi(argv[2]), len * sizeof(float));
+    posix_memalign((void **) &inout2_ref, atoi(argv[2]), 2* len * sizeof(float));
     if (inout2_ref == NULL) {
         printf("posix_memalign inout2_ref failed\n");
         return -1;
     }
-    posix_memalign((void **) &inoutd, atoi(argv[2]), len * sizeof(double));
+    posix_memalign((void **) &inoutd, atoi(argv[2]), 2* len * sizeof(double));
     if (inoutd == NULL) {
         printf("posix_memalign inoutd failed\n");
         return -1;
     }
-    posix_memalign((void **) &inoutd_ref, atoi(argv[2]), len * sizeof(double));
+    posix_memalign((void **) &inoutd_ref, atoi(argv[2]), 2* len * sizeof(double));
     if (inoutd_ref == NULL) {
         printf("posix_memalign inoutd_ref failed\n");
         return -1;
@@ -1141,9 +1141,11 @@ printf("\n");
 	}*/
 
 
-
-    memset(inout_ref, 0.5555f, len * sizeof(float));
-    memset(inout2_ref, 0.5555f, len * sizeof(float));
+	for(int j = 0; j < len; j++)
+	{
+		inout_ref[j]  = 0.5555f;
+		inout2_ref[j] = 0.5555f;
+	}
 
 
     clock_gettime(CLOCK_REALTIME, &start);
@@ -2057,20 +2059,20 @@ printf("\n");
 
 
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxtorealf_C(inout, inout_ref, inout2_ref, len / 2);
+    cplxtorealf_C(inout, inout_ref, inout2_ref, len );
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("cplxtorealf_C %d %lf\n", len, elapsed);
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsCplxToReal_32fc((const Ipp32fc *) inout, inout_ref, inout2_ref, len / 2);
+    ippsCplxToReal_32fc((const Ipp32fc *) inout, inout_ref, inout2_ref, len );
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsCplxToReal_32fc %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsCplxToReal_32fc((const Ipp32fc *) inout, inout_ref, inout2_ref, len / 2);
+    ippsCplxToReal_32fc((const Ipp32fc *) inout, inout_ref, inout2_ref, len );
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsCplxToReal_32fc %d %lf\n", len, elapsed);
@@ -2078,18 +2080,18 @@ printf("\n");
 
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxtoreal128f(inout, inout3, inout4, len / 2);
+    cplxtoreal128f(inout, inout3, inout4, len );
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("cplxtoreal128f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxtoreal128f(inout, inout3, inout4, len / 2);
+    cplxtoreal128f(inout, inout3, inout4, len );
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("cplxtoreal128f %d %lf\n", len, elapsed);
-    l2_err(inout3, inout_ref, len / 2);
-    l2_err(inout4, inout2_ref, len / 2);
+    l2_err(inout3, inout_ref, len );
+    l2_err(inout4, inout2_ref, len );
 #endif
 
 #ifdef AVX
@@ -2106,6 +2108,31 @@ printf("\n");
 	printf("cplxtoreal256f %d %lf\n",len, elapsed);
 	l2_err(inout3,inout_ref,len/2);
 	l2_err(inout4,inout2_ref,len/2);*/
+#endif
+
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    realtocplx_C(inout3, inout4, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxtorealf_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    realtocplx128f(inout3, inout4, inout, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("realtocplx128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    realtocplx128f(inout3, inout4, inout, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("realtocplx128f %d %lf\n", len, elapsed);
+    l2_err(inout, inout_ref, 2*len);
+    
+    /*for(int i = 0; i < 2*len; i++)
+		printf("%f %f\n",inout[i],inout_ref[i]);*/
 #endif
 
     /*for(int i = 0; i < len; i++)

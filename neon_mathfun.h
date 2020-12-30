@@ -37,7 +37,8 @@
 #define ALIGN16_BEG
 #define ALIGN16_END __attribute__((aligned(16)))
 
-typedef float32x4_t v4sf;  // vector of 4 float
+typedef float32x4_t   v4sf;  // vector of 4 float
+typedef float32x4x2_t v4sfx2;  // vector of 4 float
 typedef uint32x4_t v4su;   // vector of 4 uint32
 typedef int32x4_t v4si;    // vector of 4 uint32
 

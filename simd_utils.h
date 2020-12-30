@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 #include <math.h>
+#include <stdint.h>
 
 #define INVLN10 0.4342944819
 #define IMM8_FLIP_VEC 0x1B              // change m128 from abcd to dcba
@@ -76,6 +77,45 @@ typedef enum {
     RndNear,
     RndFinancial,
 } FloatRoundingMode;
+
+/* if the user insures that all of their pointers are aligned, 
+ * they can use ALWAYS_ALIGNED to hope for some minor speedup on small vectors 
+ */
+static inline int isAligned(uintptr_t ptr, size_t alignment)
+{
+#ifndef ALWAYS_ALIGNED
+    if( ((uintptr_t)(ptr) % alignment) == 0 )
+        return 1;
+    return 0;
+#else
+    return 1;
+#endif
+}
+
+static inline int areAligned2(uintptr_t ptr1, uintptr_t ptr2, size_t alignment)
+{
+#ifndef ALWAYS_ALIGNED
+    if( ((uintptr_t)(ptr1) % alignment) == 0 )
+        if( ((uintptr_t)(ptr2) % alignment) == 0 )
+            return 1;
+    return 0;
+#else
+    return 1;
+#endif
+}
+
+static inline int areAligned3(uintptr_t ptr1, uintptr_t ptr2, uintptr_t ptr3, size_t alignment)
+{
+#ifndef ALWAYS_ALIGNED
+    if( ((uintptr_t)(ptr1) % alignment) == 0 )
+        if( ((uintptr_t)(ptr2) % alignment) == 0 )
+            if( ((uintptr_t)(ptr3) % alignment) == 0 )
+                return 1;
+    return 0;
+#else
+    return 1;
+#endif
+}
 
 #ifdef SSE
 #define SSE_LEN_BYTES 16  // Size of SSE lane
@@ -236,10 +276,13 @@ _PD_CONST(cephes_exp_C2, 1.42860682030941723212e-6);
 
 #ifdef AVX
 
+#ifndef __clang__
 static inline __m256 _mm256_set_m128(__m128 H, __m128 L)  //not present on every GCC version
 {
     return _mm256_insertf128_ps(_mm256_castps128_ps256(L), H, 1);
 }
+#endif /* __clang__ */
+
 #define AVX_LEN_BYTES 32  // Size of AVX lane
 #define AVX_LEN_INT32 8   // number of int32 with an AVX lane
 #define AVX_LEN_FLOAT 8   // number of float with an AVX lane
@@ -398,6 +441,19 @@ static inline void cplxtorealf_C(float *src, float *dstRe, float *dstIm, int len
         dstRe[j] = src[i];
         dstIm[j] = src[i + 1];
         j++;
+    }
+}
+
+
+static inline void realtocplx_C(float *srcRe, float* srcIm, float *dst, int len)
+{
+
+    int j = 0;
+
+    for (int i = 0; i < len; i++) {
+        dst[j]   = srcRe[i];
+        dst[j+1] = srcIm[i];
+        j+=2;
     }
 }
 
