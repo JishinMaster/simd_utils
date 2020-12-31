@@ -7,6 +7,22 @@
 
 #ifdef IPP
 #include <ipp.h>
+#include <ippdefs.h>
+#include <ipptypes.h>
+
+#define PX_FM ( ippCPUID_MMX | ippCPUID_SSE | ippCPUID_SSE2 )
+#define M7_FM ( PX_FM | ippCPUID_SSE3 )
+#define U8_FM ( M7_FM | ippCPUID_SSSE3 )
+#define N8_FM ( U8_FM) //not supported on corei7? | ippCPUID_MOVBE )
+#define Y8_FM ( U8_FM | ippCPUID_SSE41 | ippCPUID_SSE42 | ippCPUID_AES | ippCPUID_CLMUL | ippCPUID_SHA )
+#define E9_FM ( Y8_FM | ippCPUID_AVX | ippAVX_ENABLEDBYOS | ippCPUID_RDRAND | ippCPUID_F16C )
+#define L9_FM ( E9_FM | ippCPUID_MOVBE | ippCPUID_AVX2 | ippCPUID_ADCOX | ippCPUID_RDSEED | ippCPUID_PREFETCHW )
+#define K0_FM ( L9_FM | ippCPUID_AVX512F )
+
+#define SSE4_MASK ( ippCPUID_MMX | ippCPUID_SSE | ippCPUID_SSE2 | ippCPUID_SSE3 | ippCPUID_SSE41 | ippCPUID_SSE42 | ippCPUID_CLMUL | ippCPUID_AES)
+#define AVX_MASK (SSE4_MASK | ippCPUID_AVX | ippAVX_ENABLEDBYOS)
+#define AVX2_MASK (AVX_MASK | ippCPUID_AVX2)
+
 #endif
 
 #ifdef MKL
@@ -290,13 +306,29 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef IPP
-    ippInit();
-    const IppLibraryVersion *lib;
-    lib = ippGetLibVersion();
+
     IppStatus status;
     Ipp64u mask, emask;
-    printf("%s %s\n", lib->Name, lib->Version);
 
+
+#if defined(__AVX2__)
+    mask = AVX2_MASK;
+#elif defined(AVX)
+    mask = AVX_MASK;
+#else 
+    mask = SSE4_MASK;
+#endif
+    status = ippSetCpuFeatures(mask);
+    if(status != ippStsNoErr){ 
+        printf("error ippSetCpuFeatures() %llx %s\n", mask, ippGetStatusString(status));
+        //return -1;
+    }
+
+    //ippInit();
+    const IppLibraryVersion *lib;
+    lib = ippGetLibVersion();
+    printf("%s %s\n", lib->Name, lib->Version);
+    
     /* Get CPU features and features enabled with selected library level */
     status = ippGetCpuFeatures(&mask, 0);
     if (ippStsNoErr == status) {
