@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.3
+ * Version : 0.1.4
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -84,7 +84,7 @@ typedef enum {
 static inline int isAligned(uintptr_t ptr, size_t alignment)
 {
 #ifndef ALWAYS_ALIGNED
-    if( ((uintptr_t)(ptr) % alignment) == 0 )
+    if (((uintptr_t)(ptr) % alignment) == 0)
         return 1;
     return 0;
 #else
@@ -95,8 +95,8 @@ static inline int isAligned(uintptr_t ptr, size_t alignment)
 static inline int areAligned2(uintptr_t ptr1, uintptr_t ptr2, size_t alignment)
 {
 #ifndef ALWAYS_ALIGNED
-    if( ((uintptr_t)(ptr1) % alignment) == 0 )
-        if( ((uintptr_t)(ptr2) % alignment) == 0 )
+    if (((uintptr_t)(ptr1) % alignment) == 0)
+        if (((uintptr_t)(ptr2) % alignment) == 0)
             return 1;
     return 0;
 #else
@@ -107,9 +107,9 @@ static inline int areAligned2(uintptr_t ptr1, uintptr_t ptr2, size_t alignment)
 static inline int areAligned3(uintptr_t ptr1, uintptr_t ptr2, uintptr_t ptr3, size_t alignment)
 {
 #ifndef ALWAYS_ALIGNED
-    if( ((uintptr_t)(ptr1) % alignment) == 0 )
-        if( ((uintptr_t)(ptr2) % alignment) == 0 )
-            if( ((uintptr_t)(ptr3) % alignment) == 0 )
+    if (((uintptr_t)(ptr1) % alignment) == 0)
+        if (((uintptr_t)(ptr2) % alignment) == 0)
+            if (((uintptr_t)(ptr3) % alignment) == 0)
                 return 1;
     return 0;
 #else
@@ -445,15 +445,14 @@ static inline void cplxtorealf_C(float *src, float *dstRe, float *dstIm, int len
 }
 
 
-static inline void realtocplx_C(float *srcRe, float* srcIm, float *dst, int len)
+static inline void realtocplx_C(float *srcRe, float *srcIm, float *dst, int len)
 {
-
     int j = 0;
 
     for (int i = 0; i < len; i++) {
-        dst[j]   = srcRe[i];
-        dst[j+1] = srcIm[i];
-        j+=2;
+        dst[j] = srcRe[i];
+        dst[j + 1] = srcIm[i];
+        j += 2;
     }
 }
 
@@ -619,6 +618,13 @@ static inline void cosf_C(float *src, float *dst, int len)
 {
     for (int i = 0; i < len; i++) {
         dst[i] = cosf(src[i]);
+    }
+}
+
+static inline void sincosf_C(float *src, float *dst_sin, float *dst_cos, int len)
+{
+    for (int i = 0; i < len; i++) {
+        sincosf(src[i], dst_sin + i, dst_cos + i);
     }
 }
 

@@ -1,9 +1,10 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.3
+ * Version : 0.1.4
  * Author  : JishinMaster
  * Licence : BSD-2
  */
+ 
 #pragma once
 
 #include <stdint.h>

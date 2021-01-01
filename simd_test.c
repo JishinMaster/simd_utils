@@ -1,3 +1,10 @@
+/*
+ * Project : SIMD_Utils
+ * Version : 0.1.4
+ * Author  : JishinMaster
+ * Licence : BSD-2
+ */
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,16 +17,16 @@
 #include <ippdefs.h>
 #include <ipptypes.h>
 
-#define PX_FM ( ippCPUID_MMX | ippCPUID_SSE | ippCPUID_SSE2 )
-#define M7_FM ( PX_FM | ippCPUID_SSE3 )
-#define U8_FM ( M7_FM | ippCPUID_SSSE3 )
-#define N8_FM ( U8_FM) //not supported on corei7? | ippCPUID_MOVBE )
-#define Y8_FM ( U8_FM | ippCPUID_SSE41 | ippCPUID_SSE42 | ippCPUID_AES | ippCPUID_CLMUL | ippCPUID_SHA )
-#define E9_FM ( Y8_FM | ippCPUID_AVX | ippAVX_ENABLEDBYOS | ippCPUID_RDRAND | ippCPUID_F16C )
-#define L9_FM ( E9_FM | ippCPUID_MOVBE | ippCPUID_AVX2 | ippCPUID_ADCOX | ippCPUID_RDSEED | ippCPUID_PREFETCHW )
-#define K0_FM ( L9_FM | ippCPUID_AVX512F )
+#define PX_FM (ippCPUID_MMX | ippCPUID_SSE | ippCPUID_SSE2)
+#define M7_FM (PX_FM | ippCPUID_SSE3)
+#define U8_FM (M7_FM | ippCPUID_SSSE3)
+#define N8_FM (U8_FM)  //not supported on corei7? | ippCPUID_MOVBE )
+#define Y8_FM (U8_FM | ippCPUID_SSE41 | ippCPUID_SSE42 | ippCPUID_AES | ippCPUID_CLMUL | ippCPUID_SHA)
+#define E9_FM (Y8_FM | ippCPUID_AVX | ippAVX_ENABLEDBYOS | ippCPUID_RDRAND | ippCPUID_F16C)
+#define L9_FM (E9_FM | ippCPUID_MOVBE | ippCPUID_AVX2 | ippCPUID_ADCOX | ippCPUID_RDSEED | ippCPUID_PREFETCHW)
+#define K0_FM (L9_FM | ippCPUID_AVX512F)
 
-#define SSE4_MASK ( ippCPUID_MMX | ippCPUID_SSE | ippCPUID_SSE2 | ippCPUID_SSE3 | ippCPUID_SSE41 | ippCPUID_SSE42 | ippCPUID_CLMUL | ippCPUID_AES)
+#define SSE4_MASK (ippCPUID_MMX | ippCPUID_SSE | ippCPUID_SSE2 | ippCPUID_SSE3 | ippCPUID_SSE41 | ippCPUID_SSE42 | ippCPUID_CLMUL | ippCPUID_AES)
 #define AVX_MASK (SSE4_MASK | ippCPUID_AVX | ippAVX_ENABLEDBYOS)
 #define AVX2_MASK (AVX_MASK | ippCPUID_AVX2)
 
@@ -27,6 +34,7 @@
 
 #ifdef MKL
 #include <mkl.h>
+#include <mkl_vml.h>
 #endif
 
 
@@ -310,16 +318,16 @@ int main(int argc, char **argv)
     IppStatus status;
     Ipp64u mask, emask;
 
-
 #if defined(__AVX2__)
     mask = AVX2_MASK;
 #elif defined(AVX)
     mask = AVX_MASK;
-#else 
+#else
     mask = SSE4_MASK;
 #endif
+
     status = ippSetCpuFeatures(mask);
-    if(status != ippStsNoErr){ 
+    if (status != ippStsNoErr) {
         printf("error ippSetCpuFeatures() %llx %s\n", mask, ippGetStatusString(status));
         //return -1;
     }
@@ -328,7 +336,7 @@ int main(int argc, char **argv)
     const IppLibraryVersion *lib;
     lib = ippGetLibVersion();
     printf("%s %s\n", lib->Name, lib->Version);
-    
+
     /* Get CPU features and features enabled with selected library level */
     status = ippGetCpuFeatures(&mask, 0);
     if (ippStsNoErr == status) {
@@ -406,7 +414,23 @@ int main(int argc, char **argv)
         printf("Intel(R) Xeon Phi(TM) Coprocessor instruction set\n");
     }
 
+#endif /* IPP */
+
+#ifdef MKL
+
+    int mkl_mask;
+
+#if defined(__AVX2__)
+    mkl_mask = MKL_ENABLE_AVX2;
+#elif defined(AVX)
+    mkl_mask = MKL_ENABLE_AVX;
+#else
+    mkl_mask = MKL_ENABLE_SSE4_2;
 #endif
+    if (mkl_enable_instructions(mkl_mask) != 1)
+        printf("Could not enable required MKL instructions\n");
+
+#endif /* MKL */
 
     float *inout = NULL, *inout2 = NULL, *inout3 = NULL, *inout4 = NULL, *inout_ref = NULL, *inout2_ref = NULL;
     double *inoutd = NULL, *inoutd_ref = NULL;
@@ -421,7 +445,7 @@ int main(int argc, char **argv)
         printf("posix_memalign inout failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout2, atoi(argv[2]), len * sizeof(float));
+    posix_memalign((void **) &inout2, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout2 == NULL) {
         printf("posix_memalign inout2 failed\n");
         return -1;
@@ -436,22 +460,22 @@ int main(int argc, char **argv)
         printf("posix_memalign inout4 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_ref, atoi(argv[2]), 2* len * sizeof(float));
+    posix_memalign((void **) &inout_ref, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout_ref == NULL) {
         printf("posix_memalign inout_ref failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout2_ref, atoi(argv[2]), 2* len * sizeof(float));
+    posix_memalign((void **) &inout2_ref, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout2_ref == NULL) {
         printf("posix_memalign inout2_ref failed\n");
         return -1;
     }
-    posix_memalign((void **) &inoutd, atoi(argv[2]), 2* len * sizeof(double));
+    posix_memalign((void **) &inoutd, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd == NULL) {
         printf("posix_memalign inoutd failed\n");
         return -1;
     }
-    posix_memalign((void **) &inoutd_ref, atoi(argv[2]), 2* len * sizeof(double));
+    posix_memalign((void **) &inoutd_ref, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd_ref == NULL) {
         printf("posix_memalign inoutd_ref failed\n");
         return -1;
@@ -495,8 +519,8 @@ int main(int argc, char **argv)
         return -1;
     }
 
+#else /* USE_MALLOC */
 
-#else
     inout = (float *) malloc(2 * len * sizeof(float));
     if (inout == NULL) {
         printf("malloc inout failed\n");
@@ -560,7 +584,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-
     inout_i1 = (int32_t *) malloc(len * sizeof(int32_t));
     if (inout_i1 == NULL) {
         printf("posix_memalign inout_i1 failed\n");
@@ -577,11 +600,18 @@ int main(int argc, char **argv)
         return -1;
     }
 
-#endif
+#endif /* USE_MALLOC */
 
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////// BEGIN //////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     struct timespec start, stop;
     double elapsed = 0.0;
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// MEMSET //////////////////////////////////////////////////////////////////////////////
+    printf("MEMSET\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     memset(inout_ref, 0.0f, len * sizeof(float));
@@ -605,14 +635,14 @@ int main(int argc, char **argv)
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsZero_32f(inout_ref, len);
+    ippsZero_32f(inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
 
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsZero_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsZero_32f(inout_ref, len);
+    ippsZero_32f(inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
 
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
@@ -620,18 +650,20 @@ int main(int argc, char **argv)
 
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsSet_32f(0.001f, inout_ref, len);
+    ippsSet_32f(0.001f, inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
 
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsSet_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsSet_32f(0.08f, inout_ref, len);
+    ippsSet_32f(0.08f, inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
 
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsSet_32f %d %lf\n", len, elapsed);
+
+    l2_err(inout, inout_ref, len);
 #endif
 
 #ifdef SSE
@@ -667,8 +699,6 @@ int main(int argc, char **argv)
     l2_err(inout, inout_ref, len);
 #endif
 
-
-
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
     zero256f(inout, len);
@@ -700,6 +730,9 @@ int main(int argc, char **argv)
     l2_err(inout, inout_ref, len);
 #endif
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// MEMCPY //////////////////////////////////////////////////////////////////////////////
+    printf("MEMCPY\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     memcpy(inout2_ref, inout, len * sizeof(float));
@@ -723,18 +756,20 @@ int main(int argc, char **argv)
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsCopy_32f(inout, inout2_ref, len);
+    ippsCopy_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
 
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsCopy_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsCopy_32f(inout, inout2_ref, len);
+    ippsCopy_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
 
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsCopy_32f %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout2_ref, len);
 #endif
 
 #ifdef SSE
@@ -774,12 +809,15 @@ int main(int argc, char **argv)
 	}
 	printf("\n");*/
 
-    inout[3] = 0.04f;
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// threshold_lt_f //////////////////////////////////////////////////////////////////////////////
+    printf("THRESHOLD_LT\n");
+
+    inout[3] = 0.04f;
     for (int i = 0; i < len; i++) {
         inout[i] = (float) i / 20.0f;  //printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
     }
-
 
     clock_gettime(CLOCK_REALTIME, &start);
     threshold_lt_f_C(inout, inout2_ref, 0.02f, len);
@@ -789,18 +827,20 @@ int main(int argc, char **argv)
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsThreshold_LT_32f(inout, inout2_ref, len, 0.02f);
+    ippsThreshold_LT_32f(inout, inout2, len, 0.07f);
     clock_gettime(CLOCK_REALTIME, &stop);
 
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsThreashold_LT_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsThreshold_LT_32f(inout, inout2_ref, len, 0.02f);
+    ippsThreshold_LT_32f(inout, inout2, len, 0.02f);
     clock_gettime(CLOCK_REALTIME, &stop);
 
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsThreashold_LT_32f %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout2_ref, len);
 #endif
 
 #ifdef SSE
@@ -844,6 +884,9 @@ int main(int argc, char **argv)
 	printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
 }*/
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// FABSF //////////////////////////////////////////////////////////////////////////////
+    printf("FABSF\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     fabsf_C(inout, inout2_ref, len);
@@ -853,30 +896,34 @@ int main(int argc, char **argv)
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsZero_32f(inout, len);
-    clock_gettime(CLOCK_REALTIME, &stop);
-
-    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("ippsZero_32f %d %lf\n", len, elapsed);
-
-    clock_gettime(CLOCK_REALTIME, &start);
-    ippsZero_32f(inout, len);
-    clock_gettime(CLOCK_REALTIME, &stop);
-
-    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("ippsZero_32f %d %lf\n", len, elapsed);
-
-    clock_gettime(CLOCK_REALTIME, &start);
-    ippsAbs_32f(inout, inout2_ref, len);
+    ippsAbs_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsAbs_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsAbs_32f(inout, inout2_ref, len);
+    ippsAbs_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsAbs_32f %d %lf\n", len, elapsed);
+
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef MKL
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsAbsI(len, inout, 1, inout2, 1);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsAbsI %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsAbsI(len, inout, 1, inout2, 1);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsAbsI %d %lf\n", len, elapsed);
+
+    l2_err(inout2_ref, inout2, len);
 #endif
 
 #ifdef SSE
@@ -912,10 +959,12 @@ int main(int argc, char **argv)
 
 
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// CONVERT_64_32 //////////////////////////////////////////////////////////////////////////////
+    printf("CONVERT_64_32\n");
+
     for (int i = 0; i < len; i++)
         inoutd[i] = (double) i;
-
-
 
     clock_gettime(CLOCK_REALTIME, &start);
     convert_64f32f_C(inoutd, inout_ref, len);
@@ -923,22 +972,21 @@ int main(int argc, char **argv)
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convert_64f32f_C %d %lf\n", len, elapsed);
 
-
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConvert_64f32f(inoutd, inout_ref, len);
+    ippsConvert_64f32f(inoutd, inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_64f32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConvert_64f32f(inoutd, inout_ref, len);
+    ippsConvert_64f32f(inoutd, inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_64f32f %d %lf\n", len, elapsed);
+
+    l2_err(inout, inout_ref, len);
 #endif
-
-
 
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
@@ -985,6 +1033,11 @@ printf("\n");
 	 */
 
 
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// MEAN //////////////////////////////////////////////////////////////////////////////
+    printf("MEAN\n");
+
     for (int i = 0; i < len; i++) {
         inout[i] = (float) i;
         inout_ref[i] = inout[i];
@@ -1007,16 +1060,18 @@ printf("\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     mean = 0.0f;
-    ippsMean_32f(inout_ref, len, &mean_ref, (IppHintAlgorithm) 0);
+    ippsMean_32f(inout_ref, len, &mean, (IppHintAlgorithm) 0);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsMean_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsMean_32f(inout_ref, len, &mean_ref, (IppHintAlgorithm) 0);
+    ippsMean_32f(inout_ref, len, &mean, (IppHintAlgorithm) 0);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsMean_32f %d %lf\n", len, elapsed);
+
+    printf("mean %f ref %f\n", mean, mean_ref);
 #endif
 
 #ifdef SSE
@@ -1035,7 +1090,6 @@ printf("\n");
     printf("mean %f ref %f\n", mean, mean_ref);
 #endif
 
-
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
     mean256f(inout, &mean, len);
@@ -1052,6 +1106,9 @@ printf("\n");
     printf("mean %f ref %f\n", mean, mean_ref);
 #endif
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// MAGNITUDE_SPLIT //////////////////////////////////////////////////////////////////////////////
+    printf("MAGNITUDE_SPLIT\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) i / 10.5f;
@@ -1067,16 +1124,18 @@ printf("\n");
 #ifdef IPP
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsMagnitude_32f(inout, inout2, inout_ref, len);
+    ippsMagnitude_32f(inout, inout2, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsMagnitude_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsMagnitude_32f(inout, inout2, inout_ref, len);
+    ippsMagnitude_32f(inout, inout2, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsMagnitude_32f %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
 #endif
 
 #ifdef SSE
@@ -1115,11 +1174,15 @@ printf("\n");
 #endif
 
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// MAGNITUDE_INTERLEAVE //////////////////////////////////////////////////////////////////////////////
+    printf("MAGNITUDE_INTERLEAVE\n");
+
     int j = 0;
-    for (int i = 0; i < 2 * len; i+=2) {
-        inout[i]   = (float) j / 10.5f;
-        inout[i+1] = (float) j / 35.77f;
-        j+= 1;
+    for (int i = 0; i < 2 * len; i += 2) {
+        inout[i] = (float) j / 10.5f;
+        inout[i + 1] = (float) j / 35.77f;
+        j += 1;
     }
     for (int i = 0; i < len; i++) {
         inout_ref[i] = 0.0f;
@@ -1137,16 +1200,18 @@ printf("\n");
 #ifdef IPP
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsMagnitude_32fc((const Ipp32fc *) inout, inout_ref, len);
+    ippsMagnitude_32fc((const Ipp32fc *) inout, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsMagnitude_32fc %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsMagnitude_32fc((const Ipp32fc *) inout, inout_ref, len);
+    ippsMagnitude_32fc((const Ipp32fc *) inout, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsMagnitude_32fc %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
 #endif
 
 #ifdef SSE
@@ -1173,48 +1238,56 @@ printf("\n");
 	}*/
 
 
-	for(int j = 0; j < len; j++)
-	{
-		inout_ref[j]  = 0.5555f;
-		inout2_ref[j] = 0.5555f;
-	}
+    printf("\n");
+    /////////////////////////////////////////////////////////// CPLXVECMUL //////////////////////////////////////////////////////////////////////////////
+    printf("CPLXVECMUL\n");
+
+    for (int j = 0; j < len; j++) {
+        inout_ref[j] = 0.5555f;
+        inout2_ref[j] = 0.5555f;
+    }
 
 
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxvecmul_C((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout_ref, len / 2);
+    cplxvecmul_C((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("cplxvecmul_C %d %lf\n", len, elapsed);
 
 #ifdef IPP
-
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsMul_32fc_A24((const Ipp32fc *) inout, (const Ipp32fc *) inout2, (Ipp32fc *) inout_ref, len / 2);
+    ippsMul_32fc_A24((const Ipp32fc *) inout, (const Ipp32fc *) inout2, (Ipp32fc *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsMul_32fc_A24 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsMul_32fc_A24((const Ipp32fc *) inout, (const Ipp32fc *) inout2, (Ipp32fc *) inout_ref, len / 2);
+    ippsMul_32fc_A24((const Ipp32fc *) inout, (const Ipp32fc *) inout2, (Ipp32fc *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsMul_32fc_A24 %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
+
+    /*for(int i = 0; i < len; i+=2){
+		printf("%f %f // %f %f // %f %f || %f %f\n",inout[i],inout[i+1],inout2[i],inout2[i+1],inout_ref[i],inout_ref[i+1], inout2_ref[i], inout2_ref[i+1]);
+	 }*/
 #endif
 
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxvecmul128f((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len / 2);
+    cplxvecmul128f((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("cplxvecmul128f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxvecmul128f((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len / 2);
+    cplxvecmul128f((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("cplxvecmul128f %d %lf\n", len, elapsed);
 
-    l2_err(inout_ref, inout2_ref, len / 2);
+    l2_err(inout_ref, inout2_ref, len);
 #endif
 
     /*for(int i = 0; i < len; i+=2){
@@ -1225,7 +1298,9 @@ printf("\n");
 		printf("%f %f\n",inout_ref[i],inout_ref[i+1]);
 	}*/
 
-    ///////////////////////
+    printf("\n");
+    /////////////////////////////////////////////////////////// ADDCST //////////////////////////////////////////////////////////////////////////////
+    printf("ADDCST\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     addcf_C(inout, 6.3f, inout2_ref, len);
@@ -1278,6 +1353,9 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// MULCST //////////////////////////////////////////////////////////////////////////////
+    printf("MULCST\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     mulcf_C(inout, 6.3f, inout2_ref, len);
@@ -1331,7 +1409,10 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
-    /////////////
+    printf("\n");
+    /////////////////////////////////////////////////////////// MUL //////////////////////////////////////////////////////////////////////////////
+    printf("MUL\n");
+
     clock_gettime(CLOCK_REALTIME, &start);
     mulf_C(inout, inout2, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1340,16 +1421,32 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsMul_32f(inout, inout2, inout2_ref, len);
+    ippsMul_32f(inout, inout2, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("ippsMulC_32f %d %lf\n", len, elapsed);
+    printf("ippsMul_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsMul_32f(inout, inout2, inout2_ref, len);
+    ippsMul_32f(inout, inout2, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("ippsMulC_32f %d %lf\n", len, elapsed);
+    printf("ippsMul_32f %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout_ref, len);
+#endif
+
+#ifdef MKL
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsMul(len, inout, inout2, inout_ref);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsMul %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsMul(len, inout, inout2, inout_ref);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsMul %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout_ref, len);
 #endif
 
 #ifdef SSE
@@ -1384,26 +1481,44 @@ printf("\n");
 #endif
 
 
-    /////////:
+    printf("\n");
+    /////////////////////////////////////////////////////////// SIN //////////////////////////////////////////////////////////////////////////////
+    printf("SIN\n");
+
     clock_gettime(CLOCK_REALTIME, &start);
     sinf_C(inout, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("sinf_C %d %lf\n", len, elapsed);
 
-
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsSin_32f_A24(inout, inout2_ref, len);
+    ippsSin_32f_A24(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsSin_32f_A24 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsSin_32f_A24(inout, inout2_ref, len);
+    ippsSin_32f_A24(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsSin_32f_A24 %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef MKL
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsSin(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsSin %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsSin(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsSin %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
 #endif
 
 #ifdef SSE
@@ -1421,7 +1536,6 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
-
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
     sin256f(inout, inout2, len);
@@ -1438,6 +1552,9 @@ printf("\n");
 #endif
 
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// COS //////////////////////////////////////////////////////////////////////////////
+    printf("COS\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     cosf_C(inout, inout2_ref, len);
@@ -1447,18 +1564,34 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsCos_32f_A24(inout, inout2_ref, len);
+    ippsCos_32f_A24(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsCos_32f_A24 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsCos_32f_A24(inout, inout2_ref, len);
+    ippsCos_32f_A24(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsCos_32f_A24 %d %lf\n", len, elapsed);
+
+    l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef MKL
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsCos(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsCos %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsCos(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsCos %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
 
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
@@ -1475,8 +1608,6 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
-
-
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
     cos256f(inout, inout2, len);
@@ -1492,6 +1623,86 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// SINCOS //////////////////////////////////////////////////////////////////////////////
+    printf("SINCOS\n");
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincosf_C(inout, inout_ref, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincosf_C %d %lf\n", len, elapsed);
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsSinCos_32f_A24(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsSinCos_32f_A24 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsSinCos_32f_A24(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsSinCos_32f_A24 %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2, len);
+    l2_err(inout2_ref, inout3, len);
+#endif
+
+#ifdef MKL
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsSinCos(len, inout, inout2, inout3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsSinCos %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsSinCos(len, inout, inout2, inout3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsSinCos %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+    l2_err(inout2_ref, inout3, len);
+#endif
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos128f(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos128f(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos128f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+    l2_err(inout2_ref, inout3, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos256f(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos256f(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos256f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+    l2_err(inout2_ref, inout3, len);
+#endif
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// LOGN //////////////////////////////////////////////////////////////////////////////
+    printf("LOGN\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (1.0f * i + 1.0f) / 1.82f;
@@ -1507,16 +1718,31 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsLn_32f(inout, inout2_ref, len);
+    ippsLn_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsLn_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsLn_32f(inout, inout2_ref, len);
+    ippsLn_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsLn_32f %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsLn(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsLn %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsLn(len, inout, inout2_ref);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsLn %d %lf\n", len, elapsed);
 #endif
 
 #ifdef SSE
@@ -1534,7 +1760,6 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
-
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
     ln_256f(inout, inout2, len);
@@ -1550,13 +1775,17 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// CONVERT_32_64 //////////////////////////////////////////////////////////////////////////////
+    printf("CONVERT_32_64\n");
+
+
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (1.0f * i + 1.0f) / 1.82f;
         inoutd_ref[i] = 0.0;
         inoutd[i] = 0.0;
     }
-
-
 
     clock_gettime(CLOCK_REALTIME, &start);
     convert_32f64f_C(inout, inoutd_ref, len);
@@ -1599,7 +1828,6 @@ printf("\n");
 	}*/
 #endif
 
-
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
     convert256_32f64f(inout, inoutd, len);
@@ -1619,13 +1847,17 @@ printf("\n");
 	}*/
 #endif
 
-#endif
+#endif /* ARM */
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// FLIP //////////////////////////////////////////////////////////////////////////////
+    printf("FLIP\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     flipf_C(inout, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("flip256f %d %lf\n", len, elapsed);
+    printf("flipf_C %d %lf\n", len, elapsed);
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
@@ -1671,34 +1903,50 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// FLOOR //////////////////////////////////////////////////////////////////////////////
+    printf("FLOOR\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (1.0f * i + 1.0f) / 1.82f;
         inout_ref[i] = inout[i];
     }
 
-
-
     clock_gettime(CLOCK_REALTIME, &start);
     floorf_C(inout, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("floor256f %d %lf\n", len, elapsed);
-
-    //#ifndef ARM
+    printf("floorf_C %d %lf\n", len, elapsed);
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsFloor_32f(inout, inout_ref, len);
+    ippsFloor_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsFloor_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsFloor_32f(inout, inout_ref, len);
+    ippsFloor_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsFloor_32f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef MKL
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsFloor(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsFloor %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsFloor(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsFloor %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
 #endif
 
 #ifdef SSE
@@ -1732,6 +1980,9 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// CEIL //////////////////////////////////////////////////////////////////////////////
+    printf("CEIL\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     ceilf_C(inout, inout_ref, len);
@@ -1741,16 +1992,33 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsCeil_32f(inout, inout_ref, len);
+    ippsCeil_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsCeil_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsCeil_32f(inout, inout_ref, len);
+    ippsCeil_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsCeil_32f %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef MKL
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsCeil(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsCeil %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsCeil(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsCeil %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
 #endif
 
 #ifdef SSE
@@ -1769,7 +2037,6 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
     ceil256f(inout, inout2, len);
@@ -1786,6 +2053,9 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// ROUND //////////////////////////////////////////////////////////////////////////////
+    printf("ROUND\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     roundf_C(inout, inout_ref, len);
@@ -1795,16 +2065,32 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsRound_32f(inout, inout_ref, len);
+    ippsRound_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsRound_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsRound_32f(inout, inout_ref, len);
+    ippsRound_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsRound_32f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef MKL
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsRound(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsRound %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsRound(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsRound %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
 #endif
 
 #ifdef SSE
@@ -1822,7 +2108,6 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
     round256f(inout, inout2, len);
@@ -1838,7 +2123,9 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-    //#endif //ARM
+    printf("\n");
+    /////////////////////////////////////////////////////////// TAN //////////////////////////////////////////////////////////////////////////////
+    printf("TAN\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     tanf_C(inout, inout_ref, len);
@@ -1854,16 +2141,32 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsTan_32f_A24(inout, inout_ref, len);
+    ippsTan_32f_A24(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsTan_32f_A24 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsTan_32f_A24(inout, inout_ref, len);
+    ippsTan_32f_A24(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsTan_32f_A24 %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef MKL
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsTan(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsTan %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsTan(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsTan %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
 #endif
 
 #ifdef SSE
@@ -1912,12 +2215,13 @@ printf("\n");
 
 #endif
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// ASIN //////////////////////////////////////////////////////////////////////////////
+    printf("ASIN\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (1.0f * i + 1.0f) / 1.82f / (float) (5 * len);
     }
-
-
 
     clock_gettime(CLOCK_REALTIME, &start);
     asinf_C(inout, inout_ref, len);
@@ -1927,16 +2231,32 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsAsin_32f_A24(inout, inout_ref, len);
+    ippsAsin_32f_A24(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsAsin_32f_A24 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsAsin_32f_A24(inout, inout_ref, len);
+    ippsAsin_32f_A24(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsAsin_32f_A24 %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef MKL
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsAsin(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsAsin %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsAsin(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsAsin %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
 #endif
 
 #ifdef SSE
@@ -1970,6 +2290,9 @@ printf("\n");
 #endif
 
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// ATAN //////////////////////////////////////////////////////////////////////////////
+    printf("ATAN\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     atanf_C(inout, inout_ref, len);
@@ -1979,18 +2302,33 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsAtan_32f_A24(inout, inout_ref, len);
+    ippsAtan_32f_A24(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsAtan_32f_A24 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsAtan_32f_A24(inout, inout_ref, len);
+    ippsAtan_32f_A24(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsAtan_32f_A24 %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
 #endif
 
+#ifdef MKL
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsAtan(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsAtan %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsAtan(len, inout, inout2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsAtan %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
 
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
@@ -2004,10 +2342,8 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("atan128f %d %lf\n", len, elapsed);
-
     l2_err(inout_ref, inout2, len);
 #endif
-
 
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
@@ -2021,7 +2357,12 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("atan256f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
 #endif
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// ATAN2 //////////////////////////////////////////////////////////////////////////////
+    printf("ATAN2\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (-1.0f * i + 0.15f) / 2.5f / (float) (5 * len);
@@ -2037,16 +2378,32 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsAtan2_32f_A24(inout, inout2, inout2_ref, len);
+    ippsAtan2_32f_A24(inout, inout2, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsAtan2_32f_A24 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsAtan2_32f_A24(inout, inout2, inout2_ref, len);
+    ippsAtan2_32f_A24(inout, inout2, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsAtan2_32f_A24 %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout_ref, len);
+#endif
+
+#ifdef MKL
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsAtan2(len, inout, inout2, inout_ref);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsAtan2 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vsAtan2(len, inout, inout2, inout_ref);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("MKLvsAtan2 %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout_ref, len);
 #endif
 
 #ifdef SSE
@@ -2079,6 +2436,10 @@ printf("\n");
     l2_err(inout2_ref, inout_ref, len);
 #endif
 
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// CPLX2REAL //////////////////////////////////////////////////////////////////////////////
+    printf("CPLX2REAL\n");
 
     for (int i = 0; i < len; i++) {
         inout_ref[i] = 0.0f;
@@ -2087,24 +2448,21 @@ printf("\n");
         inout4[i] = 0.0f;
     }
 
-    //#ifndef ARM
-
-
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxtorealf_C(inout, inout_ref, inout2_ref, len );
+    cplxtorealf_C(inout, inout_ref, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("cplxtorealf_C %d %lf\n", len, elapsed);
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsCplxToReal_32fc((const Ipp32fc *) inout, inout_ref, inout2_ref, len );
+    ippsCplxToReal_32fc((const Ipp32fc *) inout, inout_ref, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsCplxToReal_32fc %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsCplxToReal_32fc((const Ipp32fc *) inout, inout_ref, inout2_ref, len );
+    ippsCplxToReal_32fc((const Ipp32fc *) inout, inout_ref, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsCplxToReal_32fc %d %lf\n", len, elapsed);
@@ -2112,42 +2470,66 @@ printf("\n");
 
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxtoreal128f(inout, inout3, inout4, len );
+    cplxtoreal128f(inout, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("cplxtoreal128f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxtoreal128f(inout, inout3, inout4, len );
+    cplxtoreal128f(inout, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("cplxtoreal128f %d %lf\n", len, elapsed);
-    l2_err(inout3, inout_ref, len );
-    l2_err(inout4, inout2_ref, len );
+    l2_err(inout3, inout_ref, len);
+    l2_err(inout4, inout2_ref, len);
 #endif
 
 #ifdef AVX
-    /*clock_gettime(CLOCK_REALTIME,&start);
-	cplxtoreal256f(inout, inout3, inout4, len/2);
-	clock_gettime(CLOCK_REALTIME,&stop);
-	elapsed = (stop.tv_sec - start.tv_sec)*1e6 + (stop.tv_nsec - start.tv_nsec)*1e-3;
-	printf("cplxtoreal256f %d %lf\n",len, elapsed);
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxtoreal256f(inout, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxtoreal256f %d %lf\n", len, elapsed);
 
-	clock_gettime(CLOCK_REALTIME,&start);
-	cplxtoreal256f(inout, inout3, inout4, len/2);
-	clock_gettime(CLOCK_REALTIME,&stop);
-	elapsed = (stop.tv_sec - start.tv_sec)*1e6 + (stop.tv_nsec - start.tv_nsec)*1e-3;
-	printf("cplxtoreal256f %d %lf\n",len, elapsed);
-	l2_err(inout3,inout_ref,len/2);
-	l2_err(inout4,inout2_ref,len/2);*/
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxtoreal256f(inout, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxtoreal256f %d %lf\n", len, elapsed);
+    l2_err(inout3, inout_ref, len);
+    l2_err(inout4, inout2_ref, len);
+
+    /*for(int i = 0; i < len; i++)
+		  printf("%f %f %f %f \n",inout3[i],inout_ref[i], inout4[i], inout2_ref[i]);
+		printf("\n\n");*/
 #endif
 
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// REAL2CPLX //////////////////////////////////////////////////////////////////////////////
+    printf("REAL2CPLX\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     realtocplx_C(inout3, inout4, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("cplxtorealf_C %d %lf\n", len, elapsed);
+    printf("realtocplx_C %d %lf\n", len, elapsed);
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsRealToCplx_32f(inout3, inout4, (Ipp32fc *) inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsCplxToReal_32fc %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsRealToCplx_32f(inout3, inout4, (Ipp32fc *) inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsCplxToReal_32fc %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout_ref, 2 * len);
+#endif
 
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
@@ -2161,14 +2543,38 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("realtocplx128f %d %lf\n", len, elapsed);
-    l2_err(inout, inout_ref, 2*len);
-    
+    l2_err(inout, inout_ref, 2 * len);
+
     /*for(int i = 0; i < 2*len; i++)
-		printf("%f %f\n",inout[i],inout_ref[i]);*/
+		  printf("%f %f\n",inout[i],inout_ref[i]);
+		printf("\n\n");*/
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    realtocplx256f(inout3, inout4, inout, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("realtocplx256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    realtocplx256f(inout3, inout4, inout, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("realtocplx256f %d %lf\n", len, elapsed);
+    l2_err(inout, inout_ref, 2 * len);
+
+    /*for(int i = 0; i < 2*len; i++)
+		  printf("%f %f\n",inout[i],inout_ref[i]);*/
 #endif
 
     /*for(int i = 0; i < len; i++)
 		printf("%f %f || %f %f \n",inout3[i],inout_ref[i], inout4[i],inout2_ref[i]);*/
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// CONVERTFLOAT32_U8 //////////////////////////////////////////////////////////////////////////////
+    printf("CONVERTFLOAT32_U8\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (i) *10;
@@ -2214,13 +2620,17 @@ printf("\n");
     l2_err_u8(inout_u1, inout_u2, len);
 #endif
 
-#endif
+#endif /* ARM */
     /*for(int i = 0; i < len; i++)
 		printf("%x %x\n" ,inout_u1[i],inout_u2[i]);
 	*/
 
     for (int i = 0; i < len; i++)
         inout_s1[i] = -len + i;
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// CONVERTINT16_FLOAT32 //////////////////////////////////////////////////////////////////////////////
+    printf("CONVERTINT16_FLOAT32\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     convertInt16ToFloat32_C(inout_s1, inout2_ref, len, 4);
@@ -2257,6 +2667,10 @@ printf("\n");
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// VECTOR_SLOPE //////////////////////////////////////////////////////////////////////////////
+    printf("VECTOR_SLOPE\n");
 
     //for(int i = 0; i < len; i++)
     //	printf("%d %f %f %f\n" ,inout_s1[i], (float)inout_s1[i]/(1 << 4),inout_ref[i],inout2_ref[i]);
@@ -2311,7 +2725,9 @@ printf("\n");
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
-
+    printf("\n");
+    /////////////////////////////////////////////////////////// VECTOR_SLOPE_D //////////////////////////////////////////////////////////////////////////////
+    printf("VECTOR_SLOPE_D\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     vectorSloped_C(inoutd_ref, len, 2.5, 3.0);
@@ -2362,6 +2778,11 @@ printf("\n");
     printf("vectorSlope256d %d %lf\n", len, elapsed);
     l2_errd(inoutd_ref, inoutd, len);
 #endif
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// EXPERIMENTAL //////////////////////////////////////////////////////////////////////////////
+    printf("EXPERIMENTAL\n");
 
     double GB = (double) (len * sizeof(int32_t)) / 1e9;
 
