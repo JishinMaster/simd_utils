@@ -1797,16 +1797,17 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConvert_32f64f(inout, inoutd_ref, len);
+    ippsConvert_32f64f(inout, inoutd, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_32f64f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConvert_32f64f(inout, inoutd_ref, len);
+    ippsConvert_32f64f(inout, inoutd, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_32f64f %d %lf\n", len, elapsed);
+    l2_errd(inoutd, inoutd_ref, len);
 #endif
 
 #ifdef SSE
@@ -1861,16 +1862,17 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsFlip_32f(inout, inout_ref, len);
+    ippsFlip_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsFlip_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsFlip_32f(inout, inout_ref, len);
+    ippsFlip_32f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsFlip_32f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
 #endif
 
 #ifdef SSE
@@ -2456,16 +2458,18 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsCplxToReal_32fc((const Ipp32fc *) inout, inout_ref, inout2_ref, len);
+    ippsCplxToReal_32fc((const Ipp32fc *) inout, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsCplxToReal_32fc %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsCplxToReal_32fc((const Ipp32fc *) inout, inout_ref, inout2_ref, len);
+    ippsCplxToReal_32fc((const Ipp32fc *) inout, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsCplxToReal_32fc %d %lf\n", len, elapsed);
+    l2_err(inout3, inout_ref, len);
+    l2_err(inout4, inout2_ref, len);
 #endif
 
 #ifdef SSE
@@ -2520,13 +2524,13 @@ printf("\n");
     ippsRealToCplx_32f(inout3, inout4, (Ipp32fc *) inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("ippsCplxToReal_32fc %d %lf\n", len, elapsed);
+    printf("ippsRealToCplx_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     ippsRealToCplx_32f(inout3, inout4, (Ipp32fc *) inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("ippsCplxToReal_32fc %d %lf\n", len, elapsed);
+    printf("ippsRealToCplx_32f %d %lf\n", len, elapsed);
 
     l2_err(inout2, inout_ref, 2 * len);
 #endif
@@ -2592,16 +2596,17 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConvert_32f8u_Sfs(inout, inout_u2, len, ippRndZero, 4);  //ippRndNear ippRndZero ippRndFinancial
+    ippsConvert_32f8u_Sfs(inout, inout_u1, len, ippRndZero, 4);  //ippRndNear ippRndZero ippRndFinancial
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_32f8u_Sfs %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConvert_32f8u_Sfs(inout, inout_u2, len, ippRndZero, 4);
+    ippsConvert_32f8u_Sfs(inout, inout_u1, len, ippRndZero, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_32f8u_Sfs %d %lf\n", len, elapsed);
+    l2_err_u8(inout_u1, inout_u2, len);
 #endif
 
 #ifdef SSE
@@ -2640,16 +2645,17 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConvert_16s32f_Sfs(inout_s1, inout2_ref, len, 4);  //ippRndNear ippRndZero ippRndFinancial
+    ippsConvert_16s32f_Sfs(inout_s1, inout_ref, len, 4);  //ippRndNear ippRndZero ippRndFinancial
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_16s32f_Sfs %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConvert_16s32f_Sfs(inout_s1, inout2_ref, len, 4);
+    ippsConvert_16s32f_Sfs(inout_s1, inout_ref, len, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_16s32f_Sfs %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
 #endif
 
 #ifdef SSE
@@ -2683,16 +2689,17 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsVectorSlope_32f(inout2_ref, len, 2.5f, 3.0f);
+    ippsVectorSlope_32f(inout_ref, len, 2.5f, 3.0f);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsVectorSlope_32f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsVectorSlope_32f(inout2_ref, len, 2.5f, 3.0f);
+    ippsVectorSlope_32f(inout_ref, len, 2.5f, 3.0f);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsVectorSlope_32f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
 #endif
 
 #ifdef SSE
@@ -2737,16 +2744,17 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsVectorSlope_64f(inoutd_ref, len, 2.5, 3.0);
+    ippsVectorSlope_64f(inoutd, len, 2.5, 3.0);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsVectorSlope_64f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsVectorSlope_64f(inoutd_ref, len, 2.5, 3.0);
+    ippsVectorSlope_64f(inoutd, len, 2.5, 3.0);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsVectorSlope_64f %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd, len);
 #endif
 
 #ifdef SSE
