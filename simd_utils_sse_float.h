@@ -61,6 +61,24 @@ _PS_CONST(ATAN_P3, -3.33329491539E-1);
 #define ROUNDTOCEIL (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)
 #define ROUNDTOZERO (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC)
 
+static inline void print4(__m128 v)
+{
+    float *p = (float *) &v;
+#ifndef __SSE2__
+    _mm_empty();
+#endif
+    printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
+}
+
+static inline void print8i(__m128i v)
+{
+    int16_t *p = (int16_t *) &v;
+#ifndef __SSE2__
+    _mm_empty();
+#endif
+    printf("[%d, %d, %d, %d,%d, %d, %d, %d]", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+}
+
 static inline void log10_128f(float *src, float *dst, int len)
 {
     const v4sf invln10f = _mm_set1_ps((float) INVLN10);
@@ -390,7 +408,8 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
         }
 
         for (int i = stop_len; i < len; i++) {
-            dst[i] = (uint8_t)(roundf(src[i] * scale_fact_mult * 0.5f)) << 1;  //round to nearest even with round(x/2)*2
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);  //round to nearest even with round(x/2)*2
         }
     } else {
         if (rounding_mode == RndZero) {
@@ -427,7 +446,8 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
 
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
-            dst[i] = (uint8_t) nearbyintf(src[i] * scale_fact_mult);
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
         }
     }
 }
@@ -448,7 +468,7 @@ typedef union xmm_mm_union_int {
         mm1_ = u.mm[1];                      \
     }
 
-static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, int scale_factor)
+static inline void convertInt16ToFloat32_128_old(int16_t *src, float *dst, int len, int scale_factor)
 {
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
@@ -485,6 +505,51 @@ static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, 
     }
 }
 
+//This improved version does not use MMX
+static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, int scale_factor)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v4sf scale_fact_vec = _mm_set1_ps(scale_fact_mult);
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4si vec = _mm_load_si128((__m128i *) (src + i));  //loads 1 2 3 4 5 6 7 8 8
+            v4si low = _mm_unpacklo_epi16(vec, vec);           // low 1 1 2 2 3 3 4 4
+            v4si high = _mm_unpackhi_epi16(vec, vec);          // high 5 5 6 6 7 7 8 8
+            low = _mm_srai_epi32(low, 0x10);                   //make low 1 -1 2 -1 3 -1 4 -4
+            high = _mm_srai_epi32(high, 0x10);                 // make high 5 -1 6 -1 7 -1 8 -1
+
+            //convert the vector to float and scale it
+            v4sf floatlo = _mm_mul_ps(_mm_cvtepi32_ps(low), scale_fact_vec);
+            v4sf floathi = _mm_mul_ps(_mm_cvtepi32_ps(high), scale_fact_vec);
+
+            _mm_store_ps(dst + i, floatlo);
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, floathi);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4si vec = _mm_loadu_si128((__m128i *) (src + i));  //loads 1 2 3 4 5 6 7 8 8
+            v4si low = _mm_unpacklo_epi16(vec, vec);            // low 1 1 2 2 3 3 4 4
+            v4si high = _mm_unpackhi_epi16(vec, vec);           // high 5 5 6 6 7 7 8 8
+            low = _mm_srai_epi32(low, 0x10);                    //make low 1 -1 2 -1 3 -1 4 -4
+            high = _mm_srai_epi32(high, 0x10);                  // make high 5 -1 6 -1 7 -1 8 -1
+
+            //convert the vector to float and scale it
+            v4sf floatlo = _mm_mul_ps(_mm_cvtepi32_ps(low), scale_fact_vec);
+            v4sf floathi = _mm_mul_ps(_mm_cvtepi32_ps(high), scale_fact_vec);
+
+            _mm_storeu_ps(dst + i, floatlo);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, floathi);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = (float) src[i] * scale_fact_mult;
+    }
+}
 
 #ifndef ARM
 // converts 32bits complex float to two arrays real and im
@@ -1026,15 +1091,6 @@ static inline void asin128f(float *src, float *dst, int len)
     }
 }
 
-
-static inline void print4(__m128 v)
-{
-    float *p = (float *) &v;
-#ifndef __SSE2__
-    _mm_empty();
-#endif
-    printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
-}
 
 static inline v4sf tanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
 {

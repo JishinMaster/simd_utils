@@ -2607,6 +2607,11 @@ printf("\n");
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_32f8u_Sfs %d %lf\n", len, elapsed);
     l2_err_u8(inout_u1, inout_u2, len);
+
+    /*for(int i = 0; i < len; i++)
+		  printf("%x %x\n" ,inout_u1[i],inout_u2[i]);*/
+
+
 #endif
 
 #ifdef SSE

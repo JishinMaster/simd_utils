@@ -482,18 +482,26 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 
     if (rounding_mode == RndZero) {
         for (int i = 0; i < len; i++) {
-            dst[i] = (uint8_t) floorf(src[i] * scale_fact_mult);
+            float tmp = floorf(src[i] * scale_fact_mult);
+            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
         }
     } else if (rounding_mode == RndNear) {
         for (int i = 0; i < len; i++) {
-            dst[i] = (uint8_t) roundf(src[i] * scale_fact_mult);
+            float tmp = roundf(src[i] * scale_fact_mult);
+            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
+        }
+    } else if (rounding_mode == RndFinancial) {
+        for (int i = 0; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
         }
     } else {
 #ifdef OMP
 #pragma omp simd
 #endif
         for (int i = 0; i < len; i++) {
-            dst[i] = (uint8_t)(src[i] * scale_fact_mult);
+            float tmp = src[i] * scale_fact_mult;
+            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
         }
     }
 }

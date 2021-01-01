@@ -4,7 +4,7 @@
  * Author  : JishinMaster
  * Licence : BSD-2
  */
- 
+
 #pragma once
 #include <stdint.h>
 #include "immintrin.h"
