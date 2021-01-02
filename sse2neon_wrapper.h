@@ -129,13 +129,6 @@ FORCE_INLINE void _MM_SET_ROUNDING_MODE(int rounding)
 }
 
 
-//TO BE TESTED
-FORCE_INLINE __m64 _mm_cvtps_pi16(__m128 a)
-{
-    return (__m64) vmovn_s32(vcvtnq_s32_f32(a));
-}
-
-
 #if defined(__ARM_FEATURE_CRYPTO)
 
 FORCE_INLINE __m128i _mm_aesdec_si128(__m128i a, __m128i RoundKey)
@@ -349,6 +342,12 @@ FORCE_INLINE __m128d _mm_fmadd_pd(__m128d a, __m128d b, __m128d c)
 #else
     return _mm_add_pd(_mm_mul_pd(a, b), c);
 #endif
+}
+
+
+FORCE_INLINE __m64 _mm_cvtps_pi16(__m128 a)
+{
+    return vreinterpret_m64_s16(vmovn_s32(vcvtq_s32_f32(vreinterpretq_m128_f32(a))));
 }
 
 #if defined(__GNUC__) || defined(__clang__)

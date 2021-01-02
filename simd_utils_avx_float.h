@@ -1099,6 +1099,40 @@ static inline void powerspect256f_split(float *srcRe, float *srcIm, float *dst, 
     }
 }
 
+/*static inline void magnitude256f_interleaved(complex32_t *src, float *dst, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    int j = 0;
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf cplx01 = _mm256_load_ps((const float *) src + j);
+            v8sf cplx23 = _mm256_load_ps((const float *) src + j + AVX_LEN_FLOAT);  // complex is 2 floats
+            v8sf cplx01_square = _mm256_mul_ps(cplx01, cplx01);
+            v8sf cplx23_square = _mm256_mul_ps(cplx23, cplx23);
+            v8sf square_sum_0123 = _mm256_hadd_ps(cplx23_square, cplx01_square);
+            _mm256_store_ps(dst + i, _mm256_sqrt_ps(square_sum_0123));
+            j += 2 * AVX_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf cplx01 = _mm256_loadu_ps((const float *) src + j);
+            v8sf cplx23 = _mm256_loadu_ps((const float *) src + j + AVX_LEN_FLOAT);  // complex is 2 floats
+            v8sf cplx01_square = _mm256_mul_ps(cplx01, cplx01);
+            v8sf cplx23_square = _mm256_mul_ps(cplx23, cplx23);
+            v8sf square_sum_0123 = _mm256_hadd_ps(cplx01_square, cplx23_square);
+            _mm256_storeu_ps(dst + i, _mm256_sqrt_ps(square_sum_0123));
+            j += 2 * AVX_LEN_FLOAT;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = sqrtf(src[i].re * src[i].re + src[i].im * src[i].im);
+    }
+}*/
+
+
 static inline void subcrev256f(float *src, float value, float *dst, int len)
 {
     const v8sf tmp = _mm256_set1_ps(value);

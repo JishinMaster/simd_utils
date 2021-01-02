@@ -7,9 +7,9 @@
 
 #pragma once
 
+#include <fenv.h>
 #include <stdint.h>
 #ifndef ARM
-#include <fenv.h>
 #include <immintrin.h>
 #else
 #include "sse2neon_wrapper.h"
@@ -371,7 +371,7 @@ static inline void vectorSlope128f(float *dst, int len, float offset, float slop
     }
 }
 
-#ifndef ARM
+//#ifndef ARM
 
 static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
 {
@@ -452,7 +452,7 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
     }
 }
 
-#endif  //ARM
+//#endif  //ARM
 
 //TODO : find a way to avoid __m64
 typedef union xmm_mm_union_int {
@@ -689,7 +689,7 @@ static inline void convert128_64f32f(double *src, float *dst, int len)
     }
 }
 
-#ifndef ARM
+//#ifndef ARM
 static inline void convert128_32f64f(float *src, double *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
@@ -715,7 +715,7 @@ static inline void convert128_32f64f(float *src, double *dst, int len)
         dst[i] = (double) src[i];
     }
 }
-#endif
+//#endif
 
 //TODO : find a better way to work on aligned data
 static inline void flip128f(float *src, float *dst, int len)
@@ -1282,7 +1282,7 @@ static inline void magnitude128f_interleaved(complex32_t *src, float *dst, int l
             j += 2 * SSE_LEN_FLOAT;
         }
     } else {
-        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf cplx01 = _mm_loadu_ps((const float *) src + j);
             v4sf cplx23 = _mm_loadu_ps((const float *) src + j + SSE_LEN_FLOAT);  // complex is 2 floats
             v4sf cplx01_square = _mm_mul_ps(cplx01, cplx01);

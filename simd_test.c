@@ -1230,8 +1230,24 @@ printf("\n");
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
+    /*#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    magnitude256f_interleaved((complex32_t *) inout, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("magnitude256f_interleaved %d %lf\n", len, elapsed);
 
-    /*int k = 0;
+    clock_gettime(CLOCK_REALTIME, &start);
+    magnitude256f_interleaved((complex32_t *) inout, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("magnitude256f_interleaved %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+
+    int k = 0;
 	for(int i = 0; i < len; i++){
 		printf("Int : %f %f || %f %f\n", inout[k],inout[k+1], inout_ref[i],inout2_ref[i]);
 		k+=2;
@@ -1793,8 +1809,6 @@ printf("\n");
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convert_32f64f_C %d %lf\n", len, elapsed);
 
-#ifndef ARM
-
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsConvert_32f64f(inout, inoutd, len);
@@ -1848,7 +1862,6 @@ printf("\n");
 	}*/
 #endif
 
-#endif /* ARM */
 
     printf("\n");
     /////////////////////////////////////////////////////////// FLIP //////////////////////////////////////////////////////////////////////////////
@@ -2592,7 +2605,6 @@ printf("\n");
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToU8_C %d %lf\n", len, elapsed);
 
-#ifndef ARM
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
@@ -2630,7 +2642,6 @@ printf("\n");
     l2_err_u8(inout_u1, inout_u2, len);
 #endif
 
-#endif /* ARM */
     /*for(int i = 0; i < len; i++)
 		printf("%x %x\n" ,inout_u1[i],inout_u2[i]);
 	*/
