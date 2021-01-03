@@ -16,12 +16,14 @@ Some of the functions are vectorised version of the cephes maths library (https:
 
 Supported targets are : 
 - SSE (SSE4.X mostly)
-- AVX (AVX1.0 mostly, some AVX2 functions)
+- AVX (AVX and AVX2)
+- AVX512 (experimental, most of float32 functions)
 - ARM Neon (through sse2neon plus some optimized functions).
 - RISC-V Vector extension (experimental)
 
 128 bit functions (SSE and NEON) are name function128type, such as asin128f, which computes the arcsinus function on an float32 array. Float64 functions have the "d" suffix.
 256 bit functions (AVX/AVX2) have 256 instead of 128 in their name, such as asin256f.
+256 bit functions (AVX512) have 512 instead of 128 in their name, such as cos512f.
 Vector functions (RISCV) for which the SIMD length makes less sense, are name functionType_vec, such as subs_vec, which substract an int32 array from and other one.
 
 ## Building
@@ -32,6 +34,7 @@ This project also uses a forked version of sse2neon (https://github.com/DLTcolla
 Simply include simd_utils.h in your C/C++ file, and compile with : 
 - SSE support : gcc -DSSE -msse4.2 -c file.c -I .
 - AVX support : gcc -DSSE -DAVX -mavx2  -c file.c -I .
+- AVX512 support : gcc -DSSE -DAVX -DAVX-512 -march=skylake-avx512 -c file.c -I .
 - NEON support : aarch64-linux-gnu-gcc -DARM -DFMA -DSSE -flax-vector-conversions -c file.c -I .
 
 For FMA support you need to add -DFMA and -mfma to x86 targets, and -DFMA to Armv8 targets.

@@ -469,8 +469,13 @@ static inline void realtocplx256f(float *srcRe, float *srcIm, float *dst, int le
             v8sf im = _mm256_loadu_ps(srcIm + i);
             v8sf cplx0 = _mm256_unpacklo_ps(re, im);
             v8sf cplx1 = _mm256_unpackhi_ps(re, im);
-            _mm256_storeu_ps(dst + j, cplx0);
-            _mm256_storeu_ps(dst + j + AVX_LEN_FLOAT, cplx1);
+            v8sf perm0 = _mm256_permute2f128_ps(cplx0, cplx1, 0x20);  //permute mask [cplx1(127:0],cplx0[127:0])
+            v8sf perm1 = _mm256_permute2f128_ps(cplx0, cplx1, 0x31);  //permute mask [cplx1(255:128],cplx0[255:128])
+
+            //printf("perm0 : "); print8(perm0); printf("\n");
+            //printf("perm1 : "); print8(perm1); printf("\n");
+            _mm256_storeu_ps(dst + j, perm0);
+            _mm256_storeu_ps(dst + j + AVX_LEN_FLOAT, perm1);
             j += 2 * AVX_LEN_FLOAT;
         }
     }
