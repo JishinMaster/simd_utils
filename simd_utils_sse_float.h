@@ -1513,3 +1513,46 @@ static inline void cplxvecmul128f(complex32_t *src1, complex32_t *src2, complex3
         dst[i].im = src1[i].re * src2[i].im + src2[i].re * src1[i].im;
     }
 }
+
+
+static inline void cplxvecmul128f_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+{
+    int stop_len = len / (SSE_LEN_FLOAT);
+    stop_len = stop_len * SSE_LEN_FLOAT;
+
+    int i;
+    if (areAligned2((uintptr_t)(src1Re), (uintptr_t)(src1Im), SSE_LEN_BYTES) &&
+        areAligned2((uintptr_t)(src2Re), (uintptr_t)(src2Im), SSE_LEN_BYTES) &&
+        areAligned2((uintptr_t)(dstRe), (uintptr_t)(dstIm), SSE_LEN_BYTES)) {
+        for (i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src1Re_tmp = _mm_load_ps((float *) (src1Re) + i);
+            v4sf src1Im_tmp = _mm_load_ps((float *) (src1Im) + i);
+            v4sf src2Re_tmp = _mm_load_ps((float *) (src2Re) + i);
+            v4sf src2Im_tmp = _mm_load_ps((float *) (src2Im) + i);
+            v4sf ac = _mm_mul_ps(src1Re_tmp, src2Re_tmp);
+            v4sf bd = _mm_mul_ps(src1Im_tmp, src2Im_tmp);
+            v4sf ad = _mm_mul_ps(src1Re_tmp, src2Im_tmp);
+            v4sf bc = _mm_mul_ps(src1Im_tmp, src2Re_tmp);
+            _mm_store_ps(dstRe + i, _mm_sub_ps(ac, bd));
+            _mm_store_ps(dstIm + i, _mm_add_ps(ad, bc));
+        }
+    } else {
+        for (i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src1Re_tmp = _mm_loadu_ps((float *) (src1Re) + i);
+            v4sf src1Im_tmp = _mm_loadu_ps((float *) (src1Im) + i);
+            v4sf src2Re_tmp = _mm_loadu_ps((float *) (src2Re) + i);
+            v4sf src2Im_tmp = _mm_loadu_ps((float *) (src2Im) + i);
+            v4sf ac = _mm_mul_ps(src1Re_tmp, src2Re_tmp);
+            v4sf bd = _mm_mul_ps(src1Im_tmp, src2Im_tmp);
+            v4sf ad = _mm_mul_ps(src1Re_tmp, src2Im_tmp);
+            v4sf bc = _mm_mul_ps(src1Im_tmp, src2Re_tmp);
+            _mm_storeu_ps(dstRe + i, _mm_sub_ps(ac, bd));
+            _mm_storeu_ps(dstIm + i, _mm_add_ps(ad, bc));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dstRe[i] = src1Re[i] * src2Re[i] - src1Im[i] * src2Im[i];
+        dstIm[i] = src1Re[i] * src2Im[i] + src2Re[i] * src1Im[i];
+    }
+}

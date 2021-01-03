@@ -117,6 +117,8 @@ static inline int areAligned3(uintptr_t ptr1, uintptr_t ptr2, uintptr_t ptr3, si
 #endif
 }
 
+#ifndef RISCV
+
 #ifdef SSE
 #define SSE_LEN_BYTES 16  // Size of SSE lane
 #define SSE_LEN_INT32 4   // number of int32 with an SSE lane
@@ -313,6 +315,37 @@ static inline __m256d _mm256_fmadd_pd_custom(__m256d a, __m256d b, __m256d c)
 
 #endif /* AVX */
 
+#ifdef AVX512
+#include "simd_utils_avx512_float.h"
+
+#define AVX_LEN_BYTES 64  // Size of AVX512 lane
+#define AVX_LEN_INT32 16  // number of int32 with an AVX512 lane
+#define AVX_LEN_FLOAT 16  // number of float with an AVX512 lane
+#define AVX_LEN_DOUBLE 8  // number of double with an AVX512 lane
+
+static inline __m512 _mm512_fmadd_ps_custom(__m512 a, __m512 b, __m512 c)
+{
+#ifndef FMA
+    return _mm512_add_ps(_mm512_mul_ps(a, b), c);
+#else  /* FMA */
+    return _mm512_fmadd_ps(a, b, c);
+#endif /* FMA */
+}
+
+static inline __m512d _mm512_fmadd_pd_custom(__m512d a, __m512d b, __m512d c)
+{
+#ifndef FMA  //Haswell comes with avx2 and fma
+    return _mm512_add_pd(_mm512_mul_pd(a, b), c);
+#else  /* FMA */
+    return _mm512_fmadd_pd(a, b, c);
+#endif /* FMA */
+}
+
+#endif
+
+#else /* RISCV */
+#include "simd_utils_riscv.h"
+#endif /* RISCV */
 
 #ifdef CUSTOM_MALLOC
 //Thanks to Jpommier pfft https://bitbucket.org/jpommier/pffft/src/default/pffft.c
@@ -669,6 +702,16 @@ static inline void cplxvecmul_C(complex32_t *src1, complex32_t *src2, complex32_
     }
 }
 
+static inline void cplxvecmul_C_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dstRe[i] = src1Re[i] * src2Re[i] - src1Im[i] * src2Im[i];
+        dstIm[i] = src1Re[i] * src2Im[i] + src2Re[i] * src1Im[i];
+    }
+}
 
 static inline void vectorSlopef_C(float *dst, int len, float offset, float slope)
 {

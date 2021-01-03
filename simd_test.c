@@ -432,90 +432,100 @@ int main(int argc, char **argv)
 
 #endif /* MKL */
 
-    float *inout = NULL, *inout2 = NULL, *inout3 = NULL, *inout4 = NULL, *inout_ref = NULL, *inout2_ref = NULL;
+    float *inout = NULL, *inout2 = NULL, *inout3 = NULL, *inout4 = NULL, *inout5 = NULL, *inout6 = NULL, *inout_ref = NULL, *inout2_ref = NULL;
     double *inoutd = NULL, *inoutd_ref = NULL;
     uint8_t *inout_u1 = NULL, *inout_u2 = NULL;
     int16_t *inout_s1 = NULL, *inout_s2 = NULL;
     int32_t *inout_i1 = NULL, *inout_i2 = NULL, *inout_iref = NULL;
     int len = atoi(argv[1]);
-
+    int ret;
 #ifndef USE_MALLOC
-    posix_memalign((void **) &inout, atoi(argv[2]), 2 * len * sizeof(float));
+    ret = posix_memalign((void **) &inout, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout == NULL) {
-        printf("posix_memalign inout failed\n");
+        printf("ret = posix_memalign inout failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout2, atoi(argv[2]), 2 * len * sizeof(float));
+    ret = posix_memalign((void **) &inout2, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout2 == NULL) {
-        printf("posix_memalign inout2 failed\n");
+        printf("ret = posix_memalign inout2 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout3, atoi(argv[2]), len * sizeof(float));
+    ret = posix_memalign((void **) &inout3, atoi(argv[2]), len * sizeof(float));
     if (inout3 == NULL) {
-        printf("posix_memalign inout3 failed\n");
+        printf("ret = posix_memalign inout3 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout4, atoi(argv[2]), len * sizeof(float));
+    ret = posix_memalign((void **) &inout4, atoi(argv[2]), len * sizeof(float));
     if (inout4 == NULL) {
-        printf("posix_memalign inout4 failed\n");
+        printf("ret = posix_memalign inout4 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_ref, atoi(argv[2]), 2 * len * sizeof(float));
+    ret = posix_memalign((void **) &inout5, atoi(argv[2]), len * sizeof(float));
+    if (inout3 == NULL) {
+        printf("ret = posix_memalign inout3 failed\n");
+        return -1;
+    }
+    ret = posix_memalign((void **) &inout6, atoi(argv[2]), len * sizeof(float));
+    if (inout4 == NULL) {
+        printf("ret = posix_memalign inout4 failed\n");
+        return -1;
+    }
+    ret = posix_memalign((void **) &inout_ref, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout_ref == NULL) {
-        printf("posix_memalign inout_ref failed\n");
+        printf("ret = posix_memalign inout_ref failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout2_ref, atoi(argv[2]), 2 * len * sizeof(float));
+    ret = posix_memalign((void **) &inout2_ref, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout2_ref == NULL) {
-        printf("posix_memalign inout2_ref failed\n");
+        printf("ret = posix_memalign inout2_ref failed\n");
         return -1;
     }
-    posix_memalign((void **) &inoutd, atoi(argv[2]), 2 * len * sizeof(double));
+    ret = posix_memalign((void **) &inoutd, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd == NULL) {
-        printf("posix_memalign inoutd failed\n");
+        printf("ret = posix_memalign inoutd failed\n");
         return -1;
     }
-    posix_memalign((void **) &inoutd_ref, atoi(argv[2]), 2 * len * sizeof(double));
+    ret = posix_memalign((void **) &inoutd_ref, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd_ref == NULL) {
-        printf("posix_memalign inoutd_ref failed\n");
+        printf("ret = posix_memalign inoutd_ref failed\n");
         return -1;
     }
 
-    posix_memalign((void **) &inout_u1, atoi(argv[2]), len * sizeof(uint8_t));
+    ret = posix_memalign((void **) &inout_u1, atoi(argv[2]), len * sizeof(uint8_t));
     if (inout_u1 == NULL) {
-        printf("posix_memalign inout_u1 failed\n");
+        printf("ret = posix_memalign inout_u1 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_u2, atoi(argv[2]), len * sizeof(uint8_t));
+    ret = posix_memalign((void **) &inout_u2, atoi(argv[2]), len * sizeof(uint8_t));
     if (inout_u2 == NULL) {
-        printf("posix_memalign inout_u2 failed\n");
+        printf("ret = posix_memalign inout_u2 failed\n");
         return -1;
     }
 
-    posix_memalign((void **) &inout_s1, atoi(argv[2]), len * sizeof(int16_t));
+    ret = posix_memalign((void **) &inout_s1, atoi(argv[2]), len * sizeof(int16_t));
     if (inout_s1 == NULL) {
-        printf("posix_memalign inout_s1 failed\n");
+        printf("ret = posix_memalign inout_s1 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_s2, atoi(argv[2]), len * sizeof(int16_t));
+    ret = posix_memalign((void **) &inout_s2, atoi(argv[2]), len * sizeof(int16_t));
     if (inout_s2 == NULL) {
-        printf("posix_memalign inout_s2 failed\n");
+        printf("ret = posix_memalign inout_s2 failed\n");
         return -1;
     }
 
-    posix_memalign((void **) &inout_i1, atoi(argv[2]), len * sizeof(int32_t));
+    ret = posix_memalign((void **) &inout_i1, atoi(argv[2]), len * sizeof(int32_t));
     if (inout_i1 == NULL) {
-        printf("posix_memalign inout_i1 failed\n");
+        printf("ret = posix_memalign inout_i1 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_i2, atoi(argv[2]), len * sizeof(int32_t));
+    ret = posix_memalign((void **) &inout_i2, atoi(argv[2]), len * sizeof(int32_t));
     if (inout_i2 == NULL) {
-        printf("posix_memalign inout_i2 failed\n");
+        printf("ret = posix_memalign inout_i2 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_iref, atoi(argv[2]), len * sizeof(int32_t));
+    ret = posix_memalign((void **) &inout_iref, atoi(argv[2]), len * sizeof(int32_t));
     if (inout_iref == NULL) {
-        printf("posix_memalign inout_iref failed\n");
+        printf("ret = posix_memalign inout_iref failed\n");
         return -1;
     }
 
@@ -586,17 +596,17 @@ int main(int argc, char **argv)
 
     inout_i1 = (int32_t *) malloc(len * sizeof(int32_t));
     if (inout_i1 == NULL) {
-        printf("posix_memalign inout_i1 failed\n");
+        printf("ret = posix_memalign inout_i1 failed\n");
         return -1;
     }
     inout_i2 = (int32_t *) malloc(len * sizeof(int32_t));
     if (inout_i2 == NULL) {
-        printf("posix_memalign inout_i2 failed\n");
+        printf("ret = posix_memalign inout_i2 failed\n");
         return -1;
     }
     inout_iref = (int32_t *) malloc(len * sizeof(int32_t));
     if (inout_iref == NULL) {
-        printf("posix_memalign inout_iref failed\n");
+        printf("ret = posix_memalign inout_iref failed\n");
         return -1;
     }
 
@@ -878,6 +888,99 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// MAXEVERY //////////////////////////////////////////////////////////////////////////////
+    printf("MAXEVERY\n");
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    maxeveryf_c(inout, inout2, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("maxeveryf_c %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    maxevery128f(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("maxevery128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    maxevery128f(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("maxevery128f %d %lf\n", len, elapsed);
+
+    l2_err(inout3, inout_ref, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    maxevery256f(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("maxevery256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    maxevery256f(inout, inout2, inout3, len);
+    ;
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("maxevery256f %d %lf\n", len, elapsed);
+
+    l2_err(inout3, inout_ref, len);
+#endif
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// MINEVERY //////////////////////////////////////////////////////////////////////////////
+    printf("MINEVERY\n");
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    mineveryf_c(inout, inout2, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("mineveryf_c %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    minevery128f(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("minevery128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    minevery128f(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("minevery128f %d %lf\n", len, elapsed);
+
+    l2_err(inout3, inout_ref, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    minevery256f(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("minevery256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    minevery256f(inout, inout2, inout3, len);
+    ;
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("minevery256f %d %lf\n", len, elapsed);
+
+    l2_err(inout3, inout_ref, len);
+#endif
 
     /*for (int i = 0; i < len; i++)
 {
@@ -1304,6 +1407,73 @@ printf("\n");
     printf("cplxvecmul128f %d %lf\n", len, elapsed);
 
     l2_err(inout_ref, inout2_ref, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxvecmul256f((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxvecmul256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxvecmul256f((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxvecmul256f %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// CPLXVECMUL_SPLIT //////////////////////////////////////////////////////////////////////////////
+    printf("CPLXVECMUL_SPLIT\n");
+
+    for (int j = 0; j < len; j++) {
+        inout_ref[j] = 0.5555f;
+        inout2_ref[j] = 0.5555f;
+    }
+
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxvecmul_C_split(inout, inout2, inout3, inout4, inout_ref, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxvecmul_C_split %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxvecmul128f_split(inout, inout2, inout3, inout4, inout5, inout6, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxvecmul128f_split %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxvecmul128f_split(inout, inout2, inout3, inout4, inout5, inout6, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxvecmul128f_split %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout5, len);
+    l2_err(inout2_ref, inout6, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxvecmul256f_split(inout, inout2, inout3, inout4, inout5, inout6, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxvecmul256f_split %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxvecmul256f_split(inout, inout2, inout3, inout4, inout5, inout6, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxvecmul256f_split %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout5, len);
+    l2_err(inout2_ref, inout6, len);
 #endif
 
     /*for(int i = 0; i < len; i+=2){
@@ -2988,6 +3158,8 @@ printf("\n");
     free(inout2);
     free(inout3);
     free(inout4);
+    free(inout5);
+    free(inout6);
     free(inout_u1);
     free(inout_u2);
     free(inout_s1);
