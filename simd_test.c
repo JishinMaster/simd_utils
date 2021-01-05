@@ -29,6 +29,7 @@
 #define SSE4_MASK (ippCPUID_MMX | ippCPUID_SSE | ippCPUID_SSE2 | ippCPUID_SSE3 | ippCPUID_SSE41 | ippCPUID_SSE42 | ippCPUID_CLMUL | ippCPUID_AES)
 #define AVX_MASK (SSE4_MASK | ippCPUID_AVX | ippAVX_ENABLEDBYOS)
 #define AVX2_MASK (AVX_MASK | ippCPUID_AVX2)
+#define AVX512_MASK (AVX2_MASK | ippCPUID_AVX512F)
 
 #endif
 
@@ -318,7 +319,9 @@ int main(int argc, char **argv)
     IppStatus status;
     Ipp64u mask, emask;
 
-#if defined(__AVX2__)
+#if defined(AVX512)
+    mask = AVX512_MASK;
+#elif defined(__AVX2__)
     mask = AVX2_MASK;
 #elif defined(AVX)
     mask = AVX_MASK;
@@ -420,7 +423,9 @@ int main(int argc, char **argv)
 
     int mkl_mask;
 
-#if defined(__AVX2__)
+#if defined(AVX512)
+    mkl_mask = MKL_ENABLE_AVX512;
+#elif defined(__AVX2__)
     mkl_mask = MKL_ENABLE_AVX2;
 #elif defined(AVX)
     mkl_mask = MKL_ENABLE_AVX;
@@ -998,7 +1003,7 @@ int main(int argc, char **argv)
     l2_err(inout3, inout_ref, len);
 #endif
 
-#ifdef AVX
+#ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
     maxevery512f(inout, inout2, inout3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1724,7 +1729,7 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
-#ifdef AVX
+#ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
     mulc512f(inout, 5.7f, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1811,7 +1816,7 @@ printf("\n");
     l2_err(inout2_ref, inout_ref, len);
 #endif
 
-#ifdef AVX
+#ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
     mul512f(inout, inout2, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
