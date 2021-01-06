@@ -324,6 +324,113 @@ static inline void mulc256f(float *src, float value, float *dst, int len)
     }
 }
 
+static inline void muladd256f(float *_a, float *_b, float *_c, float *dst, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), AVX_LEN_BYTES) &&\
+        areAligned2((uintptr_t)(_c), (uintptr_t)(dst) , AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf a = _mm256_load_ps(_a + i);
+            v8sf b = _mm256_load_ps(_b + i);
+            v8sf c = _mm256_load_ps(_c + i);
+            _mm256_store_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf a = _mm256_loadu_ps(_a + i);
+            v8sf b = _mm256_loadu_ps(_b + i);
+            v8sf c = _mm256_loadu_ps(_c + i);
+            _mm256_storeu_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b[i] + _c[i];
+    }
+}
+
+static inline void mulcadd256f(float *_a, float _b, float *_c, float *dst, int len)
+{
+
+    v8sf b = _mm256_set1_ps(_b);
+    
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst) , AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf a = _mm256_load_ps(_a + i);
+            v8sf c = _mm256_load_ps(_c + i);
+            _mm256_store_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf a = _mm256_loadu_ps(_a + i);
+            v8sf c = _mm256_loadu_ps(_c + i);
+            _mm256_storeu_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b + _c[i];
+    }
+}
+
+static inline void mulcaddc256f(float *_a, float _b, float _c, float *dst, int len)
+{
+
+    v8sf b = _mm256_set1_ps(_b);
+    v8sf c = _mm256_set1_ps(_c);
+    
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst) , AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf a = _mm256_loadu_ps(_a + i);
+            _mm256_store_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v8sf a = _mm256_loadu_ps(_a + i);
+            _mm256_storeu_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b + _c;
+    }
+}
+
+static inline void muladdc256f(float *_a, float* _b, float _c, float *dst, int len)
+{
+
+    v8sf c = _mm256_set1_ps(_c);
+    
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst) , AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf a = _mm256_load_ps(_a + i);
+            v8sf b = _mm256_load_ps(_b + i);
+            _mm256_store_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf a = _mm256_loadu_ps(_a + i);
+            v8sf b = _mm256_loadu_ps(_b + i);
+            _mm256_storeu_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b[i] + _c;
+    }
+}
+
 static inline void div256f(float *src1, float *src2, float *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;

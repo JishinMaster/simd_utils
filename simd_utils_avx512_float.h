@@ -287,6 +287,113 @@ static inline void mulc512f(float *src, float value, float *dst, int len)
     }
 }
 
+static inline void muladd512f(float *_a, float *_b, float *_c, float *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), AVX512_LEN_BYTES) &&\
+        areAligned2((uintptr_t)(_c), (uintptr_t)(dst) , AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf a = _mm512_load_ps(_a + i);
+            v16sf b = _mm512_load_ps(_b + i);
+            v16sf c = _mm512_load_ps(_c + i);
+            _mm512_store_ps(dst + i, _mm512_fmadd_ps_custom(a, b, c));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf a = _mm512_loadu_ps(_a + i);
+            v16sf b = _mm512_loadu_ps(_b + i);
+            v16sf c = _mm512_loadu_ps(_c + i);
+            _mm512_storeu_ps(dst + i, _mm512_fmadd_ps_custom(a, b, c));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b[i] + _c[i];
+    }
+}
+
+static inline void mulcadd512f(float *_a, float _b, float *_c, float *dst, int len)
+{
+
+    v16sf b = _mm512_set1_ps(_b);
+    
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst) , AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf a = _mm512_load_ps(_a + i);
+            v16sf c = _mm512_load_ps(_c + i);
+            _mm512_store_ps(dst + i, _mm512_fmadd_ps_custom(a, b, c));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf a = _mm512_loadu_ps(_a + i);
+            v16sf c = _mm512_loadu_ps(_c + i);
+            _mm512_storeu_ps(dst + i, _mm512_fmadd_ps_custom(a, b, c));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b + _c[i];
+    }
+}
+
+static inline void mulcaddc512f(float *_a, float _b, float _c, float *dst, int len)
+{
+
+    v16sf b = _mm512_set1_ps(_b);
+    v16sf c = _mm512_set1_ps(_c);
+    
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst) , AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf a = _mm512_loadu_ps(_a + i);
+            _mm512_store_ps(dst + i, _mm512_fmadd_ps_custom(a, b, c));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v16sf a = _mm512_loadu_ps(_a + i);
+            _mm512_storeu_ps(dst + i, _mm512_fmadd_ps_custom(a, b, c));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b + _c;
+    }
+}
+
+static inline void muladdc512f(float *_a, float* _b, float _c, float *dst, int len)
+{
+
+    v16sf c = _mm512_set1_ps(_c);
+    
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst) , AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf a = _mm512_load_ps(_a + i);
+            v16sf b = _mm512_load_ps(_b + i);
+            _mm512_store_ps(dst + i, _mm512_fmadd_ps_custom(a, b, c));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf a = _mm512_loadu_ps(_a + i);
+            v16sf b = _mm512_loadu_ps(_b + i);
+            _mm512_storeu_ps(dst + i, _mm512_fmadd_ps_custom(a, b, c));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b[i] + _c;
+    }
+}
+
 static inline void div512f(float *src1, float *src2, float *dst, int len)
 {
     int stop_len = len / AVX512_LEN_FLOAT;
