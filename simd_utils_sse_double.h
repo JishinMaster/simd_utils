@@ -66,7 +66,7 @@ static inline void copy128d(double *src, double *dst, int len)
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src) % SSE_LEN_BYTES) == 0) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             _mm_store_pd(dst + i, _mm_load_pd(src + i));
         }
@@ -86,7 +86,7 @@ static inline void sqrt128d(double *src, double *dst, int len)
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src) % SSE_LEN_BYTES) == 0) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             _mm_store_pd(dst + i, _mm_sqrt_pd(_mm_load_pd(src + i)));
         }
@@ -106,7 +106,7 @@ static inline void add128d(double *src1, double *src2, double *dst, int len)
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src1) % SSE_LEN_BYTES) == 0) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             _mm_store_pd(dst + i, _mm_add_pd(_mm_load_pd(src1 + i), _mm_load_pd(src2 + i)));
         }
@@ -126,7 +126,7 @@ static inline void mul128d(double *src1, double *src2, double *dst, int len)
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src1) % SSE_LEN_BYTES) == 0) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             _mm_store_pd(dst + i, _mm_mul_pd(_mm_load_pd(src1 + i), _mm_load_pd(src2 + i)));
         }
@@ -146,7 +146,7 @@ static inline void sub128d(double *src1, double *src2, double *dst, int len)
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src1) % SSE_LEN_BYTES) == 0) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             _mm_store_pd(dst + i, _mm_sub_pd(_mm_load_pd(src1 + i), _mm_load_pd(src2 + i)));
         }
@@ -166,7 +166,7 @@ static inline void div128d(double *src1, double *src2, double *dst, int len)
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src1) % SSE_LEN_BYTES) == 0) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             _mm_store_pd(dst + i, _mm_div_pd(_mm_load_pd(src1 + i), _mm_load_pd(src2 + i)));
         }
@@ -189,7 +189,7 @@ static inline void addc128d(double *src, double value, double *dst, int len)
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src) % SSE_LEN_BYTES) == 0) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             _mm_store_pd(dst + i, _mm_add_pd(tmp, _mm_load_pd(src + i)));
         }
@@ -211,7 +211,7 @@ static inline void mulc128d(double *src, double value, double *dst, int len)
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src) % SSE_LEN_BYTES) == 0) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             _mm_store_pd(dst + i, _mm_mul_pd(tmp, _mm_load_pd(src + i)));
         }
@@ -231,7 +231,7 @@ static inline void round128d(double *src, double *dst, int len)
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src) % SSE_LEN_BYTES) == 0) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             v2sd src_tmp = _mm_load_pd(src + i);
             _mm_store_pd(dst + i, _mm_round_pd(src_tmp, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
@@ -253,7 +253,7 @@ static inline void ceil128d(double *src, double *dst, int len)
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src) % SSE_LEN_BYTES) == 0) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             v2sd src_tmp = _mm_load_pd(src + i);
             _mm_store_pd(dst + i, _mm_round_pd(src_tmp, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC));
@@ -275,7 +275,7 @@ static inline void floor128d(double *src, double *dst, int len)
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src) % SSE_LEN_BYTES) == 0) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             v2sd src_tmp = _mm_load_pd(src + i);
             _mm_store_pd(dst + i, _mm_round_pd(src_tmp, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC));

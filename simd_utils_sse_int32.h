@@ -19,7 +19,7 @@ static inline void add128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     int stop_len = len / SSE_LEN_INT32;
     stop_len *= SSE_LEN_INT32;
 
-    if (((uintptr_t)(const void *) (src1) % SSE_LEN_BYTES) == 0) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
             _mm_store_si128((__m128i *) dst + i, _mm_add_epi32(_mm_load_si128((__m128i *) (src1 + i)), _mm_load_si128((__m128i *) (src2 + i))));
         }
@@ -39,7 +39,7 @@ static inline void mul128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     int stop_len = len / SSE_LEN_INT32;
     stop_len *= SSE_LEN_INT32;
 
-    if (((uintptr_t)(const void *) (src1) % SSE_LEN_BYTES) == 0) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
             _mm_store_si128((__m128i *) dst + i, _mm_mul_epi32(_mm_load_si128((__m128i *) (src1 + i)), _mm_load_si128((__m128i *) (src2 + i))));
         }
@@ -59,7 +59,7 @@ static inline void sub128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     int stop_len = len / SSE_LEN_INT32;
     stop_len *= SSE_LEN_INT32;
 
-    if (((uintptr_t)(const void *) (src1) % SSE_LEN_BYTES) == 0) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
             _mm_store_si128((__m128i *) dst + i, _mm_sub_epi32(_mm_load_si128((__m128i *) (src1 + i)), _mm_load_si128((__m128i *) (src2 + i))));
         }
@@ -81,7 +81,7 @@ static inline void addc128s(int32_t *src, int32_t value, int32_t *dst, int len)
 
     const v4si tmp = _mm_set1_epi32(value);
 
-    if (((uintptr_t)(const void *) (src) % SSE_LEN_BYTES) == 0) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
             _mm_store_si128((__m128i *) dst + i, _mm_add_epi32(tmp, _mm_load_si128((__m128i *) (src + i))));
         }
