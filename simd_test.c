@@ -2406,7 +2406,7 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef AVX
+#ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
     ceil512f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
