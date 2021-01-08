@@ -38,145 +38,6 @@
 #include <mkl_vml.h>
 #endif
 
-
-static float DP1 = 0.78515625;
-static float DP2 = 2.4187564849853515625e-4;
-static float DP3 = 3.77489497744594108e-8;
-float FOPI = 1.27323954473516; /* 4/pi */
-static float lossth = 8192.;
-#define TLOSS 5 /* total loss of precision */
-
-static float tanf_cephes(float xx)
-{
-    float x, y, z, zz;
-    long j;
-    int sign;
-
-
-    /* make argument positive but save the sign */
-    if (xx < 0.0) {
-        x = -xx;
-        sign = -1;
-    } else {
-        x = xx;
-        sign = 1;
-    }
-
-    if (x > lossth) {
-        printf("Error > TLOSS %f %d\n", x, TLOSS);
-        return (0.0);
-    }
-
-    /* compute x mod PIO4 */
-    j = FOPI * x; /* integer part of x/(PI/4) */
-    y = j;
-
-    /* map zeros and singularities to origin */
-    if (j & 1) {
-        j += 1;
-        y += 1.0;
-    }
-
-    z = ((x - y * DP1) - y * DP2) - y * DP3;
-    //z = (x - y * DP1);
-    //z = z -y*DP2;
-    //z = z -y*DP3;
-    //printf("%13.8g\n",z);
-    //printf("%13.8g\n",y);
-    //printf("%13.8g\n",z);
-
-    zz = z * z;
-
-    if (x > 1.0e-4) {
-        /* 1.7e-8 relative error in [-pi/4, +pi/4] */
-        y =
-            (((((9.38540185543E-3 * zz + 3.11992232697E-3) * zz + 2.44301354525E-2) * zz + 5.34112807005E-2) * zz + 1.33387994085E-1) * zz + 3.33331568548E-1) * zz * z + z;
-    } else {
-        y = z;
-    }
-
-    if (j & 2) {
-        y = -1.0 / y;
-    }
-
-    if (sign < 0)
-        y = -y;
-
-    return (y);
-}
-
-#if 0
-/* natural logarithm computed for 4 simultaneous float 
-   return NaN for x <= 0
- */
-/* __m128 is ugly to write */
-typedef __m128d v2df;  // vector of 4 float (sse1)
-typedef __m128i v2di;  // vector of 4 float (sse1)
-v2df log_pd(v2df x) {
-	v2di emm0;
-
-	v2df one = *(v2df*)_pd_1;
-
-	v2df invalid_mask = _mm_cmple_pd(x, _mm_setzero_pd());
-
-	x = _mm_max_pd(x, *(v2df*)_pd_min_norm_pos);  /* cut off denormalized stuff */
-
-	emm0 = _mm_srli_epi64(_mm_castpd_si128(x), 23+32); // ????
-
-	/* keep only the fractional part */
-	x = _mm_and_pd(x, *(v2df*)_pd_inv_mant_mask);
-	x = _mm_or_pd(x, *(v2df*)_pd_0p5);
-
-	emm0 = _mm_sub_epi64(emm0, *(v2di*)_pi32_0x7f);
-	v2df e = _mm_cvtepi32_pd(emm0);
-
-	e = _mm_add_pd(e, one);
-
-	/* part2:
-     if( x < SQRTHF ) {
-       e -= 1;
-       x = x + x - 1.0;
-     } else { x = x - 1.0; }
-	 */
-	v2df mask = _mm_cmplt_pd(x, *(v2df*)_pd_cephes_SQRTHF);
-	v2df tmp = _mm_and_pd(x, mask);
-	x = _mm_sub_pd(x, one);
-	e = _mm_sub_pd(e, _mm_and_pd(one, mask));
-	x = _mm_add_pd(x, tmp);
-
-
-	v2df z = _mm_mul_pd(x,x);
-
-	v2df y = *(v2df*)_pd_cephes_log_p0;
-	y = _mm_mul_pd(y, x);
-	y = _mm_add_pd(y, *(v2df*)_pd_cephes_log_p1);
-	y = _mm_mul_pd(y, x);
-	y = _mm_add_pd(y, *(v2df*)_pd_cephes_log_p2);
-	y = _mm_mul_pd(y, x);
-	y = _mm_add_pd(y, *(v2df*)_pd_cephes_log_p3);
-	y = _mm_mul_pd(y, x);
-	y = _mm_add_pd(y, *(v2df*)_pd_cephes_log_p4);
-	y = _mm_mul_pd(y, x);
-	y = _mm_add_pd(y, *(v2df*)_pd_cephes_log_p5);
-	y = _mm_mul_pd(y, x);
-
-	y = _mm_mul_pd(y, z);
-
-
-	tmp = _mm_mul_pd(e, *(v2df*)_pd_cephes_log_q1);
-	y = _mm_add_pd(y, tmp);
-	tmp = _mm_mul_pd(z, *(v2df*)_pd_0p5);
-	y = _mm_sub_pd(y, tmp);
-
-	tmp = _mm_mul_pd(e, *(v2df*)_pd_cephes_log_q2);
-	x = _mm_add_pd(x, y);
-	x = _mm_add_pd(x, tmp);
-	x = _mm_or_pd(x, invalid_mask); // negative arg will be NAN
-	return x;
-}
-#endif
-
-
 typedef ALIGN16_BEG union {
     float f[4];
     int i[4];
@@ -2060,6 +1921,10 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
     l2_err(inout2_ref, inout3, len);
 #endif
+
+    /*for (int i = 0; i < len; i++) {
+        printf("%f %f %f %f %f\n",inout[i], inout_ref[i],inout2[i],inout2_ref[i],inout3[i]);
+    }*/
 
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);

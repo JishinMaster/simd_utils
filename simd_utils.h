@@ -18,6 +18,8 @@ extern "C" {
 #include <math.h>
 #include <stdint.h>
 
+#include "mysincosf.h"
+
 #define INVLN10 0.4342944819
 #define IMM8_FLIP_VEC 0x1B              // change m128 from abcd to dcba
 #define IMM8_LO_HI_VEC 0x1E             // change m128 from abcd to cdab

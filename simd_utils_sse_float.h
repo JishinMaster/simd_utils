@@ -326,8 +326,8 @@ static inline void muladd128f(float *_a, float *_b, float *_c, float *dst, int l
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), SSE_LEN_BYTES) &&\
-        areAligned2((uintptr_t)(_c), (uintptr_t)(dst) , SSE_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), SSE_LEN_BYTES) &&
+        areAligned2((uintptr_t)(_c), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf a = _mm_load_ps(_a + i);
             v4sf b = _mm_load_ps(_b + i);
@@ -350,13 +350,12 @@ static inline void muladd128f(float *_a, float *_b, float *_c, float *dst, int l
 
 static inline void mulcadd128f(float *_a, float _b, float *_c, float *dst, int len)
 {
-
     v4sf b = _mm_set1_ps(_b);
-    
+
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst) , SSE_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf a = _mm_load_ps(_a + i);
             v4sf c = _mm_load_ps(_c + i);
@@ -377,14 +376,13 @@ static inline void mulcadd128f(float *_a, float _b, float *_c, float *dst, int l
 
 static inline void mulcaddc128f(float *_a, float _b, float _c, float *dst, int len)
 {
-
     v4sf b = _mm_set1_ps(_b);
     v4sf c = _mm_set1_ps(_c);
-    
+
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst) , SSE_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf a = _mm_load_ps(_a + i);
             _mm_store_ps(dst + i, _mm_fmadd_ps_custom(a, b, c));
@@ -401,15 +399,14 @@ static inline void mulcaddc128f(float *_a, float _b, float _c, float *dst, int l
     }
 }
 
-static inline void muladdc128f(float *_a, float* _b, float _c, float *dst, int len)
+static inline void muladdc128f(float *_a, float *_b, float _c, float *dst, int len)
 {
-
     v4sf c = _mm_set1_ps(_c);
-    
+
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst) , SSE_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf a = _mm_load_ps(_a + i);
             v4sf b = _mm_load_ps(_b + i);
@@ -1011,7 +1008,7 @@ static inline void sincos128f(float *src, float *dst_sin, float *dst_cos, int le
     }
 
     for (int i = stop_len; i < len; i++) {
-        sincosf(src[i], dst_sin + i, dst_cos + i);
+        mysincosf(src[i], dst_sin + i, dst_cos + i);
     }
 }
 

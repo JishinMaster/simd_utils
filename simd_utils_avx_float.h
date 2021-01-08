@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include "immintrin.h"
 
-
 #if 0
 /* Compare */
 _CMP_EQ_OQ    0x00 /* Equal (ordered, non-signaling)  */
@@ -329,8 +328,8 @@ static inline void muladd256f(float *_a, float *_b, float *_c, float *dst, int l
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), AVX_LEN_BYTES) &&\
-        areAligned2((uintptr_t)(_c), (uintptr_t)(dst) , AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), AVX_LEN_BYTES) &&
+        areAligned2((uintptr_t)(_c), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf a = _mm256_load_ps(_a + i);
             v8sf b = _mm256_load_ps(_b + i);
@@ -353,13 +352,12 @@ static inline void muladd256f(float *_a, float *_b, float *_c, float *dst, int l
 
 static inline void mulcadd256f(float *_a, float _b, float *_c, float *dst, int len)
 {
-
     v8sf b = _mm256_set1_ps(_b);
-    
+
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst) , AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf a = _mm256_load_ps(_a + i);
             v8sf c = _mm256_load_ps(_c + i);
@@ -380,14 +378,13 @@ static inline void mulcadd256f(float *_a, float _b, float *_c, float *dst, int l
 
 static inline void mulcaddc256f(float *_a, float _b, float _c, float *dst, int len)
 {
-
     v8sf b = _mm256_set1_ps(_b);
     v8sf c = _mm256_set1_ps(_c);
-    
+
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst) , AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf a = _mm256_loadu_ps(_a + i);
             _mm256_store_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
@@ -404,15 +401,14 @@ static inline void mulcaddc256f(float *_a, float _b, float _c, float *dst, int l
     }
 }
 
-static inline void muladdc256f(float *_a, float* _b, float _c, float *dst, int len)
+static inline void muladdc256f(float *_a, float *_b, float _c, float *dst, int len)
 {
-
     v8sf c = _mm256_set1_ps(_c);
-    
+
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst) , AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf a = _mm256_load_ps(_a + i);
             v8sf b = _mm256_load_ps(_b + i);
@@ -826,7 +822,7 @@ static inline void sincos256f(float *src, float *dst_sin, float *dst_cos, int le
     }
 
     for (int i = stop_len; i < len; i++) {
-        sincosf(src[i], dst_sin + i, dst_cos + i);
+        mysincosf(src[i], dst_sin + i, dst_cos + i);
     }
 }
 
