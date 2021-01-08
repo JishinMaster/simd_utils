@@ -669,7 +669,7 @@ static inline void cosf_C(float *src, float *dst, int len)
 static inline void sincosf_C(float *src, float *dst_sin, float *dst_cos, int len)
 {
     for (int i = 0; i < len; i++) {
-        sincosf(src[i], dst_sin + i, dst_cos + i);
+        mysincosf(src[i], dst_sin + i, dst_cos + i);
     }
 }
 
