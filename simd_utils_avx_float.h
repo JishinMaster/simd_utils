@@ -136,11 +136,13 @@ static inline void fabs256f(float *src, float *dst, int len)
     stop_len *= AVX_LEN_FLOAT;
 
     if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             _mm256_store_ps(dst + i, _mm256_and_ps(mask, src_tmp));
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_loadu_ps(src + i);
             _mm256_storeu_ps(dst + i, _mm256_and_ps(mask, src_tmp));
@@ -160,10 +162,12 @@ static inline void set256f(float *src, float value, int len)
     stop_len *= AVX_LEN_FLOAT;
 
     if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_store_ps(src + i, tmp);
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_storeu_ps(src + i, tmp);
         }
@@ -182,10 +186,12 @@ static inline void zero256f(float *src, int len)
     stop_len *= AVX_LEN_FLOAT;
 
     if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_store_ps(src + i, tmp);
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_storeu_ps(src + i, tmp);
         }
@@ -203,10 +209,12 @@ static inline void copy256f(float *src, float *dst, int len)
     stop_len *= AVX_LEN_FLOAT;
 
     if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_store_ps(dst + i, _mm256_load_ps(src + i));
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_storeu_ps(dst + i, _mm256_loadu_ps(src + i));
         }
@@ -223,10 +231,12 @@ static inline void add256f(float *src1, float *src2, float *dst, int len)
     stop_len *= AVX_LEN_FLOAT;
 
     if (((uintptr_t)(const void *) (src1) % AVX_LEN_BYTES) == 0) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_store_ps(dst + i, _mm256_add_ps(_mm256_load_ps(src1 + i), _mm256_load_ps(src2 + i)));
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_storeu_ps(dst + i, _mm256_add_ps(_mm256_loadu_ps(src1 + i), _mm256_loadu_ps(src2 + i)));
         }
@@ -244,10 +254,12 @@ static inline void mul256f(float *src1, float *src2, float *dst, int len)
     stop_len *= AVX_LEN_FLOAT;
 
     if (((uintptr_t)(const void *) (src1) % AVX_LEN_BYTES) == 0) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_store_ps(dst + i, _mm256_mul_ps(_mm256_load_ps(src1 + i), _mm256_load_ps(src2 + i)));
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_storeu_ps(dst + i, _mm256_mul_ps(_mm256_loadu_ps(src1 + i), _mm256_loadu_ps(src2 + i)));
         }
@@ -264,10 +276,12 @@ static inline void sub256f(float *src1, float *src2, float *dst, int len)
     stop_len *= AVX_LEN_FLOAT;
 
     if (((uintptr_t)(const void *) (src1) % AVX_LEN_BYTES) == 0) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_store_ps(dst + i, _mm256_sub_ps(_mm256_load_ps(src1 + i), _mm256_load_ps(src2 + i)));
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_storeu_ps(dst + i, _mm256_sub_ps(_mm256_loadu_ps(src1 + i), _mm256_loadu_ps(src2 + i)));
         }
@@ -287,10 +301,12 @@ static inline void addc256f(float *src, float value, float *dst, int len)
     stop_len *= AVX_LEN_FLOAT;
 
     if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_store_ps(dst + i, _mm256_add_ps(tmp, _mm256_load_ps(src + i)));
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_storeu_ps(dst + i, _mm256_add_ps(tmp, _mm256_loadu_ps(src + i)));
         }
@@ -309,10 +325,12 @@ static inline void mulc256f(float *src, float value, float *dst, int len)
     stop_len *= AVX_LEN_FLOAT;
 
     if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_store_ps(dst + i, _mm256_mul_ps(tmp, _mm256_load_ps(src + i)));
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_storeu_ps(dst + i, _mm256_mul_ps(tmp, _mm256_loadu_ps(src + i)));
         }
@@ -330,6 +348,7 @@ static inline void muladd256f(float *_a, float *_b, float *_c, float *dst, int l
 
     if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), AVX_LEN_BYTES) &&
         areAligned2((uintptr_t)(_c), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf a = _mm256_load_ps(_a + i);
             v8sf b = _mm256_load_ps(_b + i);
@@ -337,6 +356,7 @@ static inline void muladd256f(float *_a, float *_b, float *_c, float *dst, int l
             _mm256_store_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf a = _mm256_loadu_ps(_a + i);
             v8sf b = _mm256_loadu_ps(_b + i);
@@ -358,12 +378,14 @@ static inline void mulcadd256f(float *_a, float _b, float *_c, float *dst, int l
     stop_len *= AVX_LEN_FLOAT;
 
     if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf a = _mm256_load_ps(_a + i);
             v8sf c = _mm256_load_ps(_c + i);
             _mm256_store_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf a = _mm256_loadu_ps(_a + i);
             v8sf c = _mm256_loadu_ps(_c + i);
@@ -385,11 +407,13 @@ static inline void mulcaddc256f(float *_a, float _b, float _c, float *dst, int l
     stop_len *= AVX_LEN_FLOAT;
 
     if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf a = _mm256_loadu_ps(_a + i);
             _mm256_store_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v8sf a = _mm256_loadu_ps(_a + i);
             _mm256_storeu_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
@@ -409,12 +433,14 @@ static inline void muladdc256f(float *_a, float *_b, float _c, float *dst, int l
     stop_len *= AVX_LEN_FLOAT;
 
     if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf a = _mm256_load_ps(_a + i);
             v8sf b = _mm256_load_ps(_b + i);
             _mm256_store_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf a = _mm256_loadu_ps(_a + i);
             v8sf b = _mm256_loadu_ps(_b + i);
@@ -433,10 +459,12 @@ static inline void div256f(float *src1, float *src2, float *dst, int len)
     stop_len *= AVX_LEN_FLOAT;
 
     if (((uintptr_t)(const void *) (src1) % AVX_LEN_BYTES) == 0) {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_store_ps(dst + i, _mm256_div_ps(_mm256_load_ps(src1 + i), _mm256_load_ps(src2 + i)));
         }
     } else {
+		#pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_storeu_ps(dst + i, _mm256_div_ps(_mm256_loadu_ps(src1 + i), _mm256_loadu_ps(src2 + i)));
         }
@@ -451,27 +479,34 @@ static inline void div256f(float *src1, float *src2, float *dst, int len)
 static inline void vectorSlope256f(float *dst, int len, float offset, float slope)
 {
     v8sf coef = _mm256_set_ps(7.0f * slope, 6.0f * slope, 5.0f * slope, 4.0f * slope, 3.0f * slope, 2.0f * slope, slope, 0.0f);
-    v8sf slope8_vec = _mm256_set1_ps(8.0f * slope);
-    v8sf curVal = _mm256_add_ps(_mm256_set1_ps(offset), coef);
-
-    int stop_len = len / AVX_LEN_FLOAT;
-    stop_len *= AVX_LEN_FLOAT;
+    v8sf slope16_vec = _mm256_set1_ps(16.0f * slope);
+    v8sf curVal  = _mm256_add_ps(_mm256_set1_ps(offset), coef);
+	v8sf curVal2 = _mm256_add_ps(_mm256_set1_ps(offset), coef);
+	curVal2		 =  _mm256_add_ps(curVal2, _mm256_set1_ps(8.0f * slope));
+    int stop_len = len / (2*AVX_LEN_FLOAT);
+    stop_len *= (2*AVX_LEN_FLOAT);
 
     if (((uintptr_t)(const void *) (dst) % AVX_LEN_BYTES) == 0) {
         _mm256_store_ps(dst + 0, curVal);
+		_mm256_store_ps(dst + AVX_LEN_FLOAT, curVal2);
     } else {
         _mm256_storeu_ps(dst + 0, curVal);
+		_mm256_storeu_ps(dst + AVX_LEN_FLOAT, curVal2);
     }
 
     if (((uintptr_t)(const void *) (dst) % AVX_LEN_BYTES) == 0) {
-        for (int i = AVX_LEN_FLOAT; i < stop_len; i += AVX_LEN_FLOAT) {
-            curVal = _mm256_add_ps(curVal, slope8_vec);
-            _mm256_storeu_ps(dst + i, curVal);
+        for (int i = 2*AVX_LEN_FLOAT; i < stop_len; i += 2*AVX_LEN_FLOAT) {
+            curVal = _mm256_add_ps(curVal, slope16_vec);
+            _mm256_store_ps(dst + i, curVal);
+			 curVal2 = _mm256_add_ps(curVal2, slope16_vec);
+            _mm256_store_ps(dst + i + AVX_LEN_FLOAT, curVal2);
         }
     } else {
-        for (int i = AVX_LEN_FLOAT; i < stop_len; i += AVX_LEN_FLOAT) {
-            curVal = _mm256_add_ps(curVal, slope8_vec);
+        for (int i = 2*AVX_LEN_FLOAT; i < stop_len; i += 2*AVX_LEN_FLOAT) {
+            curVal = _mm256_add_ps(curVal, slope16_vec);
             _mm256_storeu_ps(dst + i, curVal);
+			curVal2 = _mm256_add_ps(curVal2, slope16_vec);
+            _mm256_storeu_ps(dst + i + AVX_LEN_FLOAT, curVal2);
         }
     }
 
@@ -1265,25 +1300,31 @@ static inline void subcrev256f(float *src, float value, float *dst, int len)
 
 static inline void sum256f(float *src, float *dst, int len)
 {
-    int stop_len = len / AVX_LEN_FLOAT;
-    stop_len *= AVX_LEN_FLOAT;
+    int stop_len = len / (2*AVX_LEN_FLOAT);
+    stop_len *= (2*AVX_LEN_FLOAT);
 
     __attribute__((aligned(AVX_LEN_BYTES))) float accumulate[AVX_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
     float tmp_acc = 0.0f;
-    v8sf vec_acc = _mm256_setzero_ps();  //initialize the vector accumulator
+    v8sf vec_acc1 = _mm256_setzero_ps();  //initialize the vector accumulator
+	v8sf vec_acc2 = _mm256_setzero_ps();  //initialize the vector accumulator
     if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
-        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-            v8sf vec_tmp = _mm256_load_ps(src + i);
-            vec_acc = _mm256_add_ps(vec_acc, vec_tmp);
+        for (int i = 0; i < stop_len; i += 2*AVX_LEN_FLOAT) {
+            v8sf vec_tmp1 = _mm256_load_ps(src + i);
+            vec_acc1 = _mm256_add_ps(vec_acc1, vec_tmp1);
+			v8sf vec_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+            vec_acc2 = _mm256_add_ps(vec_acc2, vec_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-            v8sf vec_tmp = _mm256_loadu_ps(src + i);
-            vec_acc = _mm256_add_ps(vec_acc, vec_tmp);
+        for (int i = 0; i < stop_len; i += 2*AVX_LEN_FLOAT) {
+            v8sf vec_tmp1 = _mm256_loadu_ps(src + i);
+            vec_acc1 = _mm256_add_ps(vec_acc1, vec_tmp1);
+			v8sf vec_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+            vec_acc2 = _mm256_add_ps(vec_acc2, vec_tmp2);
         }
     }
-
-    _mm256_store_ps(accumulate, vec_acc);
+	
+	vec_acc1 = _mm256_add_ps(vec_acc1, vec_acc2);
+    _mm256_store_ps(accumulate, vec_acc1);
 
     for (int i = stop_len; i < len; i++) {
         tmp_acc += src[i];
@@ -1297,34 +1338,9 @@ static inline void sum256f(float *src, float *dst, int len)
 
 static inline void mean256f(float *src, float *dst, int len)
 {
-    int stop_len = len / AVX_LEN_FLOAT;
-    stop_len *= AVX_LEN_FLOAT;
-
-    __attribute__((aligned(AVX_LEN_BYTES))) float accumulate[AVX_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
-    float tmp_acc = 0.0f;
-    v8sf vec_acc = _mm256_setzero_ps();  //initialize the vector accumulator
-    if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
-        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-            v8sf vec_tmp = _mm256_load_ps(src + i);
-            vec_acc = _mm256_add_ps(vec_acc, vec_tmp);
-        }
-    } else {
-        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-            v8sf vec_tmp = _mm256_loadu_ps(src + i);
-            vec_acc = _mm256_add_ps(vec_acc, vec_tmp);
-        }
-    }
-
-    _mm256_store_ps(accumulate, vec_acc);
-
-    for (int i = stop_len; i < len; i++) {
-        tmp_acc += src[i];
-    }
-
-    tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3] + accumulate[4] + accumulate[5] + accumulate[6] + accumulate[7];
-    tmp_acc /= (float) len;
-
-    *dst = tmp_acc;
+	float coeff = 1.0f/((float)len);
+	sum256f(src, dst, len);
+	 *dst *= coeff;
 }
 
 static inline void sqrt256f(float *src, float *dst, int len)
