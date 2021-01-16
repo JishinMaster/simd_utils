@@ -61,7 +61,7 @@ _PS_CONST(ATAN_P3, -3.33329491539E-1);
 #define ROUNDTOCEIL (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)
 #define ROUNDTOZERO (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC)
 
-static inline void print4(__m128 v)
+/*static inline void print4(__m128 v)
 {
     float *p = (float *) &v;
 #ifndef __SSE2__
@@ -77,7 +77,7 @@ static inline void print8i(__m128i v)
     _mm_empty();
 #endif
     printf("[%d, %d, %d, %d,%d, %d, %d, %d]", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
-}
+}*/
 
 static inline void log10_128f(float *src, float *dst, int len)
 {
@@ -316,7 +316,7 @@ static inline void mulc128f(float *src, float value, float *dst, int len)
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
-            _mm_storeu_ps(dst + i, _mm_add_ps(tmp, _mm_loadu_ps(src + i)));
+            _mm_storeu_ps(dst + i, _mm_mul_ps(tmp, _mm_loadu_ps(src + i)));
         }
     }
 
@@ -457,7 +457,7 @@ static inline void vectorSlope128f(float *dst, int len, float offset, float slop
     v4sf slope8_vec = _mm_set1_ps(8.0f * slope);
     v4sf curVal  = _mm_add_ps(_mm_set1_ps(offset), coef);
 	v4sf curVal2 = _mm_add_ps(_mm_set1_ps(offset), coef);
-	curVal2		 =  _mm_add_ps(curVal2, _mm_set1_ps(4.0f * slope));
+	curVal2		 = _mm_add_ps(curVal2, _mm_set1_ps(4.0f * slope));
 	
     int stop_len = len / (2*SSE_LEN_FLOAT);
     stop_len *= (2*SSE_LEN_FLOAT);
@@ -636,14 +636,14 @@ static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, 
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
-            v4si vec = _mm_load_si128((__m128i *) (src + i));  //loads 1 2 3 4 5 6 7 8 8
-            v4si low = _mm_unpacklo_epi16(vec, vec);           // low 1 1 2 2 3 3 4 4
+            v4si vec  = _mm_load_si128((__m128i *) (src + i)); //loads 1 2 3 4 5 6 7 8 8
+            v4si low  = _mm_unpacklo_epi16(vec, vec);          // low 1 1 2 2 3 3 4 4
             v4si high = _mm_unpackhi_epi16(vec, vec);          // high 5 5 6 6 7 7 8 8
-            low = _mm_srai_epi32(low, 0x10);                   //make low 1 -1 2 -1 3 -1 4 -4
-            high = _mm_srai_epi32(high, 0x10);                 // make high 5 -1 6 -1 7 -1 8 -1
+            low       = _mm_srai_epi32(low, 0x10);             //make low 1 -1 2 -1 3 -1 4 -4
+            high      = _mm_srai_epi32(high, 0x10);            // make high 5 -1 6 -1 7 -1 8 -1
 
             //convert the vector to float and scale it
-            v4sf floatlo = _mm_mul_ps(_mm_cvtepi32_ps(low), scale_fact_vec);
+            v4sf floatlo = _mm_mul_ps(_mm_cvtepi32_ps(low) , scale_fact_vec);
             v4sf floathi = _mm_mul_ps(_mm_cvtepi32_ps(high), scale_fact_vec);
 
             _mm_store_ps(dst + i, floatlo);

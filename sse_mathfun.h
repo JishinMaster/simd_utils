@@ -48,6 +48,7 @@ typedef __m128 v4sf;  // vector of 4 float (sse1)
 #ifdef __SSE2__
 
 typedef __m128i v4si;  // vector of 4 int (sse2)
+typedef __m128i v2sid;  // vector of 2 int64 (sse2)
 #else
 typedef __m64 v2si;  // vector of 2 int (mmx)
 #endif
@@ -576,6 +577,23 @@ static inline v4sf cos_ps(v4sf x)
     return y;
 }
 
+
+void print4(__m128 v) {
+	float *p = (float*)&v;
+#ifndef USE_SSE2
+	_mm_empty();
+#endif
+	printf("[%13.8g, %13.8g, %13.8g, %13.8g]", p[0], p[1], p[2], p[3]);
+}
+
+void print4i(__m128i v) {
+	int *p = (int*)&v;
+#ifndef USE_SSE2
+	_mm_empty();
+#endif
+	printf("[%d, %d, %d, %d]", p[0], p[1], p[2], p[3]);
+}
+
 /* since sin_ps and cos_ps are almost identical, sincos_ps could replace both of them..
    it is almost as fast, and gives you a free cosine with your sine */
 static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
@@ -661,12 +679,13 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
     x = _mm_add_ps(x, xmm1);
     x = _mm_add_ps(x, xmm2);
     x = _mm_add_ps(x, xmm3);
-
+    
 #ifdef __SSE2__
     emm4 = _mm_sub_epi32(emm4, *(v4si *) _pi32_2);
     emm4 = _mm_andnot_si128(emm4, *(v4si *) _pi32_4);
     emm4 = _mm_slli_epi32(emm4, 29);
     v4sf sign_bit_cos = _mm_castsi128_ps(emm4);
+   
 #else
     /* get the sign flag for the cosine */
     mm4 = _mm_sub_pi32(mm4, *(v2si *) _pi32_2);
@@ -681,7 +700,7 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
 #endif
 
     sign_bit_sin = _mm_xor_ps(sign_bit_sin, swap_sign_bit_sin);
-
+    
 
     /* Evaluate the first polynom  (0 <= x <= Pi/4) */
     v4sf z = _mm_mul_ps(x, x);
@@ -696,7 +715,7 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
     v4sf tmp = _mm_mul_ps(z, *(v4sf *) _ps_0p5);
     y = _mm_sub_ps(y, tmp);
     y = _mm_add_ps(y, *(v4sf *) _ps_1);
-
+    
     /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
 
     v4sf y2 = *(v4sf *) _ps_sincof_p0;
@@ -707,14 +726,13 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
     y2 = _mm_mul_ps(y2, z);
     y2 = _mm_mul_ps(y2, x);
     y2 = _mm_add_ps(y2, x);
-
+    
     /* select the correct result from the two polynoms */
     xmm3 = poly_mask;
     v4sf ysin2 = _mm_and_ps(xmm3, y2);
     v4sf ysin1 = _mm_andnot_ps(xmm3, y);
     y2 = _mm_sub_ps(y2, ysin2);
     y = _mm_sub_ps(y, ysin1);
-
     xmm1 = _mm_add_ps(ysin1, ysin2);
     xmm2 = _mm_add_ps(y, y2);
 
@@ -993,6 +1011,7 @@ static inline v4sf cos_ps(v4sf x)
     return y;
 }
 
+
 /* since sin_ps and cos_ps are almost identical, sincos_ps could replace both of them..
    it is almost as fast, and gives you a free cosine with your sine */
 static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
@@ -1035,7 +1054,7 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
     x = _mm_fmadd_ps(y, *(v4sf *) _ps_minus_cephes_DP1, x);
     x = _mm_fmadd_ps(y, *(v4sf *) _ps_minus_cephes_DP2, x);
     x = _mm_fmadd_ps(y, *(v4sf *) _ps_minus_cephes_DP3, x);
-
+    
     emm4 = _mm_sub_epi32(emm4, *(v4si *) _pi32_2);
     emm4 = _mm_andnot_si128(emm4, *(v4si *) _pi32_4);
     emm4 = _mm_slli_epi32(emm4, 29);

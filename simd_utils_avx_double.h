@@ -212,7 +212,7 @@ static inline void mulc256d(double *src, double value, double *dst, int len)
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
-            _mm256_storeu_pd(dst + i, _mm256_add_pd(tmp, _mm256_loadu_pd(src + i)));
+            _mm256_storeu_pd(dst + i, _mm256_mul_pd(tmp, _mm256_loadu_pd(src + i)));
         }
     }
 

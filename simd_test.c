@@ -299,7 +299,7 @@ int main(int argc, char **argv)
 #endif /* MKL */
 
     float *inout = NULL, *inout2 = NULL, *inout3 = NULL, *inout4 = NULL, *inout5 = NULL, *inout6 = NULL, *inout_ref = NULL, *inout2_ref = NULL;
-    double *inoutd = NULL, *inoutd_ref = NULL;
+    double *inoutd = NULL, *inoutd2 = NULL, *inoutd3 = NULL, *inoutd_ref = NULL, *inoutd2_ref = NULL;
     uint8_t *inout_u1 = NULL, *inout_u2 = NULL;
     int16_t *inout_s1 = NULL, *inout_s2 = NULL;
     int32_t *inout_i1 = NULL, *inout_i2 = NULL, *inout_iref = NULL;
@@ -351,12 +351,26 @@ int main(int argc, char **argv)
         printf("ret = posix_memalign inoutd failed\n");
         return -1;
     }
+    ret = posix_memalign((void **) &inoutd2, atoi(argv[2]), 2 * len * sizeof(double));
+    if (inoutd == NULL) {
+        printf("ret = posix_memalign inoutd failed\n");
+        return -1;
+    }
+    ret = posix_memalign((void **) &inoutd3, atoi(argv[2]), 2 * len * sizeof(double));
+    if (inoutd == NULL) {
+        printf("ret = posix_memalign inoutd failed\n");
+        return -1;
+    }
     ret = posix_memalign((void **) &inoutd_ref, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd_ref == NULL) {
         printf("ret = posix_memalign inoutd_ref failed\n");
         return -1;
     }
-
+    ret = posix_memalign((void **) &inoutd2_ref, atoi(argv[2]), 2 * len * sizeof(double));
+    if (inoutd_ref == NULL) {
+        printf("ret = posix_memalign inoutd_ref failed\n");
+        return -1;
+    }
     ret = posix_memalign((void **) &inout_u1, atoi(argv[2]), len * sizeof(uint8_t));
     if (inout_u1 == NULL) {
         printf("ret = posix_memalign inout_u1 failed\n");
@@ -396,13 +410,13 @@ int main(int argc, char **argv)
     }
 
 #else /* USE_MALLOC */
-
+    //TODO : add missing new arrays
     inout = (float *) malloc(2 * len * sizeof(float));
     if (inout == NULL) {
         printf("malloc inout failed\n");
         return -1;
     }
-    inout2 = (float *) malloc(len * sizeof(float));
+    inout2 = (float *) malloc(2*len * sizeof(float));
     if (inout2 == NULL) {
         printf("malloc inout2 failed\n");
         return -1;
@@ -417,12 +431,12 @@ int main(int argc, char **argv)
         printf("malloc inout4 failed\n");
         return -1;
     }
-    inout_ref = (float *) malloc(len * sizeof(float));
+    inout_ref = (float *) malloc(2*len * sizeof(float));
     if (inout_ref == NULL) {
         printf("malloc inout_ref failed\n");
         return -1;
     }
-    inout2_ref = (float *) malloc(len * sizeof(float));
+    inout2_ref = (float *) malloc(2*len * sizeof(float));
     if (inout2_ref == NULL) {
         printf("malloc inout2_ref failed\n");
         return -1;
@@ -2005,6 +2019,40 @@ printf("\n");
 #endif
 
     printf("\n");
+    /////////////////////////////////////////////////////////// SINCOSD //////////////////////////////////////////////////////////////////////////////
+    printf("SINCOSD\n");
+
+ for(int i = 0; i < len; i++){
+    inoutd[i] = -1.0 + (double)i/10.0;
+    inout[i] = -1.0f + (float)i/10.0f;
+ } 
+ 
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincosd_C(inoutd, inoutd_ref, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincosd_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos128d(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos128d %d %lf\n", len, elapsed);
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos128d(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos128d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+    l2_errd(inoutd2_ref, inoutd3, len);
+#endif
+
+    /*for(int i = 0; i < len; i++){
+        printf("%lf || %lf %lf || %lf %lf\n",inoutd[i], inoutd_ref[i],inoutd2[i], inoutd2_ref[i], inoutd3[i]);
+    }*/
+
+    printf("\n");
     /////////////////////////////////////////////////////////// LOGN //////////////////////////////////////////////////////////////////////////////
     printf("LOGN\n");
 
@@ -3426,7 +3474,7 @@ printf("\n");
     l2_err_i32(inout_i2, inout_iref, len);
 #endif
 
-
+    
     free(inout);
     free(inout2);
     free(inout3);
@@ -3440,7 +3488,10 @@ printf("\n");
     free(inout_ref);
     free(inout2_ref);
     free(inoutd);
+    free(inoutd2);
+    free(inoutd3);
     free(inoutd_ref);
+    free(inoutd2_ref);
 
     free(inout_i1);
     free(inout_i2);

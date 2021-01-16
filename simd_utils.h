@@ -151,12 +151,30 @@ static inline __m128 _mm_fmadd_ps_custom(__m128 a, __m128 b, __m128 c)
 #endif /* FMA */
 }
 
+static inline __m128 _mm_fnmadd_ps_custom(__m128 a, __m128 b, __m128 c)
+{
+#ifndef FMA  //Haswell comes with avx2 and fma
+    return _mm_sub_ps(c, _mm_mul_ps(a, b));
+#else  /* FMA */
+    return _mm_fnmadd_ps(a, b, c);
+#endif /* FMA */
+}
+
 static inline __m128d _mm_fmadd_pd_custom(__m128d a, __m128d b, __m128d c)
 {
 #ifndef FMA  //Haswell comes with avx2 and fma
     return _mm_add_pd(_mm_mul_pd(a, b), c);
 #else  /* FMA */
     return _mm_fmadd_pd(a, b, c);
+#endif /* FMA */
+}
+
+static inline __m128d _mm_fnmadd_pd_custom(__m128d a, __m128d b, __m128d c)
+{
+#ifndef FMA  //Haswell comes with avx2 and fma
+    return _mm_sub_pd(c, _mm_mul_pd(a, b));
+#else  /* FMA */
+    return _mm_fnmadd_pd(a, b, c);
 #endif /* FMA */
 }
 
@@ -167,11 +185,13 @@ static inline __m128d _mm_fmadd_pd_custom(__m128d a, __m128d b, __m128d c)
 #define _PD_CONST_TYPE(Name, Type, Val) \
     static const ALIGN16_BEG Type _pd_##Name[2] ALIGN16_END = {Val, Val}
 
-_PD_CONST_TYPE(min_norm_pos, long int, 0x380ffff83ce549caL);
-_PD_CONST_TYPE(mant_mask, long int, 0xFFFFFFFFFFFFFL);
-_PD_CONST_TYPE(inv_mant_mask, long int, ~0xFFFFFFFFFFFFFL);
-_PD_CONST_TYPE(sign_mask, long int, (long int) 0x8000000000000000L);
-_PD_CONST_TYPE(inv_sign_mask, long int, ~0x8000000000000000L);
+/*
+_PD_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
+_PD_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);
+_PD_CONST_TYPE(inv_mant_mask, int64_t, ~0xFFFFFFFFFFFFFL);
+_PD_CONST_TYPE(sign_mask, int64_t, (int64_t) 0x8000000000000000L);
+_PD_CONST_TYPE(inv_sign_mask, int64_t, ~0x8000000000000000L);
+*/
 
 #ifdef ARM
 
@@ -230,9 +250,42 @@ _PS_CONST(cephes_FOPI, 1.27323954473516);  // 4 / M_PI
 
 #endif /* ARM */
 
+
+/* the smallest non denormalized double number */
+/*_PD_CONST_TYPE(min_norm_pos, int64_t, 0x00800000);
+_PD_CONST_TYPE(mant_mask, int64_t, 0x7f800000);
+_PD_CONST_TYPE(inv_mant_mask, int64_t, ~0x7f800000);
+
+_PD_CONST_TYPE(sign_mask, int64_t, (int64_t) 0x80000000);
+_PD_CONST_TYPE(inv_sign_mask, int64_t, ~0x80000000);*/
+
+_PD_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
+_PD_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);
+_PD_CONST_TYPE(inv_mant_mask, int64_t, ~0xFFFFFFFFFFFFFL);
+_PD_CONST_TYPE(sign_mask, int64_t, (int64_t) 0x8000000000000000L);
+_PD_CONST_TYPE(inv_sign_mask, int64_t, ~0x8000000000000000L);
+
+
+_PD_CONST(minus_cephes_DP1, -7.85398125648498535156E-1);
+_PD_CONST(minus_cephes_DP2, -3.77489470793079817668E-8);
+_PD_CONST(minus_cephes_DP3, -2.69515142907905952645E-15);
+_PD_CONST(sincof_p0, 1.58962301576546568060E-10);
+_PD_CONST(sincof_p1, -2.50507477628578072866E-8);
+_PD_CONST(sincof_p2,  2.75573136213857245213E-6);
+_PD_CONST(sincof_p3, -1.98412698295895385996E-4);
+_PD_CONST(sincof_p4,  8.33333333332211858878E-3);
+_PD_CONST(sincof_p5, -1.66666666666666307295E-1);
+_PD_CONST(coscof_p0, -1.13585365213876817300E-11);
+_PD_CONST(coscof_p1,  2.08757008419747316778E-9);
+_PD_CONST(coscof_p2, -2.75573141792967388112E-7);
+_PD_CONST(coscof_p3,  2.48015872888517045348E-5);
+_PD_CONST(coscof_p4, -1.38888888888730564116E-3);
+_PD_CONST(coscof_p5,  4.16666666666665929218E-2);
+_PD_CONST(cephes_FOPI, 1.2732395447351626861510701069801148);  // 4 / M_PI
+
+
 _PD_CONST(1, 1.0);
 _PD_CONST(0p5, 0.5);
-
 _PI64_CONST(1, 1);
 _PI64_CONST(inv1, ~1);
 _PI64_CONST(2, 2);
@@ -272,6 +325,8 @@ _PD_CONST(cephes_exp_C1, 0.693145751953125);
 _PD_CONST(cephes_exp_C2, 1.42860682030941723212e-6);
 
 
+
+
 #include "simd_utils_sse_double.h"
 #include "simd_utils_sse_float.h"
 #include "simd_utils_sse_int32.h"
@@ -301,12 +356,30 @@ static inline __m256 _mm256_fmadd_ps_custom(__m256 a, __m256 b, __m256 c)
 #endif /* FMA */
 }
 
+static inline __m256 _mm256_fnmadd_ps_custom(__m256 a, __m256 b, __m256 c)
+{
+#ifndef FMA  //Haswell comes with avx2 and fma
+    return _mm256_sub_ps(c, _mm256_mul_ps(a, b));
+#else  /* FMA */
+    return _mm256_fnmadd_ps(a, b, c);
+#endif /* FMA */
+}
+
 static inline __m256d _mm256_fmadd_pd_custom(__m256d a, __m256d b, __m256d c)
 {
 #ifndef FMA  //Haswell comes with avx2 and fma
     return _mm256_add_pd(_mm256_mul_pd(a, b), c);
 #else  /* FMA */
     return _mm256_fmadd_pd(a, b, c);
+#endif /* FMA */
+}
+
+static inline __m256d _mm256_fnmadd_pd_custom(__m256d a, __m256d b, __m256d c)
+{
+#ifndef FMA  //Haswell comes with avx2 and fma
+    return _mm256_sub_pd(c, _mm256_mul_pd(a, b));
+#else  /* FMA */
+    return _mm256_fnmadd_pd(a, b, c);
 #endif /* FMA */
 }
 
@@ -670,6 +743,14 @@ static inline void sincosf_C(float *src, float *dst_sin, float *dst_cos, int len
 {
     for (int i = 0; i < len; i++) {
         mysincosf(src[i], dst_sin + i, dst_cos + i);
+    }
+}
+
+static inline void sincosd_C(double *src, double *dst_sin, double *dst_cos, int len)
+{
+    for (int i = 0; i < len; i++) {
+        dst_sin[i] = sin(src[i]);
+        dst_cos[i] = cos(src[i]);
     }
 }
 

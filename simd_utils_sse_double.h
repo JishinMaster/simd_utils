@@ -217,7 +217,7 @@ static inline void mulc128d(double *src, double value, double *dst, int len)
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
-            _mm_storeu_pd(dst + i, _mm_add_pd(tmp, _mm_loadu_pd(src + i)));
+            _mm_storeu_pd(dst + i, _mm_mul_pd(tmp, _mm_loadu_pd(src + i)));
         }
     }
 
@@ -292,8 +292,7 @@ static inline void floor128d(double *src, double *dst, int len)
     }
 }
 
-
-
+//TODO : add dual accumulator like vectorSlope128f
 static inline void vectorSlope128d(double *dst, int len, double offset, double slope)
 {
     v2sd coef = _mm_set_pd(slope, 0.0);
@@ -323,5 +322,177 @@ static inline void vectorSlope128d(double *dst, int len, double offset, double s
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = offset + slope * (double) i;
+    }
+}
+
+
+
+// Work in progress
+// in SSE, missing _mm_cvtepi64_pd, _mm_cvttpd_epi64
+// See : https://stackoverflow.com/questions/41144668/how-to-efficiently-perform-double-int64-conversions-with-sse-avx
+
+static inline v2sd _mm_cvtepi64_pd_custom(v2si x)
+{
+#if 0
+    //Signed
+    x = _mm_add_epi64(x, _mm_castpd_si128(_mm_set1_pd(0x0018000000000000)));
+    return _mm_sub_pd(_mm_castsi128_pd(x), _mm_set1_pd(0x0018000000000000));
+#else
+    //unsigned
+    x = _mm_or_si128(x, _mm_castpd_si128(_mm_set1_pd(0x0010000000000000)));
+    return _mm_sub_pd(_mm_castsi128_pd(x), _mm_set1_pd(0x0010000000000000));
+#endif
+}
+
+static inline v2si _mm_cvttpd_epi64_custom(v2sd x)
+{
+    //Signed
+#if 0
+   x = _mm_add_pd(x, _mm_set1_pd(0x0018000000000000));
+    return _mm_sub_epi64(
+        _mm_castpd_si128(x),
+        _mm_castpd_si128(_mm_set1_pd(0x0018000000000000))
+    );
+#else
+    //Unsigned
+    x = _mm_add_pd(x, _mm_set1_pd(0x0010000000000000));
+    return _mm_xor_si128(
+        _mm_castpd_si128(x),
+        _mm_castpd_si128(_mm_set1_pd(0x0010000000000000))
+    );
+#endif
+}
+
+void print2(__m128d v) {
+	double *p = (double*)&v;
+#ifndef USE_SSE2
+	_mm_empty();
+#endif
+	printf("[%13.8g, %13.8g]", p[0], p[1]);
+}
+
+void print2i(__m128i v) {
+	int64_t *p = (int64_t*)&v;
+#ifndef USE_SSE2
+	_mm_empty();
+#endif
+	printf("[%ld, %ld]", p[0], p[1]);
+}
+
+static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
+{
+    v2sd xmm1, xmm2, xmm3 = _mm_setzero_pd(), sign_bit_sin, y;
+
+    v2si emm0, emm2, emm4;
+
+    sign_bit_sin = x;
+    /* take the absolute value */
+    x = _mm_and_pd(x, *(v2sd *) _pd_inv_sign_mask);
+    
+    /* extract the sign bit (upper one) */
+    sign_bit_sin = _mm_and_pd(sign_bit_sin, *(v2sd *) _pd_sign_mask);
+
+    /* scale by 4/Pi */
+    y = _mm_mul_pd(x, *(v2sd *) _pd_cephes_FOPI);
+    
+    /* store the integer part of y in emm2 */
+    emm2 = _mm_cvttpd_epi64_custom(y);
+    /* j=(j+1) & (~1) (see the cephes sources) */
+    emm2 = _mm_add_epi64(emm2, *(v2si *) _pi64_1);
+
+    emm2 = _mm_and_si128(emm2, *(v2si *) _pi64_inv1);
+    y = _mm_cvtepi64_pd_custom(emm2);
+    emm4 = emm2;
+
+    /* get the swap sign flag for the sine */
+    emm0 = _mm_and_si128(emm2, *(v2si *) _pi64_4);
+    //print2i(emm0);
+    emm0 = _mm_slli_epi64(emm0, 61);
+    //print2i(emm0);
+    v2sd swap_sign_bit_sin = _mm_castsi128_pd(emm0);
+
+    /* get the polynom selection mask for the sine*/
+    emm2 = _mm_and_si128(emm2, *(v2si *) _pi64_2);
+    emm2 = _mm_cmpeq_epi64(emm2, _mm_setzero_si128());
+    v2sd poly_mask = _mm_castsi128_pd(emm2);
+    //print2i(emm2);
+    /* The magic pass: "Extended precision modular arithmetic"
+     x = ((x - y * DP1) - y * DP2) - y * DP3; */
+    x = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP1, x);
+    x = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP2, x);
+    x = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP3, x);
+    
+    emm4 = _mm_sub_epi64(emm4, *(v2si *) _pi64_2);
+    emm4 = _mm_andnot_si128(emm4, *(v2si *) _pi64_4);
+    emm4 = _mm_slli_epi64(emm4, 61);
+    v2sd sign_bit_cos = _mm_castsi128_pd(emm4);
+    
+    sign_bit_sin = _mm_xor_pd(sign_bit_sin, swap_sign_bit_sin);
+    
+    /* Evaluate the first polynom  (0 <= x <= Pi/4) */
+    v2sd z = _mm_mul_pd(x, x);
+
+    y = _mm_fmadd_pd_custom(*(v2sd *) _pd_coscof_p0, z, *(v2sd *) _pd_coscof_p1);
+    y = _mm_fmadd_pd_custom(y, z, *(v2sd *) _pd_coscof_p2);
+    y = _mm_fmadd_pd_custom(y, z, *(v2sd *) _pd_coscof_p3);
+    y = _mm_fmadd_pd_custom(y, z, *(v2sd *) _pd_coscof_p4);
+    y = _mm_fmadd_pd_custom(y, z, *(v2sd *) _pd_coscof_p5);
+    y = _mm_mul_pd(y, z);
+    y = _mm_mul_pd(y, z);
+    y = _mm_fnmadd_pd_custom(z, *(v2sd *) _pd_0p5, y);
+    y = _mm_add_pd(y, *(v2sd *) _pd_1);
+    
+    /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
+    v2sd y2 = _mm_fmadd_pd_custom(*(v2sd *) _ps_sincof_p0, z, *(v2sd *) _pd_sincof_p1);
+    y2 = _mm_fmadd_pd_custom(y2, z, *(v2sd *) _pd_sincof_p2);
+    y2 = _mm_fmadd_pd_custom(y2, z, *(v2sd *) _pd_sincof_p3);
+    y2 = _mm_fmadd_pd_custom(y2, z, *(v2sd *) _pd_sincof_p4);
+    y2 = _mm_fmadd_pd_custom(y2, z, *(v2sd *) _pd_sincof_p5);
+    y2 = _mm_mul_pd(y2, z);
+    y2 = _mm_fmadd_pd_custom(y2, x, x);
+    
+    
+    /* select the correct result from the two polynoms */
+    xmm3 = poly_mask;
+    v2sd ysin2 = _mm_and_pd(xmm3, y2);
+    v2sd ysin1 = _mm_andnot_pd(xmm3, y);
+    y2 = _mm_sub_pd(y2, ysin2);
+    y = _mm_sub_pd(y, ysin1);
+    xmm1 = _mm_add_pd(ysin1, ysin2);
+    xmm2 = _mm_add_pd(y, y2);
+
+    /* update the sign */
+    *s = _mm_xor_pd(xmm1, sign_bit_sin);
+    *c = _mm_xor_pd(xmm2, sign_bit_cos);
+}
+
+static inline void sincos128d(double *src, double *dst_sin, double *dst_cos, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned3((uintptr_t)(src), (uintptr_t)(dst_sin), (uintptr_t)(dst_cos), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_load_pd(src + i);
+            v2sd dst_sin_tmp;
+            v2sd dst_cos_tmp;
+            sincos_pd(src_tmp, &dst_sin_tmp, &dst_cos_tmp);
+            _mm_store_pd(dst_sin + i, dst_sin_tmp);
+            _mm_store_pd(dst_cos + i, dst_cos_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_loadu_pd(src + i);
+            v2sd dst_sin_tmp;
+            v2sd dst_cos_tmp;
+            sincos_pd(src_tmp, &dst_sin_tmp, &dst_cos_tmp);
+            _mm_storeu_pd(dst_sin + i, dst_sin_tmp);
+            _mm_storeu_pd(dst_cos + i, dst_cos_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst_sin[i] = sin(i);
+        dst_cos[i] = cos(i);
     }
 }

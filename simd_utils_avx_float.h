@@ -476,6 +476,7 @@ static inline void div256f(float *src1, float *src2, float *dst, int len)
 }
 
 // TODO : remove previous index dependency to become Out Of Order
+//TODO: intel targets can do 2 mul/FMA per cycle but only one add => replace add_ps(a,b) by fmadd_ps(1.0f,a,b)
 static inline void vectorSlope256f(float *dst, int len, float offset, float slope)
 {
     v8sf coef = _mm256_set_ps(7.0f * slope, 6.0f * slope, 5.0f * slope, 4.0f * slope, 3.0f * slope, 2.0f * slope, slope, 0.0f);
