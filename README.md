@@ -39,7 +39,6 @@ Simply include simd_utils.h in your C/C++ file, and compile with :
 
 For FMA support you need to add -DFMA and -mfma to x86 targets, and -DFMA to Armv8 targets.
 
-
 ## Licence
 
 This library is released under BSD licence so that everyone can freely use it in their project, find bugs, propose new functions or enhance existing ones.
