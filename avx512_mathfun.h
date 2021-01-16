@@ -229,11 +229,11 @@ static inline v16sf sin512_ps(v16sf x)
     /* j=(j+1) & (~1) (see the cephes sources) */
     // another two AVX2 instruction
     imm2 = _mm512_add_epi32(imm2, *(v16si *) _pi32_512_1);
-    imm2 = _mm512_and_si512(imm2, *(v16si *) _pi32_512_inv1);  //FT
+    imm2 = _mm512_and_si512(imm2, *(v16si *) _pi32_512_inv1);
     y = _mm512_cvtepi32_ps(imm2);
 
     /* get the swap sign flag */
-    imm0 = _mm512_and_si512(imm2, *(v16si *) _pi32_512_4);  //FT
+    imm0 = _mm512_and_si512(imm2, *(v16si *) _pi32_512_4);
     imm0 = _mm512_slli_epi32(imm0, 29);
     /* get the polynom selection mask 
      there is one polynom for 0 <= x <= Pi/4
@@ -241,7 +241,7 @@ static inline v16sf sin512_ps(v16sf x)
 
      Both branches will be computed.
   */
-    imm2 = _mm512_and_si512(imm2, *(v16si *) _pi32_512_2);  //FT
+    imm2 = _mm512_and_si512(imm2, *(v16si *) _pi32_512_2);
     imm2 = (__m512i) _mm512_maskz_set1_epi32(_mm512_cmpeq_epi32_mask(imm2, *(v16si *) _pi32_512_0), -1);
 #else
     /* we use SSE2 routines to perform the integer ops */
