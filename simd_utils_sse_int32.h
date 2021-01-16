@@ -96,6 +96,45 @@ static inline void addc128s(int32_t *src, int32_t value, int32_t *dst, int len)
     }
 }
 
+static inline void vectorSlope128s(int *dst, int len, int offset, int slope)
+{
+    v4si coef = _mm_set_epi32(3 * slope, 2 * slope, slope, 0);
+    v4si slope8_vec = _mm_set1_epi32(8 * slope);
+    v4si curVal  = _mm_add_epi32(_mm_set1_epi32(offset), coef);
+	v4si curVal2 = _mm_add_epi32(_mm_set1_epi32(offset), coef);
+	curVal2		 =  _mm_add_epi32(curVal2, _mm_set1_epi32(4 * slope));
+	
+    int stop_len = len / (2*SSE_LEN_INT32);
+    stop_len *= (2*SSE_LEN_INT32);
+
+    if (((uintptr_t)(const void *) (dst) % SSE_LEN_BYTES) == 0) {
+        _mm_store_si128((__m128i *)dst + 0, curVal);
+		_mm_store_si128((__m128i *)dst + SSE_LEN_INT32, curVal2);
+    } else {
+        _mm_storeu_si128((__m128i *)dst + 0, curVal);
+		_mm_storeu_si128((__m128i *)dst + SSE_LEN_INT32, curVal2);
+    }
+
+    if (((uintptr_t)(const void *) (dst) % SSE_LEN_BYTES) == 0) {
+        for (int i = 2*SSE_LEN_FLOAT; i < stop_len; i += 2*SSE_LEN_INT32) {
+            curVal = _mm_add_epi32(curVal, slope8_vec);
+            _mm_store_si128((__m128i *)dst + i, curVal);
+			 curVal2 = _mm_add_epi32(curVal2, slope8_vec);
+            _mm_store_si128((__m128i *)dst + i + SSE_LEN_INT32, curVal2);
+        }
+    } else {
+        for (int i = 2*SSE_LEN_FLOAT; i < stop_len; i += 2*SSE_LEN_INT32) {
+            curVal = _mm_add_epi32(curVal, slope8_vec);
+            _mm_storeu_si128((__m128i *)dst + i, curVal);
+			curVal2 = _mm_add_epi32(curVal2, slope8_vec);
+            _mm_storeu_si128((__m128i *)dst + i + SSE_LEN_INT32, curVal2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = offset + slope * i;
+    }
+}
 
 // Experimental
 
