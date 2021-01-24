@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.4
+ * Version : 0.1.5
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -325,9 +325,8 @@ _PD_CONST(cephes_exp_C1, 0.693145751953125);
 _PD_CONST(cephes_exp_C2, 1.42860682030941723212e-6);
 
 
-
-
 #include "simd_utils_sse_double.h"
+
 #include "simd_utils_sse_float.h"
 #include "simd_utils_sse_int32.h"
 
