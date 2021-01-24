@@ -7,7 +7,7 @@
 
 #pragma once
 
-//JishinMaster : DTCollab sse2neon.h commit : 8508f728918ee20a56570f8b824ba77ac308a7c1
+//JishinMaster : DTCollab sse2neon.h commit : f2d9e9ff59abfe446074e89caf3f7eb08aca5047
 #include "sse2neon.h"
 
 
@@ -91,11 +91,14 @@ RMode	Meaning
 0b11	Round towards Zero (RZ) mode.
 */
 
+
+#if defined(__aarch64__)
 typedef struct {
     uint16_t res0;
-    uint16_t res1 : 6;
-    uint8_t bit21 : 1;
-    uint8_t bit22 : 1;
+    uint8_t  res1 : 6;
+    uint8_t  bit22 : 1;
+    uint8_t  bit23 : 1;
+    uint8_t  res2;
     uint32_t res3;
 
 } fpcr_bitfield;
@@ -105,27 +108,49 @@ typedef union {
     uint64_t value;
 } reg;
 
+#else
+typedef struct {
+    uint16_t res0;
+    uint8_t  res1 : 6;
+    uint8_t  bit22 : 1;
+    uint8_t  bit23 : 1;
+    uint8_t  res2;
+} fpcr_bitfield;
+
+typedef union {
+    fpcr_bitfield field;
+    uint32_t value;
+} reg;
+#endif
 //TO BE TESTED
 FORCE_INLINE void _MM_SET_ROUNDING_MODE(int rounding)
 {
     reg r;
+#if defined(__aarch64__)
     asm volatile("mrs %0, FPCR"
                  : "=r"(r.value)); /* read */
-
+#else
+    asm volatile("vmrs %0, FPSCR"
+                 : "=r"(r.value)); /* read */
+#endif
     if (rounding == _MM_ROUND_TOWARD_ZERO) {
-        r.field.bit21 = 1;
         r.field.bit22 = 1;
+        r.field.bit23 = 1;
     } else if (rounding == _MM_FROUND_TO_NEG_INF) {
-        r.field.bit21 = 0;
-        r.field.bit22 = 1;
+        r.field.bit22 = 0;
+        r.field.bit23 = 1;
     } else if (rounding == _MM_FROUND_TO_POS_INF) {
-        r.field.bit21 = 1;
-        r.field.bit22 = 0;
+        r.field.bit22 = 1;
+        r.field.bit23 = 0;
     } else {  //_MM_ROUND_NEAREST
-        r.field.bit21 = 0;
         r.field.bit22 = 0;
+        r.field.bit23 = 0;
     }
+#if defined(__aarch64__)
     asm volatile("msr FPCR, %0" ::"r"(r)); /* write */
+#else
+    asm volatile("vmsr FPSCR, %0" ::"r"(r)); /* write */
+#endif
 }
 
 
@@ -149,11 +174,13 @@ inline __m128i _mm_aesimc_si128(__m128i a)
 #endif
 
 
+#if 0
 //Armv8.3+
 FORCE_INLINE __m128 _mm_cplx_mul_ps(__m128 r, __m128 a, __m128 b)
 {
     return vreinterpretq_m128_f32(vcmlaq_f32(vreinterpretq_f32_m128(r), vreinterpretq_f32_m128(a), vreinterpretq_f32_m128(b)));
 }
+#endif
 
 // Store the lower single-precision (32-bit) floating-point element from a into 4 contiguous elements in memory. mem_addr must be aligned on a 16-byte boundary or a general-protection exception may be generated.
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_store1_ps&expand=5217,3606,3720,5595
@@ -247,47 +274,38 @@ FORCE_INLINE __m128d _mm_sqrt_pd(__m128d in)
 #endif
 }
 
-FORCE_INLINE __m128d _mm_sub_pd(__m128d a, __m128d b)
-{
-#if defined(__aarch64__)
-    return vreinterpretq_m128d_f64(
-        vsubq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
-#else
-    double *da = (double *) &a;
-    double *db = (double *) &b;
-    double c[2];
-    c[0] = da[0] - db[0];
-    c[1] = da[1] - db[1];
-    return vld1q_f32((float32_t *) c);
-#endif
-}
-
-FORCE_INLINE __m128d _mm_div_pd(__m128d a, __m128d b)
-{
-#if defined(__aarch64__)
-    return vreinterpretq_m128d_f64(
-        vdivq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
-#else
-    double *da = (double *) &a;
-    double *db = (double *) &b;
-    double c[2];
-    c[0] = da[0] / db[0];
-    c[1] = da[1] / db[1];
-    return vld1q_f32((float32_t *) c);
-#endif
-}
-
 FORCE_INLINE __m128d _mm_cvtepi64_pd(__m128i a)
 {
+#if defined(__aarch64__)
     return vreinterpretq_m128d_f64(vcvtq_f64_s64(vreinterpretq_s64_m128i(a)));
+#else
+    double a0 = (double) ((int64_t *) &a)[0];
+    double a1 = (double) ((int64_t *) &a)[1];
+    return _mm_set_pd(a1, a0);
+#endif
 }
+
 
 FORCE_INLINE __m128i _mm_cvtpd_epi64(__m128d a)
 {
 #if defined(__aarch64__)
     return vreinterpretq_m128i_s64(vcvtnq_s64_f64(a));
 #else
-#pragma error "Not yet implemented"
+    int64_t a0 = (int64_t) ((double *) &a)[0];
+    int64_t a1 = (int64_t) ((double *) &a)[1];
+    return _mm_set_epi64(a1, a0);
+#endif
+}
+
+FORCE_INLINE __m128d _mm_cmple_pd(__m128d a, __m128d b)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128d_u64(
+        vcleq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+#else
+    double a0 = (((double *) &a)[0] <= ((double *) &b)[0]) ? 0xFFFFFFFFFFFFFFFF : 0;
+    double a1 = (((double *) &a)[1] <= ((double *) &b)[1]) ? 0xFFFFFFFFFFFFFFFF : 0;
+    return _mm_set_pd(a1, a0);
 #endif
 }
 
@@ -328,11 +346,6 @@ FORCE_INLINE __m128d _mm_round_pd(__m128d a, int rounding)
 #endif
 }
 
-FORCE_INLINE __m128d _mm_set1_pd(double _w)
-{
-    return vreinterpretq_m128d_f64(vdupq_n_f64(_w));
-}
-
 FORCE_INLINE __m128d _mm_fmadd_pd(__m128d a, __m128d b, __m128d c)
 {
 #if defined(__aarch64__)
@@ -344,6 +357,16 @@ FORCE_INLINE __m128d _mm_fmadd_pd(__m128d a, __m128d b, __m128d c)
 #endif
 }
 
+FORCE_INLINE __m128d _mm_fnmadd_pd(__m128d a, __m128d b, __m128d c)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128d_f64(vfmsq_f64(vreinterpretq_f64_m128d(c),
+                                            vreinterpretq_f64_m128d(b),
+                                            vreinterpretq_f64_m128d(a)));
+#else
+    return _mm_add_pd(c, _mm_mul_pd(a, b));
+#endif
+}
 
 FORCE_INLINE __m64 _mm_cvtps_pi16(__m128 a)
 {
