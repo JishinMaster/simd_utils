@@ -26,6 +26,17 @@ Supported targets are :
 256 bit functions (AVX512) have 512 instead of 128 in their name, such as cos512f.
 Vector functions (RISCV) for which the SIMD length makes less sense, are name functionType_vec, such as subs_vec, which substract an int32 array from and other one.
 
+The project has been tested on :
+- Intel Atom
+- Intel Ivy Bridge Core-i7
+- Intel Skylake Core-i7
+- Intel Cannonlake Core-i7
+- Intel SDE (emulator) for AVX-512
+- Spike (emulator) for RISCV Vector
+- Qemu 5.X (emulator) )for arm/aarch64
+- Cortex-a53 (Raspberry Pi 3B)
+- Cortex-a9 (ZYBO)
+
 ## Building
 
 To build the project you will need the sse_mathfun.h, avx_mathfun.h and neon_mathun.h headers available here http://gruntthepeon.free.fr/ssemath/, and there http://software-lisc.fbk.eu/avx_mathfun/
