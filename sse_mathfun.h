@@ -259,8 +259,9 @@ static inline v4sf exp_ps(v4sf x)
     /* step 2 : cast back to float */
     tmp = _mm_cvtpi32x2_ps(mm0, mm1);
 #else
-    emm0 = _mm_cvttps_epi32(fx);
-    tmp = _mm_cvtepi32_ps(emm0);
+    //emm0 = _mm_cvttps_epi32(fx);
+    //tmp = _mm_cvtepi32_ps(emm0);
+    tmp = _mm_round_ps(fx, ROUNDTOFLOOR);
 #endif
     /* if greater, substract 1 */
     v4sf mask = _mm_cmpgt_ps(tmp, fx);
@@ -814,8 +815,9 @@ static inline v4sf exp_ps(v4sf x)
     fx = _mm_fmadd_ps(x, *(v4sf *) _ps_cephes_LOG2EF, *(v4sf *) _ps_0p5);
 
     /* how to perform a floorf with SSE: just below */
-    emm0 = _mm_cvttps_epi32(fx);
-    tmp = _mm_cvtepi32_ps(emm0);
+    //emm0 = _mm_cvttps_epi32(fx);
+    //tmp = _mm_cvtepi32_ps(emm0);
+    tmp = _mm_round_ps(fx, ROUNDTOFLOOR);
 
     /* if greater, substract 1 */
     v4sf mask = _mm_cmpgt_ps(tmp, fx);
