@@ -95,10 +95,10 @@ RMode	Meaning
 #if defined(__aarch64__)
 typedef struct {
     uint16_t res0;
-    uint8_t  res1 : 6;
-    uint8_t  bit22 : 1;
-    uint8_t  bit23 : 1;
-    uint8_t  res2;
+    uint8_t res1 : 6;
+    uint8_t bit22 : 1;
+    uint8_t bit23 : 1;
+    uint8_t res2;
     uint32_t res3;
 
 } fpcr_bitfield;
@@ -111,10 +111,10 @@ typedef union {
 #else
 typedef struct {
     uint16_t res0;
-    uint8_t  res1 : 6;
-    uint8_t  bit22 : 1;
-    uint8_t  bit23 : 1;
-    uint8_t  res2;
+    uint8_t res1 : 6;
+    uint8_t bit22 : 1;
+    uint8_t bit23 : 1;
+    uint8_t res2;
 } fpcr_bitfield;
 
 typedef union {
@@ -131,7 +131,7 @@ FORCE_INLINE void _MM_SET_ROUNDING_MODE(int rounding)
                  : "=r"(r.value)); /* read */
 #else
     asm volatile("vmrs %0, FPSCR"
-                 : "=r"(r.value)); /* read */
+                 : "=r"(r.value));           /* read */
 #endif
     if (rounding == _MM_ROUND_TOWARD_ZERO) {
         r.field.bit22 = 1;
@@ -291,8 +291,8 @@ FORCE_INLINE __m128i _mm_cvtpd_epi64(__m128d a)
 #if defined(__aarch64__)
     return vreinterpretq_m128i_s64(vcvtnq_s64_f64(a));
 #else
-    int64_t a0 = (int64_t) ((double *) &a)[0];
-    int64_t a1 = (int64_t) ((double *) &a)[1];
+    int64_t a0 = (int64_t)((double *) &a)[0];
+    int64_t a1 = (int64_t)((double *) &a)[1];
     return _mm_set_epi64(a1, a0);
 #endif
 }
@@ -361,8 +361,8 @@ FORCE_INLINE __m128d _mm_fnmadd_pd(__m128d a, __m128d b, __m128d c)
 {
 #if defined(__aarch64__)
     return vreinterpretq_m128d_f64(vfmsq_f64(vreinterpretq_f64_m128d(c),
-                                            vreinterpretq_f64_m128d(b),
-                                            vreinterpretq_f64_m128d(a)));
+                                             vreinterpretq_f64_m128d(b),
+                                             vreinterpretq_f64_m128d(a)));
 #else
     return _mm_add_pd(c, _mm_mul_pd(a, b));
 #endif

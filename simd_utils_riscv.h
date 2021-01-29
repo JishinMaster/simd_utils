@@ -64,7 +64,7 @@ static inline void mineveryf_vec(float *src1, float *src2, float *dst, int len)
     }
 }
 
-static inline void threshold_gt_f_vec(float *src, float *dst, float value, int len)
+static inline void threshold_gt_f_vec(float *src, float *dst, int len, float value)
 {
     size_t i;
     float *src_tmp = src;
@@ -80,7 +80,7 @@ static inline void threshold_gt_f_vec(float *src, float *dst, float value, int l
     }
 }
 
-static inline void threshold_lt_f_vec(float *src, float *dst, float value, int len)
+static inline void threshold_lt_f_vec(float *src, float *dst, int len, float value)
 {
     size_t i;
     float *src_tmp = src;

@@ -358,25 +358,26 @@ static inline v2si _mm_cvttpd_epi64_custom(v2sd x)
     x = _mm_add_pd(x, _mm_set1_pd(0x0010000000000000));
     return _mm_xor_si128(
         _mm_castpd_si128(x),
-        _mm_castpd_si128(_mm_set1_pd(0x0010000000000000))
-    );
+        _mm_castpd_si128(_mm_set1_pd(0x0010000000000000)));
 #endif
 }
 
-void print2(__m128d v) {
-	double *p = (double*)&v;
+void print2(__m128d v)
+{
+    double *p = (double *) &v;
 #ifndef USE_SSE2
-	_mm_empty();
+    _mm_empty();
 #endif
-	printf("[%13.8g, %13.8g]", p[0], p[1]);
+    printf("[%13.8g, %13.8g]", p[0], p[1]);
 }
 
-void print2i(__m128i v) {
-	int64_t *p = (int64_t*)&v;
+void print2i(__m128i v)
+{
+    int64_t *p = (int64_t *) &v;
 #ifndef USE_SSE2
-	_mm_empty();
+    _mm_empty();
 #endif
-	printf("[%ld, %ld]", p[0], p[1]);
+    printf("[%ld, %ld]", p[0], p[1]);
 }
 
 static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
@@ -388,13 +389,13 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     sign_bit_sin = x;
     /* take the absolute value */
     x = _mm_and_pd(x, *(v2sd *) _pd_inv_sign_mask);
-    
+
     /* extract the sign bit (upper one) */
     sign_bit_sin = _mm_and_pd(sign_bit_sin, *(v2sd *) _pd_sign_mask);
 
     /* scale by 4/Pi */
     y = _mm_mul_pd(x, *(v2sd *) _pd_cephes_FOPI);
-    
+
     /* store the integer part of y in emm2 */
     emm2 = _mm_cvttpd_epi64_custom(y);
     /* j=(j+1) & (~1) (see the cephes sources) */
@@ -421,14 +422,14 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     x = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP1, x);
     x = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP2, x);
     x = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP3, x);
-    
+
     emm4 = _mm_sub_epi64(emm4, *(v2si *) _pi64_2);
     emm4 = _mm_andnot_si128(emm4, *(v2si *) _pi64_4);
     emm4 = _mm_slli_epi64(emm4, 61);
     v2sd sign_bit_cos = _mm_castsi128_pd(emm4);
-    
+
     sign_bit_sin = _mm_xor_pd(sign_bit_sin, swap_sign_bit_sin);
-    
+
     /* Evaluate the first polynom  (0 <= x <= Pi/4) */
     v2sd z = _mm_mul_pd(x, x);
 
@@ -441,7 +442,7 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     y = _mm_mul_pd(y, z);
     y = _mm_fnmadd_pd_custom(z, *(v2sd *) _pd_0p5, y);
     y = _mm_add_pd(y, *(v2sd *) _pd_1);
-    
+
     /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
     v2sd y2 = _mm_fmadd_pd_custom(*(v2sd *) _ps_sincof_p0, z, *(v2sd *) _pd_sincof_p1);
     y2 = _mm_fmadd_pd_custom(y2, z, *(v2sd *) _pd_sincof_p2);
@@ -450,8 +451,8 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     y2 = _mm_fmadd_pd_custom(y2, z, *(v2sd *) _pd_sincof_p5);
     y2 = _mm_mul_pd(y2, z);
     y2 = _mm_fmadd_pd_custom(y2, x, x);
-    
-    
+
+
     /* select the correct result from the two polynoms */
     xmm3 = poly_mask;
     v2sd ysin2 = _mm_and_pd(xmm3, y2);
@@ -496,3 +497,112 @@ static inline void sincos128d(double *src, double *dst_sin, double *dst_cos, int
         dst_cos[i] = cos(i);
     }
 }
+
+// To be tested
+#if 0
+static inline v2sd exp_pd(v2sd x)
+{
+    v2sd tmp = _mm_setzero_pd(), fx;
+
+    v2si emm0;
+
+    v2sd one = *(v2sd *) _pd_1;
+    v2sd two = *(v2sd *) _pd_2;
+
+    x = _mm_min_pd(x, *(v2sd *) _pd_exp_hi);
+    x = _mm_max_pd(x, *(v2sd *) _pd_exp_lo);
+
+    /* express exp(x) as exp(g + n*log(2)) */
+    fx = _mm_fmadd_pd_custom(x, *(v2sd *) _pd_cephes_LOG2EF, *(v2sd *) _pd_0p5);
+
+    /* how to perform a floorf with SSE: just below */
+    //emm0 = _mm_cvttpd_epi64_custom(fx);
+    //tmp = _mm_cvtepi64_pd_custom(emm0);
+    tmp = _mm_round_pd(fx, ROUNDTOFLOOR);
+
+    /* if greater, substract 1 */
+    v2sd mask = _mm_cmpgt_pd(tmp, fx);
+    mask = _mm_and_pd(mask, one);
+    fx = _mm_sub_pd(tmp, mask);
+
+    x = _mm_fnmadd_pd_custom(fx, *(v2sd *) _pd_cephes_exp_C1, x);
+    x = _mm_fnmadd_pd_custom(fx, *(v2sd *) _pd_cephes_exp_C2, x);
+
+    v2sd z = _mm_mul_pd(x, x);
+
+    v2sd y = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_exp_p0, z, *(v2sd *) _pd_cephes_exp_p1);
+    y = _mm_fmadd_pd_custom(y, z, *(v2sd *) _pd_cephes_exp_p2);
+    y = _mm_mul_pd(y,x);
+    v2sd k = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_exp_q0, z, *(v2sd *) _pd_cephes_exp_q1);
+    k = _mm_fmadd_pd_custom(k, z, *(v2sd *) _pd_cephes_exp_q2);
+    k = _mm_fmadd_pd_custom(k, z, *(v2sd *) _pd_cephes_exp_q3);
+    k = _mm_sub_pd(k,y);
+    k = _mm_div_pd(y,k);
+    k = _mm_fmadd_pd_custom(k, two, one);
+
+    /* build 2^n */
+    emm0 = _mm_cvttpd_epi64_custom(fx);
+    emm0 = _mm_add_epi64(emm0, *(v2si *) _pi64_0x7f);
+    emm0 = _mm_slli_epi64(emm0, 52);
+    v2sd pow2n = _mm_castsi128_pd(emm0);
+
+    k = _mm_mul_pd(k, pow2n);
+    return y;
+}
+
+static inline v2sd log_pd(v2sd x)
+{
+    v2si emm0;
+    v2sd one = *(v2sd *) _pd_1;
+
+    v2sd invalid_mask = _mm_cmple_pd(x, _mm_setzero_pd());
+
+    x = _mm_max_pd(x, *(v2sd *) _pd_min_norm_pos); /* cut off denormalized stuff */
+
+    emm0 = _mm_srli_epi64(_mm_castpd_si128(x), 55);
+
+    /* keep only the fractional part */
+    x = _mm_and_pd(x, *(v2sd *) _pd_inv_mant_mask);
+    x = _mm_or_pd(x, *(v2sd *) _pd_0p5);
+
+    emm0 = _mm_sub_epi64(emm0, *(v2sd *) _pi64_0x7f);
+    v2sd e = _mm_cvtepi64_pd_custom_ps(emm0);
+
+    e = _mm_add_pd(e, one);
+
+    /* part2:
+     if( x < SQRTHF ) {
+       e -= 1;
+       x = x + x - 1.0;
+     } else { x = x - 1.0; }
+	 */
+    v2sd mask = _mm_cmplt_pd(x, *(v2sd *) _pd_cephes_SQRTHF);
+    v2sd tmp = _mm_and_pd(x, mask);
+    x = _mm_sub_pd(x, one);
+    e = _mm_sub_pd(e, _mm_and_pd(one, mask));
+    x = _mm_add_pd(x, tmp);
+
+
+    v4sf z = _mm_mul_pd(x, x);
+
+    v2sd y = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_log_p0, x, *(v4sf *) _pd_cephes_log_p1);
+    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p2);
+    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p3);
+    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p4);
+    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p5);
+    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p6);
+    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p7);
+    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p8);
+    y = _mm_mul_pd(y, x);
+
+    y = _mm_mul_pd(y, z);
+
+    y = _mm_fmadd_pd_custom(e, *(v2sd *) _pd_cephes_log_q1, y);
+    y = _mm_fnmadd_pd_custom(z, *(v2sd *) _pd_0p5, y);
+
+    tmp = _mm_fmadd_pd_custom(e, *(v4sf *) _pd_cephes_log_q2, y);
+    x = _mm_add_pd(x, tmp);
+    x = _mm_or_pd(x, invalid_mask);  // negative arg will be NAN
+    return x;
+}
+#endif

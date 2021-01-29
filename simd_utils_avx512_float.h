@@ -510,7 +510,7 @@ static inline void minevery512f(float *src1, float *src2, float *dst, int len)
     }
 }
 
-static inline void threshold512_gt_f(float *src, float *dst, float value, int len)
+static inline void threshold512_gt_f(float *src, float *dst, int len, float value)
 {
     v16sf tmp = _mm512_set1_ps(value);  //_mm512_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
 
@@ -534,7 +534,7 @@ static inline void threshold512_gt_f(float *src, float *dst, float value, int le
     }
 }
 
-static inline void threshold512_lt_f(float *src, float *dst, float value, int len)
+static inline void threshold512_lt_f(float *src, float *dst, int len, float value)
 {
     v16sf tmp = _mm512_set1_ps(value);  //_mm512_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
 
@@ -718,7 +718,7 @@ v16sf atan2512f_ps(v16sf y, v16sf x, const v16sf positive_mask, const v16sf nega
 
     w = _mm512_setzero_ps();
     w = _mm512_mask_blend_ps(_kandn_mask16(yinfzero, xinfzero), w, *(v16sf *) _ps512_PIF);  // y >= 0 && x<0
-    w = _mm512_mask_blend_ps(_kand_mask16(yinfzero, xinfzero), w, *(v16sf *) _ps512_mPIF);    // y < 0 && x<0
+    w = _mm512_mask_blend_ps(_kand_mask16(yinfzero, xinfzero), w, *(v16sf *) _ps512_mPIF);  // y < 0 && x<0
 
     z = _mm512_mask_blend_ps(specialcase, _mm512_add_ps(w, atan512f_ps(_mm512_div_ps(y, x), positive_mask, negative_mask)), z);  // atanf(y/x) if not in special case
 
@@ -755,7 +755,7 @@ v16sf asin512f_ps(v16sf xx, const v16sf positive_mask, const v16sf negative_mask
     __mmask16 ainfem4, asup0p5;
     v16sf tmp;
     x = xx;
-    a = _mm512_and_ps(positive_mask, x);                       //fabs(x)
+    a = _mm512_and_ps(positive_mask, x);                            //fabs(x)
     sign = _mm512_cmp_ps_mask(x, _mm512_setzero_ps(), _CMP_LT_OS);  //0xFFFFFFFF if x < 0.0
 
     //TODO : vectorize this
@@ -770,8 +770,8 @@ v16sf asin512f_ps(v16sf xx, const v16sf positive_mask, const v16sf negative_mask
     asup0p5 = _mm512_cmp_ps_mask(a, *(v16sf *) _ps512_0p5, _CMP_GT_OS);  //if( a > 0.5f ) flag = 1 else 0
     z_tmp = _mm512_sub_ps(*(v16sf *) _ps512_1, a);
     z_tmp = _mm512_mul_ps(*(v16sf *) _ps512_0p5, z_tmp);
-    z =  _mm512_mask_blend_ps(asup0p5, _mm512_mul_ps(a, a), z_tmp);
-    x =  _mm512_mask_blend_ps(asup0p5, a, _mm512_sqrt_ps(z));
+    z = _mm512_mask_blend_ps(asup0p5, _mm512_mul_ps(a, a), z_tmp);
+    x = _mm512_mask_blend_ps(asup0p5, a, _mm512_sqrt_ps(z));
 
     tmp = _mm512_fmadd_ps_custom(*(v16sf *) _ps512_ASIN_P0, z, *(v16sf *) _ps512_ASIN_P1);
     tmp = _mm512_fmadd_ps_custom(z, tmp, *(v16sf *) _ps512_ASIN_P2);
@@ -784,11 +784,11 @@ v16sf asin512f_ps(v16sf xx, const v16sf positive_mask, const v16sf negative_mask
 
     z_tmp = _mm512_add_ps(z, z);
     z_tmp = _mm512_sub_ps(*(v16sf *) _ps512_PIO2F, z_tmp);
-    z =  _mm512_mask_blend_ps(asup0p5, z, z_tmp);
+    z = _mm512_mask_blend_ps(asup0p5, z, z_tmp);
 
     //done:
-    z =  _mm512_mask_blend_ps(ainfem4, z, a);
-    z =  _mm512_mask_blend_ps(sign, z, _mm512_xor_ps(negative_mask, z));
+    z = _mm512_mask_blend_ps(ainfem4, z, a);
+    z = _mm512_mask_blend_ps(sign, z, _mm512_xor_ps(negative_mask, z));
 
     return (z);
 }
@@ -1003,7 +1003,7 @@ static inline void sum512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    __attribute__((aligned(AVX512_LEN_BYTES))) float accumulate[AVX512_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,\
+    __attribute__((aligned(AVX512_LEN_BYTES))) float accumulate[AVX512_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
                                                                                      0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
     float tmp_acc = 0.0f;
     v16sf vec_acc = _mm512_setzero_ps();  //initialize the vector accumulator
@@ -1036,7 +1036,7 @@ static inline void mean512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    __attribute__((aligned(AVX512_LEN_BYTES))) float accumulate[AVX512_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,\
+    __attribute__((aligned(AVX512_LEN_BYTES))) float accumulate[AVX512_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
                                                                                      0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
     float tmp_acc = 0.0f;
     v16sf vec_acc = _mm512_setzero_ps();  //initialize the vector accumulator
@@ -1159,10 +1159,10 @@ static inline void cplxvecmul512f(complex32_t *src1, complex32_t *src2, complex3
     int i;
     if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
-            v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);                       // src1 = b1,a1,b0,a0 (little endian)
-            v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);                       // src2 = d1,c1,d0,c0
-            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                   //a1,a1,a0,a0
-            v16sf tmp2 = _mm512_mul_ps(tmp1, src2_tmp);                                  //a1d1,a1c1,a0d0,a0c0
+            v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);                      // src1 = b1,a1,b0,a0 (little endian)
+            v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);                      // src2 = d1,c1,d0,c0
+            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                  //a1,a1,a0,a0
+            v16sf tmp2 = _mm512_mul_ps(tmp1, src2_tmp);                                 //a1d1,a1c1,a0d0,a0c0
             src2_tmp = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
             tmp1 = _mm512_movehdup_ps(src1_tmp);                                        //b1,b1,b0,b0
             v16sf out = _mm512_mul_ps(src2_tmp, tmp1);
@@ -1171,10 +1171,10 @@ static inline void cplxvecmul512f(complex32_t *src1, complex32_t *src2, complex3
         }
     } else {
         for (i = 0; i < 2 * stop_len; i += SSE_LEN_FLOAT) {
-            v16sf src1_tmp = _mm512_loadu_ps((float *) (src1) + i);                      // src1 = b1,a1,b0,a0 (little endian)
-            v16sf src2_tmp = _mm512_loadu_ps((float *) (src2) + i);                      // src2 = d1,c1,d0,c0
-            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                   //a1,a1,a0,a0
-            v16sf tmp2 = _mm512_mul_ps(tmp1, src2_tmp);                                  //a1d1,a1c1,a0d0,a0c0
+            v16sf src1_tmp = _mm512_loadu_ps((float *) (src1) + i);                     // src1 = b1,a1,b0,a0 (little endian)
+            v16sf src2_tmp = _mm512_loadu_ps((float *) (src2) + i);                     // src2 = d1,c1,d0,c0
+            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                  //a1,a1,a0,a0
+            v16sf tmp2 = _mm512_mul_ps(tmp1, src2_tmp);                                 //a1d1,a1c1,a0d0,a0c0
             src2_tmp = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
             tmp1 = _mm512_movehdup_ps(src1_tmp);                                        //b1,b1,b0,b0
             v16sf out = _mm512_mul_ps(src2_tmp, tmp1);
@@ -1188,4 +1188,3 @@ static inline void cplxvecmul512f(complex32_t *src1, complex32_t *src2, complex3
         dst[i].im = src1[i].re * src2[i].im + src2[i].re * src1[i].im;
     }
 }
-

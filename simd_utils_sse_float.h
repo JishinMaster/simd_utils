@@ -131,13 +131,13 @@ static inline void fabs128f(float *src, float *dst, int len)
     stop_len *= (SSE_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-		#pragma unroll 2
+#pragma unroll 2
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
             _mm_store_ps(dst + i, _mm_and_ps(mask, src_tmp));
         }
     } else {
-		#pragma unroll 2
+#pragma unroll 2
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
             _mm_storeu_ps(dst + i, _mm_and_ps(mask, src_tmp));
@@ -157,12 +157,12 @@ static inline void set128f(float *src, float value, int len)
     stop_len *= SSE_LEN_FLOAT;
 
     if (isAligned((uintptr_t)(src), SSE_LEN_BYTES)) {
-		#pragma unroll 2
+#pragma unroll 2
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             _mm_store_ps(src + i, tmp);
         }
     } else {
-		#pragma unroll 2
+#pragma unroll 2
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             _mm_storeu_ps(src + i, tmp);
         }
@@ -455,33 +455,33 @@ static inline void vectorSlope128f(float *dst, int len, float offset, float slop
 {
     v4sf coef = _mm_set_ps(3.0f * slope, 2.0f * slope, slope, 0.0f);
     v4sf slope8_vec = _mm_set1_ps(8.0f * slope);
-    v4sf curVal  = _mm_add_ps(_mm_set1_ps(offset), coef);
-	v4sf curVal2 = _mm_add_ps(_mm_set1_ps(offset), coef);
-	curVal2		 = _mm_add_ps(curVal2, _mm_set1_ps(4.0f * slope));
-	
-    int stop_len = len / (2*SSE_LEN_FLOAT);
-    stop_len *= (2*SSE_LEN_FLOAT);
+    v4sf curVal = _mm_add_ps(_mm_set1_ps(offset), coef);
+    v4sf curVal2 = _mm_add_ps(_mm_set1_ps(offset), coef);
+    curVal2 = _mm_add_ps(curVal2, _mm_set1_ps(4.0f * slope));
+
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
 
     if (((uintptr_t)(const void *) (dst) % SSE_LEN_BYTES) == 0) {
         _mm_store_ps(dst + 0, curVal);
-		_mm_store_ps(dst + SSE_LEN_FLOAT, curVal2);
+        _mm_store_ps(dst + SSE_LEN_FLOAT, curVal2);
     } else {
         _mm_storeu_ps(dst + 0, curVal);
-		_mm_storeu_ps(dst + SSE_LEN_FLOAT, curVal2);
+        _mm_storeu_ps(dst + SSE_LEN_FLOAT, curVal2);
     }
 
     if (((uintptr_t)(const void *) (dst) % SSE_LEN_BYTES) == 0) {
-        for (int i = 2*SSE_LEN_FLOAT; i < stop_len; i += 2*SSE_LEN_FLOAT) {
+        for (int i = 2 * SSE_LEN_FLOAT; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             curVal = _mm_add_ps(curVal, slope8_vec);
             _mm_store_ps(dst + i, curVal);
-			 curVal2 = _mm_add_ps(curVal2, slope8_vec);
+            curVal2 = _mm_add_ps(curVal2, slope8_vec);
             _mm_store_ps(dst + i + SSE_LEN_FLOAT, curVal2);
         }
     } else {
-        for (int i = 2*SSE_LEN_FLOAT; i < stop_len; i += 2*SSE_LEN_FLOAT) {
+        for (int i = 2 * SSE_LEN_FLOAT; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             curVal = _mm_add_ps(curVal, slope8_vec);
             _mm_storeu_ps(dst + i, curVal);
-			curVal2 = _mm_add_ps(curVal2, slope8_vec);
+            curVal2 = _mm_add_ps(curVal2, slope8_vec);
             _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, curVal2);
         }
     }
@@ -636,14 +636,14 @@ static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, 
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
-            v4si vec  = _mm_load_si128((__m128i *) (src + i)); //loads 1 2 3 4 5 6 7 8 8
-            v4si low  = _mm_unpacklo_epi16(vec, vec);          // low 1 1 2 2 3 3 4 4
+            v4si vec = _mm_load_si128((__m128i *) (src + i));  //loads 1 2 3 4 5 6 7 8 8
+            v4si low = _mm_unpacklo_epi16(vec, vec);           // low 1 1 2 2 3 3 4 4
             v4si high = _mm_unpackhi_epi16(vec, vec);          // high 5 5 6 6 7 7 8 8
-            low       = _mm_srai_epi32(low, 0x10);             //make low 1 -1 2 -1 3 -1 4 -4
-            high      = _mm_srai_epi32(high, 0x10);            // make high 5 -1 6 -1 7 -1 8 -1
+            low = _mm_srai_epi32(low, 0x10);                   //make low 1 -1 2 -1 3 -1 4 -4
+            high = _mm_srai_epi32(high, 0x10);                 // make high 5 -1 6 -1 7 -1 8 -1
 
             //convert the vector to float and scale it
-            v4sf floatlo = _mm_mul_ps(_mm_cvtepi32_ps(low) , scale_fact_vec);
+            v4sf floatlo = _mm_mul_ps(_mm_cvtepi32_ps(low), scale_fact_vec);
             v4sf floathi = _mm_mul_ps(_mm_cvtepi32_ps(high), scale_fact_vec);
 
             _mm_store_ps(dst + i, floatlo);
@@ -906,6 +906,62 @@ static inline void minevery128f(float *src1, float *src2, float *dst, int len)
     }
 }
 
+
+static inline void minmax128f(float *src, int len, float *min_value, float *max_value)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    v4sf max_v, min_v;
+    v4sf src_tmp;
+    float min_f[SSE_LEN_FLOAT];
+    float max_f[SSE_LEN_FLOAT];
+    float min_tmp;
+    float max_tmp;
+
+    if (isAligned((uintptr_t)(src), SSE_LEN_BYTES)) {
+        src_tmp = _mm_load_ps(src + 0);
+        max_v = src_tmp;
+        min_v = src_tmp;
+        for (int i = SSE_LEN_FLOAT; i < stop_len; i += SSE_LEN_FLOAT) {
+            src_tmp = _mm_load_ps(src + i);
+            max_v = _mm_max_ps(max_v, src_tmp);
+            min_v = _mm_min_ps(min_v, src_tmp);
+        }
+    } else {
+        src_tmp = _mm_loadu_ps(src + 0);
+        max_v = src_tmp;
+        min_v = src_tmp;
+        for (int i = SSE_LEN_FLOAT; i < stop_len; i += SSE_LEN_FLOAT) {
+            src_tmp = _mm_loadu_ps(src + i);
+            max_v = _mm_max_ps(max_v, src_tmp);
+            min_v = _mm_min_ps(min_v, src_tmp);
+        }
+    }
+
+    _mm_store_ps(max_f, max_v);
+    _mm_store_ps(min_f, min_v);
+
+    max_tmp = max_f[0];
+    max_tmp = max_tmp > max_f[1] ? max_tmp : max_f[1];
+    max_tmp = max_tmp > max_f[2] ? max_tmp : max_f[2];
+    max_tmp = max_tmp > max_f[3] ? max_tmp : max_f[3];
+
+    min_tmp = min_f[0];
+    min_tmp = min_tmp < min_f[1] ? min_tmp : min_f[1];
+    min_tmp = min_tmp < min_f[2] ? min_tmp : min_f[2];
+    min_tmp = min_tmp < min_f[3] ? min_tmp : min_f[3];
+
+    for (int i = stop_len; i < len; i++) {
+        max_tmp = max_tmp > src[i] ? max_tmp : src[i];
+        min_tmp = min_tmp < src[i] ? min_tmp : src[i];
+    }
+
+    *max_value = max_tmp;
+    *min_value = min_tmp;
+}
+
+
 static inline void threshold128_gt_f(float *src, float *dst, float value, int len)
 {
     const v4sf tmp = _mm_set1_ps(value);
@@ -951,6 +1007,42 @@ static inline void threshold128_lt_f(float *src, float *dst, float value, int le
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i] > value ? src[i] : value;
+    }
+}
+
+static inline void threshold128_ltval_gtval_f(float *src, float *dst, int len, float ltlevel, float ltvalue, float gtlevel, float gtvalue)
+{
+    const v4sf ltlevel_v = _mm_set1_ps(ltlevel);
+    const v4sf ltvalue_v = _mm_set1_ps(ltvalue);
+    const v4sf gtlevel_v = _mm_set1_ps(gtlevel);
+    const v4sf gtvalue_v = _mm_set1_ps(gtvalue);
+
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            v4sf lt_mask = _mm_cmplt_ps(src_tmp, ltlevel_v);
+            v4sf gt_mask = _mm_cmpgt_ps(src_tmp, gtlevel_v);
+            v4sf dst_tmp = _mm_blendv_ps(src_tmp, ltvalue_v, lt_mask);
+            dst_tmp = _mm_blendv_ps(dst_tmp, gtvalue_v, gt_mask);
+            _mm_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            v4sf lt_mask = _mm_cmplt_ps(src_tmp, ltlevel_v);
+            v4sf gt_mask = _mm_cmpgt_ps(src_tmp, gtlevel_v);
+            v4sf dst_tmp = _mm_blendv_ps(src_tmp, ltvalue_v, lt_mask);
+            dst_tmp = _mm_blendv_ps(dst_tmp, gtvalue_v, gt_mask);
+            _mm_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i] < ltlevel ? ltvalue : src[i];
+        dst[i] = src[i] > gtlevel ? gtvalue : dst[i];
     }
 }
 
@@ -1442,29 +1534,29 @@ static inline void subcrev128f(float *src, float value, float *dst, int len)
 
 static inline void sum128f(float *src, float *dst, int len)
 {
-    int stop_len = len / (2*SSE_LEN_FLOAT);
-    stop_len *= (2*SSE_LEN_FLOAT);
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
 
     __attribute__((aligned(SSE_LEN_BYTES))) float accumulate[SSE_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f};
     float tmp_acc = 0.0f;
     v4sf vec_acc1 = _mm_setzero_ps();  //initialize the vector accumulator
-	v4sf vec_acc2 = _mm_setzero_ps();  //initialize the vector accumulator
+    v4sf vec_acc2 = _mm_setzero_ps();  //initialize the vector accumulator
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += 2*SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf vec_tmp1 = _mm_load_ps(src + i);
             vec_acc1 = _mm_add_ps(vec_acc1, vec_tmp1);
-			v4sf vec_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4sf vec_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
             vec_acc2 = _mm_add_ps(vec_acc2, vec_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += 2*SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf vec_tmp1 = _mm_loadu_ps(src + i);
             vec_acc1 = _mm_add_ps(vec_acc1, vec_tmp1);
-			v4sf vec_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+            v4sf vec_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
             vec_acc2 = _mm_add_ps(vec_acc2, vec_tmp2);
         }
     }
-	vec_acc1 = _mm_add_ps(vec_acc1, vec_acc2);
+    vec_acc1 = _mm_add_ps(vec_acc1, vec_acc2);
     _mm_store_ps(accumulate, vec_acc1);
 
     for (int i = stop_len; i < len; i++) {
@@ -1478,9 +1570,9 @@ static inline void sum128f(float *src, float *dst, int len)
 
 static inline void mean128f(float *src, float *dst, int len)
 {
-	float coeff = 1.0f/((float)len);
-	sum128f(src, dst, len);
-	 *dst *= coeff;
+    float coeff = 1.0f / ((float) len);
+    sum128f(src, dst, len);
+    *dst *= coeff;
 }
 
 static inline void sqrt128f(float *src, float *dst, int len)

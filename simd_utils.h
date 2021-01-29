@@ -271,20 +271,20 @@ _PD_CONST(minus_cephes_DP2, -3.77489470793079817668E-8);
 _PD_CONST(minus_cephes_DP3, -2.69515142907905952645E-15);
 _PD_CONST(sincof_p0, 1.58962301576546568060E-10);
 _PD_CONST(sincof_p1, -2.50507477628578072866E-8);
-_PD_CONST(sincof_p2,  2.75573136213857245213E-6);
+_PD_CONST(sincof_p2, 2.75573136213857245213E-6);
 _PD_CONST(sincof_p3, -1.98412698295895385996E-4);
-_PD_CONST(sincof_p4,  8.33333333332211858878E-3);
+_PD_CONST(sincof_p4, 8.33333333332211858878E-3);
 _PD_CONST(sincof_p5, -1.66666666666666307295E-1);
 _PD_CONST(coscof_p0, -1.13585365213876817300E-11);
-_PD_CONST(coscof_p1,  2.08757008419747316778E-9);
+_PD_CONST(coscof_p1, 2.08757008419747316778E-9);
 _PD_CONST(coscof_p2, -2.75573141792967388112E-7);
-_PD_CONST(coscof_p3,  2.48015872888517045348E-5);
+_PD_CONST(coscof_p3, 2.48015872888517045348E-5);
 _PD_CONST(coscof_p4, -1.38888888888730564116E-3);
-_PD_CONST(coscof_p5,  4.16666666666665929218E-2);
+_PD_CONST(coscof_p5, 4.16666666666665929218E-2);
 _PD_CONST(cephes_FOPI, 1.2732395447351626861510701069801148);  // 4 / M_PI
 
-
 _PD_CONST(1, 1.0);
+_PD_CONST(2, 2.0);
 _PD_CONST(0p5, 0.5);
 _PI64_CONST(1, 1);
 _PI64_CONST(inv1, ~1);
@@ -627,7 +627,7 @@ static inline void convertInt16ToFloat32_C(int16_t *src, float *dst, int len, in
     }
 }
 
-static inline void threshold_gt_f_C(float *src, float *dst, float value, int len)
+static inline void threshold_gt_f_C(float *src, float *dst, int len, float value)
 {
 #ifdef OMP
 #pragma omp simd
@@ -638,13 +638,24 @@ static inline void threshold_gt_f_C(float *src, float *dst, float value, int len
 }
 
 
-static inline void threshold_lt_f_C(float *src, float *dst, float value, int len)
+static inline void threshold_lt_f_C(float *src, float *dst, int len, float value)
 {
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] = src[i] > value ? src[i] : value;
+    }
+}
+
+static inline void threshold_ltval_gtval_f_C(float *src, float *dst, int len, float ltlevel, float ltvalue, float gtlevel, float gtvalue)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src[i] < ltlevel ? ltvalue : src[i];
+        dst[i] = dst[i] > gtlevel ? gtvalue : dst[i];
     }
 }
 
@@ -830,6 +841,20 @@ static inline void mineveryf_c(float *src1, float *src2, float *dst, int len)
     for (int i = 0; i < len; i++) {
         dst[i] = src1[i] < src2[i] ? src1[i] : src2[i];
     }
+}
+
+static inline void minmaxf_c(float *src, int len, float *min_value, float *max_value)
+{
+    float min_tmp = src[0];
+    float max_tmp = src[0];
+
+    for (int i = 1; i < len; i++) {
+        max_tmp = max_tmp > src[i] ? max_tmp : src[i];
+        min_tmp = min_tmp < src[i] ? min_tmp : src[i];
+    }
+
+    *max_value = max_tmp;
+    *min_value = min_tmp;
 }
 
 void addf_c(float *a, float *b, float *c, int n)
