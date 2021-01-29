@@ -510,6 +510,84 @@ static inline void minevery512f(float *src1, float *src2, float *dst, int len)
     }
 }
 
+static inline void minmax512f(float *src, int len, float *min_value, float *max_value)
+{
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    v16sf max_v, min_v;
+    v16sf src_tmp;
+    float min_f[AVX512_LEN_FLOAT] __attribute__ ((aligned (AVX512_LEN_BYTES)));
+    float max_f[AVX512_LEN_FLOAT] __attribute__ ((aligned (AVX512_LEN_BYTES)));
+    float min_tmp;
+    float max_tmp;
+
+    if (isAligned((uintptr_t)(src), AVX512_LEN_BYTES)) {
+        src_tmp = _mm512_load_ps(src + 0);
+        max_v = src_tmp;
+        min_v = src_tmp;
+        for (int i = AVX512_LEN_FLOAT; i < stop_len; i += AVX512_LEN_FLOAT) {
+            src_tmp = _mm512_load_ps(src + i);
+            max_v = _mm512_max_ps(max_v, src_tmp);
+            min_v = _mm512_min_ps(min_v, src_tmp);
+        }
+    } else {
+        src_tmp = _mm512_loadu_ps(src + 0);
+        max_v = src_tmp;
+        min_v = src_tmp;
+        for (int i = AVX512_LEN_FLOAT; i < stop_len; i += AVX512_LEN_FLOAT) {
+            src_tmp = _mm512_loadu_ps(src + i);
+            max_v = _mm512_max_ps(max_v, src_tmp);
+            min_v = _mm512_min_ps(min_v, src_tmp);
+        }
+    }
+
+    _mm512_store_ps(max_f, max_v);
+    _mm512_store_ps(min_f, min_v);
+
+    max_tmp = max_f[0];
+    max_tmp = max_tmp > max_f[1] ? max_tmp : max_f[1];
+    max_tmp = max_tmp > max_f[2] ? max_tmp : max_f[2];
+    max_tmp = max_tmp > max_f[3] ? max_tmp : max_f[3];
+    max_tmp = max_tmp > max_f[4] ? max_tmp : max_f[4];
+    max_tmp = max_tmp > max_f[5] ? max_tmp : max_f[5];
+    max_tmp = max_tmp > max_f[6] ? max_tmp : max_f[6];
+    max_tmp = max_tmp > max_f[7] ? max_tmp : max_f[7];
+    max_tmp = max_tmp > max_f[8] ? max_tmp : max_f[8];
+    max_tmp = max_tmp > max_f[9] ? max_tmp : max_f[9];
+    max_tmp = max_tmp > max_f[10] ? max_tmp : max_f[10];
+    max_tmp = max_tmp > max_f[11] ? max_tmp : max_f[11];
+    max_tmp = max_tmp > max_f[12] ? max_tmp : max_f[12];
+    max_tmp = max_tmp > max_f[13] ? max_tmp : max_f[13];
+    max_tmp = max_tmp > max_f[14] ? max_tmp : max_f[14];
+    max_tmp = max_tmp > max_f[15] ? max_tmp : max_f[15];
+    
+    min_tmp = min_f[0];
+    min_tmp = min_tmp < min_f[1] ? min_tmp : min_f[1];
+    min_tmp = min_tmp < min_f[2] ? min_tmp : min_f[2];
+    min_tmp = min_tmp < min_f[3] ? min_tmp : min_f[3];
+    min_tmp = min_tmp < min_f[4] ? min_tmp : min_f[4];
+    min_tmp = min_tmp < min_f[5] ? min_tmp : min_f[5];
+    min_tmp = min_tmp < min_f[6] ? min_tmp : min_f[6];
+    min_tmp = min_tmp < min_f[7] ? min_tmp : min_f[7];
+    min_tmp = min_tmp < min_f[8] ? min_tmp : min_f[8];
+    min_tmp = min_tmp < min_f[9] ? min_tmp : min_f[9];
+    min_tmp = min_tmp < min_f[10] ? min_tmp : min_f[10];
+    min_tmp = min_tmp < min_f[11] ? min_tmp : min_f[11];
+    min_tmp = min_tmp < min_f[12] ? min_tmp : min_f[12];
+    min_tmp = min_tmp < min_f[13] ? min_tmp : min_f[13];
+    min_tmp = min_tmp < min_f[14] ? min_tmp : min_f[14];
+    min_tmp = min_tmp < min_f[15] ? min_tmp : min_f[15];
+    
+    for (int i = stop_len; i < len; i++) {
+        max_tmp = max_tmp > src[i] ? max_tmp : src[i];
+        min_tmp = min_tmp < src[i] ? min_tmp : src[i];
+    }
+
+    *max_value = max_tmp;
+    *min_value = min_tmp;
+}
+
 static inline void threshold512_gt_f(float *src, float *dst, int len, float value)
 {
     v16sf tmp = _mm512_set1_ps(value);  //_mm512_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
@@ -555,6 +633,43 @@ static inline void threshold512_lt_f(float *src, float *dst, int len, float valu
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i] < value ? src[i] : value;
+    }
+}
+
+
+static inline void threshold512_ltval_gtval_f(float *src, float *dst, int len, float ltlevel, float ltvalue, float gtlevel, float gtvalue)
+{
+    const v16sf ltlevel_v = _mm512_set1_ps(ltlevel);
+    const v16sf ltvalue_v = _mm512_set1_ps(ltvalue);
+    const v16sf gtlevel_v = _mm512_set1_ps(gtlevel);
+    const v16sf gtvalue_v = _mm512_set1_ps(gtvalue);
+
+    int stop_len = len / AVX512_LEN_BYTES;
+    stop_len *= AVX512_LEN_BYTES;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_load_ps(src + i);
+            __mmask16 lt_mask = _mm512_cmp_ps_mask(src_tmp, ltlevel_v, _CMP_LT_OS);
+            __mmask16 gt_mask = _mm512_cmp_ps_mask(src_tmp, gtlevel_v, _CMP_GT_OS);
+            v16sf dst_tmp = _mm512_mask_blend_ps(lt_mask, src_tmp, ltvalue_v);
+            dst_tmp       = _mm512_mask_blend_ps(gt_mask, dst_tmp, gtvalue_v);
+            _mm512_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_loadu_ps(src + i);
+            __mmask16 lt_mask = _mm512_cmp_ps_mask(src_tmp, ltlevel_v, _CMP_LT_OS);
+            __mmask16 gt_mask = _mm512_cmp_ps_mask(src_tmp, gtlevel_v, _CMP_GT_OS);
+            v16sf dst_tmp = _mm512_mask_blend_ps(lt_mask, src_tmp, ltvalue_v);
+            dst_tmp       = _mm512_mask_blend_ps(gt_mask, dst_tmp, gtvalue_v);
+            _mm512_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i] < ltlevel ? ltvalue : src[i];
+        dst[i] = src[i] > gtlevel ? gtvalue : dst[i];
     }
 }
 

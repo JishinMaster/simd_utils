@@ -900,6 +900,23 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold512_ltval_gtval_f(inout, inout2, len, 0.5f, 0.35f, 0.7f, 0.77f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold512_ltval_gtval_f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold512_ltval_gtval_f(inout, inout2, len, 0.5f, 0.35f, 0.7f, 0.77f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold512_ltval_gtval_f %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// MAXEVERY //////////////////////////////////////////////////////////////////////////////
     printf("MAXEVERY\n");
@@ -1074,7 +1091,6 @@ int main(int argc, char **argv)
     /////////////////////////////////////////////////////////// MINMAX //////////////////////////////////////////////////////////////////////////////
     printf("MINMAX\n");
 
-
     float min, max, min_ref, max_ref;
     clock_gettime(CLOCK_REALTIME, &start);
     minmaxf_c(inout, len, &min_ref, &max_ref);
@@ -1135,6 +1151,22 @@ int main(int argc, char **argv)
     printf("%f %f || %f %f\n", min_ref, min, max_ref, max);
 #endif
 
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    minmax512f(inout, len, &min, &max);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("minmax512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    minmax512f(inout, len, &min, &max);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("minmax512f %d %lf\n", len, elapsed);
+
+    printf("%f %f || %f %f\n", min_ref, min, max_ref, max);
+#endif
 
     printf("\n");
     /////////////////////////////////////////////////////////// FABSF //////////////////////////////////////////////////////////////////////////////

@@ -45,7 +45,7 @@ This project also uses a forked version of sse2neon (https://github.com/DLTcolla
 Simply include simd_utils.h in your C/C++ file, and compile with : 
 - SSE support : gcc -DSSE -msse4.2 -c file.c -I .
 - AVX support : gcc -DSSE -DAVX -mavx2  -c file.c -I .
-- AVX512 support : gcc -DSSE -DAVX -DAVX-512 -march=skylake-avx512 -c file.c -I .
+- AVX512 support : gcc -DSSE -DAVX -DAVX512 -march=skylake-avx512 -c file.c -I .
 - NEON support : aarch64-linux-gnu-gcc -DARM -DFMA -DSSE -flax-vector-conversions -c file.c -I .
 
 For FMA support you need to add -DFMA and -mfma to x86 targets, and -DFMA to Armv8 targets.
