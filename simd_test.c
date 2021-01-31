@@ -751,9 +751,9 @@ int main(int argc, char **argv)
     /////////////////////////////////////////////////////////// threshold_lt_f //////////////////////////////////////////////////////////////////////////////
     printf("THRESHOLD_LT\n");
 
-    inout[3] = 0.04f;
     for (int i = 0; i < len; i++) {
         inout[i] = (float) i / 20.0f;  //printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+        inout2[i] = 0.0f;
     }
 
     clock_gettime(CLOCK_REALTIME, &start);

@@ -914,8 +914,8 @@ static inline void minmax128f(float *src, int len, float *min_value, float *max_
 
     v4sf max_v, min_v;
     v4sf src_tmp;
-    float min_f[SSE_LEN_FLOAT] __attribute__ ((aligned (SSE_LEN_BYTES)));
-    float max_f[SSE_LEN_FLOAT] __attribute__ ((aligned (SSE_LEN_BYTES)));
+    float min_f[SSE_LEN_FLOAT] __attribute__((aligned(SSE_LEN_BYTES)));
+    float max_f[SSE_LEN_FLOAT] __attribute__((aligned(SSE_LEN_BYTES)));
     float min_tmp;
     float max_tmp;
 
@@ -962,7 +962,7 @@ static inline void minmax128f(float *src, int len, float *min_value, float *max_
 }
 
 
-static inline void threshold128_gt_f(float *src, float *dst, float value, int len)
+static inline void threshold128_gt_f(float *src, float *dst, int len, float value)
 {
     const v4sf tmp = _mm_set1_ps(value);
 
@@ -986,7 +986,7 @@ static inline void threshold128_gt_f(float *src, float *dst, float value, int le
     }
 }
 
-static inline void threshold128_lt_f(float *src, float *dst, float value, int len)
+static inline void threshold128_lt_f(float *src, float *dst, int len, float value)
 {
     const v4sf tmp = _mm_set1_ps(value);
 

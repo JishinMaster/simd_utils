@@ -517,8 +517,8 @@ static inline void minmax512f(float *src, int len, float *min_value, float *max_
 
     v16sf max_v, min_v;
     v16sf src_tmp;
-    float min_f[AVX512_LEN_FLOAT] __attribute__ ((aligned (AVX512_LEN_BYTES)));
-    float max_f[AVX512_LEN_FLOAT] __attribute__ ((aligned (AVX512_LEN_BYTES)));
+    float min_f[AVX512_LEN_FLOAT] __attribute__((aligned(AVX512_LEN_BYTES)));
+    float max_f[AVX512_LEN_FLOAT] __attribute__((aligned(AVX512_LEN_BYTES)));
     float min_tmp;
     float max_tmp;
 
@@ -561,7 +561,7 @@ static inline void minmax512f(float *src, int len, float *min_value, float *max_
     max_tmp = max_tmp > max_f[13] ? max_tmp : max_f[13];
     max_tmp = max_tmp > max_f[14] ? max_tmp : max_f[14];
     max_tmp = max_tmp > max_f[15] ? max_tmp : max_f[15];
-    
+
     min_tmp = min_f[0];
     min_tmp = min_tmp < min_f[1] ? min_tmp : min_f[1];
     min_tmp = min_tmp < min_f[2] ? min_tmp : min_f[2];
@@ -578,7 +578,7 @@ static inline void minmax512f(float *src, int len, float *min_value, float *max_
     min_tmp = min_tmp < min_f[13] ? min_tmp : min_f[13];
     min_tmp = min_tmp < min_f[14] ? min_tmp : min_f[14];
     min_tmp = min_tmp < min_f[15] ? min_tmp : min_f[15];
-    
+
     for (int i = stop_len; i < len; i++) {
         max_tmp = max_tmp > src[i] ? max_tmp : src[i];
         min_tmp = min_tmp < src[i] ? min_tmp : src[i];
@@ -653,7 +653,7 @@ static inline void threshold512_ltval_gtval_f(float *src, float *dst, int len, f
             __mmask16 lt_mask = _mm512_cmp_ps_mask(src_tmp, ltlevel_v, _CMP_LT_OS);
             __mmask16 gt_mask = _mm512_cmp_ps_mask(src_tmp, gtlevel_v, _CMP_GT_OS);
             v16sf dst_tmp = _mm512_mask_blend_ps(lt_mask, src_tmp, ltvalue_v);
-            dst_tmp       = _mm512_mask_blend_ps(gt_mask, dst_tmp, gtvalue_v);
+            dst_tmp = _mm512_mask_blend_ps(gt_mask, dst_tmp, gtvalue_v);
             _mm512_store_ps(dst + i, dst_tmp);
         }
     } else {
@@ -662,7 +662,7 @@ static inline void threshold512_ltval_gtval_f(float *src, float *dst, int len, f
             __mmask16 lt_mask = _mm512_cmp_ps_mask(src_tmp, ltlevel_v, _CMP_LT_OS);
             __mmask16 gt_mask = _mm512_cmp_ps_mask(src_tmp, gtlevel_v, _CMP_GT_OS);
             v16sf dst_tmp = _mm512_mask_blend_ps(lt_mask, src_tmp, ltvalue_v);
-            dst_tmp       = _mm512_mask_blend_ps(gt_mask, dst_tmp, gtvalue_v);
+            dst_tmp = _mm512_mask_blend_ps(gt_mask, dst_tmp, gtvalue_v);
             _mm512_storeu_ps(dst + i, dst_tmp);
         }
     }

@@ -747,8 +747,8 @@ static inline void minmax256f(float *src, int len, float *min_value, float *max_
 
     v8sf max_v, min_v;
     v8sf src_tmp;
-    float min_f[AVX_LEN_FLOAT] __attribute__ ((aligned (AVX_LEN_BYTES)));
-    float max_f[AVX_LEN_FLOAT] __attribute__ ((aligned (AVX_LEN_BYTES)));
+    float min_f[AVX_LEN_FLOAT] __attribute__((aligned(AVX_LEN_BYTES)));
+    float max_f[AVX_LEN_FLOAT] __attribute__((aligned(AVX_LEN_BYTES)));
     float min_tmp;
     float max_tmp;
 
