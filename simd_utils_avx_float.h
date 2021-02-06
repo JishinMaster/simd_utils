@@ -82,7 +82,7 @@ _PS256_CONST(ATAN_P1, -1.38776856032E-1);
 _PS256_CONST(ATAN_P2, 1.99777106478E-1);
 _PS256_CONST(ATAN_P3, -3.33329491539E-1);
 
-
+_PS256_CONST_TYPE(pos_sign_mask, int, (int) 0x7FFFFFFF);
 
 static inline void log10_256f(float *src, float *dst, int len)
 {
@@ -130,8 +130,6 @@ static inline void ln_256f(float *src, float *dst, int len)
 
 static inline void fabs256f(float *src, float *dst, int len)
 {
-    const v8sf mask = _mm256_castsi256_ps(_mm256_set1_epi32(0x7FFFFFFF));
-
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
@@ -139,13 +137,13 @@ static inline void fabs256f(float *src, float *dst, int len)
 #pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
-            _mm256_store_ps(dst + i, _mm256_and_ps(mask, src_tmp));
+            _mm256_store_ps(dst + i, _mm256_and_ps(*(v8sf *) _ps256_pos_sign_mask, src_tmp));
         }
     } else {
 #pragma unroll 2
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_loadu_ps(src + i);
-            _mm256_storeu_ps(dst + i, _mm256_and_ps(mask, src_tmp));
+            _mm256_storeu_ps(dst + i, _mm256_and_ps(*(v8sf *) _ps256_pos_sign_mask, src_tmp));
         }
     }
 
@@ -827,6 +825,45 @@ static inline void threshold256_gt_f(float *src, float *dst, int len, float valu
     }
 }
 
+static inline void threshold256_gtabs_f(float *src, float *dst, int len, float value)
+{
+    const v8sf pval = _mm256_set1_ps(value);
+    const v8sf mval = _mm256_set1_ps(-value);
+
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_load_ps(src + i);
+            v8sf src_abs = _mm256_and_ps(src_tmp, *(v8sf *) _ps256_pos_sign_mask);
+            v8sf eqmask = _mm256_cmp_ps(src_abs, src_tmp, _CMP_EQ_OS);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v8sf gtmask = _mm256_cmp_ps(src_abs, pval, _CMP_GT_OS);     //if abs(A) < value => 0xFFFFFFFF, else 0
+            v8sf sval = _mm256_blendv_ps(mval, pval, eqmask);           //if A >= 0 value, else -value
+            v8sf dst_tmp = _mm256_blendv_ps(src_tmp, sval, gtmask);     // either A or sval (+- value)
+            _mm256_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_loadu_ps(src + i);
+            v8sf src_abs = _mm256_and_ps(src_tmp, *(v8sf *) _ps256_pos_sign_mask);
+            v8sf eqmask = _mm256_cmp_ps(src_abs, src_tmp, _CMP_EQ_OS);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v8sf gtmask = _mm256_cmp_ps(src_abs, pval, _CMP_GT_OS);     //if abs(A) < value => 0xFFFFFFFF, else 0
+            v8sf sval = _mm256_blendv_ps(mval, pval, eqmask);           //if A >= 0 value, else -value
+            v8sf dst_tmp = _mm256_blendv_ps(src_tmp, sval, gtmask);     // either A or sval (+- value)
+            _mm256_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] > value ? value : src[i];
+        } else {
+            dst[i] = src[i] < (-value) ? (-value) : src[i];
+        }
+    }
+}
+
 static inline void threshold256_lt_f(float *src, float *dst, int len, float value)
 {
     v8sf tmp = _mm256_set1_ps(value);  //_mm256_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
@@ -848,6 +885,45 @@ static inline void threshold256_lt_f(float *src, float *dst, int len, float valu
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i] < value ? src[i] : value;
+    }
+}
+
+static inline void threshold256_ltabs_f(float *src, float *dst, int len, float value)
+{
+    const v8sf pval = _mm256_set1_ps(value);
+    const v8sf mval = _mm256_set1_ps(-value);
+
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_load_ps(src + i);
+            v8sf src_abs = _mm256_and_ps(src_tmp, *(v8sf *) _ps256_pos_sign_mask);
+            v8sf eqmask = _mm256_cmp_ps(src_abs, src_tmp, _CMP_EQ_OS);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v8sf gtmask = _mm256_cmp_ps(src_abs, pval, _CMP_LT_OS);     //if abs(A) < value => 0xFFFFFFFF, else 0
+            v8sf sval = _mm256_blendv_ps(mval, pval, eqmask);           //if A >= 0 value, else -value
+            v8sf dst_tmp = _mm256_blendv_ps(src_tmp, sval, gtmask);     // either A or sval (+- value)
+            _mm256_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_loadu_ps(src + i);
+            v8sf src_abs = _mm256_and_ps(src_tmp, *(v8sf *) _ps256_pos_sign_mask);
+            v8sf eqmask = _mm256_cmp_ps(src_abs, src_tmp, _CMP_EQ_OS);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v8sf gtmask = _mm256_cmp_ps(src_abs, pval, _CMP_LT_OS);     //if abs(A) < value => 0xFFFFFFFF, else 0
+            v8sf sval = _mm256_blendv_ps(mval, pval, eqmask);           //if A >= 0 value, else -value
+            v8sf dst_tmp = _mm256_blendv_ps(src_tmp, sval, gtmask);     // either A or sval (+- value)
+            _mm256_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] < value ? value : src[i];
+        } else {
+            dst[i] = src[i] > (-value) ? (-value) : src[i];
+        }
     }
 }
 

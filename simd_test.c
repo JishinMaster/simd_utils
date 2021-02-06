@@ -44,15 +44,6 @@ typedef ALIGN16_BEG union {
     v4sf v;
 } ALIGN16_END V4SF;
 
-/*void print4(__m128 v) {
-	float *p = (float*)&v;
-#ifndef USE_SSE2
-	_mm_empty();
-#endif
-	printf("[%13.8g, %13.8g, %13.8g, %13.8g]", p[0], p[1], p[2], p[3]);
-}*/
-
-
 #ifdef AVX
 typedef ALIGN32_BEG union {
     float f[8];
@@ -60,13 +51,6 @@ typedef ALIGN32_BEG union {
     v8sf v;
 } ALIGN32_END V8SF;
 
-/*void print8(__m256 v) {
-	float *p = (float*)&v;
-#ifndef USE_SSE2
-	_mm_empty();
-#endif
-	printf("[%13.8g, %13.8g, %13.8g, %13.8g %13.8g, %13.8g, %13.8g, %13.8g]", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
-}*/
 #endif
 
 float l2_err(float *test, float *ref, int len)
@@ -141,40 +125,6 @@ float l2_errd(double *test, double *ref, int len)
 
 int main(int argc, char **argv)
 {
-#if 0
-	V4SF sseVecIn = {M_PI,-M_PI/2.0f,-M_PI/4.0f,0.0f};
-	V4SF sseVecOut;
-
-	sseVecOut.v = cos_ps(sseVecIn.v);
-	print4(sseVecOut.v);
-	printf("\n");
-	sseVecOut.v = sin_ps(sseVecIn.v);
-	print4(sseVecOut.v);
-	printf("\n");
-
-	set128f(sseVecOut.f, 14.5f, 4);
-	print4(sseVecOut.v);
-	printf("\n");
-
-	sseVecOut.v = vector_abs(sseVecIn.v);
-	print4(sseVecIn.v);
-	printf("\n");
-	print4(sseVecOut.v);
-	printf("\n");
-
-
-	V8SF avxVecIn = {{M_PI,-M_PI/2.0f,-M_PI/4.0f,0.0f, M_PI,-M_PI/2.0f,-M_PI/4.0f,0.0f}};
-	V8SF avxVecOut;
-
-	avxVecOut.v = vector256_abs(avxVecIn.v);
-	print8(avxVecIn.v);
-	printf("\n");
-	print8(avxVecOut.v);
-	printf("\n");
-
-
-#endif
-
 #ifdef IPP
 
     IppStatus status;
@@ -298,7 +248,8 @@ int main(int argc, char **argv)
 
 #endif /* MKL */
 
-    float *inout = NULL, *inout2 = NULL, *inout3 = NULL, *inout4 = NULL, *inout5 = NULL, *inout6 = NULL, *inout_ref = NULL, *inout2_ref = NULL;
+    float *inout = NULL, *inout2 = NULL, *inout3 = NULL, *inout4 = NULL, *inout5 = NULL;
+    float *inout6 = NULL, *inout_ref = NULL, *inout2_ref = NULL;
     double *inoutd = NULL, *inoutd2 = NULL, *inoutd3 = NULL, *inoutd_ref = NULL, *inoutd2_ref = NULL;
     uint8_t *inout_u1 = NULL, *inout_u2 = NULL;
     int16_t *inout_s1 = NULL, *inout_s2 = NULL;
@@ -328,12 +279,12 @@ int main(int argc, char **argv)
     }
     ret = posix_memalign((void **) &inout5, atoi(argv[2]), len * sizeof(float));
     if (inout3 == NULL) {
-        printf("ret = posix_memalign inout3 failed\n");
+        printf("ret = posix_memalign inout5 failed\n");
         return -1;
     }
     ret = posix_memalign((void **) &inout6, atoi(argv[2]), len * sizeof(float));
     if (inout4 == NULL) {
-        printf("ret = posix_memalign inout4 failed\n");
+        printf("ret = posix_memalign inout6 failed\n");
         return -1;
     }
     ret = posix_memalign((void **) &inout_ref, atoi(argv[2]), 2 * len * sizeof(float));
@@ -353,12 +304,12 @@ int main(int argc, char **argv)
     }
     ret = posix_memalign((void **) &inoutd2, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd == NULL) {
-        printf("ret = posix_memalign inoutd failed\n");
+        printf("ret = posix_memalign inoutd2 failed\n");
         return -1;
     }
     ret = posix_memalign((void **) &inoutd3, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd == NULL) {
-        printf("ret = posix_memalign inoutd failed\n");
+        printf("ret = posix_memalign inoutd3 failed\n");
         return -1;
     }
     ret = posix_memalign((void **) &inoutd_ref, atoi(argv[2]), 2 * len * sizeof(double));
@@ -368,7 +319,7 @@ int main(int argc, char **argv)
     }
     ret = posix_memalign((void **) &inoutd2_ref, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd_ref == NULL) {
-        printf("ret = posix_memalign inoutd_ref failed\n");
+        printf("ret = posix_memalign inoutd2_ref failed\n");
         return -1;
     }
     ret = posix_memalign((void **) &inout_u1, atoi(argv[2]), len * sizeof(uint8_t));
@@ -431,6 +382,16 @@ int main(int argc, char **argv)
         printf("malloc inout4 failed\n");
         return -1;
     }
+    inout5 = (float *) malloc(len * sizeof(float));
+    if (inout5 == NULL) {
+        printf("malloc inout5 failed\n");
+        return -1;
+    }
+    inout6 = (float *) malloc(len * sizeof(float));
+    if (inout6 == NULL) {
+        printf("malloc inout6 failed\n");
+        return -1;
+    }
     inout_ref = (float *) malloc(2 * len * sizeof(float));
     if (inout_ref == NULL) {
         printf("malloc inout_ref failed\n");
@@ -441,14 +402,29 @@ int main(int argc, char **argv)
         printf("malloc inout2_ref failed\n");
         return -1;
     }
-    inoutd = (double *) malloc(len * sizeof(double));
+    inoutd = (double *) malloc(2 * len * sizeof(double));
     if (inoutd == NULL) {
         printf("malloc inoutd failed\n");
         return -1;
     }
-    inoutd_ref = (double *) malloc(len * sizeof(double));
+    inoutd2 = (double *) malloc(2 * len * sizeof(double));
+    if (inoutd2 == NULL) {
+        printf("malloc inoutd2 failed\n");
+        return -1;
+    }
+    inoutd3 = (double *) malloc(2 * len * sizeof(double));
+    if (inoutd3 == NULL) {
+        printf("malloc inoutd3 failed\n");
+        return -1;
+    }
+    inoutd_ref = (double *) malloc(2 * len * sizeof(double));
     if (inoutd_ref == NULL) {
         printf("malloc inoutd_ref failed\n");
+        return -1;
+    }
+    inoutd2_ref = (double *) malloc(2 * len * sizeof(double));
+    if (inoutd2_ref == NULL) {
+        printf("malloc inoutd2_ref failed\n");
         return -1;
     }
 
@@ -833,6 +809,96 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// threshold_gt_f //////////////////////////////////////////////////////////////////////////////
+    printf("THRESHOLD_GTABS\n");
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) (-i) / 20.0f + 30.0f - 0.05f * (float) i;  //printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+        inout2[i] = 0.0f;
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_gtabs_f_C(inout, inout2_ref, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_gtabs_f_C %d %lf\n", len, elapsed);
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsThreshold_GTAbs_32f(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsThreshold_GTAbs_32f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsThreshold_GTAbs_32f(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsThreshold_GTAbs_32f %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold128_gtabs_f(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold128_gtabs_f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold128_gtabs_f(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold128_gtabs_f %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold256_gtabs_f(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold256_gtabs_f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold256_gtabs_f(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold256_gtabs_f %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold512_gtabs_f(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold512_gtabs_f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold512_gtabs_f(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold512_gtabs_f %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
+    /*for(int i = 0; i < len; i++){
+      printf("%f %f %f\n", inout[i],inout2_ref[i],inout2[i]);
+    }*/
+
     printf("\n");
     /////////////////////////////////////////////////////////// THRESHOLD_LTValGTVal //////////////////////////////////////////////////////////////////////////////
     printf("THRESHOLD_LTValGTVal\n");
@@ -861,10 +927,6 @@ int main(int argc, char **argv)
 
     l2_err(inout2, inout2_ref, len);
 #endif
-
-    /*for(int i = 0; i < len; i++){
-      printf("%f %f %f\n", inout[i],inout2_ref[i],inout2[i]);
-    }*/
 
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);

@@ -7,14 +7,14 @@
 
 #pragma once
 
-float FOPI = 1.27323954473516;
-float PIO4F = 0.7853981633974483096;
+static float FOPI = 1.27323954473516;
+static float PIO4F = 0.7853981633974483096;
 
 /* Note, these constants are for a 32-bit significand: */
-float DP1 = 0.7853851318359375;
-float DP2 = 1.30315311253070831298828125e-5;
-float DP3 = 3.03855025325309630e-11;
-float lossth = 65536.;
+static float DP1 = 0.7853851318359375;
+static float DP2 = 1.30315311253070831298828125e-5;
+static float DP3 = 3.03855025325309630e-11;
+static float lossth = 65536.;
 
 /* These are for a 24-bit significand: */
 /*static float DP1 = 0.78515625;
@@ -22,11 +22,11 @@ static float DP2 = 2.4187564849853515625e-4;
 static float DP3 = 3.77489497744594108e-8;
 static float lossth = 8192.;*/
 
-float T24M1 = 16777215.;
+static float T24M1 = 16777215.;
 
-float sincof[] = {-1.9515295891E-4, 8.3321608736E-3, -1.6666654611E-1};
-float coscof[] = {2.443315711809948E-005, -1.388731625493765E-003,
-                  4.166664568298827E-002};
+static float sincof[] = {-1.9515295891E-4, 8.3321608736E-3, -1.6666654611E-1};
+static float coscof[] = {2.443315711809948E-005, -1.388731625493765E-003,
+                         4.166664568298827E-002};
 
 static inline int mysincosf(float xx, float *s, float *c)
 {

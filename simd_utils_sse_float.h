@@ -56,6 +56,8 @@ _PS_CONST(ATAN_P1, -1.38776856032E-1);
 _PS_CONST(ATAN_P2, 1.99777106478E-1);
 _PS_CONST(ATAN_P3, -3.33329491539E-1);
 
+_PS_CONST_TYPE(pos_sign_mask, int, (int) 0x7FFFFFFF);
+
 #define ROUNDTONEAREST (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC)
 #define ROUNDTOFLOOR (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC)
 #define ROUNDTOCEIL (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)
@@ -125,8 +127,6 @@ static inline void ln_128f(float *src, float *dst, int len)
 
 static inline void fabs128f(float *src, float *dst, int len)
 {
-    const v4sf mask = _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF));
-
     int stop_len = len / (SSE_LEN_FLOAT);
     stop_len *= (SSE_LEN_FLOAT);
 
@@ -134,13 +134,13 @@ static inline void fabs128f(float *src, float *dst, int len)
 #pragma unroll 2
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
-            _mm_store_ps(dst + i, _mm_and_ps(mask, src_tmp));
+            _mm_store_ps(dst + i, _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, src_tmp));
         }
     } else {
 #pragma unroll 2
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
-            _mm_storeu_ps(dst + i, _mm_and_ps(mask, src_tmp));
+            _mm_storeu_ps(dst + i, _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, src_tmp));
         }
     }
 
@@ -986,6 +986,45 @@ static inline void threshold128_gt_f(float *src, float *dst, int len, float valu
     }
 }
 
+static inline void threshold128_gtabs_f(float *src, float *dst, int len, float value)
+{
+    const v4sf pval = _mm_set1_ps(value);
+    const v4sf mval = _mm_set1_ps(-value);
+
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            v4sf src_abs = _mm_and_ps(src_tmp, *(v4sf *) _ps_pos_sign_mask);
+            v4sf eqmask = _mm_cmpeq_ps(src_abs, src_tmp);         //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v4sf gtmask = _mm_cmpgt_ps(src_abs, pval);            //if abs(A) > value => 0xFFFFFFFF, else 0
+            v4sf sval = _mm_blendv_ps(mval, pval, eqmask);        //if A >= 0 value, else -value
+            v4sf dst_tmp = _mm_blendv_ps(src_tmp, sval, gtmask);  // either A or sval (+- value)
+            _mm_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            v4sf src_abs = _mm_and_ps(src_tmp, *(v4sf *) _ps_pos_sign_mask);
+            v4sf eqmask = _mm_cmpeq_ps(src_abs, src_tmp);         //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v4sf gtmask = _mm_cmpgt_ps(src_abs, pval);            //if abs(A) > value => 0xFFFFFFFF, else 0
+            v4sf sval = _mm_blendv_ps(mval, pval, eqmask);        //if A >= 0 value, else -value
+            v4sf dst_tmp = _mm_blendv_ps(src_tmp, sval, gtmask);  // either A or sval (+- value)
+            _mm_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] > value ? value : src[i];
+        } else {
+            dst[i] = src[i] < (-value) ? (-value) : src[i];
+        }
+    }
+}
+
 static inline void threshold128_lt_f(float *src, float *dst, int len, float value)
 {
     const v4sf tmp = _mm_set1_ps(value);
@@ -1007,6 +1046,45 @@ static inline void threshold128_lt_f(float *src, float *dst, int len, float valu
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i] > value ? src[i] : value;
+    }
+}
+
+static inline void threshold128_ltabs_f(float *src, float *dst, int len, float value)
+{
+    const v4sf pval = _mm_set1_ps(value);
+    const v4sf mval = _mm_set1_ps(-value);
+
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            v4sf src_abs = _mm_and_ps(src_tmp, *(v4sf *) _ps_pos_sign_mask);
+            v4sf eqmask = _mm_cmpeq_ps(src_abs, src_tmp);         //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v4sf gtmask = _mm_cmplt_ps(src_abs, pval);            //if abs(A) > value => 0xFFFFFFFF, else 0
+            v4sf sval = _mm_blendv_ps(mval, pval, eqmask);        //if A >= 0 value, else -value
+            v4sf dst_tmp = _mm_blendv_ps(src_tmp, sval, gtmask);  // either A or sval (+- value)
+            _mm_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            v4sf src_abs = _mm_and_ps(src_tmp, *(v4sf *) _ps_pos_sign_mask);
+            v4sf eqmask = _mm_cmpeq_ps(src_abs, src_tmp);         //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v4sf gtmask = _mm_cmplt_ps(src_abs, pval);            //if abs(A) > value => 0xFFFFFFFF, else 0
+            v4sf sval = _mm_blendv_ps(mval, pval, eqmask);        //if A >= 0 value, else -value
+            v4sf dst_tmp = _mm_blendv_ps(src_tmp, sval, gtmask);  // either A or sval (+- value)
+            _mm_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] < value ? value : src[i];
+        } else {
+            dst[i] = src[i] > (-value) ? (-value) : src[i];
+        }
     }
 }
 

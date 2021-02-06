@@ -462,18 +462,27 @@ static inline void aligned_free(void *p)
 //////////  C Test functions ////////////////
 static inline void log10f_C(float *src, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++)
         dst[i] = log10f(src[i]);
 }
 
 static inline void lnf_C(float *src, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++)
         dst[i] = logf(src[i]);
 }
 
 static inline void fabsf_C(float *src, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = fabsf(src[i]);
     }
@@ -557,7 +566,9 @@ static inline void cplxtorealf_C(float *src, float *dstRe, float *dstIm, int len
 static inline void realtocplx_C(float *srcRe, float *srcIm, float *dst, int len)
 {
     int j = 0;
-
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[j] = srcRe[i];
         dst[j + 1] = srcIm[i];
@@ -590,16 +601,25 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
     float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
 
     if (rounding_mode == RndZero) {
+#ifdef OMP
+#pragma omp simd
+#endif
         for (int i = 0; i < len; i++) {
             float tmp = floorf(src[i] * scale_fact_mult);
             dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
         }
     } else if (rounding_mode == RndNear) {
+#ifdef OMP
+#pragma omp simd
+#endif
         for (int i = 0; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
             dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
         }
     } else if (rounding_mode == RndFinancial) {
+#ifdef OMP
+#pragma omp simd
+#endif
         for (int i = 0; i < len; i++) {
             float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
             dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
@@ -637,6 +657,19 @@ static inline void threshold_gt_f_C(float *src, float *dst, int len, float value
     }
 }
 
+static inline void threshold_gtabs_f_C(float *src, float *dst, int len, float value)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] > value ? value : src[i];
+        } else {
+            dst[i] = src[i] < (-value) ? (-value) : src[i];
+        }
+    }
+}
 
 static inline void threshold_lt_f_C(float *src, float *dst, int len, float value)
 {
@@ -645,6 +678,20 @@ static inline void threshold_lt_f_C(float *src, float *dst, int len, float value
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] = src[i] > value ? src[i] : value;
+    }
+}
+
+static inline void threshold_ltabs_f_C(float *src, float *dst, int len, float value)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] < value ? value : src[i];
+        } else {
+            dst[i] = src[i] > (-value) ? (-value) : src[i];
+        }
     }
 }
 
@@ -708,6 +755,9 @@ static inline void flipf_C(float *src, float *dst, int len)
 
 static inline void asinf_C(float *src, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = asinf(src[i]);
     }
@@ -715,6 +765,9 @@ static inline void asinf_C(float *src, float *dst, int len)
 
 static inline void tanf_C(float *src, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = tanf(src[i]);
     }
@@ -722,6 +775,9 @@ static inline void tanf_C(float *src, float *dst, int len)
 
 static inline void atanf_C(float *src, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = atanf(src[i]);
     }
@@ -729,6 +785,9 @@ static inline void atanf_C(float *src, float *dst, int len)
 
 static inline void atan2f_C(float *src1, float *src2, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = atan2f(src1[i], src2[i]);
     }
@@ -737,6 +796,9 @@ static inline void atan2f_C(float *src1, float *src2, float *dst, int len)
 
 static inline void sinf_C(float *src, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = sinf(src[i]);
     }
@@ -744,6 +806,9 @@ static inline void sinf_C(float *src, float *dst, int len)
 
 static inline void cosf_C(float *src, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = cosf(src[i]);
     }
@@ -751,6 +816,9 @@ static inline void cosf_C(float *src, float *dst, int len)
 
 static inline void sincosf_C(float *src, float *dst_sin, float *dst_cos, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         mysincosf(src[i], dst_sin + i, dst_cos + i);
     }
@@ -758,6 +826,9 @@ static inline void sincosf_C(float *src, float *dst_sin, float *dst_cos, int len
 
 static inline void sincosd_C(double *src, double *dst_sin, double *dst_cos, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst_sin[i] = sin(src[i]);
         dst_cos[i] = cos(src[i]);
@@ -766,6 +837,9 @@ static inline void sincosd_C(double *src, double *dst_sin, double *dst_cos, int 
 
 static inline void floorf_C(float *src, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = floorf(src[i]);
     }
@@ -773,6 +847,9 @@ static inline void floorf_C(float *src, float *dst, int len)
 
 static inline void ceilf_C(float *src, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = ceilf(src[i]);
     }
@@ -780,6 +857,9 @@ static inline void ceilf_C(float *src, float *dst, int len)
 
 static inline void roundf_C(float *src, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = roundf(src[i]);
     }
@@ -831,6 +911,9 @@ static inline void vectorSloped_C(double *dst, int len, double offset, double sl
 
 static inline void maxeveryf_c(float *src1, float *src2, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = src1[i] > src2[i] ? src1[i] : src2[i];
     }
@@ -838,6 +921,9 @@ static inline void maxeveryf_c(float *src1, float *src2, float *dst, int len)
 
 static inline void mineveryf_c(float *src1, float *src2, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = src1[i] < src2[i] ? src1[i] : src2[i];
     }
@@ -848,6 +934,9 @@ static inline void minmaxf_c(float *src, int len, float *min_value, float *max_v
     float min_tmp = src[0];
     float max_tmp = src[0];
 
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 1; i < len; i++) {
         max_tmp = max_tmp > src[i] ? max_tmp : src[i];
         min_tmp = min_tmp < src[i] ? min_tmp : src[i];
@@ -857,26 +946,66 @@ static inline void minmaxf_c(float *src, int len, float *min_value, float *max_v
     *min_value = min_tmp;
 }
 
-void addf_c(float *a, float *b, float *c, int n)
+static inline void addf_c(float *a, float *b, float *c, int len)
 {
-    for (int i = 0; i < n; i++) {
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
         c[i] = a[i] + b[i];
     }
 }
 
-void adds_c(int32_t *a, int32_t *b, int32_t *c, int n)
+static inline void adds_c(int32_t *a, int32_t *b, int32_t *c, int len)
 {
-    for (int i = 0; i < n; i++) {
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
         c[i] = a[i] + b[i];
     }
 }
 
-void subf_c(float *a, float *b, float *c, int n)
+/*static inline void orf_c(float *a, float *b, float *c, int len)
 {
-    for (int i = 0; i < n; i++) {
-        c[i] = a[i] - b[i];
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        c[i] = a[i] | b[i];
+    }
+}*/
+
+static inline void ors_c(int32_t *a, int32_t *b, int32_t *c, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        c[i] = a[i] | b[i];
     }
 }
+
+/*static inline void andf_c(float *a, float *b, float *c, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        c[i] = a[i] & b[i];
+    }
+}*/
+
+static inline void ands_c(int32_t *a, int32_t *b, int32_t *c, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        c[i] = a[i] & b[i];
+    }
+}
+
 #ifdef __cplusplus
 }
 #endif

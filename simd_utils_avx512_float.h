@@ -47,6 +47,7 @@ _PS512_CONST(ATAN_P1, -1.38776856032E-1);
 _PS512_CONST(ATAN_P2, 1.99777106478E-1);
 _PS512_CONST(ATAN_P3, -3.33329491539E-1);
 
+_PS512_CONST_TYPE(pos_sign_mask, int, (int) 0x7FFFFFFF);
 
 static inline void log10_512f(float *src, float *dst, int len)
 {
@@ -95,20 +96,18 @@ static inline void ln_512f(float *src, float *dst, int len)
 
 static inline void fabs512f(float *src, float *dst, int len)
 {
-    const v16sf mask = _mm512_castsi512_ps(_mm512_set1_epi32(0x7FFFFFFF));
-
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
     if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
-            _mm512_store_ps(dst + i, _mm512_and_ps(mask, src_tmp));
+            _mm512_store_ps(dst + i, _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, src_tmp));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps(src + i);
-            _mm512_storeu_ps(dst + i, _mm512_and_ps(mask, src_tmp));
+            _mm512_storeu_ps(dst + i, _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, src_tmp));
         }
     }
 
@@ -595,7 +594,7 @@ static inline void threshold512_gt_f(float *src, float *dst, int len, float valu
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, _mm512_min_ps(src_tmp, tmp));
@@ -612,6 +611,45 @@ static inline void threshold512_gt_f(float *src, float *dst, int len, float valu
     }
 }
 
+static inline void threshold512_gtabs_f(float *src, float *dst, int len, float value)
+{
+    const v16sf pval = _mm512_set1_ps(value);
+    const v16sf mval = _mm512_set1_ps(-value);
+
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_load_ps(src + i);
+            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
+            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            __mmask16 gtmask = _mm512_cmp_ps_mask(src_abs, pval, _CMP_GT_OS);     //if abs(A) < value => 0xFFFFFFFF, else 0
+            v16sf sval = _mm512_mask_blend_ps(eqmask, mval, pval);                //if A >= 0 value, else -value
+            v16sf dst_tmp = _mm512_mask_blend_ps(gtmask, src_tmp, sval);          // either A or sval (+- value)
+            _mm512_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_loadu_ps(src + i);
+            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
+            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            __mmask16 gtmask = _mm512_cmp_ps_mask(src_abs, pval, _CMP_GT_OS);     //if abs(A) < value => 0xFFFFFFFF, else 0
+            v16sf sval = _mm512_mask_blend_ps(eqmask, mval, pval);                //if A >= 0 value, else -value
+            v16sf dst_tmp = _mm512_mask_blend_ps(gtmask, src_tmp, sval);          // either A or sval (+- value)
+            _mm512_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] > value ? value : src[i];
+        } else {
+            dst[i] = src[i] < (-value) ? (-value) : src[i];
+        }
+    }
+}
+
 static inline void threshold512_lt_f(float *src, float *dst, int len, float value)
 {
     v16sf tmp = _mm512_set1_ps(value);  //_mm512_broadcast_ss(&value); //avx broadcast vs mm_set_ps?
@@ -619,7 +657,7 @@ static inline void threshold512_lt_f(float *src, float *dst, int len, float valu
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, _mm512_max_ps(src_tmp, tmp));
@@ -636,6 +674,44 @@ static inline void threshold512_lt_f(float *src, float *dst, int len, float valu
     }
 }
 
+static inline void threshold512_ltabs_f(float *src, float *dst, int len, float value)
+{
+    const v16sf pval = _mm512_set1_ps(value);
+    const v16sf mval = _mm512_set1_ps(-value);
+
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_load_ps(src + i);
+            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
+            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            __mmask16 gtmask = _mm512_cmp_ps_mask(src_abs, pval, _CMP_LT_OS);     //if abs(A) < value => 0xFFFFFFFF, else 0
+            v16sf sval = _mm512_mask_blend_ps(eqmask, mval, pval);                //if A >= 0 value, else -value
+            v16sf dst_tmp = _mm512_mask_blend_ps(gtmask, src_tmp, sval);          // either A or sval (+- value)
+            _mm512_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_loadu_ps(src + i);
+            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
+            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            __mmask16 gtmask = _mm512_cmp_ps_mask(src_abs, pval, _CMP_LT_OS);     //if abs(A) < value => 0xFFFFFFFF, else 0
+            v16sf sval = _mm512_mask_blend_ps(eqmask, mval, pval);                //if A >= 0 value, else -value
+            v16sf dst_tmp = _mm512_mask_blend_ps(gtmask, src_tmp, sval);          // either A or sval (+- value)
+            _mm512_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] < value ? value : src[i];
+        } else {
+            dst[i] = src[i] > (-value) ? (-value) : src[i];
+        }
+    }
+}
 
 static inline void threshold512_ltval_gtval_f(float *src, float *dst, int len, float ltlevel, float ltvalue, float gtlevel, float gtvalue)
 {
