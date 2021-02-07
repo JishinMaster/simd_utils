@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.5
+ * Version : 0.1.6
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -10,6 +10,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define MAJOR_VERSION 0
+#define MINOR_VERSION 1
+#define SUB_VERSION   6
 
 #ifdef OMP
 #include <omp.h>
@@ -117,6 +121,11 @@ static inline int areAligned3(uintptr_t ptr1, uintptr_t ptr2, uintptr_t ptr3, si
 #else
     return 1;
 #endif
+}
+
+
+static inline void simd_utils_get_version(void){
+    printf("Simd Utils Version : %d.%d.%d\n",MAJOR_VERSION,MINOR_VERSION,SUB_VERSION);
 }
 
 #ifndef RISCV

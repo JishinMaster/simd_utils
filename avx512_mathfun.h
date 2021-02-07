@@ -1,3 +1,10 @@
+/*
+ * Project : SIMD_Utils
+ * Version : 0.1.6
+ * Author  : JishinMaster
+ * Licence : BSD-2
+ */
+
 /* 
    AVX implementation of sin, cos, sincos, exp and log
 

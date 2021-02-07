@@ -12,6 +12,12 @@ The purpose of this library is to give an open-source implementation of SIMD opt
 Its API was thought as a simple replacement for Intel IPP/MKL libraries.
 Some of the functions are vectorised version of the cephes maths library (https://www.netlib.org/cephes/)
 
+## Why use SIMD Utils?
+
+- It's free
+- It's open source
+- It works on a wide range of machines, including Arm 32bits (with NEON) and 64bits
+
 ## Targets
 
 Supported targets are : 
