@@ -412,7 +412,7 @@ static inline void mulcaddc256f(float *_a, float _b, float _c, float *dst, int l
         }
     } else {
 #pragma unroll 2
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf a = _mm256_loadu_ps(_a + i);
             _mm256_storeu_ps(dst + i, _mm256_fmadd_ps_custom(a, b, c));
         }

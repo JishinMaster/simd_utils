@@ -425,6 +425,7 @@ static inline __m512d _mm512_fmadd_pd_custom(__m512d a, __m512d b, __m512d c)
 }
 
 #include "simd_utils_avx512_float.h"
+#include "simd_utils_avx512_double.h"
 
 #endif
 

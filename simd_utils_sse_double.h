@@ -226,6 +226,110 @@ static inline void mulc128d(double *src, double value, double *dst, int len)
     }
 }
 
+static inline void muladd128d(double *_a, double *_b, double *_c, double *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), SSE_LEN_BYTES) &&
+        areAligned2((uintptr_t)(_c), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd a = _mm_load_pd(_a + i);
+            v2sd b = _mm_load_pd(_b + i);
+            v2sd c = _mm_load_pd(_c + i);
+            _mm_store_pd(dst + i, _mm_fmadd_pd_custom(a, b, c));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd a = _mm_loadu_pd(_a + i);
+            v2sd b = _mm_loadu_pd(_b + i);
+            v2sd c = _mm_loadu_pd(_c + i);
+            _mm_storeu_pd(dst + i, _mm_fmadd_pd_custom(a, b, c));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b[i] + _c[i];
+    }
+}
+
+static inline void mulcadd128d(double *_a, double _b, double *_c, double *dst, int len)
+{
+    v2sd b = _mm_set1_pd(_b);
+
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd a = _mm_load_pd(_a + i);
+            v2sd c = _mm_load_pd(_c + i);
+            _mm_store_pd(dst + i, _mm_fmadd_pd_custom(a, b, c));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd a = _mm_loadu_pd(_a + i);
+            v2sd c = _mm_loadu_pd(_c + i);
+            _mm_storeu_pd(dst + i, _mm_fmadd_pd_custom(a, b, c));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b + _c[i];
+    }
+}
+
+static inline void mulcaddc128d(double *_a, double _b, double _c, double *dst, int len)
+{
+    v2sd b = _mm_set1_pd(_b);
+    v2sd c = _mm_set1_pd(_c);
+
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd a = _mm_load_pd(_a + i);
+            _mm_store_pd(dst + i, _mm_fmadd_pd_custom(a, b, c));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd a = _mm_loadu_pd(_a + i);
+            _mm_storeu_pd(dst + i, _mm_fmadd_pd_custom(a, b, c));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b + _c;
+    }
+}
+
+static inline void muladdc128d(double *_a, double *_b, double _c, double *dst, int len)
+{
+    v2sd c = _mm_set1_pd(_c);
+
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd a = _mm_load_pd(_a + i);
+            v2sd b = _mm_load_pd(_b + i);
+            _mm_store_pd(dst + i, _mm_fmadd_pd_custom(a, b, c));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd a = _mm_loadu_pd(_a + i);
+            v2sd b = _mm_loadu_pd(_b + i);
+            _mm_storeu_pd(dst + i, _mm_fmadd_pd_custom(a, b, c));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b[i] + _c;
+    }
+}
+
 static inline void round128d(double *src, double *dst, int len)
 {
     int stop_len = len / SSE_LEN_DOUBLE;
