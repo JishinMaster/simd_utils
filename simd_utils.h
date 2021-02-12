@@ -13,7 +13,7 @@ extern "C" {
 
 #define MAJOR_VERSION 0
 #define MINOR_VERSION 1
-#define SUB_VERSION   6
+#define SUB_VERSION 6
 
 #ifdef OMP
 #include <omp.h>
@@ -124,8 +124,9 @@ static inline int areAligned3(uintptr_t ptr1, uintptr_t ptr2, uintptr_t ptr3, si
 }
 
 
-static inline void simd_utils_get_version(void){
-    printf("Simd Utils Version : %d.%d.%d\n",MAJOR_VERSION,MINOR_VERSION,SUB_VERSION);
+static inline void simd_utils_get_version(void)
+{
+    printf("Simd Utils Version : %d.%d.%d\n", MAJOR_VERSION, MINOR_VERSION, SUB_VERSION);
 }
 
 #ifndef RISCV
@@ -344,10 +345,12 @@ _PD_CONST(cephes_exp_C2, 1.42860682030941723212e-6);
 #ifdef AVX
 
 #ifndef __clang__
+#ifndef __INTEL_COMPILER
 static inline __m256 _mm256_set_m128(__m128 H, __m128 L)  //not present on every GCC version
 {
     return _mm256_insertf128_ps(_mm256_castps128_ps256(L), H, 1);
 }
+#endif
 #endif /* __clang__ */
 
 #define AVX_LEN_BYTES 32  // Size of AVX lane
@@ -428,6 +431,10 @@ static inline __m512d _mm512_fmadd_pd_custom(__m512d a, __m512d b, __m512d c)
 #include "simd_utils_avx512_float.h"
 #include "simd_utils_avx512_int32.h"
 
+#endif
+
+#ifdef ICC
+#include "simd_utils_svml.h"
 #endif
 
 #else /* RISCV */

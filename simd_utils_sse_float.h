@@ -131,13 +131,13 @@ static inline void fabs128f(float *src, float *dst, int len)
     stop_len *= (SSE_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-#pragma unroll 2
+#pragma unroll(2)
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
             _mm_store_ps(dst + i, _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, src_tmp));
         }
     } else {
-#pragma unroll 2
+#pragma unroll(2)
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
             _mm_storeu_ps(dst + i, _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, src_tmp));
@@ -157,12 +157,12 @@ static inline void set128f(float *src, float value, int len)
     stop_len *= SSE_LEN_FLOAT;
 
     if (isAligned((uintptr_t)(src), SSE_LEN_BYTES)) {
-#pragma unroll 2
+#pragma unroll(2)
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             _mm_store_ps(src + i, tmp);
         }
     } else {
-#pragma unroll 2
+#pragma unroll(2)
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             _mm_storeu_ps(src + i, tmp);
         }

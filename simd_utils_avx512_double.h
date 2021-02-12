@@ -229,7 +229,7 @@ static inline void muladd512d(double *_a, double *_b, double *_c, double *dst, i
 
     if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), AVX512_LEN_BYTES) &&
         areAligned2((uintptr_t)(_c), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
-#pragma unroll 2
+#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd a = _mm512_load_pd(_a + i);
             v8sd b = _mm512_load_pd(_b + i);
@@ -237,7 +237,7 @@ static inline void muladd512d(double *_a, double *_b, double *_c, double *dst, i
             _mm512_store_pd(dst + i, _mm512_fmadd_pd_custom(a, b, c));
         }
     } else {
-#pragma unroll 2
+#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd a = _mm512_loadu_pd(_a + i);
             v8sd b = _mm512_loadu_pd(_b + i);
@@ -259,14 +259,14 @@ static inline void mulcadd512d(double *_a, double _b, double *_c, double *dst, i
     stop_len *= AVX512_LEN_DOUBLE;
 
     if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
-#pragma unroll 2
+#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd a = _mm512_load_pd(_a + i);
             v8sd c = _mm512_load_pd(_c + i);
             _mm512_store_pd(dst + i, _mm512_fmadd_pd_custom(a, b, c));
         }
     } else {
-#pragma unroll 2
+#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd a = _mm512_loadu_pd(_a + i);
             v8sd c = _mm512_loadu_pd(_c + i);
@@ -288,13 +288,13 @@ static inline void mulcaddc512d(double *_a, double _b, double _c, double *dst, i
     stop_len *= AVX512_LEN_DOUBLE;
 
     if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
-#pragma unroll 2
+#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd a = _mm512_loadu_pd(_a + i);
             _mm512_store_pd(dst + i, _mm512_fmadd_pd_custom(a, b, c));
         }
     } else {
-#pragma unroll 2
+#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd a = _mm512_loadu_pd(_a + i);
             _mm512_storeu_pd(dst + i, _mm512_fmadd_pd_custom(a, b, c));
@@ -314,14 +314,14 @@ static inline void muladdc512d(double *_a, double *_b, double _c, double *dst, i
     stop_len *= AVX512_LEN_DOUBLE;
 
     if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
-#pragma unroll 2
+#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd a = _mm512_load_pd(_a + i);
             v8sd b = _mm512_load_pd(_b + i);
             _mm512_store_pd(dst + i, _mm512_fmadd_pd_custom(a, b, c));
         }
     } else {
-#pragma unroll 2
+#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd a = _mm512_loadu_pd(_a + i);
             v8sd b = _mm512_loadu_pd(_b + i);
