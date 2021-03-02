@@ -466,7 +466,7 @@ static inline v2si _mm_cvttpd_epi64_custom(v2sd x)
 #endif
 }
 
-void print2(__m128d v)
+static inline void print2(__m128d v)
 {
     double *p = (double *) &v;
 #ifndef USE_SSE2
@@ -475,7 +475,7 @@ void print2(__m128d v)
     printf("[%13.8g, %13.8g]", p[0], p[1]);
 }
 
-void print2i(__m128i v)
+static inline void print2i(__m128i v)
 {
     int64_t *p = (int64_t *) &v;
 #ifndef USE_SSE2

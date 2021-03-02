@@ -906,6 +906,29 @@ static inline void cplxvecmul_C_split(float *src1Re, float *src1Im, float *src2R
     }
 }
 
+
+static inline void cplxconjvecmul_C(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i].re = src1[i].re * src2[i].re + src1[i].im * src2[i].im;
+        dst[i].im = src2[i].re * src1[i].im - src1[i].re * src2[i].im;
+    }
+}
+
+static inline void cplxconjvecmul_C_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dstRe[i] = src1Re[i] * src2Re[i] + src1Im[i] * src2Im[i];
+        dstIm[i] = src2Re[i] * src1Im[i] - src1Re[i] * src2Im[i];
+    }
+}
+
 static inline void vectorSlopef_C(float *dst, int len, float offset, float slope)
 {
 #ifdef OMP
