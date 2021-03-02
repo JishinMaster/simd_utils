@@ -13,7 +13,6 @@
 #include "sse2neon_wrapper.h"
 #endif
 
-
 typedef __m128d v2sd;  // vector of 2 double (sse)
 typedef __m128i v2si;  // vector of 2 int 64 (sse)
 
@@ -395,6 +394,29 @@ static inline void floor128d(double *src, double *dst, int len)
         dst[i] = floor(src[i]);
     }
 }
+
+static inline void trunc128d(double *src, double *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_load_pd(src + i);
+            _mm_store_pd(dst + i, _mm_round_pd(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_loadu_pd(src + i);
+            _mm_storeu_pd(dst + i, _mm_round_pd(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = trunc(src[i]);
+    }
+}
+
 
 //TODO : add dual accumulator like vectorSlope128f
 static inline void vectorSlope128d(double *dst, int len, double offset, double slope)

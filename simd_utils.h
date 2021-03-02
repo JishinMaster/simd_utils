@@ -883,6 +883,55 @@ static inline void roundf_C(float *src, float *dst, int len)
     }
 }
 
+static inline void truncf_C(float *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = truncf(src[i]);
+    }
+}
+
+static inline void floord_C(double *src, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = floor(src[i]);
+    }
+}
+
+static inline void ceild_C(double *src, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = ceil(src[i]);
+    }
+}
+
+static inline void roundd_C(double *src, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = round(src[i]);
+    }
+}
+
+static inline void truncd_C(double *src, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = trunc(src[i]);
+    }
+}
 
 static inline void cplxvecmul_C(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {

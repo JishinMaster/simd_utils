@@ -1605,6 +1605,27 @@ static inline void floor256f(float *src, float *dst, int len)
     }
 }
 
+static inline void trunc256f(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_load_ps(src + i);
+            _mm256_store_ps(dst + i, _mm256_round_ps(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_loadu_ps(src + i);
+            _mm256_storeu_ps(dst + i, _mm256_round_ps(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = truncf(src[i]);
+    }
+}
 
 static inline void cplxvecmul256f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
@@ -1783,7 +1804,7 @@ static inline void cplxconj256f(complex32_t *src, complex32_t *dst, int len)
     mask[5] = -1.0f;
     mask[6] = 1.0f;
     mask[7] = -1.0f;
-    v8sf *mask_vec = mask;
+    v8sf *mask_vec = (v8sf *) mask;
 
     int i;
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {

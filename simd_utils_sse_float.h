@@ -1740,6 +1740,27 @@ static inline void floor128f(float *src, float *dst, int len)
     }
 }
 
+static inline void trunc128f(float *src, float *dst, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            _mm_store_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOZERO));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            _mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOZERO));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = truncf(src[i]);
+    }
+}
 
 
 static inline void cplxvecmul128f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
@@ -1921,7 +1942,7 @@ static inline void cplxconj128f(complex32_t *src, complex32_t *dst, int len)
     mask[1] = -1.0f;
     mask[2] = 1.0f;
     mask[3] = -1.0f;
-    v4sf *mask_vec = mask;
+    v4sf *mask_vec = (v4sf *) mask;
 
     int i;
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {

@@ -399,6 +399,28 @@ static inline void floor256d(double *src, double *dst, int len)
     }
 }
 
+static inline void trunc256d(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX_LEN_DOUBLE;
+    stop_len *= AVX_LEN_DOUBLE;
+
+    if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_load_pd(src + i);
+            _mm256_store_pd(dst + i, _mm256_round_pd(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_loadu_pd(src + i);
+            _mm256_storeu_pd(dst + i, _mm256_round_pd(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = trunc(src[i]);
+    }
+}
+
 static inline void vectorSlope256d(double *dst, int len, double offset, double slope)
 {
     v4sd coef = _mm256_set_pd(3.0 * slope, 2.0 * slope, slope, 0.0);

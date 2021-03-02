@@ -1341,6 +1341,27 @@ static inline void floor512f(float *src, float *dst, int len)
     }
 }
 
+static inline void trunc512f(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_load_ps(src + i);
+            _mm512_store_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_loadu_ps(src + i);
+            _mm512_storeu_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = truncf(src[i]);
+    }
+}
 
 static inline void cplxvecmul512f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
@@ -1527,7 +1548,7 @@ static inline void cplxconj512f(complex32_t *src, complex32_t *dst, int len)
     mask[13] = -1.0f;
     mask[14] = 1.0f;
     mask[15] = -1.0f;
-    v16sf *mask_vec = mask;
+    v16sf *mask_vec = (v16sf *) mask;
 
     int i;
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
