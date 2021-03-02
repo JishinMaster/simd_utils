@@ -1951,6 +1951,77 @@ printf("\n");
 
     printf("\n");
 
+
+    /////////////////////////////////////////////////////////// CPLXCONJ //////////////////////////////////////////////////////////////////////////////
+    printf("CPLXCONJ\n");
+
+    for (int i = 0; i < 2 * len; i++) {
+        inout[i] = (float) i / 300.0f;  //printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+        inout2[i] = (float) i / (-127.577f);
+    }
+
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxconj_C((complex32_t *) inout, (complex32_t *) inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxconj_C %d %lf\n", len, elapsed);
+
+#ifdef IPP
+// TODO
+#endif
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxconj128f((complex32_t *) inout, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxconj128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxconj128f((complex32_t *) inout, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxconj128f %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxconj256f((complex32_t *) inout, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxconj256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxconj256f((complex32_t *) inout, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxconj256f %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxconj512f((complex32_t *) inout, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxconj512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxconj512f((complex32_t *) inout, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxconj512f %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+    printf("\n");
+
+
     /////////////////////////////////////////////////////////// ADDCST //////////////////////////////////////////////////////////////////////////////
     printf("ADDCST\n");
 

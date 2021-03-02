@@ -1767,3 +1767,41 @@ static inline void cplxconjvecmul256f_split(float *src1Re, float *src1Im, float 
         dstIm[i] = src2Re[i] * src1Im[i] - src1Re[i] * src2Im[i];
     }
 }
+
+//prefer using cplxconjvecmulXf if you also need to do a multiply
+static inline void cplxconj256f(complex32_t *src, complex32_t *dst, int len)
+{
+    int stop_len = len / (AVX_LEN_FLOAT);  //(len << 1) >> 2;
+    stop_len = stop_len * AVX_LEN_FLOAT;   //stop_len << 2;
+
+    float mask[AVX_LEN_FLOAT] __attribute__((aligned(AVX_LEN_BYTES)));
+    mask[0] = 1.0f;
+    mask[1] = -1.0f;
+    mask[2] = 1.0f;
+    mask[3] = -1.0f;
+    mask[4] = 1.0f;
+    mask[5] = -1.0f;
+    mask[6] = 1.0f;
+    mask[7] = -1.0f;
+    v8sf *mask_vec = mask;
+
+    int i;
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        //printf("Aligned\n");
+        for (i = 0; i < 2 * stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_load_ps((float *) (src) + i);
+            _mm256_store_ps((float *) (dst) + i, _mm256_mul_ps(src_tmp, *mask_vec));
+        }
+    } else {
+        //printf("Unaligned\n");
+        for (i = 0; i < 2 * stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_loadu_ps((float *) (src) + i);
+            _mm256_storeu_ps((float *) (dst) + i, _mm256_mul_ps(src_tmp, *mask_vec));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i].re = src[i].re;
+        dst[i].im = -src[i].im;
+    }
+}

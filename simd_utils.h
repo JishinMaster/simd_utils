@@ -929,6 +929,17 @@ static inline void cplxconjvecmul_C_split(float *src1Re, float *src1Im, float *s
     }
 }
 
+static inline void cplxconj_C(complex32_t *src, complex32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i].re = src[i].re;
+        dst[i].im = -src[i].im;
+    }
+}
+
 static inline void vectorSlopef_C(float *dst, int len, float offset, float slope)
 {
 #ifdef OMP
