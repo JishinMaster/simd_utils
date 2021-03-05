@@ -624,6 +624,107 @@ static inline void sincos128d(double *src, double *dst_sin, double *dst_cos, int
     }
 }
 
+
+static inline v2sd asin_pd(v2sd x)
+{
+    v2sd a, z, z_tmp;
+    v2sd sign;
+    v2sd ainfem8, asup0p625;
+
+    // first branch, a > 0.625
+    v2sd zz_first_branch;
+    v2sd p;
+    v2sd z_first_branch;
+    v2sd tmp_first_branch;
+
+    // second branch a <= 0.625
+    v2sd zz_second_branch;
+    v2sd z_second_branch;
+    v2sd tmp_second_branch;
+
+    a = _mm_and_pd(*(v2sd *) _pd_positive_mask, x);  //fabs(x)
+    sign = _mm_cmplt_pd(x, _mm_setzero_pd());        //0xFFFFFFFF if x < 0.0
+
+    //TODO : vectorize this
+    /*if( a > 1.0 )
+	{
+		return( 0.0 );
+	}*/
+
+
+    ainfem8 = _mm_cmplt_pd(a, _mm_set1_pd(1.0e-8));  //if( a < 1.0e-8)
+    asup0p625 = _mm_cmpgt_pd(a, _mm_set1_pd(0.625));
+
+    // fist branch
+    zz_first_branch = _mm_sub_pd(_mm_set1_pd(1.0), a);
+    p = _mm_fmadd_pd_custom(*(v2sd *) _pd_ASIN_R0, zz_first_branch, *(v2sd *) _pd_ASIN_R1);
+    p = _mm_fmadd_pd_custom(p, zz_first_branch, *(v2sd *) _pd_ASIN_R2);
+    p = _mm_fmadd_pd_custom(p, zz_first_branch, *(v2sd *) _pd_ASIN_R3);
+    p = _mm_fmadd_pd_custom(p, zz_first_branch, *(v2sd *) _pd_ASIN_R4);
+    p = _mm_mul_pd(p, zz_first_branch);
+
+    tmp_first_branch = _mm_add_pd(zz_first_branch, *(v2sd *) _pd_ASIN_S0);
+    tmp_first_branch = _mm_fmadd_pd_custom(tmp_first_branch, zz_first_branch, *(v2sd *) _pd_ASIN_S1);
+    tmp_first_branch = _mm_fmadd_pd_custom(tmp_first_branch, zz_first_branch, *(v2sd *) _pd_ASIN_S2);
+    tmp_first_branch = _mm_fmadd_pd_custom(tmp_first_branch, zz_first_branch, *(v2sd *) _pd_ASIN_S3);
+    p = _mm_div_pd(p, tmp_first_branch);
+
+    zz_first_branch = _mm_sqrt_pd(_mm_add_pd(zz_first_branch, zz_first_branch));
+    z_first_branch = _mm_sub_pd(*(v2sd *) _pd_PIO4, zz_first_branch);
+    zz_first_branch = _mm_fmadd_pd_custom(zz_first_branch, p, *(v2sd *) _pd_MOREBITS);
+    z_first_branch = _mm_sub_pd(z_first_branch, zz_first_branch);
+    z_first_branch = _mm_add_pd(z_first_branch, *(v2sd *) _pd_PIO4);
+
+    //second branch
+    zz_second_branch = _mm_mul_pd(a, a);
+    z_second_branch = _mm_fmadd_pd_custom(*(v2sd *) _pd_ASIN_P0, zz_second_branch, *(v2sd *) _pd_ASIN_P1);
+    z_second_branch = _mm_fmadd_pd_custom(z_second_branch, zz_second_branch, *(v2sd *) _pd_ASIN_P2);
+    z_second_branch = _mm_fmadd_pd_custom(z_second_branch, zz_second_branch, *(v2sd *) _pd_ASIN_P3);
+    z_second_branch = _mm_fmadd_pd_custom(z_second_branch, zz_second_branch, *(v2sd *) _pd_ASIN_P4);
+    z_second_branch = _mm_fmadd_pd_custom(z_second_branch, zz_second_branch, *(v2sd *) _pd_ASIN_P5);
+    z_second_branch = _mm_mul_pd(z_second_branch, zz_second_branch);
+
+    tmp_second_branch = _mm_add_pd(zz_second_branch, *(v2sd *) _pd_ASIN_Q0);
+    tmp_second_branch = _mm_fmadd_pd_custom(tmp_second_branch, zz_second_branch, *(v2sd *) _pd_ASIN_Q1);
+    tmp_second_branch = _mm_fmadd_pd_custom(tmp_second_branch, zz_second_branch, *(v2sd *) _pd_ASIN_Q2);
+    tmp_second_branch = _mm_fmadd_pd_custom(tmp_second_branch, zz_second_branch, *(v2sd *) _pd_ASIN_Q3);
+    tmp_second_branch = _mm_fmadd_pd_custom(tmp_second_branch, zz_second_branch, *(v2sd *) _pd_ASIN_Q4);
+
+    z_second_branch = _mm_div_pd(z_second_branch, tmp_second_branch);
+    z_second_branch = _mm_fmadd_pd_custom(a, z_second_branch, a);
+
+
+
+    z = _mm_blendv_pd(z_second_branch, z_first_branch, asup0p625);
+    z = _mm_blendv_pd(z, _mm_xor_pd(*(v2sd *) _pd_negative_mask, z), sign);
+    z = _mm_blendv_pd(z, x, ainfem8);
+
+    return (z);
+}
+
+
+static inline void asin128d(double *src, double *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_load_pd(src + i);
+            _mm_store_pd(dst + i, asin_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_loadu_pd(src + i);
+            _mm_storeu_pd(dst + i, asin_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = asin(src[i]);
+    }
+}
+
 // To be tested
 #if 0
 static inline v2sd exp_pd(v2sd x)

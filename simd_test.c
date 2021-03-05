@@ -3388,8 +3388,8 @@ printf("\n");
 #endif
 
     printf("\n");
-    /////////////////////////////////////////////////////////// ASIN //////////////////////////////////////////////////////////////////////////////
-    printf("ASIN\n");
+    /////////////////////////////////////////////////////////// ASINF //////////////////////////////////////////////////////////////////////////////
+    printf("ASINF\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (1.0f * i + 1.0f) / 1.82f / (float) (5 * len);
@@ -3506,6 +3506,42 @@ printf("\n");
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("asin512f %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
+#endif
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// ASIN //////////////////////////////////////////////////////////////////////////////
+    printf("ASIN\n");
+
+    for (int i = 0; i < len; i++) {
+        inoutd[i] = (float) (1.0 * i + 1.0) / 1.82 / (float) (5 * len);
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    asin_C(inoutd, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asin_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    asin128d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asin128d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    asin128d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asin128d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+
+    /*
+for (int i = 0; i < len; i++){
+    printf("%lf , %lf, %lf %lf\n",inoutd[i],inoutd_ref[i],inoutd2[i],asin(inoutd[i]));
+}*/
+
 #endif
 
     printf("\n");
