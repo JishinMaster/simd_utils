@@ -645,12 +645,6 @@ static inline v2sd asin_pd(v2sd x)
     a = _mm_and_pd(*(v2sd *) _pd_positive_mask, x);  //fabs(x)
     sign = _mm_cmplt_pd(x, _mm_setzero_pd());        //0xFFFFFFFF if x < 0.0
 
-    //TODO : vectorize this
-    /*if( a > 1.0 )
-	{
-		return( 0.0 );
-	}*/
-
 
     ainfem8 = _mm_cmplt_pd(a, _mm_set1_pd(1.0e-8));  //if( a < 1.0e-8)
     asup0p625 = _mm_cmpgt_pd(a, _mm_set1_pd(0.625));
@@ -671,7 +665,7 @@ static inline v2sd asin_pd(v2sd x)
 
     zz_first_branch = _mm_sqrt_pd(_mm_add_pd(zz_first_branch, zz_first_branch));
     z_first_branch = _mm_sub_pd(*(v2sd *) _pd_PIO4, zz_first_branch);
-    zz_first_branch = _mm_fmadd_pd_custom(zz_first_branch, p, *(v2sd *) _pd_MOREBITS);
+    zz_first_branch = _mm_fmadd_pd_custom(zz_first_branch, p, *(v2sd *) _pd_minMOREBITS);
     z_first_branch = _mm_sub_pd(z_first_branch, zz_first_branch);
     z_first_branch = _mm_add_pd(z_first_branch, *(v2sd *) _pd_PIO4);
 
@@ -699,9 +693,89 @@ static inline v2sd asin_pd(v2sd x)
     z = _mm_blendv_pd(z, _mm_xor_pd(*(v2sd *) _pd_negative_mask, z), sign);
     z = _mm_blendv_pd(z, x, ainfem8);
 
+    // if (x > 1.0) then return 0.0
+    z = _mm_blendv_pd(z, _mm_setzero_pd(), _mm_cmpgt_pd(x, *(v2sd *) _pd_1));
+
     return (z);
 }
 
+//Work in progress
+static inline v2sd atan_pd(v2sd xx)
+{
+    v2sd x, y, z;
+    v2sd sign;
+    v2sd suptan3pi8, inftan3pi8inf0p66;  // > T3PI8 or (< T3PI8 and > 0.66)
+    v2sd tmp, tmp2;
+    v2sd zerop66 = _mm_set1_pd(0.66);
+    v2sd flag = _mm_setzero_pd();  // flag = 0
+
+    x = _mm_and_pd(*(v2sd *) _pd_positive_mask, xx);  // x = fabs(xx)
+    sign = _mm_cmplt_pd(xx, _mm_setzero_pd());        //0xFFFFFFFFFFFFFFFF if x < 0.0, sign = -1
+
+    /* range reduction */
+
+    y = _mm_setzero_pd();
+    suptan3pi8 = _mm_cmpgt_pd(x, *(v2sd *) _pd_TAN3PI8);                  // if( x > tan 3pi/8 )
+    x = _mm_blendv_pd(x, _mm_div_pd(*(v2sd *) _pd_min1, x), suptan3pi8);  // if( x > tan 3pi/8 ) then x = -1.0/x
+    y = _mm_blendv_pd(y, *(v2sd *) _pd_PIO2, suptan3pi8);                 // if( x > tan 3pi/8 ) then y = PI/2
+    flag = _mm_blendv_pd(flag, *(v2sd *) _pd_1, suptan3pi8);              // if( x > tan 3pi/8 ) then flag = 1
+
+    inftan3pi8inf0p66 = _mm_and_pd(_mm_cmple_pd(x, *(v2sd *) _pd_TAN3PI8), _mm_cmple_pd(x, zerop66));  // if( x < tan 3pi/8 ) && (x > 0.66)
+    y = _mm_blendv_pd(*(v2sd *) _pd_PIO4, y, inftan3pi8inf0p66);                                       // y = 0 or PIO4
+    x = _mm_blendv_pd(_mm_div_pd(_mm_sub_pd(x, *(v2sd *) _pd_1), _mm_add_pd(x, *(v2sd *) _pd_1)), x, inftan3pi8inf0p66);
+    flag = _mm_blendv_pd(flag, *(v2sd *) _pd_2, _mm_cmpeq_pd(*(v2sd *) _pd_PIO4, y));  // if y = PIO4 then flag = 2
+    z = _mm_mul_pd(x, x);                                                              // z = x*x
+
+    //z = z * polevl(z, P_, 4)
+    tmp = _mm_fmadd_pd_custom(*(v2sd *) _pd_ATAN_P0, z, *(v2sd *) _pd_ATAN_P1);
+    tmp = _mm_fmadd_pd_custom(tmp, z, *(v2sd *) _pd_ATAN_P2);
+    tmp = _mm_fmadd_pd_custom(tmp, z, *(v2sd *) _pd_ATAN_P3);
+    tmp = _mm_mul_pd(z, tmp);
+
+    // z = z / p1evl(z, Q_, 5);
+    tmp2 = _mm_add_pd(z, *(v2sd *) _pd_ATAN_Q0);
+    tmp2 = _mm_fmadd_pd_custom(tmp2, z, *(v2sd *) _pd_ATAN_Q1);
+    tmp2 = _mm_fmadd_pd_custom(tmp2, z, *(v2sd *) _pd_ATAN_Q2);
+    tmp2 = _mm_fmadd_pd_custom(tmp2, z, *(v2sd *) _pd_ATAN_Q3);
+    tmp2 = _mm_fmadd_pd_custom(tmp2, z, *(v2sd *) _pd_ATAN_Q4);
+    z = _mm_div_pd(tmp, tmp2);
+
+    // z = x * z + x
+    z = _mm_fmadd_pd_custom(x, z, x);
+
+    z = _mm_blendv_pd(z, _mm_fmadd_pd_custom(*(v2sd *) _pd_0p5, *(v2sd *) _pd_MOREBITS, z),
+                      _mm_cmpeq_pd(flag, *(v2sd *) _pd_2));  // if (flag == 2) then z += 0.5 * MOREBITS
+    z = _mm_blendv_pd(z, _mm_add_pd(z, *(v2sd *) _pd_MOREBITS),
+                      _mm_cmpeq_pd(flag, *(v2sd *) _pd_1));  // if (flag == 1) then z +=  MOREBITS
+
+    y = _mm_add_pd(y, z);
+    y = _mm_blendv_pd(y, _mm_xor_pd(*(v2sd *) _pd_negative_mask, y), sign);
+
+    y = _mm_blendv_pd(y, xx, _mm_cmpeq_pd(x, _mm_setzero_pd()));  // if (xx == 0) then return xx (x is fabs(xx))
+    return (y);
+}
+
+static inline void atan128d(double *src, double *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_load_pd(src + i);
+            _mm_store_pd(dst + i, atan_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_loadu_pd(src + i);
+            _mm_storeu_pd(dst + i, atan_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atan(src[i]);
+    }
+}
 
 static inline void asin128d(double *src, double *dst, int len)
 {
@@ -717,6 +791,35 @@ static inline void asin128d(double *src, double *dst, int len)
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             v2sd src_tmp = _mm_loadu_pd(src + i);
             _mm_storeu_pd(dst + i, asin_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = asin(src[i]);
+    }
+}
+
+//Work in progress
+//from atan
+//asin(x) = atan( x / sqrt( 1 - x*x ) )
+static inline void asin128d_(double *src, double *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_load_pd(src + i);
+            v2sd tmp = _mm_fnmadd_pd_custom(src_tmp, src_tmp, *(v2sd *) _pd_1);  // 1 - x*x
+            tmp = _mm_sqrt_pd(tmp);
+            _mm_store_pd(dst + i, atan_pd(_mm_div_pd(src_tmp, tmp)));  // atan( x / sqrt( 1 - x*x ) )
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_loadu_pd(src + i);
+            v2sd tmp = _mm_fnmadd_pd_custom(src_tmp, src_tmp, *(v2sd *) _pd_1);  // 1 - x*x
+            tmp = _mm_sqrt_pd(tmp);
+            _mm_storeu_pd(dst + i, atan_pd(_mm_div_pd(src_tmp, tmp)));  // atan( x / sqrt( 1 - x*x ) )
         }
     }
 

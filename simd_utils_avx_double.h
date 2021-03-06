@@ -452,3 +452,99 @@ static inline void vectorSlope256d(double *dst, int len, double offset, double s
         dst[i] = offset + slope * (double) i;
     }
 }
+
+
+static inline v4sd asin256_pd(v4sd x)
+{
+    v4sd a, z, z_tmp;
+    v4sd sign;
+    v4sd ainfem8, asup0p625;
+
+    // first branch, a > 0.625
+    v4sd zz_first_branch;
+    v4sd p;
+    v4sd z_first_branch;
+    v4sd tmp_first_branch;
+
+    // second branch a <= 0.625
+    v4sd zz_second_branch;
+    v4sd z_second_branch;
+    v4sd tmp_second_branch;
+
+    a = _mm256_and_pd(*(v4sd *) _pd256_positive_mask, x);      //fabs(x)
+    sign = _mm256_cmp_pd(x, _mm256_setzero_pd(), _CMP_LT_OS);  //0xFFFFFFFF if x < 0.0
+
+    ainfem8 = _mm256_cmp_pd(a, _mm256_set1_pd(1.0e-8), _CMP_LT_OS);  //if( a < 1.0e-8)
+    asup0p625 = _mm256_cmp_pd(a, _mm256_set1_pd(0.625), _CMP_GT_OS);
+
+    // fist branch
+    zz_first_branch = _mm256_sub_pd(_mm256_set1_pd(1.0), a);
+    p = _mm256_fmadd_pd_custom(*(v4sd *) _pd256_ASIN_R0, zz_first_branch, *(v4sd *) _pd256_ASIN_R1);
+    p = _mm256_fmadd_pd_custom(p, zz_first_branch, *(v4sd *) _pd256_ASIN_R2);
+    p = _mm256_fmadd_pd_custom(p, zz_first_branch, *(v4sd *) _pd256_ASIN_R3);
+    p = _mm256_fmadd_pd_custom(p, zz_first_branch, *(v4sd *) _pd256_ASIN_R4);
+    p = _mm256_mul_pd(p, zz_first_branch);
+
+    tmp_first_branch = _mm256_add_pd(zz_first_branch, *(v4sd *) _pd256_ASIN_S0);
+    tmp_first_branch = _mm256_fmadd_pd_custom(tmp_first_branch, zz_first_branch, *(v4sd *) _pd256_ASIN_S1);
+    tmp_first_branch = _mm256_fmadd_pd_custom(tmp_first_branch, zz_first_branch, *(v4sd *) _pd256_ASIN_S2);
+    tmp_first_branch = _mm256_fmadd_pd_custom(tmp_first_branch, zz_first_branch, *(v4sd *) _pd256_ASIN_S3);
+    p = _mm256_div_pd(p, tmp_first_branch);
+
+    zz_first_branch = _mm256_sqrt_pd(_mm256_add_pd(zz_first_branch, zz_first_branch));
+    z_first_branch = _mm256_sub_pd(*(v4sd *) _pd256_PIO4, zz_first_branch);
+    zz_first_branch = _mm256_fmadd_pd_custom(zz_first_branch, p, *(v4sd *) _pd256_minMOREBITS);
+    z_first_branch = _mm256_sub_pd(z_first_branch, zz_first_branch);
+    z_first_branch = _mm256_add_pd(z_first_branch, *(v4sd *) _pd256_PIO4);
+
+    //second branch
+    zz_second_branch = _mm256_mul_pd(a, a);
+    z_second_branch = _mm256_fmadd_pd_custom(*(v4sd *) _pd256_ASIN_P0, zz_second_branch, *(v4sd *) _pd256_ASIN_P1);
+    z_second_branch = _mm256_fmadd_pd_custom(z_second_branch, zz_second_branch, *(v4sd *) _pd256_ASIN_P2);
+    z_second_branch = _mm256_fmadd_pd_custom(z_second_branch, zz_second_branch, *(v4sd *) _pd256_ASIN_P3);
+    z_second_branch = _mm256_fmadd_pd_custom(z_second_branch, zz_second_branch, *(v4sd *) _pd256_ASIN_P4);
+    z_second_branch = _mm256_fmadd_pd_custom(z_second_branch, zz_second_branch, *(v4sd *) _pd256_ASIN_P5);
+    z_second_branch = _mm256_mul_pd(z_second_branch, zz_second_branch);
+
+    tmp_second_branch = _mm256_add_pd(zz_second_branch, *(v4sd *) _pd256_ASIN_Q0);
+    tmp_second_branch = _mm256_fmadd_pd_custom(tmp_second_branch, zz_second_branch, *(v4sd *) _pd256_ASIN_Q1);
+    tmp_second_branch = _mm256_fmadd_pd_custom(tmp_second_branch, zz_second_branch, *(v4sd *) _pd256_ASIN_Q2);
+    tmp_second_branch = _mm256_fmadd_pd_custom(tmp_second_branch, zz_second_branch, *(v4sd *) _pd256_ASIN_Q3);
+    tmp_second_branch = _mm256_fmadd_pd_custom(tmp_second_branch, zz_second_branch, *(v4sd *) _pd256_ASIN_Q4);
+
+    z_second_branch = _mm256_div_pd(z_second_branch, tmp_second_branch);
+    z_second_branch = _mm256_fmadd_pd_custom(a, z_second_branch, a);
+
+
+
+    z = _mm256_blendv_pd(z_second_branch, z_first_branch, asup0p625);
+    z = _mm256_blendv_pd(z, _mm256_xor_pd(*(v4sd *) _pd256_negative_mask, z), sign);
+    z = _mm256_blendv_pd(z, x, ainfem8);
+
+    // if (x > 1.0) then return 0.0
+    z = _mm256_blendv_pd(z, _mm256_setzero_pd(), _mm256_cmp_pd(x, *(v4sd *) _pd256_1, _CMP_GT_OS));
+
+    return (z);
+}
+
+static inline void asin256d(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX_LEN_DOUBLE;
+    stop_len *= AVX_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_load_pd(src + i);
+            _mm256_store_pd(dst + i, asin256_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_loadu_pd(src + i);
+            _mm256_storeu_pd(dst + i, asin256_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = asin(src[i]);
+    }
+}

@@ -1216,7 +1216,7 @@ static inline v4sf atanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negati
     y = _mm_blendv_ps(y, *(v4sf *) _ps_PIO2F, suptan3pi8);
 
 
-    inftan3pi8suppi8 = _mm_and_ps(_mm_cmplt_ps(x, *(v4sf *) _ps_TAN3PI8F), _mm_cmpgt_ps(x, *(v4sf *) _ps_TANPI8F));  // if( x > tan 3pi/8 )
+    inftan3pi8suppi8 = _mm_and_ps(_mm_cmple_ps(x, *(v4sf *) _ps_TAN3PI8F), _mm_cmpgt_ps(x, *(v4sf *) _ps_TANPI8F));  // if( x > tan 3pi/8 )
     x = _mm_blendv_ps(x, _mm_div_ps(_mm_sub_ps(x, *(v4sf *) _ps_1), _mm_add_ps(x, *(v4sf *) _ps_1)), inftan3pi8suppi8);
     y = _mm_blendv_ps(y, *(v4sf *) _ps_PIO4F, inftan3pi8suppi8);
 
@@ -1321,12 +1321,6 @@ static inline v4sf asinf_ps(v4sf xx, const v4sf positive_mask, const v4sf negati
     a = _mm_and_ps(positive_mask, x);          //fabs(x)
     sign = _mm_cmplt_ps(x, _mm_setzero_ps());  //0xFFFFFFFF if x < 0.0
 
-    //TODO : vectorize this
-    /*if( a > 1.0f )
-	{
-		return( 0.0f );
-	}*/
-
 
     ainfem4 = _mm_cmplt_ps(a, _mm_set1_ps(1.0e-4));  //if( a < 1.0e-4f )
 
@@ -1353,6 +1347,8 @@ static inline v4sf asinf_ps(v4sf xx, const v4sf positive_mask, const v4sf negati
     z = _mm_blendv_ps(z, a, ainfem4);
     z = _mm_blendv_ps(z, _mm_xor_ps(negative_mask, z), sign);
 
+    // if (x > 1.0) then return 0.0
+    z = _mm_blendv_ps(z, _mm_setzero_ps(), _mm_cmpgt_ps(x, *(v4sf *) _ps_1));
     return (z);
 }
 

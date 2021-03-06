@@ -1968,7 +1968,19 @@ printf("\n");
     printf("cplxconj_C %d %lf\n", len, elapsed);
 
 #ifdef IPP
-// TODO
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsConj_32fc((const Ipp32fc *) inout, (const Ipp32fc *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsConj_32fc %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsConj_32fc((const Ipp32fc *) inout, (const Ipp32fc *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxconj128f %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
 #endif
 
 #ifdef SSE
@@ -3196,6 +3208,19 @@ printf("\n");
     printf("truncf_C %d %lf\n", len, elapsed);
 
 #ifdef IPP
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsTrunc_32f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsTrunc_32f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsTrunc_32f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsTrunc_32f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
 //TODO
 #endif
 
@@ -3523,6 +3548,27 @@ printf("\n");
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("asin_C %d %lf\n", len, elapsed);
 
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsAsin_64f_A53(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsAsin_64f_A53 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsAsin_64f_A53(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsAsin_64f_A53 %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+
+    /*
+for (int i = 0; i < len; i++){
+    printf("%lf , %lf, %lf %lf\n",inoutd[i],inoutd_ref[i],inoutd2[i],asin(inoutd[i]));
+}*/
+
+#endif
+
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
     asin128d(inoutd, inoutd2, len);
@@ -3537,6 +3583,20 @@ printf("\n");
     printf("asin128d %d %lf\n", len, elapsed);
     l2_errd(inoutd_ref, inoutd2, len);
 
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    asin128d_(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asin128d_ %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    asin128d_(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asin128d_ %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+
     /*
 for (int i = 0; i < len; i++){
     printf("%lf , %lf, %lf %lf\n",inoutd[i],inoutd_ref[i],inoutd2[i],asin(inoutd[i]));
@@ -3544,9 +3604,25 @@ for (int i = 0; i < len; i++){
 
 #endif
 
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    asin256d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asin256d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    asin256d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asin256d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+
+#endif
+
     printf("\n");
-    /////////////////////////////////////////////////////////// ATAN //////////////////////////////////////////////////////////////////////////////
-    printf("ATAN\n");
+    /////////////////////////////////////////////////////////// ATANF //////////////////////////////////////////////////////////////////////////////
+    printf("ATANF\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     atanf_C(inout, inout_ref, len);
@@ -3662,8 +3738,8 @@ for (int i = 0; i < len; i++){
 #endif
 
     printf("\n");
-    /////////////////////////////////////////////////////////// ATAN2 //////////////////////////////////////////////////////////////////////////////
-    printf("ATAN2\n");
+    /////////////////////////////////////////////////////////// ATANF2 //////////////////////////////////////////////////////////////////////////////
+    printf("ATANF2\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (-1.0f * i + 0.15f) / 2.5f / (float) (5 * len);
@@ -3782,6 +3858,67 @@ for (int i = 0; i < len; i++){
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("atan2512f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout_ref, len);
+#endif
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// ATAN //////////////////////////////////////////////////////////////////////////////
+    printf("ATAN\n");
+
+    for (int i = 0; i < len / 2; i++) {
+        inoutd[i] = (float) (-1.0 * i + 1.0) / 1.82 / (float) (5 * len);
+    }
+    for (int i = len / 2; i < len; i++) {
+        inoutd[i] = (float) (1.0 * i + 1.0) / 1.82 / (float) (5 * len);
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan_C(inoutd, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan_C %d %lf\n", len, elapsed);
+
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsAtan_64f_A53(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsAtan_64f_A53 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsAtan_64f_A53(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsAtan_64f_A53 %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+
+
+    /*for (int i = 0; i < len; i++){
+        printf("%lf , %lf, %lf %lf\n",inoutd[i],inoutd_ref[i],inoutd2[i],atan(inoutd[i]));
+    }*/
+
+#endif
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan128d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan128d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan128d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan128d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+
+
+    /*for (int i = 0; i < len; i++){
+        printf("%lf , %lf, %lf %lf\n",inoutd[i],inoutd_ref[i],inoutd2[i],atan(inoutd[i]));
+    }*/
+
 #endif
 
     printf("\n");

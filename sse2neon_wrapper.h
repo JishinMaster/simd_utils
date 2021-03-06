@@ -309,6 +309,42 @@ FORCE_INLINE __m128d _mm_cmple_pd(__m128d a, __m128d b)
 #endif
 }
 
+FORCE_INLINE __m128d _mm_cmplt_pd(__m128d a, __m128d b)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128d_u64(
+        vcltq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+#else
+    double a0 = (((double *) &a)[0] < ((double *) &b)[0]) ? 0xFFFFFFFFFFFFFFFF : 0;
+    double a1 = (((double *) &a)[1] < ((double *) &b)[1]) ? 0xFFFFFFFFFFFFFFFF : 0;
+    return _mm_set_pd(a1, a0);
+#endif
+}
+
+FORCE_INLINE __m128d _mm_cmpgt_pd(__m128d a, __m128d b)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128d_u64(
+        vcgtq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+#else
+    double a0 = (((double *) &a)[0] > ((double *) &b)[0]) ? 0xFFFFFFFFFFFFFFFF : 0;
+    double a1 = (((double *) &a)[1] > ((double *) &b)[1]) ? 0xFFFFFFFFFFFFFFFF : 0;
+    return _mm_set_pd(a1, a0);
+#endif
+}
+
+FORCE_INLINE __m128d _mm_cmpge_pd(__m128d a, __m128d b)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128d_u64(
+        vcgeq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+#else
+    double a0 = (((double *) &a)[0] >= ((double *) &b)[0]) ? 0xFFFFFFFFFFFFFFFF : 0;
+    double a1 = (((double *) &a)[1] >= ((double *) &b)[1]) ? 0xFFFFFFFFFFFFFFFF : 0;
+    return _mm_set_pd(a1, a0);
+#endif
+}
+
 FORCE_INLINE __m128d _mm_round_pd(__m128d a, int rounding)
 {
 #if defined(__aarch64__)
