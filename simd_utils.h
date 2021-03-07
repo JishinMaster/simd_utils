@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.6
+ * Version : 0.1.7
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -13,7 +13,7 @@ extern "C" {
 
 #define MAJOR_VERSION 0
 #define MINOR_VERSION 1
-#define SUB_VERSION 6
+#define SUB_VERSION 7
 
 #ifdef OMP
 #include <omp.h>
