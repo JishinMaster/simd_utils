@@ -579,7 +579,7 @@ static inline v4sf cos_ps(v4sf x)
 }
 
 
-void print4(__m128 v)
+static inline void print4(__m128 v)
 {
     float *p = (float *) &v;
 #ifndef USE_SSE2
@@ -588,7 +588,7 @@ void print4(__m128 v)
     printf("[%13.8g, %13.8g, %13.8g, %13.8g]", p[0], p[1], p[2], p[3]);
 }
 
-void print4i(__m128i v)
+static inline void print4i(__m128i v)
 {
     int *p = (int *) &v;
 #ifndef USE_SSE2

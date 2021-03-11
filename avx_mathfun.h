@@ -63,7 +63,7 @@ _PS256_CONST_TYPE(min_norm_pos, int, 0x00800000);
 _PS256_CONST_TYPE(mant_mask, int, 0x7f800000);
 _PS256_CONST_TYPE(inv_mant_mask, int, ~0x7f800000);
 
-_PS256_CONST_TYPE(sign_mask, int, 0x80000000);
+_PS256_CONST_TYPE(sign_mask, int, (int) 0x80000000);
 _PS256_CONST_TYPE(inv_sign_mask, int, ~0x80000000);
 
 _PI32_CONST256(0, 0);
@@ -256,7 +256,7 @@ static inline v8sf log256_ps(v8sf x)
     return x;
 }
 
-v8sf exp256_ps(v8sf x)
+static inline v8sf exp256_ps(v8sf x)
 {
     v8sf tmp = _mm256_setzero_ps(), fx;
     v8si imm0;
@@ -776,7 +776,7 @@ static inline v8sf log256_ps(v8sf x)
     return x;
 }
 
-v8sf exp256_ps(v8sf x)
+static inline v8sf exp256_ps(v8sf x)
 {
     v8sf tmp = _mm256_setzero_ps(), fx;
     v8si imm0;

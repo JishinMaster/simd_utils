@@ -47,7 +47,7 @@ _PS512_CONST_TYPE(min_norm_pos, int, 0x00800000);
 _PS512_CONST_TYPE(mant_mask, int, 0x7f800000);
 _PS512_CONST_TYPE(inv_mant_mask, int, ~0x7f800000);
 
-_PS512_CONST_TYPE(sign_mask, int, 0x80000000);
+_PS512_CONST_TYPE(sign_mask, int, (int) 0x80000000);
 _PS512_CONST_TYPE(inv_sign_mask, int, ~0x80000000);
 
 _PI32_CONST512(0, 0);
@@ -150,7 +150,7 @@ static inline v16sf log512_ps(v16sf x)
     return x;
 }
 
-v16sf exp512_ps(v16sf x)
+static inline v16sf exp512_ps(v16sf x)
 {
     v16sf tmp = _mm512_setzero_ps(), fx;
     v16si imm0;

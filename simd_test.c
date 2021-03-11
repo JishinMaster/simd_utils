@@ -4394,6 +4394,7 @@ for (int i = 0; i < len; i++){
 
 #endif
 
+#ifdef AVX
 #ifdef __AVX2__
     clock_gettime(CLOCK_REALTIME, &start);
     copy256s(inout_i1, inout_i2, len);
@@ -4466,7 +4467,7 @@ for (int i = 0; i < len; i++){
 
     l2_err_i32(inout_i2, inout_iref, len);
 #endif
-
+#endif
 
     free(inout);
     free(inout2);

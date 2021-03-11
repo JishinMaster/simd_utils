@@ -1042,7 +1042,7 @@ static inline void sincos256f(float *src, float *dst_sin, float *dst_cos, int le
 AVX2_INTOP_USING_SSE2(cmpgt_epi32)
 #endif
 
-v8sf atan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
+static inline v8sf atan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 {
     v8sf x, y, z;
     v8sf sign2;
@@ -1102,7 +1102,7 @@ static inline void atan256f(float *src, float *dst, int len)
     }
 }
 
-v8sf atan2256f_ps(v8sf y, v8sf x, const v8sf positive_mask, const v8sf negative_mask)
+static inline v8sf atan2256f_ps(v8sf y, v8sf x, const v8sf positive_mask, const v8sf negative_mask)
 {
     v8sf z, w;
     v8sf xinfzero, yinfzero, xeqzero, yeqzero;
@@ -1158,7 +1158,7 @@ static inline void atan2256f(float *src1, float *src2, float *dst, int len)
     }
 }
 
-v8sf asin256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
+static inline v8sf asin256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 {
     v8sf a, x, z, z_tmp;
     v8sf sign;
@@ -1230,7 +1230,7 @@ static inline void asin256f(float *src, float *dst, int len)
 
 
 #if 1
-v8sf tan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
+static inline v8sf tan256f_ps(v8sf xx, const v8sf positive_mask, const v8sf negative_mask)
 {
     v8sf x, y, z, zz;
     v8si j;  //long?

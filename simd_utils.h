@@ -30,8 +30,6 @@ extern "C" {
 #define IMM8_PERMUTE_128BITS_LANES 0x1  // reverse abcd efgh to efgh abcd
 #define M_PI 3.14159265358979323846
 
-#warning "TODO : add better alignment checks"
-
 /* LATENCIES
 SSE
 _mm_store_ps     lat 1, cpi 1 (ivy ) 0.5 (broadwell)
@@ -393,10 +391,12 @@ _PD_CONST(min1, -1.0);
 
 #ifndef __clang__
 #ifndef __INTEL_COMPILER
+#ifndef __cplusplus // TODO : it seems to be defined with G++ 9.2 and not GCC 9.2
 static inline __m256 _mm256_set_m128(__m128 H, __m128 L)  //not present on every GCC version
 {
     return _mm256_insertf128_ps(_mm256_castps128_ps256(L), H, 1);
 }
+#endif
 #endif
 #endif /* __clang__ */
 

@@ -823,7 +823,7 @@ static inline void sincos512f(float *src, float *dst_sin, float *dst_cos, int le
     }
 }
 
-v16sf atan512f_ps(v16sf xx, const v16sf positive_mask, const v16sf negative_mask)
+static inline v16sf atan512f_ps(v16sf xx, const v16sf positive_mask, const v16sf negative_mask)
 {
     v16sf x, y, z;
     __mmask16 sign2;
@@ -883,7 +883,7 @@ static inline void atan512f(float *src, float *dst, int len)
     }
 }
 
-v16sf atan2512f_ps(v16sf y, v16sf x, const v16sf positive_mask, const v16sf negative_mask)
+static inline v16sf atan2512f_ps(v16sf y, v16sf x, const v16sf positive_mask, const v16sf negative_mask)
 {
     v16sf z, w;
     __mmask16 xinfzero, yinfzero, xeqzero, yeqzero;
@@ -939,7 +939,7 @@ static inline void atan2512f(float *src1, float *src2, float *dst, int len)
     }
 }
 
-v16sf asin512f_ps(v16sf xx, const v16sf positive_mask, const v16sf negative_mask)
+static inline v16sf asin512f_ps(v16sf xx, const v16sf positive_mask, const v16sf negative_mask)
 {
     v16sf a, x, z, z_tmp;
     __mmask16 sign;
@@ -1011,7 +1011,7 @@ static inline void asin512f(float *src, float *dst, int len)
 
 
 #if 1
-v16sf tan512f_ps(v16sf xx, const v16sf positive_mask, const v16sf negative_mask)
+static inline v16sf tan512f_ps(v16sf xx, const v16sf positive_mask, const v16sf negative_mask)
 {
     v16sf x, y, z, zz;
     v16si j;  //long?
