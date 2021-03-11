@@ -17,11 +17,11 @@ static inline void add256s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 
     if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
-            _mm256_store_si256((__m256i *)(dst + i), _mm256_add_epi32(_mm256_load_si256((__m256i *)(src1 + i)), _mm256_load_si256((__m256i *)(src2 + i))));
+            _mm256_store_si256((__m256i *) (dst + i), _mm256_add_epi32(_mm256_load_si256((__m256i *) (src1 + i)), _mm256_load_si256((__m256i *) (src2 + i))));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
-            _mm256_storeu_si256((__m256i *)(dst + i), _mm256_add_epi32(_mm256_loadu_si256((__m256i *)(src1 + i)), _mm256_loadu_si256((__m256i *)(src2 + i))));
+            _mm256_storeu_si256((__m256i *) (dst + i), _mm256_add_epi32(_mm256_loadu_si256((__m256i *) (src1 + i)), _mm256_loadu_si256((__m256i *) (src2 + i))));
         }
     }
 
@@ -37,11 +37,11 @@ static inline void mul256s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 
     if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
-            _mm256_store_si256((__m256i *)(dst + i), _mm256_mul_epi32(_mm256_load_si256((__m256i *)(src1 + i)), _mm256_load_si256((__m256i *)(src2 + i))));
+            _mm256_store_si256((__m256i *) (dst + i), _mm256_mul_epi32(_mm256_load_si256((__m256i *) (src1 + i)), _mm256_load_si256((__m256i *) (src2 + i))));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
-            _mm256_storeu_si256((__m256i *)(dst + i), _mm256_mul_epi32(_mm256_loadu_si256((__m256i *)(src1 + i)), _mm256_loadu_si256((__m256i *)(src2 + i))));
+            _mm256_storeu_si256((__m256i *) (dst + i), _mm256_mul_epi32(_mm256_loadu_si256((__m256i *) (src1 + i)), _mm256_loadu_si256((__m256i *) (src2 + i))));
         }
     }
 
@@ -57,11 +57,11 @@ static inline void sub256s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 
     if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
-            _mm256_store_si256((__m256i *)(dst + i), _mm256_sub_epi32(_mm256_load_si256((__m256i *)(src1 + i)), _mm256_load_si256((__m256i *)(src2 + i))));
+            _mm256_store_si256((__m256i *) (dst + i), _mm256_sub_epi32(_mm256_load_si256((__m256i *) (src1 + i)), _mm256_load_si256((__m256i *) (src2 + i))));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
-            _mm256_storeu_si256((__m256i *)(dst + i), _mm256_sub_epi32(_mm256_loadu_si256((__m256i *)(src1 + i)), _mm256_loadu_si256((__m256i *)(src2 + i))));
+            _mm256_storeu_si256((__m256i *) (dst + i), _mm256_sub_epi32(_mm256_loadu_si256((__m256i *) (src1 + i)), _mm256_loadu_si256((__m256i *) (src2 + i))));
         }
     }
 
@@ -79,11 +79,11 @@ static inline void addc256s(int32_t *src, int32_t value, int32_t *dst, int len)
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
-            _mm256_store_si256((__m256i *)(dst + i), _mm256_add_epi32(tmp, _mm256_load_si256((__m256i *)(src + i))));
+            _mm256_store_si256((__m256i *) (dst + i), _mm256_add_epi32(tmp, _mm256_load_si256((__m256i *) (src + i))));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
-            _mm256_storeu_si256((__m256i *)(dst + i), _mm256_add_epi32(tmp, _mm256_loadu_si256((__m256i *)(src + i))));
+            _mm256_storeu_si256((__m256i *) (dst + i), _mm256_add_epi32(tmp, _mm256_loadu_si256((__m256i *) (src + i))));
         }
     }
 

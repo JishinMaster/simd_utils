@@ -7,7 +7,7 @@
 
 #pragma once
 
-//JishinMaster : DTCollab sse2neon.h commit : f2d9e9ff59abfe446074e89caf3f7eb08aca5047
+//JishinMaster : DTCollab sse2neon.h commit :  7654cd7
 #include "sse2neon.h"
 
 
@@ -57,29 +57,6 @@
 #define _MM_FROUND_NEARBYINT \
     (_MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC)
 
-
-//To be checked
-FORCE_INLINE __m128d _mm_shuffle_pd(__m128d a,
-                                    __m128d b,
-                                    __constrange(0, 255) int imm)
-{
-    __m128d ret;
-    ret[0] = a[imm & 0x3];
-    ret[1] = a[(imm >> 2) & 0x3];
-
-
-    //ret[2] = b[(imm >> 4) & 0x03];
-    //ret[3] = b[(imm >> 6) & 0x03];
-    return ret;
-}
-
-
-FORCE_INLINE __m128d _mm_castsi128_pd(__m128i a)
-{
-    return vreinterpretq_m128d_s64(vreinterpretq_s64_m128i(a));
-}
-
-
 /*
 From https://developer.arm.com/docs/ddi0595/e/aarch64-system-registers/fpcr
 RMode, bits [23:22] 
@@ -90,68 +67,6 @@ RMode	Meaning
 0b10	Round towards Minus Infinity (RM) mode.
 0b11	Round towards Zero (RZ) mode.
 */
-
-
-#if defined(__aarch64__)
-typedef struct {
-    uint16_t res0;
-    uint8_t res1 : 6;
-    uint8_t bit22 : 1;
-    uint8_t bit23 : 1;
-    uint8_t res2;
-    uint32_t res3;
-
-} fpcr_bitfield;
-
-typedef union {
-    fpcr_bitfield field;
-    uint64_t value;
-} reg;
-
-#else
-typedef struct {
-    uint16_t res0;
-    uint8_t res1 : 6;
-    uint8_t bit22 : 1;
-    uint8_t bit23 : 1;
-    uint8_t res2;
-} fpcr_bitfield;
-
-typedef union {
-    fpcr_bitfield field;
-    uint32_t value;
-} reg;
-#endif
-//TO BE TESTED
-FORCE_INLINE void _MM_SET_ROUNDING_MODE(int rounding)
-{
-    reg r;
-#if defined(__aarch64__)
-    asm volatile("mrs %0, FPCR"
-                 : "=r"(r.value)); /* read */
-#else
-    asm volatile("vmrs %0, FPSCR"
-                 : "=r"(r.value));           /* read */
-#endif
-    if (rounding == _MM_ROUND_TOWARD_ZERO) {
-        r.field.bit22 = 1;
-        r.field.bit23 = 1;
-    } else if (rounding == _MM_FROUND_TO_NEG_INF) {
-        r.field.bit22 = 0;
-        r.field.bit23 = 1;
-    } else if (rounding == _MM_FROUND_TO_POS_INF) {
-        r.field.bit22 = 1;
-        r.field.bit23 = 0;
-    } else {  //_MM_ROUND_NEAREST
-        r.field.bit22 = 0;
-        r.field.bit23 = 0;
-    }
-#if defined(__aarch64__)
-    asm volatile("msr FPCR, %0" ::"r"(r)); /* write */
-#else
-    asm volatile("vmsr FPSCR, %0" ::"r"(r)); /* write */
-#endif
-}
 
 
 #if defined(__ARM_FEATURE_CRYPTO)
@@ -181,13 +96,6 @@ FORCE_INLINE __m128 _mm_cplx_mul_ps(__m128 r, __m128 a, __m128 b)
     return vreinterpretq_m128_f32(vcmlaq_f32(vreinterpretq_f32_m128(r), vreinterpretq_f32_m128(a), vreinterpretq_f32_m128(b)));
 }
 #endif
-
-// Store the lower single-precision (32-bit) floating-point element from a into 4 contiguous elements in memory. mem_addr must be aligned on a 16-byte boundary or a general-protection exception may be generated.
-// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_store1_ps&expand=5217,3606,3720,5595
-FORCE_INLINE void _mm_store1_ps(float *mem_addr, __m128 a)
-{
-    vst1q_lane_f32(mem_addr, a, 0);
-}
 
 #if 0
 inline __m128 _mm_blend_ps(__m128 a, __m128 b, const int i32)
@@ -309,18 +217,6 @@ FORCE_INLINE __m128d _mm_cmple_pd(__m128d a, __m128d b)
 #endif
 }
 
-FORCE_INLINE __m128d _mm_cmplt_pd(__m128d a, __m128d b)
-{
-#if defined(__aarch64__)
-    return vreinterpretq_m128d_u64(
-        vcltq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
-#else
-    double a0 = (((double *) &a)[0] < ((double *) &b)[0]) ? 0xFFFFFFFFFFFFFFFF : 0;
-    double a1 = (((double *) &a)[1] < ((double *) &b)[1]) ? 0xFFFFFFFFFFFFFFFF : 0;
-    return _mm_set_pd(a1, a0);
-#endif
-}
-
 FORCE_INLINE __m128d _mm_cmpgt_pd(__m128d a, __m128d b)
 {
 #if defined(__aarch64__)
@@ -402,11 +298,6 @@ FORCE_INLINE __m128d _mm_fnmadd_pd(__m128d a, __m128d b, __m128d c)
 #else
     return _mm_add_pd(c, _mm_mul_pd(a, b));
 #endif
-}
-
-FORCE_INLINE __m64 _mm_cvtps_pi16(__m128 a)
-{
-    return vreinterpret_m64_s16(vmovn_s32(vcvtq_s32_f32(vreinterpretq_m128_f32(a))));
 }
 
 #if defined(__GNUC__) || defined(__clang__)
