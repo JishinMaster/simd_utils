@@ -35,9 +35,10 @@
 #define ALIGN32_END __attribute__((aligned(32)))
 
 /* __m128 is ugly to write */
-typedef __m256 v8sf;   // vector of 8 float (avx)
-typedef __m256i v8si;  // vector of 8 int   (avx)
-typedef __m128i v4si;  // vector of 4 int   (avx)
+typedef __m256 v8sf;    // vector of 8 float (avx)
+typedef __m256i v8si;   // vector of 8 int   (avx)
+typedef __m256i v4sid;  // vector of 4 64 bits int   (avx)
+typedef __m128i v4si;   // vector of 4 int   (avx)
 
 #define _PI32AVX_CONST(Name, Val) \
     static const ALIGN32_BEG int _pi32avx_##Name[4] ALIGN32_END = {Val, Val, Val, Val}

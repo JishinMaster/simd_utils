@@ -123,6 +123,7 @@ float l2_errd(double *test, double *ref, int len)
     return l2_err;
 }
 
+
 int main(int argc, char **argv)
 {
 #ifdef IPP
@@ -2656,6 +2657,23 @@ printf("\n");
     l2_errd(inoutd2_ref, inoutd3, len);
 #endif
 
+#ifdef AVX
+#ifdef __AVX2__
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos256d(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos256d %d %lf\n", len, elapsed);
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos256d(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos256d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+    l2_errd(inoutd2_ref, inoutd3, len);
+#endif
+#endif
+
     /*for(int i = 0; i < len; i++){
         printf("%lf || %lf %lf || %lf %lf\n",inoutd[i], inoutd_ref[i],inoutd2[i], inoutd2_ref[i], inoutd3[i]);
     }*/
@@ -3620,6 +3638,22 @@ for (int i = 0; i < len; i++){
 
 #endif
 
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    asin512d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asin512d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    asin512d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asin512d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// ATANF //////////////////////////////////////////////////////////////////////////////
     printf("ATANF\n");
@@ -3913,12 +3947,36 @@ for (int i = 0; i < len; i++){
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("atan128d %d %lf\n", len, elapsed);
     l2_errd(inoutd_ref, inoutd2, len);
+#endif
 
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan256d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan256d %d %lf\n", len, elapsed);
 
-    /*for (int i = 0; i < len; i++){
-        printf("%lf , %lf, %lf %lf\n",inoutd[i],inoutd_ref[i],inoutd2[i],atan(inoutd[i]));
-    }*/
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan256d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan256d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+#endif
 
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan512d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan512d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan512d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan512d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
 #endif
 
     printf("\n");

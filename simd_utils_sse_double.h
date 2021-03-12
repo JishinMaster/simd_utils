@@ -699,7 +699,7 @@ static inline v2sd asin_pd(v2sd x)
     return (z);
 }
 
-//Work in progress
+
 static inline v2sd atan_pd(v2sd xx)
 {
     v2sd x, y, z;
@@ -720,16 +720,18 @@ static inline v2sd atan_pd(v2sd xx)
     y = _mm_blendv_pd(y, *(v2sd *) _pd_PIO2, suptan3pi8);                 // if( x > tan 3pi/8 ) then y = PI/2
     flag = _mm_blendv_pd(flag, *(v2sd *) _pd_1, suptan3pi8);              // if( x > tan 3pi/8 ) then flag = 1
 
-    inftan3pi8inf0p66 = _mm_and_pd(_mm_cmple_pd(x, *(v2sd *) _pd_TAN3PI8), _mm_cmple_pd(x, zerop66));  // if( x < tan 3pi/8 ) && (x > 0.66)
+    inftan3pi8inf0p66 = _mm_and_pd(_mm_cmple_pd(x, *(v2sd *) _pd_TAN3PI8), _mm_cmple_pd(x, zerop66));  // if( x <= tan 3pi/8 ) && (x <= 0.66)
     y = _mm_blendv_pd(*(v2sd *) _pd_PIO4, y, inftan3pi8inf0p66);                                       // y = 0 or PIO4
     x = _mm_blendv_pd(_mm_div_pd(_mm_sub_pd(x, *(v2sd *) _pd_1), _mm_add_pd(x, *(v2sd *) _pd_1)), x, inftan3pi8inf0p66);
     flag = _mm_blendv_pd(flag, *(v2sd *) _pd_2, _mm_cmpeq_pd(*(v2sd *) _pd_PIO4, y));  // if y = PIO4 then flag = 2
-    z = _mm_mul_pd(x, x);                                                              // z = x*x
+
+    z = _mm_mul_pd(x, x);  // z = x*x
 
     //z = z * polevl(z, P_, 4)
     tmp = _mm_fmadd_pd_custom(*(v2sd *) _pd_ATAN_P0, z, *(v2sd *) _pd_ATAN_P1);
     tmp = _mm_fmadd_pd_custom(tmp, z, *(v2sd *) _pd_ATAN_P2);
     tmp = _mm_fmadd_pd_custom(tmp, z, *(v2sd *) _pd_ATAN_P3);
+    tmp = _mm_fmadd_pd_custom(tmp, z, *(v2sd *) _pd_ATAN_P4);
     tmp = _mm_mul_pd(z, tmp);
 
     // z = z / p1evl(z, Q_, 5);
