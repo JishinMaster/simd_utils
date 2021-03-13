@@ -748,6 +748,17 @@ static inline void setf_C(float *src, float value, int len)
     }
 }
 
+static inline void zerof_C(float *src, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        src[i] = 0.0f;
+    }
+}
+
+
 static inline void copyf_C(float *src, float *dst, int len)
 {
 #ifdef OMP
@@ -760,6 +771,16 @@ static inline void copyf_C(float *src, float *dst, int len)
 
 
 static inline void addcf_C(float *src, float value, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src[i] + value;
+    }
+}
+
+static inline void addcs_C(int32_t *src, int32_t value, int32_t *dst, int len)
 {
 #ifdef OMP
 #pragma omp simd
@@ -786,6 +807,44 @@ static inline void mulcf_C(float *src, float value, float *dst, int len)
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] = src[i] * value;
+    }
+}
+
+static inline void muladdf_C(float *_a, float *_b, float *_c, float *dst, int len)
+{
+    for (int i = 0; i < len; i++) {
+        dst[i] = _a[i] * _b[i] + _c[i];
+    }
+}
+
+static inline void mulcaddf_C(float *_a, float _b, float *_c, float *dst, int len)
+{
+    for (int i = 0; i < len; i++) {
+        dst[i] = _a[i] * _b + _c[i];
+    }
+}
+
+static inline void mulcaddcf_C(float *_a, float _b, float _c, float *dst, int len)
+{
+    for (int i = 0; i < len; i++) {
+        dst[i] = _a[i] * _b + _c;
+    }
+}
+
+static inline void muladdcf_C(float *_a, float *_b, float _c, float *dst, int len)
+{
+    for (int i = 0; i < len; i++) {
+        dst[i] = _a[i] * _b[i] + _c;
+    }
+}
+
+static inline void muls_c(int32_t *a, int32_t *b, int32_t *c, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        c[i] = a[i] * b[i];
     }
 }
 
@@ -976,6 +1035,14 @@ static inline void magnitudef_C_split(float *srcRe, float *srcIm, float *dst, in
     }
 }
 
+
+static inline void powerspectf_C_split(float *srcRe, float *srcIm, float *dst, int len)
+{
+    for (int i = 0; i < len; i++) {
+        dst[i] = srcRe[i] * srcRe[i] + srcIm[i] * srcIm[i];
+    }
+}
+
 static inline void meanf_C(float *src, float *dst, int len)
 {
     float acc = 0.0f;
@@ -991,6 +1058,16 @@ static inline void meanf_C(float *src, float *dst, int len)
 
     acc = acc / (float) len;
     *dst = acc;
+}
+
+static inline void sumf_C(float *src, float *dst, int len)
+{
+    float tmp_acc = 0.0f;
+
+    for (int i = 0; i < len; i++) {
+        tmp_acc += src[i];
+    }
+    *dst = tmp_acc;
 }
 
 static inline void flipf_C(float *src, float *dst, int len)
@@ -1102,6 +1179,16 @@ static inline void sincosd_C(double *src, double *dst_sin, double *dst_cos, int 
     for (int i = 0; i < len; i++) {
         dst_sin[i] = sin(src[i]);
         dst_cos[i] = cos(src[i]);
+    }
+}
+
+static inline void sqrtf_C(float *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = sqrtf(src[i]);
     }
 }
 
@@ -1261,6 +1348,15 @@ static inline void vectorSloped_C(double *dst, int len, double offset, double sl
     }
 }
 
+static inline void vectorSlopes_C(int32_t *dst, int len, int32_t offset, int32_t slope)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = (int32_t) i * slope + offset;
+    }
+}
 
 static inline void maxeveryf_c(float *src1, float *src2, float *dst, int len)
 {
@@ -1319,6 +1415,34 @@ static inline void adds_c(int32_t *a, int32_t *b, int32_t *c, int len)
     }
 }
 
+
+static inline void subf_c(float *a, float *b, float *c, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        c[i] = a[i] - b[i];
+    }
+}
+
+static inline void subcrevf_C(float *src, float value, float *dst, int len)
+{
+    for (int i = 0; i < len; i++) {
+        dst[i] = value - src[i];
+    }
+}
+
+static inline void subs_c(int32_t *a, int32_t *b, int32_t *c, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        c[i] = a[i] - b[i];
+    }
+}
+
 /*static inline void orf_c(float *a, float *b, float *c, int len)
 {
 #ifdef OMP
@@ -1328,6 +1452,146 @@ static inline void adds_c(int32_t *a, int32_t *b, int32_t *c, int len)
         c[i] = a[i] | b[i];
     }
 }*/
+
+
+static inline void setd_C(double *src, double value, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        src[i] = value;
+    }
+}
+
+static inline void zerod_C(double *src, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        src[i] = 0.0;
+    }
+}
+
+
+static inline void copyd_C(double *src, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src[i];
+    }
+}
+
+static inline void copys_C(int32_t *src, int32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src[i];
+    }
+}
+
+static inline void sqrtd_C(double *src, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = sqrt(src[i]);
+    }
+}
+
+static inline void addd_c(double *a, double *b, double *c, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        c[i] = a[i] + b[i];
+    }
+}
+
+static inline void muld_c(double *a, double *b, double *c, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        c[i] = a[i] * b[i];
+    }
+}
+
+static inline void subd_c(double *a, double *b, double *c, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        c[i] = a[i] - b[i];
+    }
+}
+
+static inline void divd_c(double *a, double *b, double *c, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        c[i] = a[i] / b[i];
+    }
+}
+
+static inline void mulcd_C(double *src, double value, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src[i] * value;
+    }
+}
+
+static inline void muladdd_C(double *_a, double *_b, double *_c, double *dst, int len)
+{
+    for (int i = 0; i < len; i++) {
+        dst[i] = _a[i] * _b[i] + _c[i];
+    }
+}
+
+static inline void mulcaddd_C(double *_a, double _b, double *_c, double *dst, int len)
+{
+    for (int i = 0; i < len; i++) {
+        dst[i] = _a[i] * _b + _c[i];
+    }
+}
+
+static inline void mulcaddcd_C(double *_a, double _b, double _c, double *dst, int len)
+{
+    for (int i = 0; i < len; i++) {
+        dst[i] = _a[i] * _b + _c;
+    }
+}
+
+static inline void muladdcd_C(double *_a, double *_b, double _c, double *dst, int len)
+{
+    for (int i = 0; i < len; i++) {
+        dst[i] = _a[i] * _b[i] + _c;
+    }
+}
+
+static inline void addcd_C(double *src, double value, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src[i] + value;
+    }
+}
 
 static inline void ors_c(int32_t *a, int32_t *b, int32_t *c, int len)
 {

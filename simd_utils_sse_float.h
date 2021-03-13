@@ -1602,7 +1602,7 @@ static inline void subcrev128f(float *src, float value, float *dst, int len)
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i] = src[i] + value;
+        dst[i] = value - src[i];
     }
 }
 
