@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.7
+ * Version : 0.1.8
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -2669,6 +2669,24 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("sincos256d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+    l2_errd(inoutd2_ref, inoutd3, len);
+#endif
+#endif
+
+// work in progress
+#if 0
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos512d(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos512d %d %lf\n", len, elapsed);
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos512d(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos512d %d %lf\n", len, elapsed);
     l2_errd(inoutd_ref, inoutd2, len);
     l2_errd(inoutd2_ref, inoutd3, len);
 #endif

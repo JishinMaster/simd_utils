@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.7
+ * Version : 0.1.8
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -632,6 +632,24 @@ static inline void atan256d(double *src, double *dst, int len)
 
 #ifdef __AVX2__
 
+static inline void print4d(__m256d v)
+{
+    double *p = (double *) &v;
+#ifndef USE_SSE2
+    _mm_empty();
+#endif
+    printf("[%13.8g, %13.8g %13.8g, %13.8g]", p[0], p[1], p[2], p[3]);
+}
+
+static inline void print4id(__m256i v)
+{
+    int64_t *p = (int64_t *) &v;
+#ifndef USE_SSE2
+    _mm_empty();
+#endif
+    printf("[%ld, %ld %ld, %ld]", p[0], p[1], p[2], p[3]);
+}
+
 static inline v4sid _mm256_cvttpd_epi64_custom(v4sd x)
 {
     x = _mm256_add_pd(x, _mm256_set1_pd(0x0010000000000000));
@@ -682,12 +700,14 @@ static inline void sincos256_pd(v4sd x, v4sd *s, v4sd *c)
     emm2 = _mm256_and_si256(emm2, *(v4sid *) _pi256_64_2);
     emm2 = _mm256_cmpeq_epi64(emm2, _mm256_setzero_si256());
     v4sd poly_mask = _mm256_castsi256_pd(emm2);
-    //print2i(emm2);
+
     /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
     x = _mm256_fmadd_pd_custom(y, *(v4sd *) _pd256_minus_cephes_DP1, x);
     x = _mm256_fmadd_pd_custom(y, *(v4sd *) _pd256_minus_cephes_DP2, x);
     x = _mm256_fmadd_pd_custom(y, *(v4sd *) _pd256_minus_cephes_DP3, x);
+    print4d(x);
+    printf("\n");
 
     emm4 = _mm256_sub_epi64(emm4, *(v4sid *) _pi256_64_2);
     emm4 = _mm256_andnot_si256(emm4, *(v4sid *) _pi256_64_4);
@@ -710,7 +730,7 @@ static inline void sincos256_pd(v4sd x, v4sd *s, v4sd *c)
     y = _mm256_add_pd(y, *(v4sd *) _pd256_1);
 
     /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
-    v4sd y2 = _mm256_fmadd_pd_custom(*(v4sd *) _ps_sincof_p0, z, *(v4sd *) _pd256_sincof_p1);
+    v4sd y2 = _mm256_fmadd_pd_custom(*(v4sd *) _pd256_sincof_p0, z, *(v4sd *) _pd256_sincof_p1);
     y2 = _mm256_fmadd_pd_custom(y2, z, *(v4sd *) _pd256_sincof_p2);
     y2 = _mm256_fmadd_pd_custom(y2, z, *(v4sd *) _pd256_sincof_p3);
     y2 = _mm256_fmadd_pd_custom(y2, z, *(v4sd *) _pd256_sincof_p4);

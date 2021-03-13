@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.7
+ * Version : 0.1.8
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -21,6 +21,7 @@
 /* __m128 is ugly to write */
 typedef __m512 v16sf;   // vector of 16 float (avx512)
 typedef __m512i v16si;  // vector of 16 int   (avx512)
+typedef __m512i v8sid;  // vector of 8 64bits int   (avx512)
 typedef __m256i v8si;   // vector of 8 int   (avx)
 
 #define _PI64AVX512_CONST(Name, Val) \

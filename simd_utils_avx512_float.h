@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.7
+ * Version : 0.1.8
  * Author  : JishinMaster
  * Licence : BSD-2
  */

@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.7
+ * Version : 0.1.8
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -13,7 +13,7 @@ extern "C" {
 
 #define MAJOR_VERSION 0
 #define MINOR_VERSION 1
-#define SUB_VERSION 7
+#define SUB_VERSION 8
 
 #ifdef OMP
 #include <omp.h>
@@ -561,6 +561,15 @@ static inline __m512d _mm512_fmadd_pd_custom(__m512d a, __m512d b, __m512d c)
 #endif /* FMA */
 }
 
+static inline __m512d _mm512_fnmadd_pd_custom(__m512d a, __m512d b, __m512d c)
+{
+#ifndef FMA  //Haswell comes with avx2 and fma
+    return _mm512_sub_pd(c, _mm512_mul_pd(a, b));
+#else  /* FMA */
+    return _mm512_fnmadd_pd(a, b, c);
+#endif /* FMA */
+}
+
 #include "avx512_mathfun.h"
 
 #define _PD512_CONST(Name, Val) \
@@ -569,6 +578,30 @@ static inline __m512d _mm512_fmadd_pd_custom(__m512d a, __m512d b, __m512d c)
     static const ALIGN64_BEG int64_t _pi512_64_##Name[8] ALIGN64_END = {Val, Val, Val, Val, Val, Val, Val, Val}
 #define _PD512_CONST_TYPE(Name, Type, Val) \
     static const ALIGN64_BEG Type _pd512_##Name[8] ALIGN64_END = {Val, Val, Val, Val, Val, Val, Val, Val}
+
+
+_PD512_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
+_PD512_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);
+_PD512_CONST_TYPE(inv_mant_mask, int64_t, ~0xFFFFFFFFFFFFFL);
+_PD512_CONST_TYPE(sign_mask, int64_t, (int64_t) 0x8000000000000000L);
+_PD512_CONST_TYPE(inv_sign_mask, int64_t, ~0x8000000000000000L);
+
+_PD512_CONST(minus_cephes_DP1, -7.85398125648498535156E-1);
+_PD512_CONST(minus_cephes_DP2, -3.77489470793079817668E-8);
+_PD512_CONST(minus_cephes_DP3, -2.69515142907905952645E-15);
+_PD512_CONST(sincof_p0, 1.58962301576546568060E-10);
+_PD512_CONST(sincof_p1, -2.50507477628578072866E-8);
+_PD512_CONST(sincof_p2, 2.75573136213857245213E-6);
+_PD512_CONST(sincof_p3, -1.98412698295895385996E-4);
+_PD512_CONST(sincof_p4, 8.33333333332211858878E-3);
+_PD512_CONST(sincof_p5, -1.66666666666666307295E-1);
+_PD512_CONST(coscof_p0, -1.13585365213876817300E-11);
+_PD512_CONST(coscof_p1, 2.08757008419747316778E-9);
+_PD512_CONST(coscof_p2, -2.75573141792967388112E-7);
+_PD512_CONST(coscof_p3, 2.48015872888517045348E-5);
+_PD512_CONST(coscof_p4, -1.38888888888730564116E-3);
+_PD512_CONST(coscof_p5, 4.16666666666665929218E-2);
+_PD512_CONST(cephes_FOPI, 1.2732395447351626861510701069801148);  // 4 / M_PI
 
 _PD512_CONST_TYPE(positive_mask, int64_t, (int64_t) 0x7FFFFFFFFFFFFFFFL);
 _PD512_CONST_TYPE(negative_mask, int64_t, (int64_t) ~0x7FFFFFFFFFFFFFFFL);

@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.7
+ * Version : 0.1.8
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -570,7 +570,7 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     y = _mm_add_pd(y, *(v2sd *) _pd_1);
 
     /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
-    v2sd y2 = _mm_fmadd_pd_custom(*(v2sd *) _ps_sincof_p0, z, *(v2sd *) _pd_sincof_p1);
+    v2sd y2 = _mm_fmadd_pd_custom(*(v2sd *) _pd_sincof_p0, z, *(v2sd *) _pd_sincof_p1);
     y2 = _mm_fmadd_pd_custom(y2, z, *(v2sd *) _pd_sincof_p2);
     y2 = _mm_fmadd_pd_custom(y2, z, *(v2sd *) _pd_sincof_p3);
     y2 = _mm_fmadd_pd_custom(y2, z, *(v2sd *) _pd_sincof_p4);

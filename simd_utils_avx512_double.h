@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.7
+ * Version : 0.1.8
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -634,3 +634,138 @@ static inline void atan512d(double *src, double *dst, int len)
         dst[i] = atan(src[i]);
     }
 }
+
+
+//Work in progress
+#if 0
+static inline void print8d(__m512d v)
+{
+    double *p = (double *) &v;
+#ifndef USE_SSE2
+    _mm_empty();
+#endif
+    printf("[%13.8g, %13.8g %13.8g, %13.8g %13.8g, %13.8g %13.8g, %13.8g ]", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+}
+
+static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
+{
+    v8sd xmm1, xmm2, xmm3 = _mm512_setzero_pd(), sign_bit_sin, y;
+    v8sid emm0, emm2, emm4;
+    __mmask8 poly_mask;
+    
+    sign_bit_sin = x;
+    /* take the absolute value */
+    x = _mm512_and_pd(x, *(v8sd *) _pd512_inv_sign_mask);
+
+    /* extract the sign bit (upper one) */
+    sign_bit_sin = _mm512_and_pd(sign_bit_sin, *(v8sd *) _pd512_sign_mask);
+
+    /* scale by 4/Pi */
+    y = _mm512_mul_pd(x, *(v8sd *) _pd512_cephes_FOPI);
+
+    /* store the integer part of y in emm2 */
+    emm2 = _mm512_cvttpd_epi64(y);
+    /* j=(j+1) & (~1) (see the cephes sources) */
+    emm2 = _mm512_add_epi64(emm2, *(v8sid *) _pi512_64_1);
+
+    emm2 = _mm512_and_si512(emm2, *(v8sid *) _pi512_64_inv1);
+    y = _mm512_cvtepi64_pd(emm2);
+    emm4 = emm2;
+
+    /* get the swap sign flag for the sine */
+    emm0 = _mm512_and_si512(emm2, *(v8sid *) _pi512_64_4);
+    emm0 = _mm512_slli_epi64(emm0, 61);
+
+    v8sd swap_sign_bit_sin = _mm512_castsi512_pd(emm0);
+
+    /* get the polynom selection mask for the sine*/
+    emm2 = _mm512_and_si512(emm2, *(v8sid *) _pi512_64_2);
+    poly_mask = _mm512_cmpeq_epi64_mask(emm2, _mm512_setzero_si512());
+
+    /* The magic pass: "Extended precision modular arithmetic"
+     x = ((x - y * DP1) - y * DP2) - y * DP3; */
+    x = _mm512_fmadd_pd_custom(y, *(v8sd *) _pd512_minus_cephes_DP1, x);
+    x = _mm512_fmadd_pd_custom(y, *(v8sd *) _pd512_minus_cephes_DP2, x);
+    x = _mm512_fmadd_pd_custom(y, *(v8sd *) _pd512_minus_cephes_DP3, x);
+    print8d(x);
+    printf("\n");
+    
+    emm4 = _mm512_sub_epi64(emm4, *(v8sid *) _pi512_64_2);
+    emm4 = _mm512_andnot_si512(emm4, *(v8sid *) _pi512_64_4);
+    emm4 = _mm512_slli_epi64(emm4, 61);
+    v8sd sign_bit_cos = _mm512_castsi512_pd(emm4);
+
+    sign_bit_sin = _mm512_xor_pd(sign_bit_sin, swap_sign_bit_sin);
+
+    /* Evaluate the first polynom  (0 <= x <= Pi/4) */
+    v8sd z = _mm512_mul_pd(x, x);
+
+    y = _mm512_fmadd_pd_custom(*(v8sd *) _pd512_coscof_p0, z, *(v8sd *) _pd512_coscof_p1);
+    y = _mm512_fmadd_pd_custom(y, z, *(v8sd *) _pd512_coscof_p2);
+    y = _mm512_fmadd_pd_custom(y, z, *(v8sd *) _pd512_coscof_p3);
+    y = _mm512_fmadd_pd_custom(y, z, *(v8sd *) _pd512_coscof_p4);
+    y = _mm512_fmadd_pd_custom(y, z, *(v8sd *) _pd512_coscof_p5);
+    y = _mm512_mul_pd(y, z);
+    y = _mm512_mul_pd(y, z);
+    y = _mm512_fnmadd_pd_custom(z, *(v8sd *) _pd512_0p5, y);
+    y = _mm512_add_pd(y, *(v8sd *) _pd512_1);
+
+    /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
+    v8sd y2 = _mm512_fmadd_pd_custom(*(v8sd *) _pd512_sincof_p0, z, *(v8sd *) _pd512_sincof_p1);
+    y2 = _mm512_fmadd_pd_custom(y2, z, *(v8sd *) _pd512_sincof_p2);
+    y2 = _mm512_fmadd_pd_custom(y2, z, *(v8sd *) _pd512_sincof_p3);
+    y2 = _mm512_fmadd_pd_custom(y2, z, *(v8sd *) _pd512_sincof_p4);
+    y2 = _mm512_fmadd_pd_custom(y2, z, *(v8sd *) _pd512_sincof_p5);
+    y2 = _mm512_mul_pd(y2, z);
+    y2 = _mm512_fmadd_pd_custom(y2, x, x);
+
+
+    /* select the correct result from the two polynoms */
+    
+    //TODO : to be improved, converts the poly mask to double
+    xmm3 = _mm512_mask_and_pd( _mm512_setzero_pd(), poly_mask, *(v8sd *) _pd512_1, *(v8sd *) _pd512_1);
+    
+    v8sd ysin2 = _mm512_and_pd(xmm3, y2);
+    v8sd ysin1 = _mm512_andnot_pd(xmm3, y);
+    y2 = _mm512_sub_pd(y2, ysin2);
+    y = _mm512_sub_pd(y, ysin1);
+    xmm1 = _mm512_add_pd(ysin1, ysin2);
+    xmm2 = _mm512_add_pd(y, y2);
+
+    /* update the sign */
+    *s = _mm512_xor_pd(xmm1, sign_bit_sin);
+    *c = _mm512_xor_pd(xmm2, sign_bit_cos);
+}
+
+static inline void sincos512d(double *src, double *dst_sin, double *dst_cos, int len)
+{
+    int stop_len = len / AVX512_LEN_DOUBLE;
+    stop_len *= AVX512_LEN_DOUBLE;
+
+    if (areAligned3((uintptr_t)(src), (uintptr_t)(dst_sin), (uintptr_t)(dst_cos), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_load_pd(src + i);
+            v8sd dst_sin_tmp;
+            v8sd dst_cos_tmp;
+            sincos512_pd(src_tmp, &dst_sin_tmp, &dst_cos_tmp);
+            _mm512_store_pd(dst_sin + i, dst_sin_tmp);
+            _mm512_store_pd(dst_cos + i, dst_cos_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_loadu_pd(src + i);
+            v8sd dst_sin_tmp;
+            v8sd dst_cos_tmp;
+            sincos512_pd(src_tmp, &dst_sin_tmp, &dst_cos_tmp);
+            _mm512_storeu_pd(dst_sin + i, dst_sin_tmp);
+            _mm512_storeu_pd(dst_cos + i, dst_cos_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst_sin[i] = sin(i);
+        dst_cos[i] = cos(i);
+    }
+}
+
+#endif
