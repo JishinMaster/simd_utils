@@ -525,7 +525,7 @@ static inline void print8(__m256 v)
 
 // converts 32bits complex float to two arrays real and im
 //Work in progress
-void cplxtoreal256f(float *src, float *dstRe, float *dstIm, int len)
+static inline void cplxtoreal256f(float *src, float *dstRe, float *dstIm, int len)
 {
     int stop_len = 2 * len / (AVX_LEN_FLOAT);
     stop_len *= AVX_LEN_FLOAT;

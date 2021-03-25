@@ -7,7 +7,7 @@
 
 #pragma once
 
-//JishinMaster : DTCollab sse2neon.h commit :  7654cd7
+//JishinMaster : DTCollab sse2neon.h commit :  e34da4c61d968c7f1cd40fe8898d854c5ea59fe5
 #include "sse2neon.h"
 
 
@@ -173,15 +173,6 @@ FORCE_INLINE __m128i _mm_cmpge_epi32(__m128i a, __m128i b)
         vcgeq_s32(vreinterpretq_s32_m128i(a), vreinterpretq_s32_m128i(b)));
 }
 
-FORCE_INLINE __m128d _mm_sqrt_pd(__m128d in)
-{
-#if defined(__aarch64__)
-    return vreinterpretq_m128d_f64(vsqrtq_f64(vreinterpretq_f64_m128d(in)));
-#else
-#pragma error "Not yet implemented"
-#endif
-}
-
 FORCE_INLINE __m128d _mm_cvtepi64_pd(__m128i a)
 {
 #if defined(__aarch64__)
@@ -202,42 +193,6 @@ FORCE_INLINE __m128i _mm_cvtpd_epi64(__m128d a)
     int64_t a0 = (int64_t)((double *) &a)[0];
     int64_t a1 = (int64_t)((double *) &a)[1];
     return _mm_set_epi64(a1, a0);
-#endif
-}
-
-FORCE_INLINE __m128d _mm_cmple_pd(__m128d a, __m128d b)
-{
-#if defined(__aarch64__)
-    return vreinterpretq_m128d_u64(
-        vcleq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
-#else
-    double a0 = (((double *) &a)[0] <= ((double *) &b)[0]) ? 0xFFFFFFFFFFFFFFFF : 0;
-    double a1 = (((double *) &a)[1] <= ((double *) &b)[1]) ? 0xFFFFFFFFFFFFFFFF : 0;
-    return _mm_set_pd(a1, a0);
-#endif
-}
-
-FORCE_INLINE __m128d _mm_cmpgt_pd(__m128d a, __m128d b)
-{
-#if defined(__aarch64__)
-    return vreinterpretq_m128d_u64(
-        vcgtq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
-#else
-    double a0 = (((double *) &a)[0] > ((double *) &b)[0]) ? 0xFFFFFFFFFFFFFFFF : 0;
-    double a1 = (((double *) &a)[1] > ((double *) &b)[1]) ? 0xFFFFFFFFFFFFFFFF : 0;
-    return _mm_set_pd(a1, a0);
-#endif
-}
-
-FORCE_INLINE __m128d _mm_cmpge_pd(__m128d a, __m128d b)
-{
-#if defined(__aarch64__)
-    return vreinterpretq_m128d_u64(
-        vcgeq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
-#else
-    double a0 = (((double *) &a)[0] >= ((double *) &b)[0]) ? 0xFFFFFFFFFFFFFFFF : 0;
-    double a1 = (((double *) &a)[1] >= ((double *) &b)[1]) ? 0xFFFFFFFFFFFFFFFF : 0;
-    return _mm_set_pd(a1, a0);
 #endif
 }
 
