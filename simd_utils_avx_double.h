@@ -706,8 +706,6 @@ static inline void sincos256_pd(v4sd x, v4sd *s, v4sd *c)
     x = _mm256_fmadd_pd_custom(y, *(v4sd *) _pd256_minus_cephes_DP1, x);
     x = _mm256_fmadd_pd_custom(y, *(v4sd *) _pd256_minus_cephes_DP2, x);
     x = _mm256_fmadd_pd_custom(y, *(v4sd *) _pd256_minus_cephes_DP3, x);
-    print4d(x);
-    printf("\n");
 
     emm4 = _mm256_sub_epi64(emm4, *(v4sid *) _pi256_64_2);
     emm4 = _mm256_andnot_si256(emm4, *(v4sid *) _pi256_64_4);

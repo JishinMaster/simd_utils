@@ -125,6 +125,26 @@ static inline void ln_128f(float *src, float *dst, int len)
     }
 }
 
+static inline void exp_128f(float *src, float *dst, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            _mm_store_ps(dst + i, exp_ps(_mm_load_ps(src + i)));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            _mm_storeu_ps(dst + i, exp_ps(_mm_loadu_ps(src + i)));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = expf(src[i]);
+    }
+}
+
 static inline void fabs128f(float *src, float *dst, int len)
 {
     int stop_len = len / (SSE_LEN_FLOAT);

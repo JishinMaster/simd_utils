@@ -128,6 +128,26 @@ static inline void ln_256f(float *src, float *dst, int len)
     }
 }
 
+static inline void exp_256f(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            _mm256_store_ps(dst + i, exp256_ps(_mm256_load_ps(src + i)));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            _mm256_storeu_ps(dst + i, exp256_ps(_mm256_loadu_ps(src + i)));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = expf(src[i]);
+    }
+}
+
 static inline void fabs256f(float *src, float *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
