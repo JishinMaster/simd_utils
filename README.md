@@ -59,7 +59,7 @@ For FMA support you need to add -DFMA and -mfma to x86 targets, and -DFMA to Arm
 ## OpenCL (experimental)
 
 The same approach is applied to OpenCL kernels as an experiment, focused on GPUs, but other OpenCL devices may work.
-At the moment only log, exp, and sincos are supported, based on the cephes library, which seems to be faster that the OpenCL native functions (tested on Intel GPU with beignet 1.3) 
+At the moment only some functions are supported (log, exp, sincos, tan, atan, atan2, asin, sqrt), based on the cephes library, which seems to be faster that the OpenCL native functions (tested on Intel GPU with beignet 1.3) 
 To try it out, simply use : 
 - gcc -DSSE -msse4.2 -march=native simd_test_opencl.c -lOpenCL -lrt -lm (add -DSIMPLE_BUFFERS for CPU devices)
 

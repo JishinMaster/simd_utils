@@ -121,7 +121,7 @@ float mysqrtf(float xx)
     /* x is between 0.5 and sqrt(2)/2. */
     x = x - 0.5f;
 
-    y = fma(-3.9495006054E-1, x, 5.1743034569E-1f);
+    y = fma(-3.9495006054E-1f, x, 5.1743034569E-1f);
     y = fma(y, x, -4.3214437330E-1f);
     y = fma(y, x, 3.5310730460E-1f);
     y = fma(y, x, -3.5354581892E-1f);
@@ -477,7 +477,7 @@ float mylogf(float xx)
     }
     z = x * x;
 
-    y = fma(7.0376836292E-2, x, -1.1514610310E-1f);
+    y = fma(7.0376836292E-2f, x, -1.1514610310E-1f);
     y = fma(y, x, 1.1676998740E-1f);
     y = fma(y, x, -1.2420140846E-1f);
     y = fma(y, x, 1.4249322787E-1f);
