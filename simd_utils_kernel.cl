@@ -1,3 +1,5 @@
+#define CL_PROGRAM_STRING_DEBUG_INFO
+
 /*
  * Project : SIMD_Utils
  * Version : 0.1.9
@@ -5,6 +7,13 @@
  * Licence : BSD-2
  */
 
+
+#ifdef CLANG
+typedef float float16 __attribute__((ext_vector_type(16)));
+typedef float float8 __attribute__((ext_vector_type(8)));
+typedef float float4 __attribute__((ext_vector_type(4)));
+typedef float float2 __attribute__((ext_vector_type(2)));
+#endif
 
 inline void sin_vec16(__global float *A, __global float *C, int i)
 {
@@ -339,6 +348,223 @@ float mytanf(float xx)
 }
 
 
+
+float2 mytanf_vec2(float2 xx)
+{
+    float2 x, y, y2,  z, zz;
+    long2 j;
+    int2 sign;
+
+
+    /* make argument positive but save the sign */
+    if (xx.x < 0.0f) {
+        x.x = -xx.x;
+        sign.x = -1;
+    } else {
+        x.x = xx.x;
+        sign.x = 1;
+    }
+
+    if (xx.y < 0.0f) {
+        x.y = -xx.y;
+        sign.y = -1;
+    } else {
+        x.y = xx.y;
+        sign.y = 1;
+    }
+
+    /* compute x mod PIO4 */
+    j = convert_long2(FOPI * x); /* integer part of x/(PI/4) */
+    y = convert_float2(j);
+
+    /* map zeros and singularities to origin */
+    if (j.x & 1) {
+        j.x += 1;
+        y.x += 1.0f;
+    }
+
+    if (j.y & 1) {
+        j.y += 1;
+        y.y += 1.0f;
+    }
+
+    z = fma(y, tanmDP1, x);
+    z = fma(y, tanmDP2, z);
+    z = fma(y, tanmDP3, z);
+
+    zz = z * z;
+
+    y = fma(9.38540185543E-3f, zz, 3.11992232697E-3f);
+    y = fma(y, zz, 2.44301354525E-2f);
+    y = fma(y, zz, 5.34112807005E-2f);
+    y = fma(y, zz, 1.33387994085E-1f);
+    y = fma(y, zz, 3.33331568548E-1f);
+    y = y * zz;
+    y = fma(y, z, z);
+
+   if (x.x <= 1.0e-4f)
+      y.x = z.x;
+   if (x.y <= 1.0e-4f)
+      y.y = z.y;
+      
+    if (j.x & 2) {
+        y.x = -1.0f / y.x;
+    }
+
+    if (j.y & 2) {
+        y.y = -1.0f / y.y;
+    }
+
+    if (sign.x < 0)
+        y.x = -y.x;
+
+    if (sign.y < 0)
+        y.y = -y.y;
+
+    if (x.x > tanlossth) {
+        y.x = 0.0f;
+    }
+    if (x.y > tanlossth) {
+        y.y = 0.0f;
+    }
+
+    return (y);
+}
+
+
+float4 mytanf_vec4(float4 xx)
+{
+    float4 x, y, y2,  z, zz;
+    long4 j;
+    int4 sign;
+
+
+    /* make argument positive but save the sign */
+    if (xx.x < 0.0f) {
+        x.x = -xx.x;
+        sign.x = -1;
+    } else {
+        x.x = xx.x;
+        sign.x = 1;
+    }
+
+    if (xx.y < 0.0f) {
+        x.y = -xx.y;
+        sign.y = -1;
+    } else {
+        x.y = xx.y;
+        sign.y = 1;
+    }
+
+    if (xx.z < 0.0f) {
+        x.z = -xx.z;
+        sign.z = -1;
+    } else {
+        x.z = xx.z;
+        sign.z = 1;
+    }
+    
+    if (xx.w < 0.0f) {
+        x.w = -xx.w;
+        sign.w = -1;
+    } else {
+        x.w = xx.w;
+        sign.w = 1;
+    }
+
+    /* compute x mod PIO4 */
+    j = convert_long4(FOPI * x); /* integer part of x/(PI/4) */
+    y = convert_float4(j);
+
+    /* map zeros and singularities to origin */
+    if (j.x & 1) {
+        j.x += 1;
+        y.x += 1.0f;
+    }
+
+    if (j.y & 1) {
+        j.y += 1;
+        y.y += 1.0f;
+    }
+
+    if (j.z & 1) {
+        j.z += 1;
+        y.z += 1.0f;
+    }
+    
+    if (j.w & 1) {
+        j.w += 1;
+        y.w += 1.0f;
+    }
+
+    z = fma(y, tanmDP1, x);
+    z = fma(y, tanmDP2, z);
+    z = fma(y, tanmDP3, z);
+
+    zz = z * z;
+
+    y = fma(9.38540185543E-3f, zz, 3.11992232697E-3f);
+    y = fma(y, zz, 2.44301354525E-2f);
+    y = fma(y, zz, 5.34112807005E-2f);
+    y = fma(y, zz, 1.33387994085E-1f);
+    y = fma(y, zz, 3.33331568548E-1f);
+    y = y * zz;
+    y = fma(y, z, z);
+
+   if (x.x <= 1.0e-4f)
+      y.x = z.x;
+   if (x.y <= 1.0e-4f)
+      y.y = z.y;
+   if (x.z <= 1.0e-4f)
+      y.z = z.z;
+   if (x.w <= 1.0e-4f)
+      y.w = z.w;
+
+    if (j.x & 2) {
+        y.x = -1.0f / y.x;
+    }
+
+    if (j.y & 2) {
+        y.y = -1.0f / y.y;
+    }
+
+    if (j.z & 2) {
+        y.z = -1.0f / y.z;
+    }
+    
+    if (j.w & 2) {
+        y.w = -1.0f / y.w;
+    }
+
+    if (sign.x < 0)
+        y.x = -y.x;
+
+    if (sign.y < 0)
+        y.y = -y.y;
+
+    if (sign.z < 0)
+        y.z = -y.z;
+        
+    if (sign.w < 0)
+        y.w = -y.w;
+
+    if (x.x > tanlossth) {
+        y.x = 0.0f;
+    }
+    if (x.y > tanlossth) {
+        y.y = 0.0f;
+    }
+    if (x.z > tanlossth) {
+        y.z = 0.0f;
+    }
+    if (x.w > tanlossth) {
+        y.w = 0.0f;
+    }
+    
+    return (y);
+}
+
+
 int mysincosf(float xx, __global float *s, __global float *c)
 {
     float *p;
@@ -516,22 +742,71 @@ __kernel void kernel_test(__global float *restrict A,
             mysincosf(A[i], &B[i], &C[i]);
             break;
         case 1:
-            C[i] = mylogf(A[i]);
+            B[i] = sincos(A[i],&C[i]);
             break;
         case 2:
-            C[i] = myexpf(A[i]);
+            C[i] = mylogf(A[i]);
             break;
         case 3:
-            C[i] = mytanf(A[i]);
+            C[i] = log(A[i]);
             break;
         case 4:
-            C[i] = myatanf(A[i]);
+            C[i] = myexpf(A[i]);
             break;
         case 5:
-            C[i] = myatan2f(A[i], B[i]);
+            C[i] = exp(A[i]);
             break;
         case 6:
+            C[i] = mytanf(A[i]);
+            break;
+        case 7:
+            C[i] = tan(A[i]);
+            break;
+        case 8:
+            C[i] = myatanf(A[i]);
+            break;
+        case 9:
+            C[i] = atan(A[i]);
+            break;
+        case 10:
+            C[i] = myatan2f(A[i], B[i]);
+            break;
+        case 11:
+            C[i] = atan2(A[i],B[i]);
+            break;
+        case 12:
             C[i] = myasinf(A[i]);
+            break;
+        case 13:
+            C[i] = asin(A[i]);
+            break;
+        case 14:
+            if(i < nbElts/2){
+              float2 a_vec = vload2(0, &A[2 * i]);
+              float2 c_vec  = mytanf_vec2(a_vec);
+              vstore2(c_vec, 0, &C[2 * i]);
+            }
+            break;
+        case 15:
+            if(i < nbElts/4){
+              float4 a_vec = vload4(0, &A[4 * i]);
+              float4 c_vec  = mytanf_vec4(a_vec);
+              vstore4(c_vec, 0, &C[4 * i]);
+            }
+            break;
+        case 16:
+            if(i < nbElts/2){
+              float2 a_vec = vload2(0, &A[2 * i]);
+              float2 c_vec  = tan(a_vec);
+              vstore2(c_vec, 0, &C[2 * i]);
+            }
+            break;
+        case 17:
+            if(i < nbElts/4){
+              float4 a_vec = vload4(0, &A[4 * i]);
+              float4 c_vec  = tan(a_vec);
+              vstore4(c_vec, 0, &C[4 * i]);
+            }
             break;
         default:
             break;

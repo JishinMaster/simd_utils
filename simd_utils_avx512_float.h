@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.9
+ * Version : 0.1.10
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -48,6 +48,7 @@ _PS512_CONST(ATAN_P2, 1.99777106478E-1);
 _PS512_CONST(ATAN_P3, -3.33329491539E-1);
 
 _PS512_CONST_TYPE(pos_sign_mask, int, (int) 0x7FFFFFFF);
+_PS512_CONST_TYPE(neg_sign_mask, int, (int) ~0x7FFFFFFF);
 
 static inline void log10_512f(float *src, float *dst, int len)
 {
@@ -93,6 +94,25 @@ static inline void ln_512f(float *src, float *dst, int len)
     }
 }
 
+static inline void exp_512f(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            _mm512_store_ps(dst + i, exp512_ps(_mm512_load_ps(src + i)));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            _mm512_storeu_ps(dst + i, exp512_ps(_mm512_loadu_ps(src + i)));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = expf(src[i]);
+    }
+}
 
 static inline void fabs512f(float *src, float *dst, int len)
 {
@@ -823,14 +843,14 @@ static inline void sincos512f(float *src, float *dst_sin, float *dst_cos, int le
     }
 }
 
-static inline v16sf atan512f_ps(v16sf xx, const v16sf positive_mask, const v16sf negative_mask)
+static inline v16sf atan512f_ps(v16sf xx)
 {
     v16sf x, y, z;
     __mmask16 sign2;
     __mmask16 suptan3pi8, inftan3pi8suppi8;
     v16sf tmp;
 
-    x = _mm512_and_ps(positive_mask, xx);
+    x = _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, xx);
     sign2 = _mm512_cmp_ps_mask(xx, _mm512_setzero_ps(), _CMP_LT_OS);  //0xFFFFFFFF if x < 0.0, sign = -1
     /* range reduction */
 
@@ -853,7 +873,7 @@ static inline v16sf atan512f_ps(v16sf xx, const v16sf positive_mask, const v16sf
 
     y = _mm512_add_ps(y, tmp);
 
-    y = _mm512_mask_blend_ps(sign2, y, _mm512_xor_ps(negative_mask, y));
+    y = _mm512_mask_blend_ps(sign2, y, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, y));
 
     return (y);
 }
@@ -863,18 +883,15 @@ static inline void atan512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    const v16sf positive_mask = _mm512_castsi512_ps(_mm512_set1_epi32(0x7FFFFFFF));
-    const v16sf negative_mask = _mm512_castsi512_ps(_mm512_set1_epi32(~0x7FFFFFFF));
-
     if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
-            _mm512_store_ps(dst + i, atan512f_ps(src_tmp, positive_mask, negative_mask));
+            _mm512_store_ps(dst + i, atan512f_ps(src_tmp));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps(src + i);
-            _mm512_storeu_ps(dst + i, atan512f_ps(src_tmp, positive_mask, negative_mask));
+            _mm512_storeu_ps(dst + i, atan512f_ps(src_tmp));
         }
     }
 
@@ -883,7 +900,7 @@ static inline void atan512f(float *src, float *dst, int len)
     }
 }
 
-static inline v16sf atan2512f_ps(v16sf y, v16sf x, const v16sf positive_mask, const v16sf negative_mask)
+static inline v16sf atan2512f_ps(v16sf y, v16sf x)
 {
     v16sf z, w;
     __mmask16 xinfzero, yinfzero, xeqzero, yeqzero;
@@ -911,7 +928,7 @@ static inline v16sf atan2512f_ps(v16sf y, v16sf x, const v16sf positive_mask, co
     w = _mm512_mask_blend_ps(_kandn_mask16(yinfzero, xinfzero), w, *(v16sf *) _ps512_PIF);  // y >= 0 && x<0
     w = _mm512_mask_blend_ps(_kand_mask16(yinfzero, xinfzero), w, *(v16sf *) _ps512_mPIF);  // y < 0 && x<0
 
-    z = _mm512_mask_blend_ps(specialcase, _mm512_add_ps(w, atan512f_ps(_mm512_div_ps(y, x), positive_mask, negative_mask)), z);  // atanf(y/x) if not in special case
+    z = _mm512_mask_blend_ps(specialcase, _mm512_add_ps(w, atan512f_ps(_mm512_div_ps(y, x))), z);  // atanf(y/x) if not in special case
 
     return (z);
 }
@@ -921,16 +938,13 @@ static inline void atan2512f(float *src1, float *src2, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    const v16sf positive_mask = _mm512_castsi512_ps(_mm512_set1_epi32(0x7FFFFFFF));
-    const v16sf negative_mask = _mm512_castsi512_ps(_mm512_set1_epi32(~0x7FFFFFFF));
-
     if (((uintptr_t)(const void *) (src1) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
-            _mm512_store_ps(dst + i, atan2512f_ps(_mm512_load_ps(src1 + i), _mm512_load_ps(src2 + i), positive_mask, negative_mask));
+            _mm512_store_ps(dst + i, atan2512f_ps(_mm512_load_ps(src1 + i), _mm512_load_ps(src2 + i)));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
-            _mm512_storeu_ps(dst + i, atan2512f_ps(_mm512_loadu_ps(src1 + i), _mm512_loadu_ps(src2 + i), positive_mask, negative_mask));
+            _mm512_storeu_ps(dst + i, atan2512f_ps(_mm512_loadu_ps(src1 + i), _mm512_loadu_ps(src2 + i)));
         }
     }
 
@@ -939,14 +953,14 @@ static inline void atan2512f(float *src1, float *src2, float *dst, int len)
     }
 }
 
-static inline v16sf asin512f_ps(v16sf xx, const v16sf positive_mask, const v16sf negative_mask)
+static inline v16sf asin512f_ps(v16sf xx)
 {
     v16sf a, x, z, z_tmp;
     __mmask16 sign;
     __mmask16 ainfem4, asup0p5;
     v16sf tmp;
     x = xx;
-    a = _mm512_and_ps(positive_mask, x);                            //fabs(x)
+    a = _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, x);          //fabs(x)
     sign = _mm512_cmp_ps_mask(x, _mm512_setzero_ps(), _CMP_LT_OS);  //0xFFFFFFFF if x < 0.0
 
     //TODO : vectorize this
@@ -979,7 +993,7 @@ static inline v16sf asin512f_ps(v16sf xx, const v16sf positive_mask, const v16sf
 
     //done:
     z = _mm512_mask_blend_ps(ainfem4, z, a);
-    z = _mm512_mask_blend_ps(sign, z, _mm512_xor_ps(negative_mask, z));
+    z = _mm512_mask_blend_ps(sign, z, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, z));
 
     return (z);
 }
@@ -989,18 +1003,15 @@ static inline void asin512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    const v16sf positive_mask = _mm512_castsi512_ps(_mm512_set1_epi32(0x7FFFFFFF));
-    const v16sf negative_mask = _mm512_castsi512_ps(_mm512_set1_epi32(~0x7FFFFFFF));
-
     if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
-            _mm512_store_ps(dst + i, asin512f_ps(src_tmp, positive_mask, negative_mask));
+            _mm512_store_ps(dst + i, asin512f_ps(src_tmp));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps(src + i);
-            _mm512_storeu_ps(dst + i, asin512f_ps(src_tmp, positive_mask, negative_mask));
+            _mm512_storeu_ps(dst + i, asin512f_ps(src_tmp));
         }
     }
 
@@ -1011,7 +1022,7 @@ static inline void asin512f(float *src, float *dst, int len)
 
 
 #if 1
-static inline v16sf tan512f_ps(v16sf xx, const v16sf positive_mask, const v16sf negative_mask)
+static inline v16sf tan512f_ps(v16sf xx)
 {
     v16sf x, y, z, zz;
     v16si j;  //long?
@@ -1019,7 +1030,7 @@ static inline v16sf tan512f_ps(v16sf xx, const v16sf positive_mask, const v16sf 
     v16sf tmp;
     __mmask16 jandone, jandtwo;
 
-    x = _mm512_and_ps(positive_mask, xx);  //fabs(xx)
+    x = _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, xx);  //fabs(xx)
 
     /* compute x mod PIO4 */
 
@@ -1056,7 +1067,7 @@ static inline v16sf tan512f_ps(v16sf xx, const v16sf positive_mask, const v16sf 
     y = _mm512_mask_blend_ps(jandtwo, y, _mm512_div_ps(_mm512_set1_ps(-1.0f), y));
 
     sign = _mm512_cmp_ps_mask(xx, _mm512_setzero_ps(), _CMP_LT_OS);  //0xFFFFFFFF if xx < 0.0
-    y = _mm512_mask_blend_ps(sign, y, _mm512_xor_ps(negative_mask, y));
+    y = _mm512_mask_blend_ps(sign, y, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, y));
 
     return (y);
 }
@@ -1066,18 +1077,15 @@ static inline void tan512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    const v16sf positive_mask = _mm512_castsi512_ps(_mm512_set1_epi32(0x7FFFFFFF));
-    const v16sf negative_mask = _mm512_castsi512_ps(_mm512_set1_epi32(~0x7FFFFFFF));
-
     if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
-            _mm512_store_ps(dst + i, tan512f_ps(src_tmp, positive_mask, negative_mask));
+            _mm512_store_ps(dst + i, tan512f_ps(src_tmp));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps(src + i);
-            _mm512_storeu_ps(dst + i, tan512f_ps(src_tmp, positive_mask, negative_mask));
+            _mm512_storeu_ps(dst + i, tan512f_ps(src_tmp));
         }
     }
 

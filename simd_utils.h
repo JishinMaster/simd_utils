@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.9
+ * Version : 0.1.10
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -13,7 +13,7 @@ extern "C" {
 
 #define MAJOR_VERSION 0
 #define MINOR_VERSION 1
-#define SUB_VERSION 9
+#define SUB_VERSION 10
 
 #ifdef OMP
 #include <omp.h>
@@ -1117,6 +1117,16 @@ static inline void tanf_C(float *src, float *dst, int len)
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] = tanf(src[i]);
+    }
+}
+
+static inline void tanhf_C(float *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = tanhf(src[i]);
     }
 }
 

@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.9
+ * Version : 0.1.10
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -19,6 +19,7 @@
 #include <string.h>
 
 _PS_CONST(min1, -1.0f);
+_PS_CONST(min2, -2.0f);
 
 // For tanf
 _PS_CONST(DP123, 0.78515625 + 2.4187564849853515625e-4 + 3.77489497744594108e-8);
@@ -57,6 +58,17 @@ _PS_CONST(ATAN_P2, 1.99777106478E-1);
 _PS_CONST(ATAN_P3, -3.33329491539E-1);
 
 _PS_CONST_TYPE(pos_sign_mask, int, (int) 0x7FFFFFFF);
+_PS_CONST_TYPE(neg_sign_mask, int, (int) ~0x7FFFFFFF);
+
+_PS_CONST(MAXLOGF, 88.72283905206835f);
+_PS_CONST(MAXLOGFDIV2, 44.361419526034176f);
+_PS_CONST(0p625, 0.625f);
+_PS_CONST(TANH_P0, -5.70498872745E-3f);
+_PS_CONST(TANH_P1, 2.06390887954E-2f);
+_PS_CONST(TANH_P2, -5.37397155531E-2f);
+_PS_CONST(TANH_P3, 1.33314422036E-1f);
+_PS_CONST(TANH_P4, -3.33332819422E-1f);
+
 
 #define ROUNDTONEAREST (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC)
 #define ROUNDTOFLOOR (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC)
@@ -1218,14 +1230,14 @@ static inline void sincos128f(float *src, float *dst_sin, float *dst_cos, int le
     }
 }
 
-static inline v4sf atanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
+static inline v4sf atanf_ps(v4sf xx)
 {
     v4sf x, y, z;
     v4sf sign;
     v4sf suptan3pi8, inftan3pi8suppi8;
     v4sf tmp;
 
-    x = _mm_and_ps(positive_mask, xx);
+    x = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, xx);
     sign = _mm_cmplt_ps(xx, _mm_setzero_ps());  //0xFFFFFFFF if x < 0.0, sign = -1
 
     /* range reduction */
@@ -1250,7 +1262,7 @@ static inline v4sf atanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negati
 
     y = _mm_add_ps(y, tmp);
 
-    y = _mm_blendv_ps(y, _mm_xor_ps(negative_mask, y), sign);
+    y = _mm_blendv_ps(y, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, y), sign);
 
     return (y);
 }
@@ -1260,18 +1272,15 @@ static inline void atan128f(float *src, float *dst, int len)
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    const v4sf positive_mask = _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF));
-    const v4sf negative_mask = _mm_castsi128_ps(_mm_set1_epi32(~0x7FFFFFFF));
-
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
-            _mm_store_ps(dst + i, atanf_ps(src_tmp, positive_mask, negative_mask));
+            _mm_store_ps(dst + i, atanf_ps(src_tmp));
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
-            _mm_storeu_ps(dst + i, atanf_ps(src_tmp, positive_mask, negative_mask));
+            _mm_storeu_ps(dst + i, atanf_ps(src_tmp));
         }
     }
 
@@ -1280,7 +1289,7 @@ static inline void atan128f(float *src, float *dst, int len)
     }
 }
 
-static inline v4sf atan2f_ps(v4sf y, v4sf x, const v4sf positive_mask, const v4sf negative_mask)
+static inline v4sf atan2f_ps(v4sf y, v4sf x)
 {
     v4sf z, w;
     v4sf xinfzero, yinfzero, xeqzero, yeqzero;
@@ -1301,9 +1310,9 @@ static inline v4sf atan2f_ps(v4sf y, v4sf x, const v4sf positive_mask, const v4s
     z = _mm_blendv_ps(z, *(v4sf *) _ps_PIF, yeqzeroandxinfzero);
     specialcase = _mm_or_ps(xeqzero, yeqzero);
     w = _mm_setzero_ps();
-    w = _mm_blendv_ps(w, *(v4sf *) _ps_PIF, _mm_andnot_ps(yinfzero, xinfzero));                                  // y >= 0 && x<0
-    w = _mm_blendv_ps(w, *(v4sf *) _ps_mPIF, _mm_and_ps(yinfzero, xinfzero));                                    // y < 0 && x<0
-    z = _mm_blendv_ps(_mm_add_ps(w, atanf_ps(_mm_div_ps(y, x), positive_mask, negative_mask)), z, specialcase);  // atanf(y/x) if not in special case
+    w = _mm_blendv_ps(w, *(v4sf *) _ps_PIF, _mm_andnot_ps(yinfzero, xinfzero));    // y >= 0 && x<0
+    w = _mm_blendv_ps(w, *(v4sf *) _ps_mPIF, _mm_and_ps(yinfzero, xinfzero));      // y < 0 && x<0
+    z = _mm_blendv_ps(_mm_add_ps(w, atanf_ps(_mm_div_ps(y, x))), z, specialcase);  // atanf(y/x) if not in special case
     return (z);
 }
 
@@ -1312,16 +1321,13 @@ static inline void atan2128f(float *src1, float *src2, float *dst, int len)
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    const v4sf positive_mask = _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF));
-    const v4sf negative_mask = _mm_castsi128_ps(_mm_set1_epi32(~0x7FFFFFFF));
-
     if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
-            _mm_store_ps(dst + i, atan2f_ps(_mm_load_ps(src1 + i), _mm_load_ps(src2 + i), positive_mask, negative_mask));
+            _mm_store_ps(dst + i, atan2f_ps(_mm_load_ps(src1 + i), _mm_load_ps(src2 + i)));
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
-            _mm_storeu_ps(dst + i, atan2f_ps(_mm_loadu_ps(src1 + i), _mm_loadu_ps(src2 + i), positive_mask, negative_mask));
+            _mm_storeu_ps(dst + i, atan2f_ps(_mm_loadu_ps(src1 + i), _mm_loadu_ps(src2 + i)));
         }
     }
 
@@ -1331,15 +1337,15 @@ static inline void atan2128f(float *src1, float *src2, float *dst, int len)
 }
 
 
-static inline v4sf asinf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
+static inline v4sf asinf_ps(v4sf xx)
 {
     v4sf a, x, z, z_tmp;
     v4sf sign;
     v4sf ainfem4, asup0p5;
     v4sf tmp;
     x = xx;
-    a = _mm_and_ps(positive_mask, x);          //fabs(x)
-    sign = _mm_cmplt_ps(x, _mm_setzero_ps());  //0xFFFFFFFF if x < 0.0
+    a = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, x);  //fabs(x)
+    sign = _mm_cmplt_ps(x, _mm_setzero_ps());        //0xFFFFFFFF if x < 0.0
 
 
     ainfem4 = _mm_cmplt_ps(a, _mm_set1_ps(1.0e-4));  //if( a < 1.0e-4f )
@@ -1365,7 +1371,7 @@ static inline v4sf asinf_ps(v4sf xx, const v4sf positive_mask, const v4sf negati
 
     //done:
     z = _mm_blendv_ps(z, a, ainfem4);
-    z = _mm_blendv_ps(z, _mm_xor_ps(negative_mask, z), sign);
+    z = _mm_blendv_ps(z, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, z), sign);
 
     // if (x > 1.0) then return 0.0
     z = _mm_blendv_ps(z, _mm_setzero_ps(), _mm_cmpgt_ps(x, *(v4sf *) _ps_1));
@@ -1377,18 +1383,15 @@ static inline void asin128f(float *src, float *dst, int len)
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    const v4sf positive_mask = _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF));
-    const v4sf negative_mask = _mm_castsi128_ps(_mm_set1_epi32(~0x7FFFFFFF));
-
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
-            _mm_store_ps(dst + i, asinf_ps(src_tmp, positive_mask, negative_mask));
+            _mm_store_ps(dst + i, asinf_ps(src_tmp));
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
-            _mm_storeu_ps(dst + i, asinf_ps(src_tmp, positive_mask, negative_mask));
+            _mm_storeu_ps(dst + i, asinf_ps(src_tmp));
         }
     }
 
@@ -1398,7 +1401,67 @@ static inline void asin128f(float *src, float *dst, int len)
 }
 
 
-static inline v4sf tanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negative_mask)
+static inline v4sf tanhf_ps(v4sf xx)
+{
+    v4sf x, z, z_first_branch, z_second_branch;
+    v4sf xxsup0, xsupmaxlogfdiv2, xsup0p625;
+
+    xxsup0 = _mm_cmpgt_ps(xx, _mm_setzero_ps());
+    xsupmaxlogfdiv2 = _mm_cmpgt_ps(xx, *(v4sf *) _ps_MAXLOGFDIV2);
+
+    x = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, xx);
+
+    xsup0p625 = _mm_cmpge_ps(x, *(v4sf *) _ps_0p625);
+    x = _mm_blendv_ps(x, exp_ps(_mm_add_ps(x, x)), xsup0p625);
+
+    // z = 1.0 - 2.0 / (x + 1.0);
+    z_first_branch = _mm_add_ps(x, *(v4sf *) _ps_1);
+    z_first_branch = _mm_div_ps(*(v4sf *) _ps_min2, z_first_branch);
+    z_first_branch = _mm_add_ps(*(v4sf *) _ps_1, z_first_branch);
+    z_first_branch = _mm_blendv_ps(_mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, z_first_branch), z_first_branch, xxsup0);
+
+    //z = x * x;
+    z = _mm_mul_ps(x, x);
+
+    z_second_branch = _mm_fmadd_ps_custom(z, *(v4sf *) _ps_TANH_P0, *(v4sf *) _ps_TANH_P1);
+    z_second_branch = _mm_fmadd_ps_custom(z_second_branch, z, *(v4sf *) _ps_TANH_P2);
+    z_second_branch = _mm_fmadd_ps_custom(z_second_branch, z, *(v4sf *) _ps_TANH_P3);
+    z_second_branch = _mm_fmadd_ps_custom(z_second_branch, z, *(v4sf *) _ps_TANH_P4);
+    z_second_branch = _mm_mul_ps(z_second_branch, z);
+    z_second_branch = _mm_fmadd_ps_custom(z_second_branch, xx, xx);
+
+    z = _mm_blendv_ps(z_second_branch, z_first_branch, xsup0p625);
+    // if (x > 0.5 * MAXLOGF), return (xx > 0)? 1.0f: -1.0f
+    z = _mm_blendv_ps(z, *(v4sf *) _ps_min1, xsupmaxlogfdiv2);
+    z = _mm_blendv_ps(z, *(v4sf *) _ps_1, _mm_and_ps(xxsup0, xsupmaxlogfdiv2));
+
+    return (z);
+}
+
+static inline void tanh128f(float *src, float *dst, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            _mm_store_ps(dst + i, tanhf_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            _mm_storeu_ps(dst + i, tanhf_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = tanhf(src[i]);
+    }
+}
+
+
+static inline v4sf tanf_ps(v4sf xx)
 {
     v4sf x, y, z, zz;
     v4si j;  //long?
@@ -1406,7 +1469,7 @@ static inline v4sf tanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negativ
     v4sf tmp;
     v4si jandone, jandtwo;
 
-    x = _mm_and_ps(positive_mask, xx);  //fabs(xx) //OK
+    x = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, xx);  //fabs(xx) //OK
 
     /* compute x mod PIO4 */
 
@@ -1458,7 +1521,7 @@ static inline v4sf tanf_ps(v4sf xx, const v4sf positive_mask, const v4sf negativ
     y = _mm_blendv_ps(y, _mm_div_ps(_mm_set1_ps(-1.0f), y), (v4sf)(jandtwo));
 
     sign = _mm_cmplt_ps(xx, _mm_setzero_ps());  //0xFFFFFFFF if xx < 0.0
-    y = _mm_blendv_ps(y, _mm_xor_ps(negative_mask, y), sign);
+    y = _mm_blendv_ps(y, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, y), sign);
 
     return (y);
 }
@@ -1468,18 +1531,15 @@ static inline void tan128f(float *src, float *dst, int len)
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    const v4sf positive_mask = _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF));
-    const v4sf negative_mask = _mm_castsi128_ps(_mm_set1_epi32(~0x7FFFFFFF));
-
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
-            _mm_store_ps(dst + i, tanf_ps(src_tmp, positive_mask, negative_mask));
+            _mm_store_ps(dst + i, tanf_ps(src_tmp));
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
-            _mm_storeu_ps(dst + i, tanf_ps(src_tmp, positive_mask, negative_mask));
+            _mm_storeu_ps(dst + i, tanf_ps(src_tmp));
         }
     }
 

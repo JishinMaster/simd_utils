@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.9
+ * Version : 0.1.10
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -29,7 +29,7 @@ OpenCL runtime. A platform identifies a vendor's installation, so a system
 may have an NVIDIA platform and an AMD platform.
 The `device` structure corresponds to the first accessible device
 associated with the platform. Because the second parameter is
-`CL_DEVICE_TYPE_GPU`, this device must be a GPU.
+`CL_DEVICE_TYPE_opencl`, this device must be a GPU.
 */
 cl_device_id create_device(int platform_choice, int device_choice)
 {
@@ -324,7 +324,7 @@ int main(int argc, char **argv)
         printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
         exit(1);
     }
-  
+
     dev_a_i =
         clCreateBuffer(ctx, CL_MEM_READ_WRITE,
                        int_elt_size, NULL, &err);
@@ -370,7 +370,7 @@ int main(int argc, char **argv)
         printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
         exit(1);
     }
-    
+
     dev_a_i =
         clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                        int_elt_size, &host_a_i, &err);
@@ -507,7 +507,7 @@ int main(int argc, char **argv)
             exit(1);
         }
 
-        printf("sincos_gpu : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+        printf("sincos_opencl : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
 
         clock_gettime(CLOCK_REALTIME, &start);
         sincos128f(host_a_f, host_b_f, host_c_ref_f, nbElts);
@@ -519,10 +519,42 @@ int main(int argc, char **argv)
 
     l2_err(host_c_ref_f, host_c_f, nbElts);
 
+    type = 1;
+    err = clSetKernelArg(kernel, 5, sizeof(int), &type);
+
+    for (int loop = 0; loop < 5; loop++) {
+        err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
+                                     NULL, &event[0]);
+        if (err < 0) {
+            printf("Error clEnqueueNDRangeKernel %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        err = clEnqueueReadBuffer(queue, dev_c_f, CL_TRUE, 0, float_elt_size,
+                                  host_c_f, 0, NULL, &event[1]);
+        if (err < 0) {
+            printf("Error clEnqueueReadBuffer %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+        clWaitForEvents(2, event);
+
+        err = clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &t_begin_kernel, NULL);
+        err |= clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_END,
+                                       sizeof(cl_ulong), &t_end_kernel, NULL);
+        if (err < 0) {
+            printf("Error clGetEventProfilingInfo %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        printf("sincos_opencl_native : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+    }
+
+    l2_err(host_c_ref_f, host_c_f, nbElts);
+
     printf("\n");
     /// LN /////
-    type = 1;
-
+    type = 2;
     err = clSetKernelArg(kernel, 5, sizeof(int), &type);
     for (int loop = 0; loop < 5; loop++) {
         err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
@@ -549,7 +581,7 @@ int main(int argc, char **argv)
             exit(1);
         }
 
-        printf("ln_gpu : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+        printf("ln_opencl : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
 
         clock_gettime(CLOCK_REALTIME, &start);
         ln_128f(host_a_f, host_c_ref_f, nbElts);
@@ -560,10 +592,7 @@ int main(int argc, char **argv)
 
     l2_err(host_c_ref_f, host_c_f, nbElts);
 
-    printf("\n");
-    /// EXP /////
-    type = 2;
-
+    type = 3;
     err = clSetKernelArg(kernel, 5, sizeof(int), &type);
     for (int loop = 0; loop < 5; loop++) {
         err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
@@ -590,7 +619,41 @@ int main(int argc, char **argv)
             exit(1);
         }
 
-        printf("expf_gpu : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+        printf("ln_opencl_native : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+    }
+    l2_err(host_c_ref_f, host_c_f, nbElts);
+
+    printf("\n");
+    /// EXP /////
+
+    type = 4;
+    err = clSetKernelArg(kernel, 5, sizeof(int), &type);
+    for (int loop = 0; loop < 5; loop++) {
+        err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
+                                     NULL, &event[0]);
+        if (err < 0) {
+            printf("Error clEnqueueNDRangeKernel %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        err = clEnqueueReadBuffer(queue, dev_c_f, CL_TRUE, 0, float_elt_size,
+                                  host_c_f, 0, NULL, &event[1]);
+        if (err < 0) {
+            printf("Error clEnqueueReadBuffer %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+        clWaitForEvents(2, event);
+
+        err = clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &t_begin_kernel, NULL);
+        err |= clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_END,
+                                       sizeof(cl_ulong), &t_end_kernel, NULL);
+        if (err < 0) {
+            printf("Error clGetEventProfilingInfo %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        printf("expf_opencl : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
 
         clock_gettime(CLOCK_REALTIME, &start);
         exp_128f(host_a_f, host_c_ref_f, nbElts);
@@ -601,10 +664,7 @@ int main(int argc, char **argv)
 
     l2_err(host_c_ref_f, host_c_f, nbElts);
 
-    printf("\n");
-    /// TAN /////
-    type = 3;
-
+    type = 5;
     err = clSetKernelArg(kernel, 5, sizeof(int), &type);
     for (int loop = 0; loop < 5; loop++) {
         err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
@@ -631,7 +691,42 @@ int main(int argc, char **argv)
             exit(1);
         }
 
-        printf("tanf_gpu : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+        printf("expf_opencl_native : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+    }
+
+    l2_err(host_c_ref_f, host_c_f, nbElts);
+
+    printf("\n");
+    /// TAN /////
+
+    type = 6;
+    err = clSetKernelArg(kernel, 5, sizeof(int), &type);
+    for (int loop = 0; loop < 5; loop++) {
+        err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
+                                     NULL, &event[0]);
+        if (err < 0) {
+            printf("Error clEnqueueNDRangeKernel %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        err = clEnqueueReadBuffer(queue, dev_c_f, CL_TRUE, 0, float_elt_size,
+                                  host_c_f, 0, NULL, &event[1]);
+        if (err < 0) {
+            printf("Error clEnqueueReadBuffer %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+        clWaitForEvents(2, event);
+
+        err = clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &t_begin_kernel, NULL);
+        err |= clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_END,
+                                       sizeof(cl_ulong), &t_end_kernel, NULL);
+        if (err < 0) {
+            printf("Error clGetEventProfilingInfo %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        printf("tanf_opencl : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
 
         clock_gettime(CLOCK_REALTIME, &start);
         tan128f(host_a_f, host_c_ref_f, nbElts);
@@ -643,11 +738,7 @@ int main(int argc, char **argv)
     l2_err(host_c_ref_f, host_c_f, nbElts);
 
 
-
-    printf("\n");
-    /// ATAN /////
-    type = 4;
-
+    type = 7;
     err = clSetKernelArg(kernel, 5, sizeof(int), &type);
     for (int loop = 0; loop < 5; loop++) {
         err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
@@ -674,7 +765,182 @@ int main(int argc, char **argv)
             exit(1);
         }
 
-        printf("atanf_gpu : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+        printf("tanf_opencl_native : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+    }
+
+    l2_err(host_c_ref_f, host_c_f, nbElts);
+
+    // TAN GPU VEC2 //
+    type = 14;
+    global_size = nbElts / 2;
+    err = clSetKernelArg(kernel, 5, sizeof(int), &type);
+    for (int loop = 0; loop < 5; loop++) {
+        err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
+                                     NULL, &event[0]);
+        if (err < 0) {
+            printf("Error clEnqueueNDRangeKernel %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        err = clEnqueueReadBuffer(queue, dev_c_f, CL_TRUE, 0, float_elt_size,
+                                  host_c_f, 0, NULL, &event[1]);
+        if (err < 0) {
+            printf("Error clEnqueueReadBuffer %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+        clWaitForEvents(2, event);
+
+        err = clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &t_begin_kernel, NULL);
+        err |= clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_END,
+                                       sizeof(cl_ulong), &t_end_kernel, NULL);
+        if (err < 0) {
+            printf("Error clGetEventProfilingInfo %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        printf("tanf_vec2_opencl : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+    }
+
+    l2_err(host_c_ref_f, host_c_f, nbElts);
+
+    type = 16;
+    global_size = nbElts / 2;
+    err = clSetKernelArg(kernel, 5, sizeof(int), &type);
+    for (int loop = 0; loop < 5; loop++) {
+        err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
+                                     NULL, &event[0]);
+        if (err < 0) {
+            printf("Error clEnqueueNDRangeKernel %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        err = clEnqueueReadBuffer(queue, dev_c_f, CL_TRUE, 0, float_elt_size,
+                                  host_c_f, 0, NULL, &event[1]);
+        if (err < 0) {
+            printf("Error clEnqueueReadBuffer %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+        clWaitForEvents(2, event);
+
+        err = clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &t_begin_kernel, NULL);
+        err |= clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_END,
+                                       sizeof(cl_ulong), &t_end_kernel, NULL);
+        if (err < 0) {
+            printf("Error clGetEventProfilingInfo %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        printf("tanf_vec2_opencl_native : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+    }
+
+    l2_err(host_c_ref_f, host_c_f, nbElts);
+
+    // TAN GPU VEC4 //
+    type = 15;
+    global_size = nbElts / 4;
+    err = clSetKernelArg(kernel, 5, sizeof(int), &type);
+    for (int loop = 0; loop < 5; loop++) {
+        err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
+                                     NULL, &event[0]);
+        if (err < 0) {
+            printf("Error clEnqueueNDRangeKernel %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        err = clEnqueueReadBuffer(queue, dev_c_f, CL_TRUE, 0, float_elt_size,
+                                  host_c_f, 0, NULL, &event[1]);
+        if (err < 0) {
+            printf("Error clEnqueueReadBuffer %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+        clWaitForEvents(2, event);
+
+        err = clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &t_begin_kernel, NULL);
+        err |= clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_END,
+                                       sizeof(cl_ulong), &t_end_kernel, NULL);
+        if (err < 0) {
+            printf("Error clGetEventProfilingInfo %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        printf("tanf_vec4_opencl : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+    }
+
+    l2_err(host_c_ref_f, host_c_f, nbElts);
+
+    type = 17;
+    global_size = nbElts / 4;
+    err = clSetKernelArg(kernel, 5, sizeof(int), &type);
+    for (int loop = 0; loop < 5; loop++) {
+        err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
+                                     NULL, &event[0]);
+        if (err < 0) {
+            printf("Error clEnqueueNDRangeKernel %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        err = clEnqueueReadBuffer(queue, dev_c_f, CL_TRUE, 0, float_elt_size,
+                                  host_c_f, 0, NULL, &event[1]);
+        if (err < 0) {
+            printf("Error clEnqueueReadBuffer %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+        clWaitForEvents(2, event);
+
+        err = clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &t_begin_kernel, NULL);
+        err |= clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_END,
+                                       sizeof(cl_ulong), &t_end_kernel, NULL);
+        if (err < 0) {
+            printf("Error clGetEventProfilingInfo %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        printf("tanf_vec4_opencl_native : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+    }
+
+    l2_err(host_c_ref_f, host_c_f, nbElts);
+
+    /*for(int i = 0; i < nbElts; i++){
+        printf("%d : %f %f %f\n", i, host_a_f[i], host_c_f[i], host_c_ref_f[i]);
+    }*/
+
+
+    global_size = nbElts;
+    printf("\n");
+    /// ATAN /////
+
+    type = 8;
+    err = clSetKernelArg(kernel, 5, sizeof(int), &type);
+    for (int loop = 0; loop < 5; loop++) {
+        err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
+                                     NULL, &event[0]);
+        if (err < 0) {
+            printf("Error clEnqueueNDRangeKernel %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        err = clEnqueueReadBuffer(queue, dev_c_f, CL_TRUE, 0, float_elt_size,
+                                  host_c_f, 0, NULL, &event[1]);
+        if (err < 0) {
+            printf("Error clEnqueueReadBuffer %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+        clWaitForEvents(2, event);
+
+        err = clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &t_begin_kernel, NULL);
+        err |= clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_END,
+                                       sizeof(cl_ulong), &t_end_kernel, NULL);
+        if (err < 0) {
+            printf("Error clGetEventProfilingInfo %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        printf("atanf_opencl : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
 
         clock_gettime(CLOCK_REALTIME, &start);
         atan128f(host_a_f, host_c_ref_f, nbElts);
@@ -686,10 +952,7 @@ int main(int argc, char **argv)
     l2_err(host_c_ref_f, host_c_f, nbElts);
 
 
-    printf("\n");
-    /// ATAN2 /////
-    type = 5;
-
+    type = 9;
     err = clSetKernelArg(kernel, 5, sizeof(int), &type);
     for (int loop = 0; loop < 5; loop++) {
         err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
@@ -716,7 +979,43 @@ int main(int argc, char **argv)
             exit(1);
         }
 
-        printf("atan2f_gpu : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+        printf("atanf_opencl_native : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+    }
+
+    l2_err(host_c_ref_f, host_c_f, nbElts);
+
+
+    printf("\n");
+    /// ATAN2 /////
+
+    type = 10;
+    err = clSetKernelArg(kernel, 5, sizeof(int), &type);
+    for (int loop = 0; loop < 5; loop++) {
+        err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
+                                     NULL, &event[0]);
+        if (err < 0) {
+            printf("Error clEnqueueNDRangeKernel %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        err = clEnqueueReadBuffer(queue, dev_c_f, CL_TRUE, 0, float_elt_size,
+                                  host_c_f, 0, NULL, &event[1]);
+        if (err < 0) {
+            printf("Error clEnqueueReadBuffer %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+        clWaitForEvents(2, event);
+
+        err = clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &t_begin_kernel, NULL);
+        err |= clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_END,
+                                       sizeof(cl_ulong), &t_end_kernel, NULL);
+        if (err < 0) {
+            printf("Error clGetEventProfilingInfo %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        printf("atan2f_opencl : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
 
         clock_gettime(CLOCK_REALTIME, &start);
         atan2128f(host_a_f, host_b_f, host_c_ref_f, nbElts);
@@ -727,11 +1026,7 @@ int main(int argc, char **argv)
 
     l2_err(host_c_ref_f, host_c_f, nbElts);
 
-
-    printf("\n");
-    /// ASIN /////
-    type = 6;
-
+    type = 11;
     err = clSetKernelArg(kernel, 5, sizeof(int), &type);
     for (int loop = 0; loop < 5; loop++) {
         err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
@@ -758,7 +1053,43 @@ int main(int argc, char **argv)
             exit(1);
         }
 
-        printf("asinf_gpu : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+        printf("atan2f_opencl_native : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+    }
+
+    l2_err(host_c_ref_f, host_c_f, nbElts);
+
+
+    printf("\n");
+    /// ASIN /////
+
+    type = 12;
+    err = clSetKernelArg(kernel, 5, sizeof(int), &type);
+    for (int loop = 0; loop < 5; loop++) {
+        err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
+                                     NULL, &event[0]);
+        if (err < 0) {
+            printf("Error clEnqueueNDRangeKernel %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        err = clEnqueueReadBuffer(queue, dev_c_f, CL_TRUE, 0, float_elt_size,
+                                  host_c_f, 0, NULL, &event[1]);
+        if (err < 0) {
+            printf("Error clEnqueueReadBuffer %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+        clWaitForEvents(2, event);
+
+        err = clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &t_begin_kernel, NULL);
+        err |= clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_END,
+                                       sizeof(cl_ulong), &t_end_kernel, NULL);
+        if (err < 0) {
+            printf("Error clGetEventProfilingInfo %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        printf("asinf_opencl : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
 
         clock_gettime(CLOCK_REALTIME, &start);
         asin128f(host_a_f, host_c_ref_f, nbElts);
@@ -769,9 +1100,37 @@ int main(int argc, char **argv)
 
     l2_err(host_c_ref_f, host_c_f, nbElts);
 
-    /*for(int i = 0; i < nbElts; i++){
-  printf("%d : %f %f %f\n", i, host_a_f[i], host_c_f[i], host_c_ref_f[i]);
-  }*/
+    type = 13;
+    err = clSetKernelArg(kernel, 5, sizeof(int), &type);
+    for (int loop = 0; loop < 5; loop++) {
+        err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0,
+                                     NULL, &event[0]);
+        if (err < 0) {
+            printf("Error clEnqueueNDRangeKernel %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        err = clEnqueueReadBuffer(queue, dev_c_f, CL_TRUE, 0, float_elt_size,
+                                  host_c_f, 0, NULL, &event[1]);
+        if (err < 0) {
+            printf("Error clEnqueueReadBuffer %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+        clWaitForEvents(2, event);
+
+        err = clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &t_begin_kernel, NULL);
+        err |= clGetEventProfilingInfo(event[0], CL_PROFILING_COMMAND_END,
+                                       sizeof(cl_ulong), &t_end_kernel, NULL);
+        if (err < 0) {
+            printf("Error clGetEventProfilingInfo %d, line %d\n", err, __LINE__);
+            exit(1);
+        }
+
+        printf("asinf_opencl_native : %d %0.3lf\n", nbElts, (t_end_kernel - t_begin_kernel) * 1e-3);
+    }
+
+    l2_err(host_c_ref_f, host_c_f, nbElts);
 
     free(host_a_f);
     free(host_b_f);
