@@ -11,6 +11,8 @@
 
 _PS512_CONST(min1, -1.0f);
 _PS512_CONST(plus1, 1.0f);
+_PS512_CONST(min2, -2.0f);
+
 // For tanf
 _PS512_CONST(DP123, 0.78515625 + 2.4187564849853515625e-4 + 3.77489497744594108e-8);
 
@@ -49,6 +51,16 @@ _PS512_CONST(ATAN_P3, -3.33329491539E-1);
 
 _PS512_CONST_TYPE(pos_sign_mask, int, (int) 0x7FFFFFFF);
 _PS512_CONST_TYPE(neg_sign_mask, int, (int) ~0x7FFFFFFF);
+
+_PS512_CONST(MAXLOGF, 88.72283905206835f);
+_PS512_CONST(MAXLOGFDIV2, 44.361419526034176f);
+_PS512_CONST(0p625, 0.625f);
+_PS512_CONST(TANH_P0, -5.70498872745E-3f);
+_PS512_CONST(TANH_P1, 2.06390887954E-2f);
+_PS512_CONST(TANH_P2, -5.37397155531E-2f);
+_PS512_CONST(TANH_P3, 1.33314422036E-1f);
+_PS512_CONST(TANH_P4, -3.33332819422E-1f);
+
 
 static inline void log10_512f(float *src, float *dst, int len)
 {
@@ -1017,6 +1029,66 @@ static inline void asin512f(float *src, float *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = asinf(src[i]);
+    }
+}
+
+
+static inline v16sf tanh512f_ps(v16sf xx)
+{
+    v16sf x, z, z_first_branch, z_second_branch;
+    __mmask16 xxsup0, xxinf0, xsupmaxlogfdiv2, xsup0p625;
+
+    xxsup0 = _mm512_cmp_ps_mask(xx, _mm512_setzero_ps(), _CMP_GT_OS);
+    xsupmaxlogfdiv2 = _mm512_cmp_ps_mask(xx, *(v16sf *) _ps512_MAXLOGFDIV2, _CMP_GT_OS);
+
+    x = _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, xx);
+
+    xsup0p625 = _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_0p625, _CMP_GE_OS);
+    x = _mm512_mask_blend_ps(xsup0p625, x, exp512_ps(_mm512_add_ps(x, x)));
+
+    // z = 1.0 - 2.0 / (x + 1.0);
+    z_first_branch = _mm512_add_ps(x, *(v16sf *) _ps512_1);
+    z_first_branch = _mm512_div_ps(*(v16sf *) _ps512_min2, z_first_branch);
+    z_first_branch = _mm512_add_ps(*(v16sf *) _ps512_1, z_first_branch);
+    z_first_branch = _mm512_mask_blend_ps(xxsup0, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, z_first_branch), z_first_branch);
+
+    //z = x * x;
+    z = _mm512_mul_ps(x, x);
+
+    z_second_branch = _mm512_fmadd_ps_custom(z, *(v16sf *) _ps512_TANH_P0, *(v16sf *) _ps512_TANH_P1);
+    z_second_branch = _mm512_fmadd_ps_custom(z_second_branch, z, *(v16sf *) _ps512_TANH_P2);
+    z_second_branch = _mm512_fmadd_ps_custom(z_second_branch, z, *(v16sf *) _ps512_TANH_P3);
+    z_second_branch = _mm512_fmadd_ps_custom(z_second_branch, z, *(v16sf *) _ps512_TANH_P4);
+    z_second_branch = _mm512_mul_ps(z_second_branch, z);
+    z_second_branch = _mm512_fmadd_ps_custom(z_second_branch, xx, xx);
+
+    z = _mm512_mask_blend_ps(xsup0p625, z_second_branch, z_first_branch);
+    // if (x > 0.5 * MAXLOGF), return (xx > 0)? 1.0f: -1.0f
+    z = _mm512_mask_blend_ps(xsupmaxlogfdiv2, z, *(v16sf *) _ps512_min1);
+    z = _mm512_mask_blend_ps(_kand_mask64(xxsup0, xsupmaxlogfdiv2), z, *(v16sf *) _ps512_1);
+
+    return (z);
+}
+
+static inline void tanh512f(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_load_ps(src + i);
+            _mm512_store_ps(dst + i, tanh512f_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_loadu_ps(src + i);
+            _mm512_storeu_ps(dst + i, tanh512f_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = tanhf(src[i]);
     }
 }
 
