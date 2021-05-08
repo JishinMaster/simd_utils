@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.10
+ * Version : 0.1.11
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -20,6 +20,7 @@
 
 _PS_CONST(min1, -1.0f);
 _PS_CONST(min2, -2.0f);
+_PS_CONST(min0p5, -0.5f);
 
 // For tanf
 _PS_CONST(DP123, 0.78515625 + 2.4187564849853515625e-4 + 3.77489497744594108e-8);
@@ -68,6 +69,13 @@ _PS_CONST(TANH_P1, 2.06390887954E-2f);
 _PS_CONST(TANH_P2, -5.37397155531E-2f);
 _PS_CONST(TANH_P3, 1.33314422036E-1f);
 _PS_CONST(TANH_P4, -3.33332819422E-1f);
+
+_PS_CONST(MAXNUMF, 3.4028234663852885981170418348451692544e38f);
+_PS_CONST(minMAXNUMF, -3.4028234663852885981170418348451692544e38f);
+_PS_CONST(SINH_P0, 2.03721912945E-4f);
+_PS_CONST(SINH_P1, 8.33028376239E-3f);
+_PS_CONST(SINH_P2, 1.66667160211E-1f);
+
 
 
 #define ROUNDTONEAREST (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC)
@@ -1227,6 +1235,65 @@ static inline void sincos128f(float *src, float *dst_sin, float *dst_cos, int le
 
     for (int i = stop_len; i < len; i++) {
         mysincosf(src[i], dst_sin + i, dst_cos + i);
+    }
+}
+
+static inline v4sf sinhf_ps(v4sf x)
+{
+    v4sf z, z_first_branch, z_second_branch, tmp;
+    v4sf xsupmaxlogf, zsup1, xinf0;
+
+    // x = xx; if x < 0, z = -x, else x
+    z = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, x);
+
+    xsupmaxlogf = _mm_cmpgt_ps(z, *(v4sf *) _ps_MAXLOGF);
+
+    // First branch
+    zsup1 = _mm_cmpgt_ps(z, *(v4sf *) _ps_1);
+    xinf0 = _mm_cmplt_ps(x, _mm_setzero_ps());
+    z_first_branch = exp_ps(z);
+    tmp = _mm_div_ps(*(v4sf *) _ps_min0p5, z_first_branch);
+    z_first_branch = _mm_fmadd_ps_custom(*(v4sf *) _ps_0p5, z_first_branch, tmp);
+
+    z_first_branch = _mm_blendv_ps(z_first_branch, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, z_first_branch), xinf0);
+
+    // Second branch
+    tmp = _mm_mul_ps(x, x);
+    z_second_branch = _mm_fmadd_ps_custom(*(v4sf *) _ps_SINH_P0, tmp, *(v4sf *) _ps_SINH_P1);
+    z_second_branch = _mm_fmadd_ps_custom(z_second_branch, tmp, *(v4sf *) _ps_SINH_P2);
+    z_second_branch = _mm_mul_ps(z_second_branch, tmp);
+    z_second_branch = _mm_fmadd_ps_custom(z_second_branch, x, x);
+
+    // Choose between first and second branch
+    z = _mm_blendv_ps(z_second_branch, z_first_branch, zsup1);
+
+    // Set value to MAXNUMF if abs(x) > MAGLOGF
+    // Set value to -MAXNUMF if abs(x) > MAGLOGF and x < 0
+    z = _mm_blendv_ps(z, *(v4sf *) _ps_MAXNUMF, xsupmaxlogf);
+    z = _mm_blendv_ps(z, *(v4sf *) _ps_minMAXNUMF, _mm_and_ps(xinf0, xsupmaxlogf));
+
+    return (z);
+}
+
+static inline void sinh128f(float *src, float *dst, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            _mm_store_ps(dst + i, sinhf_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            _mm_storeu_ps(dst + i, sinhf_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = sinhf(src[i]);
     }
 }
 

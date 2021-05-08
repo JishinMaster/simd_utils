@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.10
+ * Version : 0.1.11
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -47,6 +47,7 @@ _CMP_TRUE_US  0x1f /* True (unordered, signaling)  */
 
 _PS256_CONST(min1, -1.0f);
 _PS256_CONST(min2, -2.0f);
+_PS256_CONST(min0p5, -0.5f);
 
 // For tanf
 _PS256_CONST(DP123, 0.78515625 + 2.4187564849853515625e-4 + 3.77489497744594108e-8);
@@ -95,6 +96,12 @@ _PS256_CONST(TANH_P1, 2.06390887954E-2f);
 _PS256_CONST(TANH_P2, -5.37397155531E-2f);
 _PS256_CONST(TANH_P3, 1.33314422036E-1f);
 _PS256_CONST(TANH_P4, -3.33332819422E-1f);
+
+_PS256_CONST(MAXNUMF, 3.4028234663852885981170418348451692544e38f);
+_PS256_CONST(minMAXNUMF, -3.4028234663852885981170418348451692544e38f);
+_PS256_CONST(SINH_P0, 2.03721912945E-4f);
+_PS256_CONST(SINH_P1, 8.33028376239E-3f);
+_PS256_CONST(SINH_P2, 1.66667160211E-1f);
 
 
 static inline void log10_256f(float *src, float *dst, int len)
@@ -1067,6 +1074,65 @@ static inline void sincos256f(float *src, float *dst_sin, float *dst_cos, int le
 
     for (int i = stop_len; i < len; i++) {
         mysincosf(src[i], dst_sin + i, dst_cos + i);
+    }
+}
+
+static inline v8sf sinh256f_ps(v8sf x)
+{
+    v8sf z, z_first_branch, z_second_branch, tmp;
+    v8sf xsupmaxlogf, zsup1, xinf0;
+
+    // x = xx; if x < 0, z = -x, else x
+    z = _mm256_and_ps(*(v8sf *) _ps256_pos_sign_mask, x);
+
+    xsupmaxlogf = _mm256_cmp_ps(z, *(v8sf *) _ps256_MAXLOGF, _CMP_GT_OS);
+
+    // First branch
+    zsup1 = _mm256_cmp_ps(z, *(v8sf *) _ps256_1, _CMP_GT_OS);
+    xinf0 = _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_LT_OS);
+    z_first_branch = exp256_ps(z);
+    tmp = _mm256_div_ps(*(v8sf *) _ps256_min0p5, z_first_branch);
+    z_first_branch = _mm256_fmadd_ps_custom(*(v8sf *) _ps256_0p5, z_first_branch, tmp);
+
+    z_first_branch = _mm256_blendv_ps(z_first_branch, _mm256_xor_ps(*(v8sf *) _ps256_neg_sign_mask, z_first_branch), xinf0);
+
+    // Second branch
+    tmp = _mm256_mul_ps(x, x);
+    z_second_branch = _mm256_fmadd_ps_custom(*(v8sf *) _ps256_SINH_P0, tmp, *(v8sf *) _ps256_SINH_P1);
+    z_second_branch = _mm256_fmadd_ps_custom(z_second_branch, tmp, *(v8sf *) _ps256_SINH_P2);
+    z_second_branch = _mm256_mul_ps(z_second_branch, tmp);
+    z_second_branch = _mm256_fmadd_ps_custom(z_second_branch, x, x);
+
+    // Choose between first and second branch
+    z = _mm256_blendv_ps(z_second_branch, z_first_branch, zsup1);
+
+    // Set value to MAXNUMF if abs(x) > MAGLOGF
+    // Set value to -MAXNUMF if abs(x) > MAGLOGF and x < 0
+    z = _mm256_blendv_ps(z, *(v8sf *) _ps256_MAXNUMF, xsupmaxlogf);
+    z = _mm256_blendv_ps(z, *(v8sf *) _ps256_minMAXNUMF, _mm256_and_ps(xinf0, xsupmaxlogf));
+
+    return (z);
+}
+
+static inline void sinh256f(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_load_ps(src + i);
+            _mm256_store_ps(dst + i, sinh256f_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_loadu_ps(src + i);
+            _mm256_storeu_ps(dst + i, sinh256f_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = sinhf(src[i]);
     }
 }
 

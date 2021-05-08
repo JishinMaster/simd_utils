@@ -13,7 +13,7 @@ extern "C" {
 
 #define MAJOR_VERSION 0
 #define MINOR_VERSION 1
-#define SUB_VERSION 10
+#define SUB_VERSION 11
 
 #ifdef OMP
 #include <omp.h>
@@ -1127,6 +1127,16 @@ static inline void tanhf_C(float *src, float *dst, int len)
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] = tanhf(src[i]);
+    }
+}
+
+static inline void sinhf_C(float *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = sinhf(src[i]);
     }
 }
 
