@@ -2,3 +2,4 @@
 - Do CPU fine tuning
 - Add documentation
 - Add more AVX512 features = better use of __mmask (to replace blend)
+- add missing coded functions in readme (exp, sinh, tanh, asinh, atanh)
