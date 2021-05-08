@@ -103,6 +103,12 @@ _PS256_CONST(SINH_P0, 2.03721912945E-4f);
 _PS256_CONST(SINH_P1, 8.33028376239E-3f);
 _PS256_CONST(SINH_P2, 1.66667160211E-1f);
 
+_PS256_CONST(1emin4, 1e-4f);
+_PS256_CONST(ATANH_P0, 1.81740078349E-1f);
+_PS256_CONST(ATANH_P1, 8.24370301058E-2f);
+_PS256_CONST(ATANH_P2, 1.46691431730E-1f);
+_PS256_CONST(ATANH_P3, 1.99782164500E-1f);
+_PS256_CONST(ATANH_P4, 3.33337300303E-1f);
 
 static inline void log10_256f(float *src, float *dst, int len)
 {
@@ -1074,6 +1080,63 @@ static inline void sincos256f(float *src, float *dst_sin, float *dst_cos, int le
 
     for (int i = stop_len; i < len; i++) {
         mysincosf(src[i], dst_sin + i, dst_cos + i);
+    }
+}
+
+static inline v8sf atanh256f_ps(v8sf x)
+{
+    v8sf z, tmp, z_first_branch, z_second_branch;
+    v8sf xsup1, xinfmin1, zinf1emin4, zinf0p5;
+
+    z = _mm256_and_ps(*(v8sf *) _ps256_pos_sign_mask, x);
+
+    xsup1 = _mm256_cmp_ps(x, *(v8sf *) _ps256_1, _CMP_GE_OS);
+    xinfmin1 = _mm256_cmp_ps(x, *(v8sf *) _ps256_min1, _CMP_LE_OS);
+    zinf1emin4 = _mm256_cmp_ps(z, *(v8sf *) _ps256_1emin4, _CMP_LT_OS);
+    zinf0p5 = _mm256_cmp_ps(z, *(v8sf *) _ps256_0p5, _CMP_LT_OS);
+
+    //First branch
+    tmp = _mm256_mul_ps(x, x);
+    z_first_branch = _mm256_fmadd_ps_custom(*(v8sf *) _ps256_ATANH_P0, tmp, *(v8sf *) _ps256_ATANH_P1);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, tmp, *(v8sf *) _ps256_ATANH_P2);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, tmp, *(v8sf *) _ps256_ATANH_P3);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, tmp, *(v8sf *) _ps256_ATANH_P4);
+    z_first_branch = _mm256_mul_ps(z_first_branch, tmp);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, x, x);
+
+    //Second branch
+    tmp = _mm256_sub_ps(*(v8sf *) _ps256_1, x);
+    tmp = _mm256_div_ps(_mm256_add_ps(*(v8sf *) _ps256_1, x), tmp);
+    z_second_branch = log256_ps(tmp);
+    z_second_branch = _mm256_mul_ps(*(v8sf *) _ps256_0p5, z_second_branch);
+
+    z = _mm256_blendv_ps(z_second_branch, z_first_branch, zinf0p5);
+    z = _mm256_blendv_ps(z, x, zinf1emin4);
+    z = _mm256_blendv_ps(z, *(v8sf *) _ps256_MAXNUMF, xsup1);
+    z = _mm256_blendv_ps(z, *(v8sf *) _ps256_minMAXNUMF, xinfmin1);
+
+    return (z);
+}
+
+static inline void atanh256f(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_load_ps(src + i);
+            _mm256_store_ps(dst + i, atanh256f_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_loadu_ps(src + i);
+            _mm256_storeu_ps(dst + i, atanh256f_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atanhf(src[i]);
     }
 }
 

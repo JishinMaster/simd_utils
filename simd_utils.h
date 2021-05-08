@@ -1140,6 +1140,16 @@ static inline void sinhf_C(float *src, float *dst, int len)
     }
 }
 
+static inline void atanhf_C(float *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = atanhf(src[i]);
+    }
+}
+
 static inline void atan_C(double *src, double *dst, int len)
 {
 #ifdef OMP
