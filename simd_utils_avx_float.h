@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.11
+ * Version : 0.1.12
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -109,6 +109,13 @@ _PS256_CONST(ATANH_P1, 8.24370301058E-2f);
 _PS256_CONST(ATANH_P2, 1.46691431730E-1f);
 _PS256_CONST(ATANH_P3, 1.99782164500E-1f);
 _PS256_CONST(ATANH_P4, 3.33337300303E-1f);
+
+_PS256_CONST(1500, 1500.0f);
+_PS256_CONST(LOGE2F, 0.693147180559945309f);
+_PS256_CONST(ASINH_P0, 2.0122003309E-2f);
+_PS256_CONST(ASINH_P1, -4.2699340972E-2f);
+_PS256_CONST(ASINH_P2, 7.4847586088E-2f);
+_PS256_CONST(ASINH_P3, -1.6666288134E-1f);
 
 static inline void log10_256f(float *src, float *dst, int len)
 {
@@ -1080,6 +1087,58 @@ static inline void sincos256f(float *src, float *dst_sin, float *dst_cos, int le
 
     for (int i = stop_len; i < len; i++) {
         mysincosf(src[i], dst_sin + i, dst_cos + i);
+    }
+}
+
+static inline v8sf asinh256f_ps(v8sf xx)
+{
+    v8sf x, tmp, z, z_first_branch, z_second_branch;
+    v8sf xxinf0, xsup1500, xinf0p5;
+
+    x = _mm256_and_ps(*(v8sf *) _ps256_pos_sign_mask, xx);
+    xsup1500 = _mm256_cmp_ps(x, *(v8sf *) _ps256_1500, _CMP_GT_OS);
+    xinf0p5 = _mm256_cmp_ps(x, *(v8sf *) _ps256_0p5, _CMP_LT_OS);
+
+    xxinf0 = _mm256_cmp_ps(xx, _mm256_setzero_ps(), _CMP_LT_OS);
+
+    tmp = _mm256_mul_ps(x, x);
+    //First Branch (x < 0.5)
+    z_first_branch = _mm256_fmadd_ps_custom(*(v8sf *) _ps256_ASINH_P0, tmp, *(v8sf *) _ps256_ASINH_P1);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, tmp, *(v8sf *) _ps256_ASINH_P2);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, tmp, *(v8sf *) _ps256_ASINH_P3);
+    z_first_branch = _mm256_mul_ps(z_first_branch, tmp);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, x, x);
+
+    //Second Branch
+    z_second_branch = _mm256_sqrt_ps(_mm256_add_ps(tmp, *(v8sf *) _ps256_1));
+    z_second_branch = log256_ps(_mm256_add_ps(z_second_branch, x));
+
+    z = _mm256_blendv_ps(z_second_branch, z_first_branch, xinf0p5);
+    z = _mm256_blendv_ps(z, _mm256_add_ps(log256_ps(x), *(v8sf *) _ps256_LOGE2F), xsup1500);
+    z = _mm256_blendv_ps(z, _mm256_xor_ps(*(v8sf *) _ps256_neg_sign_mask, z), xxinf0);
+
+    return z;
+}
+
+static inline void asinh256f(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_load_ps(src + i);
+            _mm256_store_ps(dst + i, asinh256f_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_loadu_ps(src + i);
+            _mm256_storeu_ps(dst + i, asinh256f_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = asinhf(src[i]);
     }
 }
 

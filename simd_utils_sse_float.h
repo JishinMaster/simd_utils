@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.11
+ * Version : 0.1.12
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -76,13 +76,20 @@ _PS_CONST(SINH_P0, 2.03721912945E-4f);
 _PS_CONST(SINH_P1, 8.33028376239E-3f);
 _PS_CONST(SINH_P2, 1.66667160211E-1f);
 
-
 _PS_CONST(1emin4, 1e-4f);
 _PS_CONST(ATANH_P0, 1.81740078349E-1f);
 _PS_CONST(ATANH_P1, 8.24370301058E-2f);
 _PS_CONST(ATANH_P2, 1.46691431730E-1f);
 _PS_CONST(ATANH_P3, 1.99782164500E-1f);
 _PS_CONST(ATANH_P4, 3.33337300303E-1f);
+
+_PS_CONST(1500, 1500.0f);
+_PS_CONST(LOGE2F, 0.693147180559945309f);
+_PS_CONST(ASINH_P0, 2.0122003309E-2f);
+_PS_CONST(ASINH_P1, -4.2699340972E-2f);
+_PS_CONST(ASINH_P2, 7.4847586088E-2f);
+_PS_CONST(ASINH_P3, -1.6666288134E-1f);
+
 
 #define ROUNDTONEAREST (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC)
 #define ROUNDTOFLOOR (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC)
@@ -1300,6 +1307,58 @@ static inline void sinh128f(float *src, float *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = sinhf(src[i]);
+    }
+}
+
+static inline v4sf asinhf_ps(v4sf xx)
+{
+    v4sf x, tmp, z, z_first_branch, z_second_branch;
+    v4sf xxinf0, xsup1500, xinf0p5;
+
+    x = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, xx);
+    xsup1500 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1500);
+    xinf0p5 = _mm_cmplt_ps(x, *(v4sf *) _ps_0p5);
+
+    xxinf0 = _mm_cmplt_ps(xx, _mm_setzero_ps());
+
+    tmp = _mm_mul_ps(x, x);
+    //First Branch (x < 0.5)
+    z_first_branch = _mm_fmadd_ps_custom(*(v4sf *) _ps_ASINH_P0, tmp, *(v4sf *) _ps_ASINH_P1);
+    z_first_branch = _mm_fmadd_ps_custom(z_first_branch, tmp, *(v4sf *) _ps_ASINH_P2);
+    z_first_branch = _mm_fmadd_ps_custom(z_first_branch, tmp, *(v4sf *) _ps_ASINH_P3);
+    z_first_branch = _mm_mul_ps(z_first_branch, tmp);
+    z_first_branch = _mm_fmadd_ps_custom(z_first_branch, x, x);
+
+    //Second Branch
+    z_second_branch = _mm_sqrt_ps(_mm_add_ps(tmp, *(v4sf *) _ps_1));
+    z_second_branch = log_ps(_mm_add_ps(z_second_branch, x));
+
+    z = _mm_blendv_ps(z_second_branch, z_first_branch, xinf0p5);
+    z = _mm_blendv_ps(z, _mm_add_ps(log_ps(x), *(v4sf *) _ps_LOGE2F), xsup1500);
+    z = _mm_blendv_ps(z, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, z), xxinf0);
+
+    return z;
+}
+
+static inline void asinh128f(float *src, float *dst, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            _mm_store_ps(dst + i, asinhf_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            _mm_storeu_ps(dst + i, asinhf_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = asinhf(src[i]);
     }
 }
 

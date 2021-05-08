@@ -278,6 +278,7 @@ typedef int64x2_t __m128i; /* 128-bit vector containing integers */
 
 #define vreinterpretq_s64_m128d(x) vreinterpretq_s64_f64(x)
 
+#define vreinterpretq_u32_m128d(x) vreinterpretq_u32_f64(x)
 #define vreinterpretq_u64_m128d(x) vreinterpretq_u64_f64(x)
 
 #define vreinterpretq_f64_m128d(x) (x)
@@ -339,13 +340,18 @@ typedef union ALIGN_STRUCT(16) SIMDVec {
 #define vreinterpretq_nth_u32_m128i(x, n) (((SIMDVec *) &x)->m128_u32[n])
 #define vreinterpretq_nth_u8_m128i(x, n) (((SIMDVec *) &x)->m128_u8[n])
 
+// Function declaration
+FORCE_INLINE unsigned int _MM_GET_ROUNDING_MODE();
+FORCE_INLINE __m128 _mm_ceil_ps(__m128);
+FORCE_INLINE __m128 _mm_floor_ps(__m128);
+
 /* Backwards compatibility for compilers with lack of specific type support */
 
 // Older gcc does not define vld1q_u8_x4 type
-#if defined(__GNUC__) && !defined(__clang__) &&   \
-    ((__GNUC__ == 10 && (__GNUC_MINOR__ <= 1)) || \
-     (__GNUC__ == 9 && (__GNUC_MINOR__ <= 3)) ||  \
-     (__GNUC__ == 8 && (__GNUC_MINOR__ <= 4)) || __GNUC__ <= 7)
+#if defined(__GNUC__) && !defined(__clang__) &&                        \
+    ((__GNUC__ <= 10 && defined(__arm__)) ||                           \
+     (__GNUC__ == 10 && __GNUC_MINOR__ < 3 && defined(__aarch64__)) || \
+     (__GNUC__ <= 9 && defined(__aarch64__)))
 FORCE_INLINE uint8x16x4_t _sse2neon_vld1q_u8_x4(const uint8_t *p)
 {
     uint8x16x4_t ret;
@@ -2469,8 +2475,7 @@ FORCE_INLINE __m128i _mm_slli_epi64(__m128i a, int imm)
         __m128i ret;                                                       \
         if (unlikely(imm) == 0) {                                          \
             ret = a;                                                       \
-        }                                                                  \
-        if (likely(0 < (imm) && (imm) < 16)) {                             \
+        } else if (likely(0 < (imm) && (imm) < 16)) {                      \
             ret = vreinterpretq_m128i_u16(                                 \
                 vshlq_u16(vreinterpretq_u16_m128i(a), vdupq_n_s16(-imm))); \
         } else {                                                           \
@@ -2498,8 +2503,7 @@ FORCE_INLINE __m128i _mm_slli_epi64(__m128i a, int imm)
         __m128i ret;                                                       \
         if (unlikely((imm) == 0)) {                                        \
             ret = a;                                                       \
-        }                                                                  \
-        if (likely(0 < (imm) && (imm) < 32)) {                             \
+        } else if (likely(0 < (imm) && (imm) < 32)) {                      \
             ret = vreinterpretq_m128i_u32(                                 \
                 vshlq_u32(vreinterpretq_u32_m128i(a), vdupq_n_s32(-imm))); \
         } else {                                                           \
@@ -2526,8 +2530,7 @@ FORCE_INLINE __m128i _mm_slli_epi64(__m128i a, int imm)
         __m128i ret;                                                       \
         if (unlikely((imm) == 0)) {                                        \
             ret = a;                                                       \
-        }                                                                  \
-        if (likely(0 < (imm) && (imm) < 64)) {                             \
+        } else if (likely(0 < (imm) && (imm) < 64)) {                      \
             ret = vreinterpretq_m128i_u64(                                 \
                 vshlq_u64(vreinterpretq_u64_m128i(a), vdupq_n_s64(-imm))); \
         } else {                                                           \
@@ -2555,8 +2558,7 @@ FORCE_INLINE __m128i _mm_slli_epi64(__m128i a, int imm)
         __m128i ret;                                                       \
         if (unlikely((imm) == 0)) {                                        \
             ret = a;                                                       \
-        }                                                                  \
-        if (likely(0 < (imm) && (imm) < 32)) {                             \
+        } else if (likely(0 < (imm) && (imm) < 32)) {                      \
             ret = vreinterpretq_m128i_s32(                                 \
                 vshlq_s32(vreinterpretq_s32_m128i(a), vdupq_n_s32(-imm))); \
         } else {                                                           \
@@ -5118,6 +5120,81 @@ FORCE_INLINE __m128d _mm_cmplt_sd(__m128d a, __m128d b)
 #endif
 }
 
+// Compare packed double-precision (64-bit) floating-point elements in a and b
+// for not-equal, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cmpneq_pd
+FORCE_INLINE __m128d _mm_cmpneq_pd(__m128d a, __m128d b)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128d_s32(vmvnq_s32(vreinterpretq_s32_u64(
+        vceqq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)))));
+#else
+    // (a == b) -> (a_lo == b_lo) && (a_hi == b_hi)
+    uint32x4_t cmp =
+        vceqq_u32(vreinterpretq_u32_m128d(a), vreinterpretq_u32_m128d(b));
+    uint32x4_t swapped = vrev64q_u32(cmp);
+    return vreinterpretq_m128d_u32(vmvnq_u32(vandq_u32(cmp, swapped)));
+#endif
+}
+
+// Compare the lower double-precision (64-bit) floating-point elements in a and
+// b for not-equal, store the result in the lower element of dst, and copy the
+// upper element from a to the upper element of dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cmpneq_sd
+FORCE_INLINE __m128d _mm_cmpneq_sd(__m128d a, __m128d b)
+{
+    return _mm_move_sd(a, _mm_cmpneq_pd(a, b));
+}
+
+// Compare packed double-precision (64-bit) floating-point elements in a and b
+// for not-greater-than-or-equal, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cmpnge_pd
+FORCE_INLINE __m128d _mm_cmpnge_pd(__m128d a, __m128d b)
+{
+    return _mm_cmplt_pd(a, b);
+}
+
+// Compare the lower double-precision (64-bit) floating-point elements in a and
+// b for not-greater-than-or-equal, store the result in the lower element of
+// dst, and copy the upper element from a to the upper element of dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cmpnge_sd
+FORCE_INLINE __m128d _mm_cmpnge_sd(__m128d a, __m128d b)
+{
+    return _mm_cmplt_sd(a, b);
+}
+
+// Compare packed double-precision (64-bit) floating-point elements in a and b
+// for not-greater-than, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_cmpngt_pd
+#define _mm_cmpngt_pd(a, b) _mm_cmple_pd(a, b)
+
+// Compare the lower double-precision (64-bit) floating-point elements in a and
+// b for not-greater-than, store the result in the lower element of dst, and
+// copy the upper element from a to the upper element of dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cmpngt_sd
+#define _mm_cmpngt_sd _mm_cmple_sd
+
+// Compare the lower double-precision (64-bit) floating-point element in a and b
+// for equality, and return the boolean result (0 or 1).
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_comieq_sd
+FORCE_INLINE int _mm_comieq_sd(__m128d a, __m128d b)
+{
+#if defined(__aarch64__)
+    return !!vgetq_lane_u64(vceqq_f64(a, b), 0);
+#else
+    uint32x4_t a_not_nan =
+        vceqq_u32(vreinterpretq_u32_m128d(a), vreinterpretq_u32_m128d(a));
+    uint32x4_t b_not_nan =
+        vceqq_u32(vreinterpretq_u32_m128d(b), vreinterpretq_u32_m128d(b));
+    uint32x4_t a_and_b_not_nan = vandq_u32(a_not_nan, b_not_nan);
+    uint32x4_t a_eq_b =
+        vceqq_u32(vreinterpretq_u32_m128d(a), vreinterpretq_u32_m128d(b));
+    uint64x2_t and_results = vandq_u64(vreinterpretq_u64_u32(a_and_b_not_nan),
+                                       vreinterpretq_u64_u32(a_eq_b));
+    return !!vgetq_lane_u64(and_results, 0);
+#endif
+}
+
 // Compares the 16 signed 8-bit integers in a and the 16 signed 8-bit integers
 // in b for greater than.
 //
@@ -5274,31 +5351,9 @@ FORCE_INLINE __m128i _mm_cmpgt_epi64(__m128i a, __m128i b)
     return vreinterpretq_m128i_u64(
         vcgtq_s64(vreinterpretq_s64_m128i(a), vreinterpretq_s64_m128i(b)));
 #else
-    // ARMv7 lacks vcgtq_s64.
-    // This is based off of Clang's SSE2 polyfill:
-    // (a > b) -> ((a_hi > b_hi) || (a_lo > b_lo && a_hi == b_hi))
-
-    // Mask the sign bit out since we need a signed AND an unsigned comparison
-    // and it is ugly to try and split them.
-    int32x4_t mask = vreinterpretq_s32_s64(vdupq_n_s64(0x80000000ull));
-    int32x4_t a_mask = veorq_s32(vreinterpretq_s32_m128i(a), mask);
-    int32x4_t b_mask = veorq_s32(vreinterpretq_s32_m128i(b), mask);
-    // Check if a > b
-    int64x2_t greater = vreinterpretq_s64_u32(vcgtq_s32(a_mask, b_mask));
-    // Copy upper mask to lower mask
-    // a_hi > b_hi
-    int64x2_t gt_hi = vshrq_n_s64(greater, 63);
-    // Copy lower mask to upper mask
-    // a_lo > b_lo
-    int64x2_t gt_lo = vsliq_n_s64(greater, greater, 32);
-    // Compare for equality
-    int64x2_t equal = vreinterpretq_s64_u32(vceqq_s32(a_mask, b_mask));
-    // Copy upper mask to lower mask
-    // a_hi == b_hi
-    int64x2_t eq_hi = vshrq_n_s64(equal, 63);
-    // a_hi > b_hi || (a_lo > b_lo && a_hi == b_hi)
-    int64x2_t ret = vorrq_s64(gt_hi, vandq_s64(gt_lo, eq_hi));
-    return vreinterpretq_m128i_s64(ret);
+    return vreinterpretq_m128i_s64(vshrq_n_s64(
+        vqsubq_s64(vreinterpretq_s64_m128i(b), vreinterpretq_s64_m128i(a)),
+        63));
 #endif
 }
 
@@ -5847,24 +5902,49 @@ FORCE_INLINE __m128i _mm_cvtepi32_epi64(__m128i a)
 FORCE_INLINE __m128i _mm_cvtps_epi32(__m128 a)
 {
 #if defined(__aarch64__)
-    return vreinterpretq_m128i_s32(vcvtnq_s32_f32(a));
+    switch (_MM_GET_ROUNDING_MODE()) {
+    case _MM_ROUND_NEAREST:
+        return vreinterpretq_m128i_s32(vcvtnq_s32_f32(a));
+    case _MM_ROUND_DOWN:
+        return vreinterpretq_m128i_s32(vcvtmq_s32_f32(a));
+    case _MM_ROUND_UP:
+        return vreinterpretq_m128i_s32(vcvtpq_s32_f32(a));
+    default:  // _MM_ROUND_TOWARD_ZERO
+        return vreinterpretq_m128i_s32(vcvtq_s32_f32(a));
+    }
 #else
-    uint32x4_t signmask = vdupq_n_u32(0x80000000);
-    float32x4_t half = vbslq_f32(signmask, vreinterpretq_f32_m128(a),
-                                 vdupq_n_f32(0.5f)); /* +/- 0.5 */
-    int32x4_t r_normal = vcvtq_s32_f32(vaddq_f32(
-        vreinterpretq_f32_m128(a), half)); /* round to integer: [a + 0.5]*/
-    int32x4_t r_trunc =
-        vcvtq_s32_f32(vreinterpretq_f32_m128(a)); /* truncate to integer: [a] */
-    int32x4_t plusone = vreinterpretq_s32_u32(vshrq_n_u32(
-        vreinterpretq_u32_s32(vnegq_s32(r_trunc)), 31)); /* 1 or 0 */
-    int32x4_t r_even = vbicq_s32(vaddq_s32(r_trunc, plusone),
-                                 vdupq_n_s32(1)); /* ([a] + {0,1}) & ~1 */
-    float32x4_t delta = vsubq_f32(
-        vreinterpretq_f32_m128(a),
-        vcvtq_f32_s32(r_trunc));                       /* compute delta: delta = (a - [a]) */
-    uint32x4_t is_delta_half = vceqq_f32(delta, half); /* delta == +/- 0.5 */
-    return vreinterpretq_m128i_s32(vbslq_s32(is_delta_half, r_even, r_normal));
+    float *f = (float *) &a;
+    switch (_MM_GET_ROUNDING_MODE()) {
+    case _MM_ROUND_NEAREST: {
+        uint32x4_t signmask = vdupq_n_u32(0x80000000);
+        float32x4_t half = vbslq_f32(signmask, vreinterpretq_f32_m128(a),
+                                     vdupq_n_f32(0.5f)); /* +/- 0.5 */
+        int32x4_t r_normal = vcvtq_s32_f32(vaddq_f32(
+            vreinterpretq_f32_m128(a), half)); /* round to integer: [a + 0.5]*/
+        int32x4_t r_trunc = vcvtq_s32_f32(
+            vreinterpretq_f32_m128(a)); /* truncate to integer: [a] */
+        int32x4_t plusone = vreinterpretq_s32_u32(vshrq_n_u32(
+            vreinterpretq_u32_s32(vnegq_s32(r_trunc)), 31)); /* 1 or 0 */
+        int32x4_t r_even = vbicq_s32(vaddq_s32(r_trunc, plusone),
+                                     vdupq_n_s32(1)); /* ([a] + {0,1}) & ~1 */
+        float32x4_t delta = vsubq_f32(
+            vreinterpretq_f32_m128(a),
+            vcvtq_f32_s32(r_trunc)); /* compute delta: delta = (a - [a]) */
+        uint32x4_t is_delta_half =
+            vceqq_f32(delta, half); /* delta == +/- 0.5 */
+        return vreinterpretq_m128i_s32(
+            vbslq_s32(is_delta_half, r_even, r_normal));
+    }
+    case _MM_ROUND_DOWN:
+        return _mm_set_epi32(floorf(f[3]), floorf(f[2]), floorf(f[1]),
+                             floorf(f[0]));
+    case _MM_ROUND_UP:
+        return _mm_set_epi32(ceilf(f[3]), ceilf(f[2]), ceilf(f[1]),
+                             ceilf(f[0]));
+    default:  // _MM_ROUND_TOWARD_ZERO
+        return _mm_set_epi32((int32_t) f[3], (int32_t) f[2], (int32_t) f[1],
+                             (int32_t) f[0]);
+    }
 #endif
 }
 
@@ -6188,6 +6268,7 @@ FORCE_INLINE __m128d _mm_blendv_pd(__m128d _a, __m128d _b, __m128d _mask)
 #endif
 }
 
+// The bit field mapping to the FPCR(floating-point control register)
 typedef struct {
     uint16_t res0;
     uint8_t res1 : 6;
@@ -6198,6 +6279,36 @@ typedef struct {
     uint32_t res3;
 #endif
 } fpcr_bitfield;
+
+// Macro: Get the rounding mode bits from the MXCSR control and status register.
+// The rounding mode may contain any of the following flags: _MM_ROUND_NEAREST,
+// _MM_ROUND_DOWN, _MM_ROUND_UP, _MM_ROUND_TOWARD_ZERO
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_MM_GET_ROUNDING_MODE
+FORCE_INLINE unsigned int _MM_GET_ROUNDING_MODE()
+{
+    union {
+        fpcr_bitfield field;
+#if defined(__aarch64__)
+        uint64_t value;
+#else
+        uint32_t value;
+#endif
+    } r;
+
+#if defined(__aarch64__)
+    asm volatile("mrs %0, FPCR"
+                 : "=r"(r.value)); /* read */
+#else
+    asm volatile("vmrs %0, FPSCR"
+                 : "=r"(r.value)); /* read */
+#endif
+
+    if (r.field.bit22) {
+        return r.field.bit23 ? _MM_ROUND_TOWARD_ZERO : _MM_ROUND_UP;
+    } else {
+        return r.field.bit23 ? _MM_ROUND_DOWN : _MM_ROUND_NEAREST;
+    }
+}
 
 // Macro: Set the rounding mode bits of the MXCSR control and status register to
 // the value in unsigned 32-bit integer a. The rounding mode may contain any of
@@ -6264,9 +6375,9 @@ FORCE_INLINE __m128 _mm_round_ps(__m128 a, int rounding)
     case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC):
         return vreinterpretq_m128_f32(vrndnq_f32(vreinterpretq_f32_m128(a)));
     case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC):
-        return vreinterpretq_m128_f32(vrndmq_f32(vreinterpretq_f32_m128(a)));
+        return _mm_floor_ps(a);
     case (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC):
-        return vreinterpretq_m128_f32(vrndpq_f32(vreinterpretq_f32_m128(a)));
+        return _mm_ceil_ps(a);
     case (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC):
         return vreinterpretq_m128_f32(vrndq_f32(vreinterpretq_f32_m128(a)));
     default:  //_MM_FROUND_CUR_DIRECTION
@@ -6274,28 +6385,39 @@ FORCE_INLINE __m128 _mm_round_ps(__m128 a, int rounding)
     }
 #else
     float *v_float = (float *) &a;
-    __m128 zero, neg_inf, pos_inf;
 
-    switch (rounding) {
-    case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC):
-        return _mm_cvtepi32_ps(_mm_cvtps_epi32(a));
-    case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC):
-        return (__m128){floorf(v_float[0]), floorf(v_float[1]),
-                        floorf(v_float[2]), floorf(v_float[3])};
-    case (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC):
-        return (__m128){ceilf(v_float[0]), ceilf(v_float[1]), ceilf(v_float[2]),
-                        ceilf(v_float[3])};
-    case (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC):
-        zero = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
-        neg_inf = _mm_set_ps(floorf(v_float[0]), floorf(v_float[1]),
-                             floorf(v_float[2]), floorf(v_float[3]));
-        pos_inf = _mm_set_ps(ceilf(v_float[0]), ceilf(v_float[1]),
-                             ceilf(v_float[2]), ceilf(v_float[3]));
-        return _mm_blendv_ps(pos_inf, neg_inf, _mm_cmple_ps(a, zero));
-    default:  //_MM_FROUND_CUR_DIRECTION
-        return (__m128){roundf(v_float[0]), roundf(v_float[1]),
-                        roundf(v_float[2]), roundf(v_float[3])};
+    if (rounding == (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC) ||
+        (rounding == _MM_FROUND_CUR_DIRECTION &&
+         _MM_GET_ROUNDING_MODE() == _MM_ROUND_NEAREST)) {
+        uint32x4_t signmask = vdupq_n_u32(0x80000000);
+        float32x4_t half = vbslq_f32(signmask, vreinterpretq_f32_m128(a),
+                                     vdupq_n_f32(0.5f)); /* +/- 0.5 */
+        int32x4_t r_normal = vcvtq_s32_f32(vaddq_f32(
+            vreinterpretq_f32_m128(a), half)); /* round to integer: [a + 0.5]*/
+        int32x4_t r_trunc = vcvtq_s32_f32(
+            vreinterpretq_f32_m128(a)); /* truncate to integer: [a] */
+        int32x4_t plusone = vreinterpretq_s32_u32(vshrq_n_u32(
+            vreinterpretq_u32_s32(vnegq_s32(r_trunc)), 31)); /* 1 or 0 */
+        int32x4_t r_even = vbicq_s32(vaddq_s32(r_trunc, plusone),
+                                     vdupq_n_s32(1)); /* ([a] + {0,1}) & ~1 */
+        float32x4_t delta = vsubq_f32(
+            vreinterpretq_f32_m128(a),
+            vcvtq_f32_s32(r_trunc)); /* compute delta: delta = (a - [a]) */
+        uint32x4_t is_delta_half =
+            vceqq_f32(delta, half); /* delta == +/- 0.5 */
+        return vreinterpretq_m128_f32(
+            vcvtq_f32_s32(vbslq_s32(is_delta_half, r_even, r_normal)));
+    } else if (rounding == (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC) ||
+               (rounding == _MM_FROUND_CUR_DIRECTION &&
+                _MM_GET_ROUNDING_MODE() == _MM_ROUND_DOWN)) {
+        return _mm_floor_ps(a);
+    } else if (rounding == (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC) ||
+               (rounding == _MM_FROUND_CUR_DIRECTION &&
+                _MM_GET_ROUNDING_MODE() == _MM_ROUND_UP)) {
+        return _mm_ceil_ps(a);
     }
+    return _mm_set_ps((int) v_float[3], (int) v_float[2], (int) v_float[1],
+                      (int) v_float[0]);
 #endif
 }
 
@@ -6337,7 +6459,12 @@ FORCE_INLINE __m64 _mm_cvt_ps2pi(__m128 a)
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_ceil_ps
 FORCE_INLINE __m128 _mm_ceil_ps(__m128 a)
 {
-    return _mm_round_ps(a, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC);
+#if defined(__aarch64__)
+    return vreinterpretq_m128_f32(vrndpq_f32(vreinterpretq_f32_m128(a)));
+#else
+    float *f = (float *) &a;
+    return _mm_set_ps(ceilf(f[3]), ceilf(f[2]), ceilf(f[1]), ceilf(f[0]));
+#endif
 }
 
 // Round the lower single-precision (32-bit) floating-point element in b up to
@@ -6351,8 +6478,7 @@ FORCE_INLINE __m128 _mm_ceil_ps(__m128 a)
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_ceil_ss
 FORCE_INLINE __m128 _mm_ceil_ss(__m128 a, __m128 b)
 {
-    return _mm_move_ss(
-        a, _mm_round_ps(b, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC));
+    return _mm_move_ss(a, _mm_ceil_ps(b));
 }
 
 // Round the packed single-precision (32-bit) floating-point elements in a down
@@ -6361,7 +6487,12 @@ FORCE_INLINE __m128 _mm_ceil_ss(__m128 a, __m128 b)
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_floor_ps
 FORCE_INLINE __m128 _mm_floor_ps(__m128 a)
 {
-    return _mm_round_ps(a, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+#if defined(__aarch64__)
+    return vreinterpretq_m128_f32(vrndmq_f32(vreinterpretq_f32_m128(a)));
+#else
+    float *f = (float *) &a;
+    return _mm_set_ps(floorf(f[3]), floorf(f[2]), floorf(f[1]), floorf(f[0]));
+#endif
 }
 
 // Round the lower single-precision (32-bit) floating-point element in b down to
@@ -6375,8 +6506,7 @@ FORCE_INLINE __m128 _mm_floor_ps(__m128 a)
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_floor_ss
 FORCE_INLINE __m128 _mm_floor_ss(__m128 a, __m128 b)
 {
-    return _mm_move_ss(
-        a, _mm_round_ps(b, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC));
+    return _mm_move_ss(a, _mm_floor_ps(b));
 }
 
 // Load 128-bits of integer data from unaligned memory into dst. This intrinsic
@@ -6824,6 +6954,7 @@ FORCE_INLINE int _mm_testz_si128(__m128i a, __m128i b)
 // Extracts the selected signed or unsigned 8-bit integer from a and zero
 // extends.
 // FORCE_INLINE int _mm_extract_epi8(__m128i a, __constrange(0,16) int imm)
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_extract_epi8
 #define _mm_extract_epi8(a, imm) vgetq_lane_u8(vreinterpretq_u8_m128i(a), (imm))
 
 // Inserts the least significant 8 bits of b into the selected 8-bit integer
@@ -6834,6 +6965,28 @@ FORCE_INLINE int _mm_testz_si128(__m128i a, __m128i b)
     __extension__({                                                \
         vreinterpretq_m128i_s8(                                    \
             vsetq_lane_s8((b), vreinterpretq_s8_m128i(a), (imm))); \
+    })
+
+// Copy a to tmp, then insert a single-precision (32-bit) floating-point
+// element from b into tmp using the control in imm8. Store tmp to dst using
+// the mask in imm8 (elements are zeroed out when the corresponding bit is set).
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=insert_ps
+#define _mm_insert_ps(a, b, imm8)                                              \
+    __extension__({                                                            \
+        float32x4_t tmp1 = vsetq_lane_f32(vgetq_lane_f32(b, (imm >> 6) & 0x3), \
+                                          vreinterpretq_f32_m128(a), 0);       \
+        float32x4_t tmp2 =                                                     \
+            vsetq_lane_f32(vgetq_lane_f32(tmp1, 0), vreinterpretq_f32_m128(a), \
+                           ((imm >> 4) & 0x3));                                \
+        const uint32_t data[4] = {((imm8) & (1 << 0)) ? UINT32_MAX : 0,        \
+                                  ((imm8) & (1 << 1)) ? UINT32_MAX : 0,        \
+                                  ((imm8) & (1 << 2)) ? UINT32_MAX : 0,        \
+                                  ((imm8) & (1 << 3)) ? UINT32_MAX : 0};       \
+        uint32x4_t mask = vld1q_u32(data);                                     \
+        float32x4_t all_zeros = vdupq_n_f32(0);                                \
+                                                                               \
+        vreinterpretq_m128_f32(                                                \
+            vbslq_f32(mask, all_zeros, vreinterpretq_f32_m128(tmp2)));         \
     })
 
 // Extracts the selected signed or unsigned 16-bit integer from a and zero

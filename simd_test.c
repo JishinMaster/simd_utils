@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.11
+ * Version : 0.1.12
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -3712,6 +3712,76 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("atanh512f %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2, len);
+#endif
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// ASINH //////////////////////////////////////////////////////////////////////////////
+    printf("ASINH\n");
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) (rand() % 2000) / 10000.0f;
+        if (i % 2 == 0)
+            inout[i] = -inout[i];
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    asinhf_C(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asinhf_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    asinhf_C(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asinhf_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    asinh128f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asinh128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    asinh128f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asinh128f %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    asinh256f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asinh256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    asinh256f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asinh256f %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    asinh512f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asinh512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    asinh512f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asinh512f %d %lf\n", len, elapsed);
 
     l2_err(inout_ref, inout2, len);
 #endif

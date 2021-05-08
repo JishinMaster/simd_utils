@@ -2,7 +2,7 @@
 
 /*
  * Project : SIMD_Utils
- * Version : 0.1.9
+ * Version : 0.1.12
  * Author  : JishinMaster
  * Licence : BSD-2
  */
