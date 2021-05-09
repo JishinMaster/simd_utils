@@ -90,6 +90,11 @@ _PS_CONST(ASINH_P1, -4.2699340972E-2f);
 _PS_CONST(ASINH_P2, 7.4847586088E-2f);
 _PS_CONST(ASINH_P3, -1.6666288134E-1f);
 
+_PS_CONST(ACOSH_P0, 1.7596881071E-3f);
+_PS_CONST(ACOSH_P1, -7.5272886713E-3f);
+_PS_CONST(ACOSH_P2, 2.6454905019E-2f);
+_PS_CONST(ACOSH_P3, -1.1784741703E-1f);
+_PS_CONST(ACOSH_P4, 1.4142135263E0f);
 
 #define ROUNDTONEAREST (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC)
 #define ROUNDTOFLOOR (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC)
@@ -1251,6 +1256,44 @@ static inline void sincos128f(float *src, float *dst_sin, float *dst_cos, int le
     }
 }
 
+static inline v4sf coshf_ps(v4sf xx)
+{
+    v4sf x, y, tmp;
+    v4sf xsupmaxlogf;
+
+    x = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, xx);
+    xsupmaxlogf = _mm_cmpgt_ps(x, *(v4sf *) _ps_MAXLOGF);
+
+    y = exp_ps(x);
+    tmp = _mm_div_ps(*(v4sf *) _ps_0p5, y);
+    y = _mm_fmadd_ps_custom(*(v4sf *) _ps_0p5, y, tmp);
+    y = _mm_blendv_ps(y, *(v4sf *) _ps_MAXNUMF, xsupmaxlogf);
+
+    return y;
+}
+
+static inline void cosh128f(float *src, float *dst, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            _mm_store_ps(dst + i, coshf_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            _mm_storeu_ps(dst + i, coshf_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = coshf(src[i]);
+    }
+}
+
 static inline v4sf sinhf_ps(v4sf x)
 {
     v4sf z, z_first_branch, z_second_branch, tmp;
@@ -1307,6 +1350,58 @@ static inline void sinh128f(float *src, float *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = sinhf(src[i]);
+    }
+}
+
+static inline v4sf acoshf_ps(v4sf x)
+{
+    v4sf z, z_first_branch, z_second_branch;
+    v4sf xsup1500, zinf0p5, xinf1;
+
+    xsup1500 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1500);  // return  (logf(x) + LOGE2F)
+    xinf1 = _mm_cmplt_ps(x, *(v4sf *) _ps_1);        // return 0
+
+    z = _mm_sub_ps(x, *(v4sf *) _ps_1);
+
+    zinf0p5 = _mm_cmplt_ps(z, *(v4sf *) _ps_0p5);  // first and second branch
+
+    //First Branch (z < 0.5)
+    z_first_branch = _mm_fmadd_ps_custom(*(v4sf *) _ps_ACOSH_P0, z, *(v4sf *) _ps_ACOSH_P1);
+    z_first_branch = _mm_fmadd_ps_custom(z_first_branch, z, *(v4sf *) _ps_ACOSH_P2);
+    z_first_branch = _mm_fmadd_ps_custom(z_first_branch, z, *(v4sf *) _ps_ACOSH_P3);
+    z_first_branch = _mm_fmadd_ps_custom(z_first_branch, z, *(v4sf *) _ps_ACOSH_P4);
+    z_first_branch = _mm_mul_ps(z_first_branch, _mm_sqrt_ps(z));
+
+    //Second Branch
+    z_second_branch = _mm_sqrt_ps(_mm_fmadd_ps_custom(z, x, z));
+    z_second_branch = log_ps(_mm_add_ps(x, z_second_branch));
+
+    z = _mm_blendv_ps(z_second_branch, z_first_branch, zinf0p5);
+    z = _mm_blendv_ps(z, _mm_add_ps(log_ps(x), *(v4sf *) _ps_LOGE2F), xsup1500);
+    z = _mm_blendv_ps(z, _mm_setzero_ps(), xinf1);
+
+    return z;
+}
+
+static inline void acosh128f(float *src, float *dst, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            _mm_store_ps(dst + i, acoshf_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            _mm_storeu_ps(dst + i, acoshf_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = acoshf(src[i]);
     }
 }
 

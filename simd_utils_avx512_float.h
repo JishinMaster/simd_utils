@@ -82,6 +82,12 @@ _PS512_CONST(ASINH_P1, -4.2699340972E-2f);
 _PS512_CONST(ASINH_P2, 7.4847586088E-2f);
 _PS512_CONST(ASINH_P3, -1.6666288134E-1f);
 
+_PS512_CONST(ACOSH_P0, 1.7596881071E-3f);
+_PS512_CONST(ACOSH_P1, -7.5272886713E-3f);
+_PS512_CONST(ACOSH_P2, 2.6454905019E-2f);
+_PS512_CONST(ACOSH_P3, -1.1784741703E-1f);
+_PS512_CONST(ACOSH_P4, 1.4142135263E0f);
+
 static inline void log10_512f(float *src, float *dst, int len)
 {
     const v16sf invln10f = _mm512_set1_ps((float) INVLN10);  //_mm512_broadcast_ss(&invln10f_mask);
@@ -875,6 +881,58 @@ static inline void sincos512f(float *src, float *dst_sin, float *dst_cos, int le
     }
 }
 
+static inline v16sf acosh512f_ps(v16sf x)
+{
+    v16sf z, z_first_branch, z_second_branch;
+    __mmask16 xsup1500, zinf0p5, xinf1;
+
+    xsup1500 = _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_1500, _CMP_GT_OS);  // return  (logf(x) + LOGE2F)
+    xinf1 = _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_1, _CMP_LT_OS);        // return 0
+
+    z = _mm512_sub_ps(x, *(v16sf *) _ps512_1);
+
+    zinf0p5 = _mm512_cmp_ps_mask(z, *(v16sf *) _ps512_0p5, _CMP_LT_OS);  // first and second branch
+
+    //First Branch (z < 0.5)
+    z_first_branch = _mm512_fmadd_ps_custom(*(v16sf *) _ps512_ACOSH_P0, z, *(v16sf *) _ps512_ACOSH_P1);
+    z_first_branch = _mm512_fmadd_ps_custom(z_first_branch, z, *(v16sf *) _ps512_ACOSH_P2);
+    z_first_branch = _mm512_fmadd_ps_custom(z_first_branch, z, *(v16sf *) _ps512_ACOSH_P3);
+    z_first_branch = _mm512_fmadd_ps_custom(z_first_branch, z, *(v16sf *) _ps512_ACOSH_P4);
+    z_first_branch = _mm512_mul_ps(z_first_branch, _mm512_sqrt_ps(z));
+
+    //Second Branch
+    z_second_branch = _mm512_sqrt_ps(_mm512_fmadd_ps_custom(z, x, z));
+    z_second_branch = log512_ps(_mm512_add_ps(x, z_second_branch));
+
+    z = _mm512_mask_blend_ps(zinf0p5, z_second_branch, z_first_branch);
+    z = _mm512_mask_blend_ps(xsup1500, z, _mm512_add_ps(log512_ps(x), *(v16sf *) _ps512_LOGE2F));
+    z = _mm512_mask_blend_ps(xinf1, z, _mm512_setzero_ps());
+
+    return z;
+}
+
+static inline void acosh512f(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_load_ps(src + i);
+            _mm512_store_ps(dst + i, acosh512f_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_loadu_ps(src + i);
+            _mm512_storeu_ps(dst + i, acosh512f_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = acoshf(src[i]);
+    }
+}
+
 static inline v16sf asinh512f_ps(v16sf xx)
 {
     v16sf x, tmp, z, z_first_branch, z_second_branch;
@@ -983,6 +1041,44 @@ static inline void atanh512f(float *src, float *dst, int len)
     }
 }
 
+
+static inline v16sf cosh512f_ps(v16sf xx)
+{
+    v16sf x, y, tmp;
+    __mmask16 xsupmaxlogf;
+
+    x = _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, xx);
+    xsupmaxlogf = _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_MAXLOGF, _CMP_GT_OS);
+
+    y = exp512_ps(x);
+    tmp = _mm512_div_ps(*(v16sf *) _ps512_0p5, y);
+    y = _mm512_fmadd_ps_custom(*(v16sf *) _ps512_0p5, y, tmp);
+    y = _mm512_mask_blend_ps(xsupmaxlogf, y, *(v16sf *) _ps512_MAXNUMF);
+
+    return y;
+}
+
+static inline void cosh512f(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_load_ps(src + i);
+            _mm512_store_ps(dst + i, cosh512f_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_loadu_ps(src + i);
+            _mm512_storeu_ps(dst + i, cosh512f_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = coshf(src[i]);
+    }
+}
 
 static inline v16sf sinh512f_ps(v16sf x)
 {

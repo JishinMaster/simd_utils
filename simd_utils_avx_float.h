@@ -117,6 +117,12 @@ _PS256_CONST(ASINH_P1, -4.2699340972E-2f);
 _PS256_CONST(ASINH_P2, 7.4847586088E-2f);
 _PS256_CONST(ASINH_P3, -1.6666288134E-1f);
 
+_PS256_CONST(ACOSH_P0, 1.7596881071E-3f);
+_PS256_CONST(ACOSH_P1, -7.5272886713E-3f);
+_PS256_CONST(ACOSH_P2, 2.6454905019E-2f);
+_PS256_CONST(ACOSH_P3, -1.1784741703E-1f);
+_PS256_CONST(ACOSH_P4, 1.4142135263E0f);
+
 static inline void log10_256f(float *src, float *dst, int len)
 {
     const v8sf invln10f = _mm256_set1_ps((float) INVLN10);  //_mm256_broadcast_ss(&invln10f_mask);
@@ -1090,6 +1096,58 @@ static inline void sincos256f(float *src, float *dst_sin, float *dst_cos, int le
     }
 }
 
+static inline v8sf acosh256f_ps(v8sf x)
+{
+    v8sf z, z_first_branch, z_second_branch;
+    v8sf xsup1500, zinf0p5, xinf1;
+
+    xsup1500 = _mm256_cmp_ps(x, *(v8sf *) _ps256_1500, _CMP_GT_OS);  // return  (logf(x) + LOGE2F)
+    xinf1 = _mm256_cmp_ps(x, *(v8sf *) _ps256_1, _CMP_LT_OS);        // return 0
+
+    z = _mm256_sub_ps(x, *(v8sf *) _ps256_1);
+
+    zinf0p5 = _mm256_cmp_ps(z, *(v8sf *) _ps256_0p5, _CMP_LT_OS);  // first and second branch
+
+    //First Branch (z < 0.5)
+    z_first_branch = _mm256_fmadd_ps_custom(*(v8sf *) _ps256_ACOSH_P0, z, *(v8sf *) _ps256_ACOSH_P1);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, z, *(v8sf *) _ps256_ACOSH_P2);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, z, *(v8sf *) _ps256_ACOSH_P3);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, z, *(v8sf *) _ps256_ACOSH_P4);
+    z_first_branch = _mm256_mul_ps(z_first_branch, _mm256_sqrt_ps(z));
+
+    //Second Branch
+    z_second_branch = _mm256_sqrt_ps(_mm256_fmadd_ps_custom(z, x, z));
+    z_second_branch = log256_ps(_mm256_add_ps(x, z_second_branch));
+
+    z = _mm256_blendv_ps(z_second_branch, z_first_branch, zinf0p5);
+    z = _mm256_blendv_ps(z, _mm256_add_ps(log256_ps(x), *(v8sf *) _ps256_LOGE2F), xsup1500);
+    z = _mm256_blendv_ps(z, _mm256_setzero_ps(), xinf1);
+
+    return z;
+}
+
+static inline void acosh256f(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_load_ps(src + i);
+            _mm256_store_ps(dst + i, acosh256f_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_loadu_ps(src + i);
+            _mm256_storeu_ps(dst + i, acosh256f_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = acoshf(src[i]);
+    }
+}
+
 static inline v8sf asinh256f_ps(v8sf xx)
 {
     v8sf x, tmp, z, z_first_branch, z_second_branch;
@@ -1196,6 +1254,44 @@ static inline void atanh256f(float *src, float *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = atanhf(src[i]);
+    }
+}
+
+static inline v8sf cosh256f_ps(v8sf xx)
+{
+    v8sf x, y, tmp;
+    v8sf xsupmaxlogf;
+
+    x = _mm256_and_ps(*(v8sf *) _ps256_pos_sign_mask, xx);
+    xsupmaxlogf = _mm256_cmp_ps(x, *(v8sf *) _ps256_MAXLOGF, _CMP_GT_OS);
+
+    y = exp256_ps(x);
+    tmp = _mm256_div_ps(*(v8sf *) _ps256_0p5, y);
+    y = _mm256_fmadd_ps_custom(*(v8sf *) _ps256_0p5, y, tmp);
+    y = _mm256_blendv_ps(y, *(v8sf *) _ps256_MAXNUMF, xsupmaxlogf);
+
+    return y;
+}
+
+static inline void cosh256f(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_load_ps(src + i);
+            _mm256_store_ps(dst + i, cosh256f_ps(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_loadu_ps(src + i);
+            _mm256_storeu_ps(dst + i, cosh256f_ps(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = coshf(src[i]);
     }
 }
 

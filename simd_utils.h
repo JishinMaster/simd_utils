@@ -1140,6 +1140,16 @@ static inline void sinhf_C(float *src, float *dst, int len)
     }
 }
 
+static inline void coshf_C(float *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = coshf(src[i]);
+    }
+}
+
 static inline void atanhf_C(float *src, float *dst, int len)
 {
 #ifdef OMP
@@ -1157,6 +1167,16 @@ static inline void asinhf_C(float *src, float *dst, int len)
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] = asinhf(src[i]);
+    }
+}
+
+static inline void acoshf_C(float *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = acoshf(src[i]);
     }
 }
 
