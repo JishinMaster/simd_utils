@@ -13,6 +13,8 @@
 #include <sys/time.h>
 #include <time.h>
 
+/** forces opencl version to 1.2 */
+#define CL_TARGET_OPENCL_VERSION 120
 #include <CL/cl.h>
 #include "simd_utils.h"
 
@@ -22,6 +24,10 @@
 #define MAX_PLATFORM_NAME 128
 #define MAX_DEVICE_NAME 128
 #define MAX_EVENTS 6
+
+enum alloc_type { NATIVE,
+                  NATIVE_COPY,
+                  ALLOC_HOST_PTR };
 
 /* Find a GPU or CPU associated with the first available platform
 The `platform` structure identifies the first platform identified by the
@@ -240,31 +246,92 @@ float l2_err(float *test, float *ref, int len)
     return l2_err;
 }
 
+/** allocates aligned memory on host only if required, returns NULL otherwise */
+cl_mem alloc_host(cl_context ctx, cl_command_queue queue, cl_map_flags flags, void **ptr, size_t size, int alloc_type)
+{
+    cl_mem host_mem;
+    cl_int err;
+    *ptr = NULL;
+
+    if ((alloc_type == NATIVE) || (alloc_type == NATIVE_COPY)) {
+        *ptr = aligned_alloc(CACHE_LINE_SIZE, size);
+        if (*ptr == NULL) {
+            printf("Error allocating device of size %d\n", size);
+            exit(1);
+        }
+    } else if (alloc_type == ALLOC_HOST_PTR) {
+        host_mem = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, size, NULL, &err);
+        if (err < 0) {
+            printf("Error clCreateBuffer host %d\n", err);
+            exit(1);
+        }
+        *ptr = clEnqueueMapBuffer(queue, host_mem, CL_TRUE, flags, 0, size, 0, NULL, NULL, &err);
+        if (err < 0) {
+            printf("Error clEnqueueMapBuffer host %d\n", err);
+            exit(1);
+        }
+    }
+    return host_mem;
+}
+
+/** allocates aligned memory on host only if required, returns NULL otherwise */
+cl_mem alloc_dev(cl_context ctx, cl_mem_flags rw, size_t size, void *host_ptr, int alloc_type)
+{
+    cl_mem dev_mem;
+    cl_int err;
+    cl_mem_flags flags = rw;
+    void *ptr = host_ptr;
+
+    if (alloc_type == NATIVE) {
+        ptr = NULL;
+    } else if (alloc_type == NATIVE_COPY) {
+        flags |= CL_MEM_COPY_HOST_PTR;
+    } else if (alloc_type == ALLOC_HOST_PTR) {
+        //flags |= CL_MEM_ALLOC_HOST_PTR;
+        //flags |= CL_MEM_USE_HOST_PTR;
+        ptr = NULL;
+    } else {
+        printf("wrong alloc_type %d\n", alloc_type);
+        exit(1);
+    }
+
+    dev_mem = clCreateBuffer(ctx, flags, size, ptr, &err);
+    if (err < 0) {
+        printf("Error clCreateBuffer dev %d\n", err);
+        exit(1);
+    }
+
+    return dev_mem;
+}
+
 int main(int argc, char **argv)
 {
-    if (argc != 5) {
-        printf("Usage : ./bench $nbElts $batch $platform_id $device_id\n");
+    if (argc != 6) {
+        printf("Usage : ./bench $nbElts $batch $platform_id $device_id $alloc_type\n");
+        printf(
+            "alloc_type is : \n"
+            "0 : host aligned and basic opencl memory\n"
+            "1 : host aligned and CL_MEM_COPY_HOST_PTR\n"
+            "2 : CL_MEM_ALLOC_HOST_PTR|CL_MEM_USE_HOST_PTR\n");
         exit(1);
     }
 
     int nbElts = atoi(argv[1]);
     int batch = atoi(argv[2]);
+    int alloc_type = atoi(argv[5]);
     size_t float_elt_size =
         rounded_size_aligned(nbElts * sizeof(float), CACHE_LINE_SIZE);
     size_t int_elt_size =
         rounded_size_aligned(nbElts * sizeof(int32_t), CACHE_LINE_SIZE);
 
-#pragma warning "check alloc"
-    float *host_a_f = (float *) aligned_alloc(CACHE_LINE_SIZE, float_elt_size);
-    float *host_b_f = (float *) aligned_alloc(CACHE_LINE_SIZE, float_elt_size);
-    float *host_c_f = (float *) aligned_alloc(CACHE_LINE_SIZE, float_elt_size);
-    float *host_c_ref_f = (float *) aligned_alloc(CACHE_LINE_SIZE, float_elt_size);
-
-    int32_t *host_a_i = (int32_t *) aligned_alloc(CACHE_LINE_SIZE, float_elt_size);
-    int32_t *host_b_i = (int32_t *) aligned_alloc(CACHE_LINE_SIZE, float_elt_size);
-    int32_t *host_c_i = (int32_t *) aligned_alloc(CACHE_LINE_SIZE, float_elt_size);
-    int32_t *host_c_ref_i =
-        (int32_t *) aligned_alloc(CACHE_LINE_SIZE, float_elt_size);
+    float *host_a_f = NULL;
+    float *host_b_f = NULL;
+    float *host_c_f = NULL;
+    float *host_c_ref_f = NULL;
+    int32_t *host_a_i = NULL;
+    int32_t *host_b_i = NULL;
+    int32_t *host_c_i = NULL;
+    int32_t *host_c_ref_i = NULL;
 
     struct timespec start, stop;
     double elapsed = 0.0;
@@ -300,99 +367,28 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    /** cl_mem for opencl runtime allocated buffer for pinned memory*/
+    cl_mem h_a_f, h_b_f, h_c_f, h_a_i, h_b_i, h_c_i;
+    h_a_f = alloc_host(ctx, queue, CL_MAP_WRITE, (void **) &host_a_f, float_elt_size, alloc_type);
+    h_b_f = alloc_host(ctx, queue, CL_MAP_WRITE, (void **) &host_b_f, float_elt_size, alloc_type);
+    h_c_f = alloc_host(ctx, queue, CL_MAP_READ, (void **) &host_c_f, float_elt_size, alloc_type);
+    alloc_host(ctx, queue, CL_MAP_READ, (void **) &host_c_ref_f, float_elt_size, NATIVE);
+    h_a_i = alloc_host(ctx, queue, CL_MAP_WRITE, (void **) &host_a_i, float_elt_size, alloc_type);
+    h_b_i = alloc_host(ctx, queue, CL_MAP_WRITE, (void **) &host_b_i, float_elt_size, alloc_type);
+    h_c_i = alloc_host(ctx, queue, CL_MAP_READ, (void **) &host_c_i, float_elt_size, alloc_type);
+    alloc_host(ctx, queue, CL_MAP_READ, (void **) &host_c_ref_i, float_elt_size, NATIVE);
 
-// CL_MEM_COPY_HOST_PTR and CL_MEM_USE_HOST_PTR behave differently on different targets
-#ifdef SIMPLE_BUFFERS
-    dev_a_f = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
-                             float_elt_size, NULL,
-                             &err);
-    if (err < 0) {
-        printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
-        exit(1);
-    }
-    dev_b_f = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
-                             float_elt_size, NULL,
-                             &err);
-    if (err < 0) {
-        printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
-        exit(1);
-    }
-    dev_c_f = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
-                             float_elt_size, NULL,
-                             &err);
-    if (err < 0) {
-        printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
-        exit(1);
-    }
+    printf("Host alloc done\n");
 
-    dev_a_i =
-        clCreateBuffer(ctx, CL_MEM_READ_WRITE,
-                       int_elt_size, NULL, &err);
-    if (err < 0) {
-        printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
-        exit(1);
-    }
-    dev_b_i =
-        clCreateBuffer(ctx, CL_MEM_READ_WRITE,
-                       int_elt_size, NULL, &err);
-    if (err < 0) {
-        printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
-        exit(1);
-    }
-    dev_c_i =
-        clCreateBuffer(ctx, CL_MEM_READ_WRITE,
-                       int_elt_size, NULL, &err);
-    if (err < 0) {
-        printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
-        exit(1);
-    }
-#else
+    // CL_MEM_COPY_HOST_PTR and CL_MEM_USE_HOST_PTR behave differently on different targets
+    dev_a_f = alloc_dev(ctx, CL_MEM_READ_ONLY, float_elt_size, &host_a_f, alloc_type);
+    dev_b_f = alloc_dev(ctx, CL_MEM_READ_ONLY, float_elt_size, &host_b_f, alloc_type);
+    dev_c_f = alloc_dev(ctx, CL_MEM_WRITE_ONLY, float_elt_size, &host_c_f, alloc_type);
+    dev_a_i = alloc_dev(ctx, CL_MEM_READ_ONLY, float_elt_size, &host_a_i, alloc_type);
+    dev_b_i = alloc_dev(ctx, CL_MEM_READ_ONLY, float_elt_size, &host_b_i, alloc_type);
+    dev_c_i = alloc_dev(ctx, CL_MEM_WRITE_ONLY, float_elt_size, &host_c_i, alloc_type);
 
-    // copy vs use on intel platform?
-    dev_a_f = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                             float_elt_size, &host_a_f,
-                             &err);  // copy host ptr ko on cpu?
-    if (err < 0) {
-        printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
-        exit(1);
-    }
-    dev_b_f = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                             float_elt_size, &host_b_f,
-                             &err);  // copy host ptr ko on cpu?
-    if (err < 0) {
-        printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
-        exit(1);
-    }
-    dev_c_f = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                             float_elt_size, &host_c_f,
-                             &err);  // copy host ptr ko on cpu?
-    if (err < 0) {
-        printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
-        exit(1);
-    }
-
-    dev_a_i =
-        clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                       int_elt_size, &host_a_i, &err);
-    if (err < 0) {
-        printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
-        exit(1);
-    }
-    dev_b_i =
-        clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                       int_elt_size, &host_b_i, &err);
-    if (err < 0) {
-        printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
-        exit(1);
-    }
-    dev_c_i =
-        clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                       int_elt_size, &host_c_i, &err);
-    if (err < 0) {
-        printf("Error clCreateBuffer %d, line %d\n", err, __LINE__);
-        exit(1);
-    }
-#endif
+    printf("GPU alloc done\n");
 
     program =
         build_program(ctx, device, "./simd_utils_kernel.cl", "-cl-mad-enable -cl-std=CL1.2 -cl-no-signed-zeros");
