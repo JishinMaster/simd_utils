@@ -822,6 +822,9 @@ static inline void mulcf_C(float *src, float value, float *dst, int len)
 
 static inline void muladdf_C(float *_a, float *_b, float *_c, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = _a[i] * _b[i] + _c[i];
     }
@@ -829,6 +832,9 @@ static inline void muladdf_C(float *_a, float *_b, float *_c, float *dst, int le
 
 static inline void mulcaddf_C(float *_a, float _b, float *_c, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = _a[i] * _b + _c[i];
     }
@@ -836,6 +842,9 @@ static inline void mulcaddf_C(float *_a, float _b, float *_c, float *dst, int le
 
 static inline void mulcaddcf_C(float *_a, float _b, float _c, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = _a[i] * _b + _c;
     }
@@ -1048,6 +1057,9 @@ static inline void magnitudef_C_split(float *srcRe, float *srcIm, float *dst, in
 
 static inline void powerspectf_C_split(float *srcRe, float *srcIm, float *dst, int len)
 {
+#ifdef OMP
+#pragma omp simd
+#endif
     for (int i = 0; i < len; i++) {
         dst[i] = srcRe[i] * srcRe[i] + srcIm[i] * srcIm[i];
     }
@@ -1663,7 +1675,7 @@ static inline void addcd_C(double *src, double value, double *dst, int len)
     }
 }
 
-static inline void ors_c(int32_t *a, int32_t *b, int32_t *c, int len)
+static inline void ors_C(int32_t *a, int32_t *b, int32_t *c, int len)
 {
 #ifdef OMP
 #pragma omp simd
@@ -1673,7 +1685,7 @@ static inline void ors_c(int32_t *a, int32_t *b, int32_t *c, int len)
     }
 }
 
-/*static inline void andf_c(float *a, float *b, float *c, int len)
+/*static inline void andf_C(float *a, float *b, float *c, int len)
 {
 #ifdef OMP
 #pragma omp simd
@@ -1683,13 +1695,60 @@ static inline void ors_c(int32_t *a, int32_t *b, int32_t *c, int len)
     }
 }*/
 
-static inline void ands_c(int32_t *a, int32_t *b, int32_t *c, int len)
+static inline void ands_C(int32_t *a, int32_t *b, int32_t *c, int len)
 {
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
         c[i] = a[i] & b[i];
+    }
+}
+
+static inline void sigmoidf_C(float *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = 1.0f / (1.0f + expf(-src[i]));
+    }
+}
+
+//parametric ReLU
+//simple ReLU can be expressed as threshold_lt with value = 0
+static inline void PReluf_C(float *src, float *dst, float alpha, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        if (src[i] > 0.0f)
+            dst[i] = src[i];
+        else
+            dst[i] = alpha * src[i];
+    }
+}
+
+
+static inline void softmaxf_C(float *src, float *dst, int len)
+{
+    float acc = 0.0f;
+
+#ifdef OMP
+#pragma omp simd reduction(+ \
+                           : acc)
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = expf(src[i]);
+        acc += dst[i];
+    }
+
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] /= acc;
     }
 }
 

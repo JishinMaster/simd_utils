@@ -2820,12 +2820,18 @@ printf("\n");
 
 
     printf("\n");
-    /////////////////////////////////////////////////////////// LOGN //////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////// EXP //////////////////////////////////////////////////////////////////////////////
     printf("EXP\n");
 
-    for (int i = 0; i < len; i++) {
+    /*for (int i = 0; i < len; i++) {
         inout[i] = (float) (1.0f * i + 1.0f) / 10000.0f;
         inout_ref[i] = inout[i];
+    }*/
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) (rand() % 50000) / 10000.0f;
+        if (i % 2 == 0)
+            inout[i] = -inout[i];
     }
 
     clock_gettime(CLOCK_REALTIME, &start);
@@ -2846,6 +2852,19 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("exp_128f %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    exp_128f_(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("exp_128f_ %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    exp_128f_(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("exp_128f_ %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -2878,6 +2897,10 @@ printf("\n");
     printf("exp_512f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
+
+    /*for(int i = 0; i < len; i++)
+		  printf("%f %f %f\n",inout[i],inout2_ref[i], inout2[i]);
+		printf("\n\n");*/
 
     printf("\n");
     /////////////////////////////////////////////////////////// CONVERT_32_64 //////////////////////////////////////////////////////////////////////////////
@@ -3371,6 +3394,13 @@ printf("\n");
     printf("\n");
     /////////////////////////////////////////////////////////// TAN //////////////////////////////////////////////////////////////////////////////
     printf("TAN\n");
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) (rand() % 8000) / 1000.0f;
+        if (i % 2 == 0)
+            inout[i] = -inout[i];
+    }
+
 
     clock_gettime(CLOCK_REALTIME, &start);
     tanf_C(inout, inout_ref, len);
@@ -4833,6 +4863,118 @@ for (int i = 0; i < len; i++){
     l2_errd(inoutd_ref, inoutd, len);
 #endif
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// SIGMOID //////////////////////////////////////////////////////////////////////////////
+    printf("SIGMOID\n");
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    sigmoidf_C(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sigmoidf_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    sigmoid128f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sigmoid128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    sigmoid128f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sigmoid128f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    sigmoid128f_(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sigmoid128f_ %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    sigmoid128f_(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sigmoid128f_ %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// PReluf //////////////////////////////////////////////////////////////////////////////
+    printf("PReluf\n");
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    PReluf_C(inout, inout_ref, 0.05f, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("PReluf_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    PRelu128f(inout, inout2, 0.05f, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("PRelu128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    PRelu128f(inout, inout2, 0.05f, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("PRelu128f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// Softmax //////////////////////////////////////////////////////////////////////////////
+    printf("Softmax\n");
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) (rand() % 50000) / 1000.0f;
+        if (i % 2 == 0)
+            inout[i] = -inout[i];
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    softmaxf_C(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("softmaxf_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    softmax128f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("softmax128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    softmax128f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("softmax128f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    softmax128f_dualacc(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("softmax128f_dualacc %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    softmax128f_dualacc(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("softmax128f_dualacc %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+    /*for(int i = 0; i < len; i++)
+		  printf("%f %f %f\n",inout[i],inout_ref[i], inout2[i]);
+		printf("\n\n");*/
 
     printf("\n");
     /////////////////////////////////////////////////////////// EXPERIMENTAL //////////////////////////////////////////////////////////////////////////////
