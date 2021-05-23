@@ -4867,6 +4867,12 @@ for (int i = 0; i < len; i++){
     /////////////////////////////////////////////////////////// SIGMOID //////////////////////////////////////////////////////////////////////////////
     printf("SIGMOID\n");
 
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) (rand() % 80000) / 1000.0f;
+        if (i % 2 == 0)
+            inout[i] = -inout[i];
+    }
+
     clock_gettime(CLOCK_REALTIME, &start);
     sigmoidf_C(inout, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -4901,6 +4907,23 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2, len);
 #endif
 
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    sigmoid256f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sigmoid256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    sigmoid256f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sigmoid256f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+    /*for(int i = 0; i < len; i++)
+      printf("%f %f %f\n",inout[i], inout_ref[i],inout2[i]);*/
 
     printf("\n");
     /////////////////////////////////////////////////////////// PReluf //////////////////////////////////////////////////////////////////////////////
@@ -4927,6 +4950,20 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2, len);
 #endif
 
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    PRelu256f(inout, inout2, 0.05f, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("PRelu256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    PRelu256f(inout, inout2, 0.05f, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("PRelu256f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
 
     printf("\n");
     /////////////////////////////////////////////////////////// Softmax //////////////////////////////////////////////////////////////////////////////
@@ -4972,6 +5009,20 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2, len);
 #endif
 
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    softmax256f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("softmax256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    softmax256f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("softmax256f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
     /*for(int i = 0; i < len; i++)
 		  printf("%f %f %f\n",inout[i],inout_ref[i], inout2[i]);
 		printf("\n\n");*/

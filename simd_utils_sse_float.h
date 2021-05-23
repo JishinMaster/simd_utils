@@ -2419,7 +2419,7 @@ static inline void sigmoid128f(float *src, float *dst, int len)
     }
 }
 
-//Alternate sigmoid version with tanh
+//Alternate sigmoid version with tanh => slower?
 static inline void sigmoid128f_(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
@@ -2489,7 +2489,6 @@ static inline void softmax128f(float *src, float *dst, int len)
     float acc = 0.0f;
 
     v4sf vec_acc1 = _mm_setzero_ps();  //initialize the vector accumulator
-    //v4sf vec_acc2 = _mm_setzero_ps();  //initialize the vector accumulator
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
@@ -2507,7 +2506,6 @@ static inline void softmax128f(float *src, float *dst, int len)
         }
     }
 
-    //vec_acc1 = _mm_add_ps(vec_acc1, vec_acc2);
     _mm_store_ps(accumulate, vec_acc1);
 
     for (int i = stop_len; i < len; i++) {

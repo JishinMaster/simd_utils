@@ -78,6 +78,7 @@ The following table is a work in progress, "X" means there is not yet an impleme
 |                            |                            |                            |                           |                              |                    |
 | log10_128f                 | log10_256f                 | log10_512f                 | log10f_C                  | ippsLog10_32f_A24            | X                  |
 | ln_128f                    | ln_256f                    | ln_512f                    | lnf_C                     | ippsLn_32f                   | X                  |
+| exp_128f                   | exp_256f                   | exp_512f                   | expf_C                    | X                            | X                  |
 | fabs128f                   | fabs256f                   | fabs512f                   | fabsf_C                   | ippsAbs_32f                  | X                  |
 | set128f                    | set256f                    | set512f                    | setf_C                    | ippsSet_32f                  | X                  |
 | zero128f                   | zero256f                   | zero512f                   | zerof_C                   | ippsZero_32f                 | X                  |
@@ -162,6 +163,15 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | X                          | X                          | X                          | X                         | X                            | mulcs_vec          |
 | X                          | X                          | X                          | ors_c                     | ippsOr_32u                   | X                  |
 | X                          | X                          | X                          | ands_c                    | ippsAnd_32u                  | X                  |
+| cosh128f                   | cosh256f                   | cosh512f                   | coshf_C                   | X                            | X                  |
+| acosh128f                  | acosh256f                  | acosh512f                  | acoshf_C                  | X                            | X                  |
+| sinh128f                   | sinh256f                   | sinh512f                   | sinhf_C                   | X                            | X                  |
+| asinh128f                  | asinh256f                  | asinh512f                  | asinhf_C                  | X                            | X                  |
+| tanh128f                   | tanh256f                   | tanh512f                   | tanhf_C                   | X                            | X                  |
+| atanh128f                  | atanh256f                  | atanh512f                  | atanhf_C                  | X                            | X                  |
+| sigmoid128f                | sigmoid256f                | X                          | sigmoidf_C                | X                            | X                  |
+| PRelu128f                  | PRelu256f                  | X                          | PReluf_C                  | X                            | X                  |
+| softmax128f                | softmax256f                | X                          | softmaxf_C                | X                            | X                  |
 
 ## Licence
 
