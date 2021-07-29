@@ -2083,6 +2083,72 @@ static inline void mean128f(float *src, float *dst, int len)
     *dst *= coeff;
 }
 
+
+static inline void sumkahan128f(float *src, float *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+    __attribute__((aligned(SSE_LEN_BYTES))) float accumulate[SSE_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+    float tmp_acc = 0.0f;
+    v4sf vec_acc1 = _mm_setzero_ps();  //initialize the vector accumulator
+    v4sf vec_acc2 = _mm_setzero_ps();  //initialize the vector accumulator
+    v4sf vec_cor1 = _mm_setzero_ps();  //initialize the vector accumulator
+    v4sf vec_cor2 = _mm_setzero_ps();  //initialize the vector accumulator
+    
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf value1 = _mm_load_ps(src + i);
+            v4sf y1 = _mm_sub_ps(value1, vec_cor1);
+            v4sf t1 = _mm_add_ps(vec_acc1, y1);
+            vec_cor1 = _mm_sub_ps(t1,vec_acc1);
+            vec_cor1 = _mm_sub_ps(vec_cor1,y1);
+            vec_acc1 = t1;
+            
+            v4sf value2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4sf y2 = _mm_sub_ps(value2, vec_cor2);
+            v4sf t2 = _mm_add_ps(vec_acc2, y2);
+            vec_cor2 = _mm_sub_ps(t2,vec_acc2);
+            vec_cor2 = _mm_sub_ps(vec_cor2,y2);
+            vec_acc2 = t2;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf value1 = _mm_loadu_ps(src + i);
+            v4sf y1 = _mm_sub_ps(value1, vec_cor1);
+            v4sf t1 = _mm_add_ps(vec_acc1, y1);
+            vec_cor1 = _mm_sub_ps(t1,vec_acc1);
+            vec_cor1 = _mm_sub_ps(vec_cor1,y1);
+            vec_acc1 = t1;
+            
+            v4sf value2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+            v4sf y2 = _mm_sub_ps(value2, vec_cor2);
+            v4sf t2 = _mm_add_ps(vec_acc2, y2);
+            vec_cor2 = _mm_sub_ps(t2,vec_acc2);
+            vec_cor2 = _mm_sub_ps(vec_cor2,y2);
+            vec_acc2 = t2;
+        }
+    }
+    vec_acc1 = _mm_add_ps(vec_acc1, vec_acc2);
+    _mm_store_ps(accumulate, vec_acc1);
+
+    for (int i = stop_len; i < len; i++) {
+        tmp_acc += src[i];
+    }
+
+    tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3];
+
+    *dst = tmp_acc;
+}
+
+static inline void meankahan128f(float *src, float *dst, int len)
+{
+    float coeff = 1.0f / ((float) len);
+    sumkahan128f(src, dst, len);
+    *dst *= coeff;
+}
+
 static inline void sqrt128f(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;

@@ -1583,6 +1583,21 @@ printf("\n");
     printf("mean128f %d %lf\n", len, elapsed);
 
     printf("mean %f ref %f\n", mean, mean_ref);
+    
+    clock_gettime(CLOCK_REALTIME, &start);
+    meankahan128f(inout, &mean, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("meankahan128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        meankahan128f(inout, &mean, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("meankahan128f %d %lf\n", len, elapsed);
+
+    printf("mean %f ref %f\n", mean, mean_ref);
 #endif
 
 #ifdef AVX
