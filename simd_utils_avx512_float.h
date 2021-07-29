@@ -142,7 +142,7 @@ static inline void exp_512f(float *src, float *dst, int len)
             _mm512_store_ps(dst + i, exp512_ps(_mm512_load_ps(src + i)));
         }
     } else {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_storeu_ps(dst + i, exp512_ps(_mm512_loadu_ps(src + i)));
         }
     }
@@ -412,7 +412,7 @@ static inline void mulcaddc512f(float *_a, float _b, float _c, float *dst, int l
             _mm512_store_ps(dst + i, _mm512_fmadd_ps_custom(a, b, c));
         }
     } else {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf a = _mm512_loadu_ps(_a + i);
             _mm512_storeu_ps(dst + i, _mm512_fmadd_ps_custom(a, b, c));
         }
@@ -1746,7 +1746,7 @@ static inline void cplxvecmul512f(complex32_t *src1, complex32_t *src2, complex3
             _mm512_store_ps((float *) (dst) + i, out);
         }
     } else {
-        for (i = 0; i < 2 * stop_len; i += SSE_LEN_FLOAT) {
+        for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src1_tmp = _mm512_loadu_ps((float *) (src1) + i);                     // src1 = b1,a1,b0,a0 (little endian)
             v16sf src2_tmp = _mm512_loadu_ps((float *) (src2) + i);                     // src2 = d1,c1,d0,c0
             v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                  //a1,a1,a0,a0
@@ -1787,7 +1787,7 @@ static inline void cplxvecmul512f_split(float *src1Re, float *src1Im, float *src
             _mm512_store_ps(dstIm + i, _mm512_add_ps(ad, bc));
         }
     } else {
-        for (i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src1Re_tmp = _mm512_loadu_ps((float *) (src1Re) + i);
             v16sf src1Im_tmp = _mm512_loadu_ps((float *) (src1Im) + i);
             v16sf src2Re_tmp = _mm512_loadu_ps((float *) (src2Re) + i);
@@ -1827,7 +1827,7 @@ static inline void cplxconjvecmul512f(complex32_t *src1, complex32_t *src2, comp
             _mm512_store_ps((float *) (dst) + i, out);
         }
     } else {
-        for (i = 0; i < 2 * stop_len; i += SSE_LEN_FLOAT) {
+        for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src1_tmp = _mm512_loadu_ps((float *) (src1) + i);                     // src1 = b1,a1,b0,a0 (little endian)
             v16sf src2_tmp = _mm512_loadu_ps((float *) (src2) + i);                     // src2 = d1,c1,d0,c0
             v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                  //a1,a1,a0,a0
@@ -1869,7 +1869,7 @@ static inline void cplxconjvecmul512f_split(float *src1Re, float *src1Im, float 
             _mm512_store_ps(dstIm + i, _mm512_sub_ps(bc, ad));
         }
     } else {
-        for (i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src1Re_tmp = _mm512_loadu_ps((float *) (src1Re) + i);
             v16sf src1Im_tmp = _mm512_loadu_ps((float *) (src1Im) + i);
             v16sf src2Re_tmp = _mm512_loadu_ps((float *) (src2Re) + i);

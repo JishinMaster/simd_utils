@@ -2059,7 +2059,7 @@ static inline void cplxvecmul256f(complex32_t *src1, complex32_t *src2, complex3
             _mm256_store_ps((float *) (dst) + i, out);
         }
     } else {
-        for (i = 0; i < 2 * stop_len; i += SSE_LEN_FLOAT) {
+        for (i = 0; i < 2 * stop_len; i += AVX_LEN_FLOAT) {
             v8sf src1_tmp = _mm256_loadu_ps((float *) (src1) + i);                      // src1 = b1,a1,b0,a0 (little endian)
             v8sf src2_tmp = _mm256_loadu_ps((float *) (src2) + i);                      // src2 = d1,c1,d0,c0
             v8sf tmp1 = _mm256_moveldup_ps(src1_tmp);                                   //a1,a1,a0,a0
@@ -2100,7 +2100,7 @@ static inline void cplxvecmul256f_split(float *src1Re, float *src1Im, float *src
             _mm256_store_ps(dstIm + i, _mm256_add_ps(ad, bc));
         }
     } else {
-        for (i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src1Re_tmp = _mm256_loadu_ps((float *) (src1Re) + i);
             v8sf src1Im_tmp = _mm256_loadu_ps((float *) (src1Im) + i);
             v8sf src2Re_tmp = _mm256_loadu_ps((float *) (src2Re) + i);
@@ -2140,7 +2140,7 @@ static inline void cplxconjvecmul256f(complex32_t *src1, complex32_t *src2, comp
             _mm256_store_ps((float *) (dst) + i, out);
         }
     } else {
-        for (i = 0; i < 2 * stop_len; i += SSE_LEN_FLOAT) {
+        for (i = 0; i < 2 * stop_len; i += AVX_LEN_FLOAT) {
             v8sf src1_tmp = _mm256_loadu_ps((float *) (src1) + i);                      // src1 = b1,a1,b0,a0 (little endian)
             v8sf src2_tmp = _mm256_loadu_ps((float *) (src2) + i);                      // src2 = d1,c1,d0,c0
             v8sf tmp1 = _mm256_moveldup_ps(src1_tmp);                                   //a1,a1,a0,a0
@@ -2182,7 +2182,7 @@ static inline void cplxconjvecmul256f_split(float *src1Re, float *src1Im, float 
             _mm256_store_ps(dstIm + i, _mm256_sub_ps(bc, ad));
         }
     } else {
-        for (i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src1Re_tmp = _mm256_loadu_ps((float *) (src1Re) + i);
             v8sf src1Im_tmp = _mm256_loadu_ps((float *) (src1Im) + i);
             v8sf src2Re_tmp = _mm256_loadu_ps((float *) (src2Re) + i);
