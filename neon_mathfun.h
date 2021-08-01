@@ -427,7 +427,7 @@ static inline v4sf exp_ps(v4sf x)
 //FMA version
 static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
 {  // any x
-    v4sf xmm1, xmm2, xmm3, y;
+    v4sf y;
 
     v4su emm2;
 

@@ -147,6 +147,30 @@ static inline void log10_128f(float *src, float *dst, int len)
     }
 }
 
+static inline void log2_128f(float *src, float *dst, int len)
+{
+    const v4sf invln2f = _mm_set1_ps((float) INVLN2);
+
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = log_ps(_mm_load_ps(src + i));
+            _mm_store_ps(dst + i, _mm_mul_ps(src_tmp, invln2f));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = log_ps(_mm_loadu_ps(src + i));
+            _mm_storeu_ps(dst + i, _mm_mul_ps(src_tmp, invln2f));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = log2f(src[i]);
+    }
+}
+
 static inline void ln_128f(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
@@ -204,7 +228,7 @@ static inline v4sf exp_ps_alternate(v4sf x)
    *   = e**( g + n loge(2) )
    */
     fx = _mm_fmadd_ps_custom(*(v4sf *) _ps_cephes_LOG2EF, x, *(v4sf *) _ps_0p5);
-    z = _mm_round_ps(fx, _MM_FROUND_FLOOR);
+    z = _mm_round_ps(fx, _MM_FROUND_TO_NEG_INF);  //round to floor
 
     x = _mm_fmadd_ps_custom(z, *(v4sf *) _ps_cephes_exp_minC1, x);
     x = _mm_fmadd_ps_custom(z, *(v4sf *) _ps_cephes_exp_minC2, x);
@@ -259,13 +283,11 @@ static inline void fabs128f(float *src, float *dst, int len)
     stop_len *= (SSE_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-#pragma unroll(2)
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
             _mm_store_ps(dst + i, _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, src_tmp));
         }
     } else {
-#pragma unroll(2)
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
             _mm_storeu_ps(dst + i, _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, src_tmp));
@@ -285,12 +307,10 @@ static inline void set128f(float *src, float value, int len)
     stop_len *= SSE_LEN_FLOAT;
 
     if (isAligned((uintptr_t)(src), SSE_LEN_BYTES)) {
-#pragma unroll(2)
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             _mm_store_ps(src + i, tmp);
         }
     } else {
-#pragma unroll(2)
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             _mm_storeu_ps(src + i, tmp);
         }
@@ -897,7 +917,7 @@ static inline void realtocplx128f(float *srcRe, float *srcIm, float *dst, int le
     for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
         v4sf re = vld1q_f32(srcRe + i);
         v4sf im = vld1q_f32(srcIm + i);
-        float32x4x2_t reim = {re, im};
+        float32x4x2_t reim = {{re, im}};  //double braces so that GCC does not complain
         vst2q_f32(dst + j, reim);
         j += 2 * SSE_LEN_FLOAT;
     }
@@ -2096,21 +2116,21 @@ static inline void sumkahan128f(float *src, float *dst, int len)
     v4sf vec_acc2 = _mm_setzero_ps();  //initialize the vector accumulator
     v4sf vec_cor1 = _mm_setzero_ps();  //initialize the vector accumulator
     v4sf vec_cor2 = _mm_setzero_ps();  //initialize the vector accumulator
-    
+
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf value1 = _mm_load_ps(src + i);
             v4sf y1 = _mm_sub_ps(value1, vec_cor1);
             v4sf t1 = _mm_add_ps(vec_acc1, y1);
-            vec_cor1 = _mm_sub_ps(t1,vec_acc1);
-            vec_cor1 = _mm_sub_ps(vec_cor1,y1);
+            vec_cor1 = _mm_sub_ps(t1, vec_acc1);
+            vec_cor1 = _mm_sub_ps(vec_cor1, y1);
             vec_acc1 = t1;
-            
+
             v4sf value2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
             v4sf y2 = _mm_sub_ps(value2, vec_cor2);
             v4sf t2 = _mm_add_ps(vec_acc2, y2);
-            vec_cor2 = _mm_sub_ps(t2,vec_acc2);
-            vec_cor2 = _mm_sub_ps(vec_cor2,y2);
+            vec_cor2 = _mm_sub_ps(t2, vec_acc2);
+            vec_cor2 = _mm_sub_ps(vec_cor2, y2);
             vec_acc2 = t2;
         }
     } else {
@@ -2118,15 +2138,15 @@ static inline void sumkahan128f(float *src, float *dst, int len)
             v4sf value1 = _mm_loadu_ps(src + i);
             v4sf y1 = _mm_sub_ps(value1, vec_cor1);
             v4sf t1 = _mm_add_ps(vec_acc1, y1);
-            vec_cor1 = _mm_sub_ps(t1,vec_acc1);
-            vec_cor1 = _mm_sub_ps(vec_cor1,y1);
+            vec_cor1 = _mm_sub_ps(t1, vec_acc1);
+            vec_cor1 = _mm_sub_ps(vec_cor1, y1);
             vec_acc1 = t1;
-            
+
             v4sf value2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
             v4sf y2 = _mm_sub_ps(value2, vec_cor2);
             v4sf t2 = _mm_add_ps(vec_acc2, y2);
-            vec_cor2 = _mm_sub_ps(t2,vec_acc2);
-            vec_cor2 = _mm_sub_ps(vec_cor2,y2);
+            vec_cor2 = _mm_sub_ps(t2, vec_acc2);
+            vec_cor2 = _mm_sub_ps(vec_cor2, y2);
             vec_acc2 = t2;
         }
     }

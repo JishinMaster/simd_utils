@@ -112,6 +112,30 @@ static inline void log10_512f(float *src, float *dst, int len)
     }
 }
 
+static inline void log2_512f(float *src, float *dst, int len)
+{
+    const v16sf invln2f = _mm512_set1_ps((float) INVLN2);  //_mm512_broadcast_ss(&invln10f_mask);
+
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = log512_ps(_mm512_load_ps(src + i));
+            _mm512_store_ps(dst + i, _mm512_mul_ps(src_tmp, invln2f));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = log512_ps(_mm512_loadu_ps(src + i));
+            _mm512_storeu_ps(dst + i, _mm512_mul_ps(src_tmp, invln2f));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = log10f(src[i]);
+    }
+}
+
 static inline void ln_512f(float *src, float *dst, int len)
 {
     int stop_len = len / AVX512_LEN_FLOAT;
@@ -1320,7 +1344,7 @@ static inline void asin512f(float *src, float *dst, int len)
 static inline v16sf tanh512f_ps(v16sf xx)
 {
     v16sf x, z, z_first_branch, z_second_branch;
-    __mmask16 xxsup0, xxinf0, xsupmaxlogfdiv2, xsup0p625;
+    __mmask16 xxsup0, xsupmaxlogfdiv2, xsup0p625;
 
     xxsup0 = _mm512_cmp_ps_mask(xx, _mm512_setzero_ps(), _CMP_GT_OS);
     xsupmaxlogfdiv2 = _mm512_cmp_ps_mask(xx, *(v16sf *) _ps512_MAXLOGFDIV2, _CMP_GT_OS);

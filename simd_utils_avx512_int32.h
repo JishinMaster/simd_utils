@@ -98,7 +98,9 @@ static inline void copy512s(int32_t *src, int32_t *dst, int len)
     int stop_len = len / AVX512_LEN_INT32;
     stop_len *= AVX512_LEN_INT32;
 
-#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+#ifdef OMP
+#pragma omp parallel for schedule(auto)
+#endif
     for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
         _mm512_store_si512((__m512i *) (dst + i), _mm512_load_si512((__m512i *) (src + i)));
     }
@@ -113,7 +115,9 @@ static inline void copy512s_2(int32_t *src, int32_t *dst, int len)
     int stop_len = len / (2 * AVX512_LEN_INT32);
     stop_len *= (2 * AVX512_LEN_INT32);
 
-#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+#ifdef OMP
+#pragma omp parallel for schedule(auto)
+#endif
     for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_INT32) {
         __m512i tmp1 = _mm512_load_si512((__m512i *) (src + i));
         __m512i tmp2 = _mm512_load_si512((__m512i *) (src + i + AVX512_LEN_INT32));
@@ -131,7 +135,9 @@ static inline void fast_copy512s(int32_t *src, int32_t *dst, int len)
     int stop_len = len / AVX512_LEN_INT32;
     stop_len *= AVX512_LEN_INT32;
 
-#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+#ifdef OMP
+#pragma omp parallel for schedule(auto)
+#endif
     for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
         _mm512_stream_si512((__m512i *) (dst + i), _mm512_stream_load_si512((__m512i *) (src + i)));
     }
@@ -148,7 +154,9 @@ static inline void fast_copy512s_2(int32_t *src, int32_t *dst, int len)
     int stop_len = len / (2 * AVX512_LEN_INT32);
     stop_len *= (2 * AVX512_LEN_INT32);
 
-#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+#ifdef OMP
+#pragma omp parallel for schedule(auto)
+#endif
     for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_INT32) {
         __m512i tmp1 = _mm512_stream_load_si512((__m512i *) (src + i));
         __m512i tmp2 = _mm512_stream_load_si512((__m512i *) (src + i + AVX512_LEN_INT32));
@@ -167,7 +175,9 @@ static inline void fast_copy512s_4(int32_t *src, int32_t *dst, int len)
     int stop_len = len / (4 * AVX512_LEN_INT32);
     stop_len *= (4 * AVX512_LEN_INT32);
 
-#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+#ifdef OMP
+#pragma omp parallel for schedule(auto)
+#endif
     for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_INT32) {
         __m512i tmp1 = _mm512_stream_load_si512((__m512i *) (src + i));
         __m512i tmp2 = _mm512_stream_load_si512((__m512i *) (src + i + AVX512_LEN_INT32));

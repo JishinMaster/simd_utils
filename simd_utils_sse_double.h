@@ -627,7 +627,7 @@ static inline void sincos128d(double *src, double *dst_sin, double *dst_cos, int
 
 static inline v2sd asin_pd(v2sd x)
 {
-    v2sd a, z, z_tmp;
+    v2sd a, z;
     v2sd sign;
     v2sd ainfem8, asup0p625;
 

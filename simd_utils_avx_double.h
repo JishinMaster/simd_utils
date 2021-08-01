@@ -228,7 +228,6 @@ static inline void muladd256d(double *_a, double *_b, double *_c, double *dst, i
 
     if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), AVX_LEN_BYTES) &&
         areAligned2((uintptr_t)(_c), (uintptr_t)(dst), AVX_LEN_BYTES)) {
-#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd a = _mm256_load_pd(_a + i);
             v4sd b = _mm256_load_pd(_b + i);
@@ -236,7 +235,6 @@ static inline void muladd256d(double *_a, double *_b, double *_c, double *dst, i
             _mm256_store_pd(dst + i, _mm256_fmadd_pd_custom(a, b, c));
         }
     } else {
-#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd a = _mm256_loadu_pd(_a + i);
             v4sd b = _mm256_loadu_pd(_b + i);
@@ -258,14 +256,12 @@ static inline void mulcadd256d(double *_a, double _b, double *_c, double *dst, i
     stop_len *= AVX_LEN_DOUBLE;
 
     if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst), AVX_LEN_BYTES)) {
-#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd a = _mm256_load_pd(_a + i);
             v4sd c = _mm256_load_pd(_c + i);
             _mm256_store_pd(dst + i, _mm256_fmadd_pd_custom(a, b, c));
         }
     } else {
-#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd a = _mm256_loadu_pd(_a + i);
             v4sd c = _mm256_loadu_pd(_c + i);
@@ -287,13 +283,11 @@ static inline void mulcaddc256d(double *_a, double _b, double _c, double *dst, i
     stop_len *= AVX_LEN_DOUBLE;
 
     if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst), AVX_LEN_BYTES)) {
-#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd a = _mm256_loadu_pd(_a + i);
             _mm256_store_pd(dst + i, _mm256_fmadd_pd_custom(a, b, c));
         }
     } else {
-#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd a = _mm256_loadu_pd(_a + i);
             _mm256_storeu_pd(dst + i, _mm256_fmadd_pd_custom(a, b, c));
@@ -313,14 +307,12 @@ static inline void muladdc256d(double *_a, double *_b, double _c, double *dst, i
     stop_len *= AVX_LEN_DOUBLE;
 
     if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst), AVX_LEN_BYTES)) {
-#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd a = _mm256_load_pd(_a + i);
             v4sd b = _mm256_load_pd(_b + i);
             _mm256_store_pd(dst + i, _mm256_fmadd_pd_custom(a, b, c));
         }
     } else {
-#pragma unroll(2)
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd a = _mm256_loadu_pd(_a + i);
             v4sd b = _mm256_loadu_pd(_b + i);
@@ -456,7 +448,7 @@ static inline void vectorSlope256d(double *dst, int len, double offset, double s
 
 static inline v4sd asin256_pd(v4sd x)
 {
-    v4sd a, z, z_tmp;
+    v4sd a, z;
     v4sd sign;
     v4sd ainfem8, asup0p625;
 

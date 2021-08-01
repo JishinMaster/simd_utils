@@ -208,7 +208,7 @@ static inline v16sf exp512_ps(v16sf x)
 */
 static inline v16sf sin512_ps(v16sf x)
 {  // any x
-    v16sf xmm1, xmm2 = _mm512_setzero_ps(), xmm3, sign_bit, y;
+    v16sf xmm3, sign_bit, y;
     v16si imm0, imm2;
 
 #ifndef __AVX2__
@@ -322,7 +322,7 @@ static inline v16sf sin512_ps(v16sf x)
 /* almost the same as sin_ps */
 static inline v16sf cos512_ps(v16sf x)
 {  // any x
-    v16sf xmm1, xmm2 = _mm512_setzero_ps(), xmm3, y;
+    v16sf xmm3, y;
     v16si imm0, imm2;
 
 #ifndef __AVX2__

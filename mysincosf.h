@@ -30,7 +30,6 @@ static float coscof[] = {2.443315711809948E-005, -1.388731625493765E-003,
 
 static inline int mysincosf(float xx, float *s, float *c)
 {
-    float *p;
     float x, y, y1, y2, z;
     int j, sign_sin, sign_cos;
 

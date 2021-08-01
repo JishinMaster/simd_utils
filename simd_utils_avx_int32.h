@@ -99,7 +99,9 @@ static inline void copy256s(int32_t *src, int32_t *dst, int len)
     int stop_len = len / AVX_LEN_INT32;
     stop_len *= AVX_LEN_INT32;
 
-#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+#ifdef OMP
+#pragma omp parallel for schedule(auto)
+#endif
     for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
         _mm256_store_si256((__m256i *) (dst + i), _mm256_load_si256((__m256i *) (src + i)));
     }
@@ -114,7 +116,9 @@ static inline void copy256s_2(int32_t *src, int32_t *dst, int len)
     int stop_len = len / (2 * AVX_LEN_INT32);
     stop_len *= (2 * AVX_LEN_INT32);
 
-#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+#ifdef OMP
+#pragma omp parallel for schedule(auto)
+#endif
     for (int i = 0; i < stop_len; i += 2 * AVX_LEN_INT32) {
         __m256i tmp1 = _mm256_load_si256((__m256i *) (src + i));
         __m256i tmp2 = _mm256_load_si256((__m256i *) (src + i + AVX_LEN_INT32));
@@ -132,7 +136,9 @@ static inline void fast_copy256s(int32_t *src, int32_t *dst, int len)
     int stop_len = len / AVX_LEN_INT32;
     stop_len *= AVX_LEN_INT32;
 
-#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+#ifdef OMP
+#pragma omp parallel for schedule(auto)
+#endif
     for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
         _mm256_stream_si256((__m256i *) (dst + i), _mm256_stream_load_si256((__m256i *) (src + i)));
     }
@@ -149,7 +155,9 @@ static inline void fast_copy256s_2(int32_t *src, int32_t *dst, int len)
     int stop_len = len / (2 * AVX_LEN_INT32);
     stop_len *= (2 * AVX_LEN_INT32);
 
-#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+#ifdef OMP
+#pragma omp parallel for schedule(auto)
+#endif
     for (int i = 0; i < stop_len; i += 2 * AVX_LEN_INT32) {
         __m256i tmp1 = _mm256_stream_load_si256((__m256i *) (src + i));
         __m256i tmp2 = _mm256_stream_load_si256((__m256i *) (src + i + AVX_LEN_INT32));
@@ -168,7 +176,9 @@ static inline void fast_copy256s_4(int32_t *src, int32_t *dst, int len)
     int stop_len = len / (4 * AVX_LEN_INT32);
     stop_len *= (4 * AVX_LEN_INT32);
 
-#pragma omp parallel for schedule(auto) num_threads(NBTHREADS)
+#ifdef OMP
+#pragma omp parallel for schedule(auto)
+#endif
     for (int i = 0; i < stop_len; i += 4 * AVX_LEN_INT32) {
         __m256i tmp1 = _mm256_stream_load_si256((__m256i *) (src + i));
         __m256i tmp2 = _mm256_stream_load_si256((__m256i *) (src + i + AVX_LEN_INT32));

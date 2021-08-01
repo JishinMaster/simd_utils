@@ -24,7 +24,8 @@ extern "C" {
 
 #include "mysincosf.h"
 
-#define INVLN10 0.4342944819
+#define INVLN10 0.4342944819032518f     //0.4342944819f
+#define INVLN2 1.4426950408889634f      //1.44269504089f
 #define IMM8_FLIP_VEC 0x1B              // change m128 from abcd to dcba
 #define IMM8_LO_HI_VEC 0x1E             // change m128 from abcd to cdab
 #define IMM8_PERMUTE_128BITS_LANES 0x1  // reverse abcd efgh to efgh abcd
@@ -717,6 +718,15 @@ static inline void log10f_C(float *src, float *dst, int len)
 #endif
     for (int i = 0; i < len; i++)
         dst[i] = log10f(src[i]);
+}
+
+static inline void log2f_C(float *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++)
+        dst[i] = log2f(src[i]);
 }
 
 static inline void lnf_C(float *src, float *dst, int len)
