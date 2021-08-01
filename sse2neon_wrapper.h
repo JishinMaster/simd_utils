@@ -7,7 +7,7 @@
 
 #pragma once
 
-//JishinMaster : DTCollab sse2neon.h commit :  43a471ec6480059616824affc9c289b4ec50525b
+//JishinMaster : DTCollab sse2neon.h commit :  efcbd5181046dc6290293573979f8cc8a93d9555
 #include "sse2neon.h"
 
 
@@ -44,7 +44,7 @@
 #define _MM_ROUND_TOWARD_ZERO 0x6000
 
 
-#define _MM_FROUND_NINT \
+/*#define _MM_FROUND_NINT \
     (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_RAISE_EXC)
 #define _MM_FROUND_FLOOR \
     (_MM_FROUND_TO_NEG_INF | _MM_FROUND_RAISE_EXC)
@@ -55,7 +55,7 @@
 #define _MM_FROUND_RINT \
     (_MM_FROUND_CUR_DIRECTION | _MM_FROUND_RAISE_EXC)
 #define _MM_FROUND_NEARBYINT \
-    (_MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC)
+    (_MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC)*/
 
 /*
 From https://developer.arm.com/docs/ddi0595/e/aarch64-system-registers/fpcr
@@ -122,6 +122,21 @@ FORCE_INLINE void _mm_mfence(void)
 }
 
 
+// Computes the fused multiple add product of 32-bit floating point numbers.
+//
+// Return Value
+// Multiplies A and B, and adds C to the temporary result before returning it.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_fmadd
+FORCE_INLINE __m128 _mm_fmadd_ps(__m128 a, __m128 b, __m128 c)
+{
+#if defined(__aarch64__)
+    return vreinterpretq_m128_f32(vfmaq_f32(vreinterpretq_f32_m128(c),
+                                            vreinterpretq_f32_m128(b),
+                                            vreinterpretq_f32_m128(a)));
+#else
+    return _mm_add_ps(_mm_mul_ps(a, b), c);
+#endif
+}
 
 // Multiply packed single-precision (32-bit) floating-point elements in a and b,
 // substract packed elements in c from the intermediate result,
@@ -193,43 +208,6 @@ FORCE_INLINE __m128i _mm_cvtpd_epi64(__m128d a)
     int64_t a0 = (int64_t)((double *) &a)[0];
     int64_t a1 = (int64_t)((double *) &a)[1];
     return _mm_set_epi64(a1, a0);
-#endif
-}
-
-FORCE_INLINE __m128d _mm_round_pd(__m128d a, int rounding)
-{
-#if defined(__aarch64__)
-    switch (rounding) {
-    case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC):
-        return vreinterpretq_m128d_f64(vrndnq_f64(vreinterpretq_f64_m128d(a)));
-    case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC):
-        return vreinterpretq_m128d_f64(vrndmq_f64(vreinterpretq_f64_m128d(a)));
-    case (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC):
-        return vreinterpretq_m128d_f64(vrndpq_f64(vreinterpretq_f64_m128d(a)));
-    case (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC):
-        return vreinterpretq_m128d_f64(vrndq_f64(vreinterpretq_f64_m128d(a)));
-    default:  //_MM_FROUND_CUR_DIRECTION
-        return vreinterpretq_m128d_f64(vrndiq_f64(vreinterpretq_f64_m128d(a)));
-    }
-#else
-    double *v_double = (double *) &a;
-    __m128d zero, neg_inf, pos_inf;
-
-    switch (rounding) {
-    case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC):
-        return _mm_cvtepi64_pd(_mm_cvtpd_epi64(a));
-    case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC):
-        return (__m128d){floor(v_double[0]), floorf(v_double[1])};
-    case (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC):
-        return (__m128d){ceil(v_double[0]), ceil(v_double[1])};
-    case (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC):
-        zero = _mm_set_pd(0.0, 0.0);
-        neg_inf = _mm_set_pd(floor(v_double[0]), floor(v_double[1]));
-        pos_inf = _mm_set_pd(ceil(v_double[0]), ceil(v_double[1]));
-        return _mm_blendv_pd(pos_inf, neg_inf, _mm_cmple_pd(a, zero));
-    default:  //_MM_FROUND_CUR_DIRECTION
-        return (__m128d){round(v_double[0]), round(v_double[1])};
-    }
 #endif
 }
 
