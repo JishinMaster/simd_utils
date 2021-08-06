@@ -95,7 +95,7 @@ static inline void log10_512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = log512_ps(_mm512_load_ps(src + i));
             _mm512_store_ps(dst + i, _mm512_mul_ps(src_tmp, invln10f));
@@ -119,7 +119,7 @@ static inline void log2_512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = log512_ps(_mm512_load_ps(src + i));
             _mm512_store_ps(dst + i, _mm512_mul_ps(src_tmp, invln2f));
@@ -141,7 +141,7 @@ static inline void ln_512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, log512_ps(_mm512_load_ps(src + i)));
         }
@@ -161,7 +161,7 @@ static inline void exp_512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, exp512_ps(_mm512_load_ps(src + i)));
         }
@@ -181,7 +181,7 @@ static inline void fabs512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, src_tmp));
@@ -205,7 +205,7 @@ static inline void set512f(float *src, float value, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(src + i, tmp);
         }
@@ -227,7 +227,7 @@ static inline void zero512f(float *src, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(src + i, tmp);
         }
@@ -248,7 +248,7 @@ static inline void copy512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, _mm512_load_ps(src + i));
         }
@@ -268,7 +268,7 @@ static inline void add512f(float *src1, float *src2, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src1) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src1) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, _mm512_add_ps(_mm512_load_ps(src1 + i), _mm512_load_ps(src2 + i)));
         }
@@ -289,7 +289,7 @@ static inline void mul512f(float *src1, float *src2, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src1) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src1) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, _mm512_mul_ps(_mm512_load_ps(src1 + i), _mm512_load_ps(src2 + i)));
         }
@@ -309,7 +309,7 @@ static inline void sub512f(float *src1, float *src2, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src1) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src1) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, _mm512_sub_ps(_mm512_load_ps(src1 + i), _mm512_load_ps(src2 + i)));
         }
@@ -332,7 +332,7 @@ static inline void addc512f(float *src, float value, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, _mm512_add_ps(tmp, _mm512_load_ps(src + i)));
         }
@@ -354,7 +354,7 @@ static inline void mulc512f(float *src, float value, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, _mm512_mul_ps(tmp, _mm512_load_ps(src + i)));
         }
@@ -374,8 +374,8 @@ static inline void muladd512f(float *_a, float *_b, float *_c, float *dst, int l
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), AVX512_LEN_BYTES) &&
-        areAligned2((uintptr_t)(_c), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (_a), (uintptr_t) (_b), AVX512_LEN_BYTES) &&
+        areAligned2((uintptr_t) (_c), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf a = _mm512_load_ps(_a + i);
             v16sf b = _mm512_load_ps(_b + i);
@@ -403,7 +403,7 @@ static inline void mulcadd512f(float *_a, float _b, float *_c, float *dst, int l
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (_a), (uintptr_t) (_c), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf a = _mm512_load_ps(_a + i);
             v16sf c = _mm512_load_ps(_c + i);
@@ -430,7 +430,7 @@ static inline void mulcaddc512f(float *_a, float _b, float _c, float *dst, int l
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (_a), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf a = _mm512_loadu_ps(_a + i);
             _mm512_store_ps(dst + i, _mm512_fmadd_ps_custom(a, b, c));
@@ -454,7 +454,7 @@ static inline void muladdc512f(float *_a, float *_b, float _c, float *dst, int l
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (_a), (uintptr_t) (_b), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf a = _mm512_load_ps(_a + i);
             v16sf b = _mm512_load_ps(_b + i);
@@ -478,7 +478,7 @@ static inline void div512f(float *src1, float *src2, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src1) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src1) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, _mm512_div_ps(_mm512_load_ps(src1 + i), _mm512_load_ps(src2 + i)));
         }
@@ -505,13 +505,13 @@ static inline void vectorSlope512f(float *dst, int len, float offset, float slop
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (dst) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (dst) % AVX512_LEN_BYTES) == 0) {
         _mm512_store_ps(dst + 0, curVal);
     } else {
         _mm512_storeu_ps(dst + 0, curVal);
     }
 
-    if (((uintptr_t)(const void *) (dst) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (dst) % AVX512_LEN_BYTES) == 0) {
         for (int i = AVX512_LEN_FLOAT; i < stop_len; i += AVX512_LEN_FLOAT) {
             curVal = _mm512_add_ps(curVal, slope16_vec);
             _mm512_storeu_ps(dst + i, curVal);
@@ -533,7 +533,7 @@ static inline void convert512_32f64f(float *src, double *dst, int len)
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             __m256 src_tmp = _mm256_load_ps(src + i);            //load a,b,c,d
             _mm512_store_pd(dst + i, _mm512_cvtps_pd(src_tmp));  //store the abcd converted in 64bits
@@ -556,7 +556,7 @@ static inline void maxevery512f(float *src1, float *src2, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src1) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src1) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, _mm512_max_ps(_mm512_load_ps(src1 + i), _mm512_load_ps(src2 + i)));
         }
@@ -576,7 +576,7 @@ static inline void minevery512f(float *src1, float *src2, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src1) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src1) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, _mm512_min_ps(_mm512_load_ps(src1 + i), _mm512_load_ps(src2 + i)));
         }
@@ -603,7 +603,7 @@ static inline void minmax512f(float *src, int len, float *min_value, float *max_
     float min_tmp;
     float max_tmp;
 
-    if (isAligned((uintptr_t)(src), AVX512_LEN_BYTES)) {
+    if (isAligned((uintptr_t) (src), AVX512_LEN_BYTES)) {
         src_tmp = _mm512_load_ps(src + 0);
         max_v = src_tmp;
         min_v = src_tmp;
@@ -676,7 +676,7 @@ static inline void threshold512_gt_f(float *src, float *dst, int len, float valu
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, _mm512_min_ps(src_tmp, tmp));
@@ -701,7 +701,7 @@ static inline void threshold512_gtabs_f(float *src, float *dst, int len, float v
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
@@ -739,7 +739,7 @@ static inline void threshold512_lt_f(float *src, float *dst, int len, float valu
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, _mm512_max_ps(src_tmp, tmp));
@@ -764,7 +764,7 @@ static inline void threshold512_ltabs_f(float *src, float *dst, int len, float v
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
@@ -805,7 +805,7 @@ static inline void threshold512_ltval_gtval_f(float *src, float *dst, int len, f
     int stop_len = len / AVX512_LEN_BYTES;
     stop_len *= AVX512_LEN_BYTES;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             __mmask16 lt_mask = _mm512_cmp_ps_mask(src_tmp, ltlevel_v, _CMP_LT_OS);
@@ -836,7 +836,7 @@ static inline void sin512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, sin512_ps(src_tmp));
@@ -858,7 +858,7 @@ static inline void cos512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, cos512_ps(src_tmp));
@@ -880,7 +880,7 @@ static inline void sincos512f(float *src, float *dst_sin, float *dst_cos, int le
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             v16sf dst_sin_tmp;
@@ -940,7 +940,7 @@ static inline void acosh512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, acosh512f_ps(src_tmp));
@@ -991,7 +991,7 @@ static inline void asinh512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, asinh512f_ps(src_tmp));
@@ -1048,7 +1048,7 @@ static inline void atanh512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, atanh512f_ps(src_tmp));
@@ -1087,7 +1087,7 @@ static inline void cosh512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, cosh512f_ps(src_tmp));
@@ -1146,7 +1146,7 @@ static inline void sinh512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, sinh512f_ps(src_tmp));
@@ -1203,7 +1203,7 @@ static inline void atan512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, atan512f_ps(src_tmp));
@@ -1258,7 +1258,7 @@ static inline void atan2512f(float *src1, float *src2, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src1) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src1) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, atan2512f_ps(_mm512_load_ps(src1 + i), _mm512_load_ps(src2 + i)));
         }
@@ -1323,7 +1323,7 @@ static inline void asin512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, asin512f_ps(src_tmp));
@@ -1383,7 +1383,7 @@ static inline void tanh512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, tanh512f_ps(src_tmp));
@@ -1457,7 +1457,7 @@ static inline void tan512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, tan512f_ps(src_tmp));
@@ -1481,7 +1481,7 @@ static inline void tan512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, _mm512_div_ps(sin512_ps(src_tmp), cos512_ps(src_tmp)));
@@ -1504,7 +1504,7 @@ static inline void magnitude512f_split(float *srcRe, float *srcIm, float *dst, i
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (srcRe) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (srcRe) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf re_tmp = _mm512_load_ps(srcRe + i);
             v16sf re2 = _mm512_mul_ps(re_tmp, re_tmp);
@@ -1532,7 +1532,7 @@ static inline void powerspect512f_split(float *srcRe, float *srcIm, float *dst, 
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (srcRe) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (srcRe) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf re_tmp = _mm512_load_ps(srcRe + i);
             v16sf re2 = _mm512_mul_ps(re_tmp, re_tmp);
@@ -1562,7 +1562,7 @@ static inline void subcrev512f(float *src, float value, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, _mm512_sub_ps(tmp, _mm512_load_ps(src + i)));
         }
@@ -1586,7 +1586,7 @@ static inline void sum512f(float *src, float *dst, int len)
                                                                                      0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
     float tmp_acc = 0.0f;
     v16sf vec_acc = _mm512_setzero_ps();  //initialize the vector accumulator
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf vec_tmp = _mm512_load_ps(src + i);
             vec_acc = _mm512_add_ps(vec_acc, vec_tmp);
@@ -1619,7 +1619,7 @@ static inline void mean512f(float *src, float *dst, int len)
                                                                                      0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
     float tmp_acc = 0.0f;
     v16sf vec_acc = _mm512_setzero_ps();  //initialize the vector accumulator
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf vec_tmp = _mm512_load_ps(src + i);
             vec_acc = _mm512_add_ps(vec_acc, vec_tmp);
@@ -1648,7 +1648,7 @@ static inline void sqrt512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             _mm512_store_ps(dst + i, _mm512_sqrt_ps(_mm512_load_ps(src + i)));
         }
@@ -1668,7 +1668,7 @@ static inline void round512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
@@ -1690,7 +1690,7 @@ static inline void ceil512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC));
@@ -1712,7 +1712,7 @@ static inline void floor512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC));
@@ -1734,7 +1734,7 @@ static inline void trunc512f(float *src, float *dst, int len)
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX512_LEN_BYTES) == 0) {
+    if (((uintptr_t) (const void *) (src) % AVX512_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             _mm512_store_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
@@ -1757,7 +1757,7 @@ static inline void cplxvecmul512f(complex32_t *src1, complex32_t *src2, complex3
     stop_len = stop_len * AVX512_LEN_FLOAT;   //stop_len << 2;
 
     int i;
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);                      // src1 = b1,a1,b0,a0 (little endian)
             v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);                      // src2 = d1,c1,d0,c0
@@ -1795,9 +1795,9 @@ static inline void cplxvecmul512f_split(float *src1Re, float *src1Im, float *src
     stop_len = stop_len * AVX512_LEN_FLOAT;
 
     int i;
-    if (areAligned2((uintptr_t)(src1Re), (uintptr_t)(src1Im), AVX512_LEN_BYTES) &&
-        areAligned2((uintptr_t)(src2Re), (uintptr_t)(src2Im), AVX512_LEN_BYTES) &&
-        areAligned2((uintptr_t)(dstRe), (uintptr_t)(dstIm), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src1Re), (uintptr_t) (src1Im), AVX512_LEN_BYTES) &&
+        areAligned2((uintptr_t) (src2Re), (uintptr_t) (src2Im), AVX512_LEN_BYTES) &&
+        areAligned2((uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX512_LEN_BYTES)) {
         for (i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src1Re_tmp = _mm512_load_ps((float *) (src1Re) + i);
             v16sf src1Im_tmp = _mm512_load_ps((float *) (src1Im) + i);
@@ -1837,7 +1837,7 @@ static inline void cplxconjvecmul512f(complex32_t *src1, complex32_t *src2, comp
     stop_len = stop_len * AVX512_LEN_FLOAT;   //stop_len << 2;
 
     int i;
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);                      // src1 = b1,a1,b0,a0 (little endian)
             v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);                      // src2 = d1,c1,d0,c0
@@ -1877,9 +1877,9 @@ static inline void cplxconjvecmul512f_split(float *src1Re, float *src1Im, float 
     stop_len = stop_len * AVX512_LEN_FLOAT;
 
     int i;
-    if (areAligned2((uintptr_t)(src1Re), (uintptr_t)(src1Im), AVX512_LEN_BYTES) &&
-        areAligned2((uintptr_t)(src2Re), (uintptr_t)(src2Im), AVX512_LEN_BYTES) &&
-        areAligned2((uintptr_t)(dstRe), (uintptr_t)(dstIm), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src1Re), (uintptr_t) (src1Im), AVX512_LEN_BYTES) &&
+        areAligned2((uintptr_t) (src2Re), (uintptr_t) (src2Im), AVX512_LEN_BYTES) &&
+        areAligned2((uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX512_LEN_BYTES)) {
         for (i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src1Re_tmp = _mm512_load_ps((float *) (src1Re) + i);
             v16sf src1Im_tmp = _mm512_load_ps((float *) (src1Im) + i);
@@ -1939,7 +1939,7 @@ static inline void cplxconj512f(complex32_t *src, complex32_t *dst, int len)
     v16sf *mask_vec = (v16sf *) mask;
 
     int i;
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         //printf("Aligned\n");
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps((float *) (src) + i);

@@ -38,6 +38,7 @@
 #include <mkl_vml.h>
 #endif
 
+#ifndef RISCV
 typedef ALIGN16_BEG union {
     float f[4];
     int i[4];
@@ -50,6 +51,8 @@ typedef ALIGN32_BEG union {
     int i[8];
     v8sf v;
 } ALIGN32_END V8SF;
+
+#endif
 
 #endif
 
@@ -1140,6 +1143,26 @@ int main(int argc, char **argv)
     l2_err(inout3, inout_ref, len);
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    maxeveryf_vec(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("maxeveryf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        maxeveryf_vec(inout, inout2, inout3, len);
+
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("maxeveryf_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout3, inout_ref, len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// MINEVERY //////////////////////////////////////////////////////////////////////////////
     printf("MINEVERY\n");
@@ -1230,6 +1253,26 @@ int main(int argc, char **argv)
 
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("minevery512f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout3, inout_ref, len);
+#endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    mineveryf_vec(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("mineveryf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        mineveryf_vec(inout, inout2, inout3, len);
+
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("mineveryf_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     l2_err(inout3, inout_ref, len);
 #endif
@@ -1634,6 +1677,26 @@ printf("\n");
     printf("mean %f ref %f\n", mean, mean_ref);
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    meanf_vec(inout, &mean, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("meanf_vec %d %lf\n", len, elapsed);
+    printf("mean %f ref %f\n", mean, mean_ref);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++) {
+        meanf_vec(inout, &mean, len);
+    }
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("meanf_vec %d %lf\n", len, elapsed);
+
+    printf("mean %f ref %f\n", mean, mean_ref);
+#endif
+
+
     printf("\n");
     /////////////////////////////////////////////////////////// MAGNITUDE_SPLIT //////////////////////////////////////////////////////////////////////////////
     printf("MAGNITUDE_SPLIT\n");
@@ -1724,6 +1787,23 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("magnitude512f_split %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    magnitudef_split_vec(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("magnitudef_split_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        magnitudef_split_vec(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("magnitudef_split_vec %d %lf\n", len, elapsed);
 
     l2_err(inout_ref, inout2_ref, len);
 #endif
@@ -2042,7 +2122,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxconjvecmul128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    l2_err(inout_ref, inout2_ref, 2*len);
+    l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
 #ifdef AVX
@@ -2059,7 +2139,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxconjvecmul256f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    l2_err(inout_ref, inout2_ref, 2*len);
+    l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
 #ifdef AVX512
@@ -2076,7 +2156,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxconjvecmul512f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    l2_err(inout_ref, inout2_ref, 2*len);
+    l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
     printf("\n");
 
@@ -2532,6 +2612,10 @@ printf("\n");
 
     flops = 34 * len;  //TODO : check the right theoretical value
 
+    for(int i = 0; i < len; i++){
+      inout[i] = -(float)len/16.0f + 0.1f*(float)i;
+    }
+
     clock_gettime(CLOCK_REALTIME, &start);
     sinf_C(inout, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2659,6 +2743,23 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    sinf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sinf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sinf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sinf_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+    l2_err(inout2_ref, inout2, len);
+
+    //for(int i = 0; i < len; i++) printf("%f %f %f\n",inout[i], inout2[i], inout2_ref[i]);
+#endif
 
     printf("\n");
     /////////////////////////////////////////////////////////// COS //////////////////////////////////////////////////////////////////////////////
@@ -2935,6 +3036,24 @@ printf("\n");
     l2_err(inout2_ref, inout3, len);
 #endif
 
+/*
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincosf_vec(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincosf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sincosf_vec(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sincosf_vec %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+    l2_err(inout2_ref, inout3, len);
+#endif
+*/
     printf("\n");
     /////////////////////////////////////////////////////////// SINCOSD //////////////////////////////////////////////////////////////////////////////
     printf("SINCOSD\n");

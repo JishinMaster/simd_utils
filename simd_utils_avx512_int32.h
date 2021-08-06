@@ -14,7 +14,7 @@ static inline void add512s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     int stop_len = len / AVX512_LEN_INT32;
     stop_len *= AVX512_LEN_INT32;
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
             _mm512_store_si512(dst + i, _mm512_add_epi32(_mm512_load_si512(src1 + i), _mm512_load_si512(src2 + i)));
         }
@@ -34,7 +34,7 @@ static inline void mul512s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     int stop_len = len / AVX512_LEN_INT32;
     stop_len *= AVX512_LEN_INT32;
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
             _mm512_store_si512(dst + i, _mm512_mul_epi32(_mm512_load_si512(src1 + i), _mm512_load_si512(src2 + i)));
         }
@@ -54,7 +54,7 @@ static inline void sub512s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     int stop_len = len / AVX512_LEN_INT32;
     stop_len *= AVX512_LEN_INT32;
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
             _mm512_store_si512(dst + i, _mm512_sub_epi32(_mm512_load_si512(src1 + i), _mm512_load_si512(src2 + i)));
         }
@@ -76,7 +76,7 @@ static inline void addc512s(int32_t *src, int32_t value, int32_t *dst, int len)
 
     const v16si tmp = _mm512_set1_epi32(value);
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
             _mm512_store_si512(dst + i, _mm512_add_epi32(tmp, _mm512_load_si512(src + i)));
         }

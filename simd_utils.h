@@ -22,6 +22,31 @@ extern "C" {
 #include <math.h>
 #include <stdint.h>
 
+static const float FOPI = 1.27323954473516f;
+static const float PIO4F = 0.7853981633974483096f;
+
+/* Note, these constants are for a 32-bit significand: */
+/*
+static const float DP1 = 0.7853851318359375f;
+static const float DP2 = 1.30315311253070831298828125e-5f;
+static const float DP3 = 3.03855025325309630e-11f;
+static const float lossth = 65536.f;
+*/
+
+/* These are for a 24-bit significand: */
+static const float minus_cephes_DP1 = -0.78515625f;
+static const float minus_cephes_DP2 = -2.4187564849853515625e-4f;
+static const float minus_cephes_DP3 = -3.77489497744594108e-8f;
+static float lossth = 8192.;
+
+static const float T24M1 = 16777215.f;
+
+static const float sincof[] = {-1.9515295891E-4f, 8.3321608736E-3f, -1.6666654611E-1f};
+static const float coscof[] = {2.443315711809948E-5f, -1.388731625493765E-3f,
+                               4.166664568298827E-2f};
+static const int32_t sign_mask = 0x80000000;
+static const int32_t inv_sign_mask = ~sign_mask;
+
 #include "mysincosf.h"
 
 #define INVLN10 0.4342944819032518f     //0.4342944819f
@@ -89,7 +114,7 @@ typedef enum {
 static inline int isAligned(uintptr_t ptr, size_t alignment)
 {
 #ifndef ALWAYS_ALIGNED
-    if (((uintptr_t)(ptr) % alignment) == 0)
+    if (((uintptr_t) (ptr) % alignment) == 0)
         return 1;
     return 0;
 #else
@@ -100,8 +125,8 @@ static inline int isAligned(uintptr_t ptr, size_t alignment)
 static inline int areAligned2(uintptr_t ptr1, uintptr_t ptr2, size_t alignment)
 {
 #ifndef ALWAYS_ALIGNED
-    if (((uintptr_t)(ptr1) % alignment) == 0)
-        if (((uintptr_t)(ptr2) % alignment) == 0)
+    if (((uintptr_t) (ptr1) % alignment) == 0)
+        if (((uintptr_t) (ptr2) % alignment) == 0)
             return 1;
     return 0;
 #else
@@ -112,9 +137,9 @@ static inline int areAligned2(uintptr_t ptr1, uintptr_t ptr2, size_t alignment)
 static inline int areAligned3(uintptr_t ptr1, uintptr_t ptr2, uintptr_t ptr3, size_t alignment)
 {
 #ifndef ALWAYS_ALIGNED
-    if (((uintptr_t)(ptr1) % alignment) == 0)
-        if (((uintptr_t)(ptr2) % alignment) == 0)
-            if (((uintptr_t)(ptr3) % alignment) == 0)
+    if (((uintptr_t) (ptr1) % alignment) == 0)
+        if (((uintptr_t) (ptr2) % alignment) == 0)
+            if (((uintptr_t) (ptr3) % alignment) == 0)
                 return 1;
     return 0;
 #else
@@ -681,7 +706,7 @@ static inline int posix_memalign(void **pointer, size_t len, int alignement)
     void *p, *p0 = malloc(len + alignement);
     if (!p0)
         return (void *) NULL;
-    p = (void *) (((size_t) p0 + alignement) & (~((size_t)(alignement - 1))));
+    p = (void *) (((size_t) p0 + alignement) & (~((size_t) (alignement - 1))));
     *((void **) p - 1) = p0;
 
     *pointer = p;
@@ -694,7 +719,7 @@ static inline void *aligned_malloc(size_t len, int alignement)
     void *p, *p0 = malloc(len + alignement);
     if (!p0)
         return (void *) NULL;
-    p = (void *) (((size_t) p0 + alignement) & (~((size_t)(alignement - 1))));
+    p = (void *) (((size_t) p0 + alignement) & (~((size_t) (alignement - 1))));
     *((void **) p - 1) = p0;
     return p;
 }
@@ -944,7 +969,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = floorf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
         }
     } else if (rounding_mode == RndNear) {
 #ifdef OMP
@@ -952,7 +977,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
         }
     } else if (rounding_mode == RndFinancial) {
 #ifdef OMP
@@ -960,7 +985,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
-            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
         }
     } else {
 #ifdef OMP
@@ -968,7 +993,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = src[i] * scale_fact_mult;
-            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
         }
     }
 }
