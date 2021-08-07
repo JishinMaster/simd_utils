@@ -971,6 +971,24 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_gtabs_f_vec(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_gtabs_f_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold_gtabs_f_vec(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold_gtabs_f_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
     /*for(int i = 0; i < len; i++){
       printf("%f %f %f\n", inout[i],inout2_ref[i],inout2[i]);
     }*/
@@ -1065,6 +1083,28 @@ int main(int argc, char **argv)
 
     l2_err(inout2, inout2_ref, len);
 #endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_ltval_gtval_f_vec(inout, inout2, len, 0.5f, 0.35f, 0.7f, 0.77f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_ltval_gtval_f_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold_ltval_gtval_f_vec(inout, inout2, len, 0.5f, 0.35f, 0.7f, 0.77f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold_ltval_gtval_f_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
+    /*for(int i = 0; i < len; i++){
+      printf("%f %f %f\n", inout[i],inout2_ref[i],inout2[i]);
+    }*/
 
     printf("\n");
     /////////////////////////////////////////////////////////// MAXEVERY //////////////////////////////////////////////////////////////////////////////

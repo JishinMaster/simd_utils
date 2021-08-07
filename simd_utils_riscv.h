@@ -109,15 +109,12 @@ static inline void sinf_vec(float *src, float *dst, int len)
         V_ELT_INT emm0, emm2;
         sign_bit = x;
 
-        V_ELT *x_ptr = &x;
-        V_ELT *sign_bit_ptr = &sign_bit;
-
         /* take the absolute value */
-        x = (V_ELT) vand_vx_i32m8((vint32m8_t) *x_ptr, inv_sign_mask, i);
+        x = vreinterpret_v_i32m8_f32m8(vand_vx_i32m8(vreinterpret_v_f32m8_i32m8(x), inv_sign_mask, i));
 
         /* extract the sign bit (upper one) */
         // not 0 if input < 0
-        V_ELT_INT sign_bit_int = vand_vx_i32m8((vint32m8_t) *sign_bit_ptr, sign_mask, i);
+        V_ELT_INT sign_bit_int = vand_vx_i32m8(vreinterpret_v_f32m8_i32m8(sign_bit), sign_mask, i);
 
         /* scale by 4/Pi */
         y = vfmul_vf_f32m8(x, FOPI, i);
@@ -177,10 +174,10 @@ static inline void sinf_vec(float *src, float *dst, int len)
         y2 = vfadd_vv_f32m8(y2, x, i);
 
         /* select the correct result from the two polynoms */
-        y = (V_ELT) vmerge_vvm_i32m8(poly_mask, (vint32m8_t) y, (vint32m8_t) y2, i);
+        y = vmerge_vvm_f32m8(poly_mask, y, y2, i);
 
         /* update the sign */
-        y = (V_ELT) vxor_vv_i32m8((vint32m8_t) y, sign_bit_int, i);
+        y = vreinterpret_v_i32m8_f32m8(vxor_vv_i32m8((vint32m8_t) y, sign_bit_int, i));
 
         VSEV_FLOAT(dst_tmp, y, i);
 
@@ -489,6 +486,51 @@ static inline void threshold_lt_f_vec(float *src, float *dst, int len, float val
         V_ELT va;
         va = VLEV_FLOAT(src_tmp, i);
         VSEV_FLOAT(dst_tmp, vfmax_vf_f32m8(va, value, i), i);
+
+        src_tmp += i;
+        dst_tmp += i;
+    }
+}
+
+static inline void threshold_gtabs_f_vec(float *src, float *dst, int len, float value)
+{
+    size_t i;
+    float *src_tmp = src;
+    float *dst_tmp = dst;
+
+    for (; (i = VSETVL(len)) > 0; len -= i) {
+        V_ELT va = VLEV_FLOAT(src_tmp, i);
+        V_ELT va_abs = (V_ELT) vand_vx_i32m8((vint32m8_t) va, inv_sign_mask, i);
+        vbool4_t eqmask = vmfeq_vv_f32m8_b4(va, va_abs, i);
+        vbool4_t gtmask = vmfgt_vf_f32m8_b4(va_abs, value, i);
+
+        /*weird way to achieve the equivalent of _mm_blendv_ps(mval, pval, eqmask);
+         no way to broadcast a float to a vector yet, so we have to use an undefined vector 
+         merged with the negative value (not(mask))and then merge with the value */
+        V_ELT sval;
+        sval = vfmerge_vfm_f32m8(vmnot_m_b4(eqmask, i), sval, -value, i);
+        sval = vfmerge_vfm_f32m8(eqmask, sval, value, i);
+        VSEV_FLOAT(dst_tmp, vmerge_vvm_f32m8(gtmask, va, sval, i), i);
+
+        src_tmp += i;
+        dst_tmp += i;
+    }
+}
+
+
+static inline void threshold_ltval_gtval_f_vec(float *src, float *dst, int len, float ltlevel, float ltvalue, float gtlevel, float gtvalue)
+{
+    size_t i;
+    float *src_tmp = src;
+    float *dst_tmp = dst;
+
+    for (; (i = VSETVL(len)) > 0; len -= i) {
+        V_ELT va = VLEV_FLOAT(src_tmp, i);
+        vbool4_t lt_mask = vmflt_vf_f32m8_b4(va, ltlevel, i);
+        vbool4_t gt_mask = vmfgt_vf_f32m8_b4(va, gtlevel, i);
+        V_ELT tmp = vfmerge_vfm_f32m8(lt_mask, va, ltvalue, i);
+        tmp = vfmerge_vfm_f32m8(gt_mask, tmp, gtvalue, i);
+        VSEV_FLOAT(dst_tmp, tmp, i);
 
         src_tmp += i;
         dst_tmp += i;
