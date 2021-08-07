@@ -57,7 +57,7 @@ static inline void print_vec(V_ELT vec)
     float observ[32];
     VSEV_FLOAT(observ, vec, 32);
     for (int i = 0; i < 32; i++)
-        printf("%0.4f ", observ[i]);
+        printf("%0.3f ", observ[i]);
     printf("\n");
 }
 
@@ -104,7 +104,7 @@ static inline void sinf_vec(float *src, float *dst, int len)
 
     for (; (i = VSETVL(len)) > 0; len -= i) {
         V_ELT x = VLEV_FLOAT(src_tmp, i);
-        
+
         V_ELT xmm3, sign_bit, y;
         V_ELT_INT emm0, emm2;
         sign_bit = x;
@@ -381,29 +381,49 @@ static inline void powerspectf_split_vec(float *srcRe, float *srcIm, float *dst,
     }
 }
 
-//Work in progress
-#if 0
+static inline void powerspectf_interleaved_vec(complex32_t *src, float *dst, int len)
+{
+    size_t i;
+    float *src_tmp = (float *) src;
+    float *dst_tmp = dst;
+
+    for (; (i = VSETVL(len)) > 0; len -= i) {
+        //complex are a + ib, c + id, e + if, etc
+        //load in re_tmp a,c,e, etc => i elements in range 0..2*i with a stride of 2
+        //load in im_tmp b,d,f, etc => i elements in range 0..2*i with a stride of 2
+        V_ELT re_tmp = vlse32_v_f32m8(src_tmp, 2 * sizeof(float), i);
+        V_ELT im_tmp = vlse32_v_f32m8(src_tmp + 1, 2 * sizeof(float), i);
+        V_ELT re2 = VMUL_FLOAT(re_tmp, re_tmp, i);
+        V_ELT tmp = VFMA_FLOAT(re2, im_tmp, im_tmp, i);
+        VSEV_FLOAT(dst_tmp, tmp, i);
+
+        //src_tmp increases twice as fast since it's complex and not float
+        src_tmp += 2 * i;
+        dst_tmp += i;
+    }
+}
+
 static inline void magnitudef_interleaved_vec(complex32_t *src, float *dst, int len)
 {
     size_t i;
     float *src_tmp = (float *) src;
-    //float *dst_tmp = dst;
+    float *dst_tmp = dst;
 
-    size_t j = 0;
     for (; (i = VSETVL(len)) > 0; len -= i) {
-        V_ELT cplx01 = VLEV_FLOAT(src_tmp, i);
-        src_tmp += i;
-        V_ELT cplx23 = VLEV_FLOAT(src_tmp, i);
-        V_ELT cplx01_square = VMUL_FLOAT(cplx01, cplx01, i);
-        V_ELT cplx23_square = VMUL_FLOAT(cplx23, cplx23, i);
-        /*V_ELT square_sum_0123 = horizontal add?
-        VSEV_FLOAT(dst_tmp, vfsqrt_v_f32m8(square_sum_0123,i),i);
-	src_tmp += i;
+        //complex are a + ib, c + id, e + if, etc
+        //load in re_tmp a,c,e, etc => i elements in range 0..2*i with a stride of 2
+        //load in im_tmp b,d,f, etc => i elements in range 0..2*i with a stride of 2
+        V_ELT re_tmp = vlse32_v_f32m8(src_tmp, 2 * sizeof(float), i);
+        V_ELT im_tmp = vlse32_v_f32m8(src_tmp + 1, 2 * sizeof(float), i);
+        V_ELT re2 = VMUL_FLOAT(re_tmp, re_tmp, i);
+        V_ELT tmp = VFMA_FLOAT(re2, im_tmp, im_tmp, i);
+        VSEV_FLOAT(dst_tmp, vfsqrt_v_f32m8(tmp, i), i);
+
+        //src_tmp increases twice as fast since it's complex and not float
+        src_tmp += 2 * i;
         dst_tmp += i;
-        */
     }
 }
-#endif
 
 static inline void maxeveryf_vec(float *src1, float *src2, float *dst, int len)
 {

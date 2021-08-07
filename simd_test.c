@@ -854,6 +854,24 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_lt_f_vec(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_lt_f_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold_lt_f_vec(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold_lt_f_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2, inout2_ref, len);
+#endif
 
 
     printf("\n");
@@ -1887,14 +1905,29 @@ printf("\n");
     printf("magnitude256f_interleaved %d %lf\n", len, elapsed);
 
     l2_err(inout_ref, inout2_ref, len);
+#endif*/
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    magnitudef_interleaved_vec((complex32_t *) inout, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("magnitudef_interleaved_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        magnitudef_interleaved_vec((complex32_t *) inout, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("magnitudef_interleaved_vec %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
 #endif
-
-
-    int k = 0;
-	for(int i = 0; i < len; i++){
-		printf("Int : %f %f || %f %f\n", inout[k],inout[k+1], inout_ref[i],inout2_ref[i]);
-		k+=2;
-	}*/
+    /*int k = 0;
+    for (int i = 0; i < len; i++) {
+        printf("Int : %f %f || %f %f\n", inout[k], inout[k + 1], inout_ref[i], inout2_ref[i]);
+        k += 2;
+    }*/
 
 
     printf("\n");
@@ -2612,8 +2645,8 @@ printf("\n");
 
     flops = 34 * len;  //TODO : check the right theoretical value
 
-    for(int i = 0; i < len; i++){
-      inout[i] = -(float)len/16.0f + 0.1f*(float)i;
+    for (int i = 0; i < len; i++) {
+        inout[i] = -(float) len / 16.0f + 0.1f * (float) i;
     }
 
     clock_gettime(CLOCK_REALTIME, &start);
@@ -3036,7 +3069,7 @@ printf("\n");
     l2_err(inout2_ref, inout3, len);
 #endif
 
-/*
+    /*
 #ifdef RISCV
     clock_gettime(CLOCK_REALTIME, &start);
     sincosf_vec(inout, inout2, inout3, len);
