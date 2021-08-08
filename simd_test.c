@@ -3053,10 +3053,6 @@ printf("\n");
 
 #endif
 
-    /*for (int i = 0; i < len; i++) {
-        printf("%f %f %f %f %f\n",inout[i], inout_ref[i],inout2[i],inout2_ref[i],inout3[i]);
-    }*/
-
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
     sincos256f(inout, inout2, inout3, len);
@@ -3109,7 +3105,6 @@ printf("\n");
     l2_err(inout2_ref, inout3, len);
 #endif
 
-    /*
 #ifdef RISCV
     clock_gettime(CLOCK_REALTIME, &start);
     sincosf_vec(inout, inout2, inout3, len);
@@ -3118,15 +3113,19 @@ printf("\n");
     printf("sincosf_vec %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    for (l = 0; l < loop; l++)
-        sincosf_vec(inout, inout2, inout3, len);
+    //for (l = 0; l < loop; l++)
+    //    sincosf_vec(inout, inout2, inout3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sincosf_vec %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
     l2_err(inout2_ref, inout3, len);
 #endif
-*/
+
+    /*for (int i = 0; i < len; i++) {
+        printf("%f %f %f %f %f\n",inout[i], inout_ref[i],inout2[i],inout2_ref[i],inout3[i]);
+    }*/
+
     printf("\n");
     /////////////////////////////////////////////////////////// SINCOSD //////////////////////////////////////////////////////////////////////////////
     printf("SINCOSD\n");

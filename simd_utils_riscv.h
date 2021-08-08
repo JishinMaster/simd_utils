@@ -70,6 +70,14 @@ static inline void print_vec_int(V_ELT_INT vec)
     printf("\n");
 }
 
+static inline void print_vec_uint(vuint32m8_t vec)
+{
+    unsigned int observ[32];
+    vse32_v_u32m8(observ, vec, 32);
+    for (int i = 0; i < 32; i++)
+        printf("%x ", observ[i]);
+    printf("\n");
+}
 // e32 => float32 (e64 float 64)
 // m8 8 elements (m4 4 elements)
 /* i = vsetvl_e32m8(len) asks for 
@@ -177,7 +185,7 @@ static inline void sinf_vec(float *src, float *dst, int len)
         y = vmerge_vvm_f32m8(poly_mask, y, y2, i);
 
         /* update the sign */
-        y = vreinterpret_v_i32m8_f32m8(vxor_vv_i32m8((vint32m8_t) y, sign_bit_int, i));
+        y = vreinterpret_v_i32m8_f32m8(vxor_vv_i32m8(vreinterpret_v_f32m8_i32m8(y), sign_bit_int, i));
 
         VSEV_FLOAT(dst_tmp, y, i);
 
@@ -187,7 +195,7 @@ static inline void sinf_vec(float *src, float *dst, int len)
 }
 
 //Work in progress
-#if 0
+#if 1
 static inline void sincosf_vec(float *src, float *s, float *c, int len)
 {
     size_t i;
@@ -198,60 +206,48 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
 
     for (; (i = VSETVL(len)) > 0; len -= i) {
         V_ELT x = VLEV_FLOAT(src_tmp, i);
-        
-        V_ELT xmm3, sign_bit, y;
-        V_ELT_INT emm0, emm2;
-        sign_bit = x;
 
-        V_ELT *x_ptr = &x;
-        V_ELT *sign_bit_ptr = &sign_bit;
+        V_ELT y;
+        V_ELT_INT j;
+        vbool4_t jandone, jsup3, jsup1, j1or2, xinf0;
+        vbool4_t sign_sin, sign_cos;
+
+        sign_sin = vmclr_m_b4(i);
+        sign_cos = vmclr_m_b4(i);
+
+        // if (x < 0)
+        xinf0 = vmflt_vf_f32m8_b4(x, 0.0f, i);
+        sign_sin = vmxor_mm_b4(sign_sin, xinf0, i);
 
         /* take the absolute value */
-        x = (V_ELT) vand_vx_i32m8((vint32m8_t) *x_ptr, inv_sign_mask, i);
-
-        /* extract the sign bit (upper one) */
-        // not 0 if input < 0
-        V_ELT_INT sign_bit_int = vand_vx_i32m8((vint32m8_t) *sign_bit_ptr, sign_mask, i);
+        x = vreinterpret_v_i32m8_f32m8(vand_vx_i32m8(vreinterpret_v_f32m8_i32m8(x), inv_sign_mask, i));
 
         /* scale by 4/Pi */
         y = vfmul_vf_f32m8(x, FOPI, i);
 
-        /* store the integer part of y in mm0 */
-        emm2 = vfcvt_rtz_x_f_v_i32m8(y, i);
+        /* store the integer part of y in mm2 */
+        j = vfcvt_rtz_x_f_v_i32m8(y, i);
 
-        /* j=(j+1) & (~1) (see the cephes sources) */
-        emm2 = vadd_vx_i32m8(emm2, 1, i);
-        emm2 = vand_vx_i32m8(emm2, ~1, i);
-        y = vfcvt_f_x_v_f32m8(emm2, i);
+        // if (j&1))
+        jandone = vmsne_vx_i32m8_b4(vand_vx_i32m8(j, 1, i), 0, i);
+        j = vadd_vx_i32m8_m(jandone, j, j, 1, i);
+        y = vfcvt_f_x_v_f32m8(j, i);
 
-        V_ELT_INT emm4 = emm2;
-        emm4 = vsub_vx_i32m8(emm4, 2, i);
-        
-        // emm4 = andnot(emm4, 4)
-        print_vec_int(emm4);
-        print_vec_int(vnot_v_i32m8(emm4,i));
-        emm4 = vor_vx_i32m8(vnot_v_i32m8(emm4,i), ~4, i);
-        print_vec_int(emm4);
-        emm4 = vsll_vx_i32m8(emm4, 29, i); //emm4 = sign_bit_cos
+        // j&=7
+        j = vand_vx_i32m8(j, 7, i);
 
-                  
-        /* get the swap sign flag */
-        emm0 = vand_vx_i32m8(emm2, 4, i);
-        emm0 = vsll_vx_i32m8(emm0, 29, i);
+        // if (j > 3)
+        jsup3 = vmsgt_vx_i32m8_b4(j, 3, i);
+        sign_sin = vmxor_mm_b4(sign_sin, jsup3, i);
+        sign_cos = vmxor_mm_b4(sign_cos, jsup3, i);
+        j = vsub_vx_i32m8_m(jsup3, j, j, 4, i);
 
-        /* get the polynom selection mask
-       there is one polynom for 0 <= x <= Pi/4
-       and another one for Pi/4<x<=Pi/2
+        // if (j > 1)
+        jsup1 = vmsgt_vx_i32m8_b4(j, 1, i);
+        sign_cos = vmxor_mm_b4(sign_cos, jsup1, i);
 
-       Both branches will be computed.
-	     */
-        emm2 = vand_vx_i32m8(emm2, 2, i);
-
-        /// emm2 == 0 ? 0xFFFFFFFF : 0x00000000
-        vbool4_t poly_mask = vmseq_vx_i32m8_b4(emm2, 0, i);
-        //vbool4_t not_poly_mask=vmnot_m_b4(poly_mask, i);
-
-        sign_bit_int = vxor_vv_i32m8(sign_bit_int, emm0, i);  //emm0 is swap_sign_bit
+        j1or2 = vmor_mm_b4(vmseq_vx_i32m8_b4(j, 1, i),
+                           vmseq_vx_i32m8_b4(j, 2, i), i);
 
         /* The magic pass: "Extended precision modular arithmetic"
         x = ((x - y * DP1) - y * DP2) - y * DP3; */
@@ -282,16 +278,14 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
         y2 = vfadd_vv_f32m8(y2, x, i);
 
         /* select the correct result from the two polynoms */
-        V_ELT y_sin = (V_ELT) vmerge_vvm_i32m8(poly_mask, (vint32m8_t) y, (vint32m8_t) y2, i);
-        V_ELT y_cos = (V_ELT) vmerge_vvm_i32m8(poly_mask, (vint32m8_t) y2, (vint32m8_t) y, i);//vfadd_vv_f32m8(y,y2,i);
-        //print_vec(y_sin);
-        //print_vec(y_cos);
-        //y_cos = vfsub_vv_f32m8(y_cos, y_sin, i);
+        V_ELT y_sin = vmerge_vvm_f32m8(j1or2, y2, y, i);
+        V_ELT y_cos = vmerge_vvm_f32m8(j1or2, y, y2, i);
 
-        /* update the sign */
-        y_sin = (V_ELT) vxor_vv_i32m8((vint32m8_t) y_sin, sign_bit_int, i);
-        y_cos = (V_ELT) vxor_vv_i32m8((vint32m8_t) y_cos, emm4, i);
-        //print_vec(y_cos);
+        V_ELT y_sin_neg = vfmul_vf_f32m8(y_sin, -1.0f, i);
+        V_ELT y_cos_neg = vfmul_vf_f32m8(y_cos, -1.0f, i);
+
+        y_sin = vmerge_vvm_f32m8(sign_sin, y_sin, y_sin_neg, i);
+        y_cos = vmerge_vvm_f32m8(sign_cos, y_cos, y_cos_neg, i);
 
         VSEV_FLOAT(s_tmp, y_sin, i);
         VSEV_FLOAT(c_tmp, y_cos, i);
