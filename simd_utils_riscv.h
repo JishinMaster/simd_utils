@@ -281,11 +281,8 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
         V_ELT y_sin = vmerge_vvm_f32m8(j1or2, y2, y, i);
         V_ELT y_cos = vmerge_vvm_f32m8(j1or2, y, y2, i);
 
-        V_ELT y_sin_neg = vfmul_vf_f32m8(y_sin, -1.0f, i);
-        V_ELT y_cos_neg = vfmul_vf_f32m8(y_cos, -1.0f, i);
-
-        y_sin = vmerge_vvm_f32m8(sign_sin, y_sin, y_sin_neg, i);
-        y_cos = vmerge_vvm_f32m8(sign_cos, y_cos, y_cos_neg, i);
+        y_sin = vfmul_vf_f32m8_m(sign_sin, y_sin, y_sin, -1.0f, i);
+        y_cos = vfmul_vf_f32m8_m(sign_cos, y_cos, y_cos, -1.0f, i);
 
         VSEV_FLOAT(s_tmp, y_sin, i);
         VSEV_FLOAT(c_tmp, y_cos, i);
