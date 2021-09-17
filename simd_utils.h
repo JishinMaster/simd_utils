@@ -44,8 +44,10 @@ static const float T24M1 = 16777215.f;
 static const float sincof[] = {-1.9515295891E-4f, 8.3321608736E-3f, -1.6666654611E-1f};
 static const float coscof[] = {2.443315711809948E-5f, -1.388731625493765E-3f,
                                4.166664568298827E-2f};
-static const int32_t sign_mask = 0x80000000;
-static const int32_t inv_sign_mask = ~sign_mask;
+                               
+#define SIGN_MASK 0x80000000
+static const int32_t sign_mask = SIGN_MASK;
+static const int32_t inv_sign_mask = ~SIGN_MASK;
 
 #include "mysincosf.h"
 
@@ -56,40 +58,15 @@ static const int32_t inv_sign_mask = ~sign_mask;
 #define IMM8_PERMUTE_128BITS_LANES 0x1  // reverse abcd efgh to efgh abcd
 #define M_PI 3.14159265358979323846
 
-/* LATENCIES
-SSE
-_mm_store_ps     lat 1, cpi 1 (ivy ) 0.5 (broadwell)
-_mm_storeu_ps    lat 1, cpi 1 (ivy ) 0.5 (broadwell)
-_mm_load_ps      lat 1, cpi 1 (ivy ) 0.5 (broadwell)
-_mm_loadu_ps     lat 1, cpi 1 (ivy ) 0.5 (broadwell)
-_mm_min_ps	 lat 3, cpi 1 (ivy ) 1   (broadwell)
-_mm_max_ps       lat 3, cpi 1 (ivy ) 1   (broadwell)
-_mm_cvtpd_ps     lat 4, cpi 1 (ivy ) 1   (broadwell)
-_mm_mul_ps	 lat 5 (ivy) 3 (broadwell), cpi 1 (ivy) 0.5 (broadwell)
-_mm_div_ps	 lat 11-14 (ivy) <11 (broadwell), cpi 6 (ivy) 4 (broadwell)
-_mm_movelh_ps    lat 1, cpi 1
-_mm_hadd_ps		 lat 5, cpi 2 => useful for reduction!
-_mm_shuffle_ps lat 1, cpi 1
-_mm_cvtps_epi32 lat 3, cpi 1
-_mm_round_ps
-_mm_castsi128_ps
+typedef struct {
+    int16_t re;
+    int16_t im;
+} complex16s_t;
 
-
-AVX/AVX2
-_mm256_store_ps  lat 1, cpi 1 (ivy ) 0.5 (broadwell)
-_mm256_storeu_ps lat 1, cpi 1 (ivy ) 0.5 (broadwell)
-_mm256_load_ps   lat 1, cpi 1 (ivy ) 0.5 (broadwell)
-_mm256_loadu_ps  lat 1, cpi 1 (ivy ) 0.5 (broadwell)
-_mm256_min_ps	 lat 3, cpi 1 (ivy ) 1   (broadwell)
-_mm256_max_ps	 lat 3, cpi 1 (ivy ) 1   (broadwell)
-_mm256_cvtpd_ps  lat 4 (ivy) 6 (broadwell), cpi 1 (ivy ) 1  (broadwell)
-_mm256_mul_ps	 lat 5 (ivy) 3 (broadwell), cpi 1 (ivy) 0.5 (broadwell)
-_mm256_div_ps	 lat 18-21 (ivy) 13-17 (broadwell), cpi 14 (ivy) 10 (broadwell)
-_mm256_set_m128  lat 3, cpi 1
-_mm256_hadd_ps
-_mm256_permute_ps lat 1, cpi 1
-_mm256_permute2f128_ps lat 2(ivy) 3 (broadwell) , cpi 1	
- */
+typedef struct {
+    int32_t re;
+    int32_t im;
+} complex32s_t;
 
 typedef struct {
     float re;
@@ -157,6 +134,7 @@ static inline void simd_utils_get_version(void)
 
 #ifdef SSE
 #define SSE_LEN_BYTES 16  // Size of SSE lane
+#define SSE_LEN_INT16 8   // number of int16 with an SSE lane
 #define SSE_LEN_INT32 4   // number of int32 with an SSE lane
 #define SSE_LEN_FLOAT 4   // number of float with an SSE lane
 #define SSE_LEN_DOUBLE 2  // number of double with an SSE lane
@@ -1784,6 +1762,27 @@ static inline void softmaxf_C(float *src, float *dst, int len)
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] /= acc;
+    }
+}
+
+
+static inline void absdiff16s_c(int16_t *a, int16_t *b, int16_t *c, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        c[i] = abs(a[i] - b[i]);
+    }
+}
+
+static inline void powerspect16s_c_interleaved(complex16s_t *src, int32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = (int32_t)src[i].re * (int32_t)src[i].re + (int32_t)src[i].im * (int32_t)src[i].im;
     }
 }
 

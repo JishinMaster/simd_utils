@@ -108,6 +108,24 @@ float l2_err_i32(int32_t *test, int32_t *ref, int len)
     return l2_err;
 }
 
+float l2_err_i16(int16_t *test, int16_t *ref, int len)
+{
+    float l2_err = 0.0f;
+
+    for (int i = 0; i < len; i++) {
+        l2_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
+    }
+
+#ifdef RELEASE
+    if (l2_err > 0.00001f)
+        printf("L2 ERR %0.7f\n", l2_err);
+#else
+    printf("L2 ERR %0.7f\n", l2_err);
+#endif
+
+    return l2_err;
+}
+
 float l2_errd(double *test, double *ref, int len)
 {
     double l2_err = 0.0;
@@ -256,7 +274,7 @@ int main(int argc, char **argv)
     float *inout6 = NULL, *inout_ref = NULL, *inout2_ref = NULL;
     double *inoutd = NULL, *inoutd2 = NULL, *inoutd3 = NULL, *inoutd_ref = NULL, *inoutd2_ref = NULL;
     uint8_t *inout_u1 = NULL, *inout_u2 = NULL;
-    int16_t *inout_s1 = NULL, *inout_s2 = NULL;
+    int16_t *inout_s1 = NULL, *inout_s2 = NULL,  *inout_s3 = NULL, *inout_sref = NULL;
     int32_t *inout_i1 = NULL, *inout_i2 = NULL, *inout_iref = NULL;
     int len = atoi(argv[1]);
 
@@ -338,17 +356,26 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    ret = posix_memalign((void **) &inout_s1, atoi(argv[2]), len * sizeof(int16_t));
+    ret = posix_memalign((void **) &inout_s1, atoi(argv[2]), 2*len * sizeof(int16_t));
     if (inout_s1 == NULL) {
         printf("ret = posix_memalign inout_s1 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout_s2, atoi(argv[2]), len * sizeof(int16_t));
+    ret = posix_memalign((void **) &inout_s2, atoi(argv[2]), 2*len * sizeof(int16_t));
     if (inout_s2 == NULL) {
         printf("ret = posix_memalign inout_s2 failed\n");
         return -1;
     }
-
+    ret = posix_memalign((void **) &inout_s3, atoi(argv[2]), 2*len * sizeof(int16_t));
+    if (inout_s3 == NULL) {
+        printf("ret = posix_memalign inout_s3 failed\n");
+        return -1;
+    }    
+    ret = posix_memalign((void **) &inout_sref, atoi(argv[2]), 2*len * sizeof(int16_t));
+    if (inout_sref == NULL) {
+        printf("ret = posix_memalign inout_sref failed\n");
+        return -1;
+    }
     ret = posix_memalign((void **) &inout_i1, atoi(argv[2]), len * sizeof(int32_t));
     if (inout_i1 == NULL) {
         printf("ret = posix_memalign inout_i1 failed\n");
@@ -444,14 +471,24 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    inout_s1 = (int16_t *) malloc(len * sizeof(int16_t));
+    inout_s1 = (int16_t *) malloc(2*len * sizeof(int16_t));
     if (inout_s1 == NULL) {
         printf("malloc inout_s1 failed\n");
         return -1;
     }
-    inout_s2 = (int16_t *) malloc(len * sizeof(int16_t));
+    inout_s2 = (int16_t *) malloc(2*len * sizeof(int16_t));
     if (inout_s2 == NULL) {
         printf("malloc inout_s2 failed\n");
+        return -1;
+    }
+    inout_s3 = (int16_t *) malloc(2*len * sizeof(int16_t));
+    if (inout_s3 == NULL) {
+        printf("malloc inout_s3 failed\n");
+        return -1;
+    }    
+    inout_sref = (int16_t *) malloc(2*len * sizeof(int16_t));
+    if (inout_sref == NULL) {
+        printf("malloc inout_sref failed\n");
         return -1;
     }
 
@@ -5887,6 +5924,93 @@ for (int i = 0; i < len; i++){
 		printf("\n\n");*/
 
     printf("\n");
+    /////////////////////////////////////////////////////////// ABSDIFF_S16 //////////////////////////////////////////////////////////////////////////////
+    printf("ABSDIFF_S16\n");
+
+
+    for (int i = 0; i < len; i++) {
+        inout_s1[i] = (rand() % 32767);
+        if (i % 4 == 0)
+            inout_s1[i] = -inout_s1[i];
+        inout_s2[i] = (rand() % 10500);
+        if (i % 7 == 0)
+            inout_s2[i] = -inout_s2[i];
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    absdiff16s_c(inout_s1, inout_s2, inout_sref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("absdiff16s_c %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        absdiff16s_c(inout_s1, inout_s2, inout_sref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("absdiff16s_c %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    absdiff16s_128s(inout_s1, inout_s2, inout_s3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("absdiff16s_128s %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        absdiff16s_128s(inout_s1, inout_s2, inout_s3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("absdiff16s_128s %d %lf\n", len, elapsed);
+    l2_err_i16(inout_sref, inout_s3, len);
+#endif
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// POWERSPECT_S16_INTERLEAVED //////////////////////////////////////////////////////////////////////////////
+    printf("POWERSPECT_S16_INTERLEAVED\n");
+
+
+    for (int i = 0; i < 2*len; i++) {
+        inout_s1[i] = (rand() % 32767);
+        if (i % 4 == 0)
+            inout_s1[i] = -inout_s1[i];
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    powerspect16s_c_interleaved((complex16s_t*)inout_s1, inout_iref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("powerspect16s_c_interleaved %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powerspect16s_c_interleaved((complex16s_t*)inout_s1, inout_iref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powerspect16s_c_interleaved %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    powerspect16s_128s_interleaved((complex16s_t*)inout_s1, inout_i1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("powerspect16s_128s_interleaved %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powerspect16s_128s_interleaved((complex16s_t*)inout_s1, inout_i1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powerspect16s_128s_interleaved %d %lf\n", len, elapsed);
+    l2_err_i32(inout_i1, inout_iref, len);
+#endif
+    /*for(int i = 0; i < len; i++)
+		  printf("%d %d %d\n",inout_s1[i], inout_i1[i], inout_iref[i]);
+		printf("\n\n");*/
+
+    printf("\n");
     /////////////////////////////////////////////////////////// EXPERIMENTAL //////////////////////////////////////////////////////////////////////////////
     printf("EXPERIMENTAL\n");
 
@@ -6089,6 +6213,8 @@ for (int i = 0; i < len; i++){
     free(inout_u2);
     free(inout_s1);
     free(inout_s2);
+    free(inout_s3);
+    free(inout_sref);
     free(inout_ref);
     free(inout2_ref);
     free(inoutd);

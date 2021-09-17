@@ -34,6 +34,9 @@ static inline void add128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     }
 }
 
+
+//result is wrong, the instruction casts to 64bit
+#if 0
 static inline void mul128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {
     int stop_len = len / SSE_LEN_INT32;
@@ -53,6 +56,7 @@ static inline void mul128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
         dst[i] = src1[i] * src2[i];
     }
 }
+#endif
 
 static inline void sub128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {
@@ -273,5 +277,114 @@ static inline void fast_copy128s_4(int32_t *src, int32_t *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i];
+    }
+}
+
+
+//Adapted from NEON2SSE (does not exists for X86)
+static inline __m128i _mm_absdiff_epi16(__m128i a, __m128i b)
+{
+#ifndef ARM
+    __m128i cmp, difab, difba;
+    cmp = _mm_cmpgt_epi16(a,b);
+    difab = _mm_sub_epi16(a,b);
+    difba = _mm_sub_epi16 (b,a);
+    difab = _mm_and_si128(cmp, difab);
+    difba = _mm_andnot_si128(cmp, difba);
+    return _mm_or_si128(difab, difba);
+#else
+    return vreinterpretq_m128i_s16(vabdq_s16(vreinterpretq_s16_m128i(a),vreinterpretq_s16_m128i(b)));
+#endif
+}
+
+//Adapted from NEON2SSE (does not exists for X86)
+static inline __m128i _mm_absdiff_epi32(__m128i a, __m128i b)
+{
+#ifndef ARM
+    __m128i cmp, difab, difba;
+    cmp = _mm_cmpgt_epi32(a,b);
+    difab = _mm_sub_epi32(a,b);
+    difba = _mm_sub_epi32 (b,a);
+    difab = _mm_and_si128(cmp, difab);
+    difba = _mm_andnot_si128(cmp, difba);
+    return _mm_or_si128(difab, difba);
+#else
+    return vreinterpretq_m128i_s32(vabdq_s32(vreinterpretq_s32_m128i(a),vreinterpretq_s32_m128i(b)));
+#endif
+}
+
+static inline __m128i _mm_absdiff_epi8(__m128i a, __m128i b)
+{
+#ifndef ARM
+    __m128i cmp, difab, difba;
+    cmp = _mm_cmpgt_epi8(a,b);
+    difab = _mm_sub_epi8(a,b);
+    difba = _mm_sub_epi8 (b,a);
+    difab = _mm_and_si128(cmp, difab);
+    difba = _mm_andnot_si128(cmp, difba);
+    return _mm_or_si128(difab, difba);
+#else
+    return vreinterpretq_m128i_s8(vabdq_s8(vreinterpretq_s8_m128i(a),vreinterpretq_s8_m128i(b)));
+#endif
+}
+
+static inline void absdiff16s_128s(int16_t *src1, int16_t *src2, int16_t *dst, int len)
+{
+    int stop_len = len / SSE_LEN_INT16;
+    stop_len *= SSE_LEN_INT16;
+
+
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_INT16) {
+            __m128i a = _mm_load_si128((__m128i *) (src1 + i));
+            __m128i b = _mm_load_si128((__m128i *) (src2 + i));
+            _mm_store_si128((__m128i *)(dst + i), _mm_absdiff_epi16(a,b));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_INT16) {
+            __m128i a = _mm_loadu_si128((__m128i *) (src1 + i));
+            __m128i b = _mm_loadu_si128((__m128i *) (src2 + i));
+            _mm_storeu_si128((__m128i *) (dst + i), _mm_absdiff_epi16(a,b));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = abs(src1[i] - src2[i]);
+    }
+}
+
+/*
+static inline void print8i(__m128i v)
+{
+    int16_t *p = (int16_t *) &v;
+#ifndef __SSE2__
+    _mm_empty();
+#endif
+    printf("[%d, %d, %d, %d,%d, %d, %d, %d]", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+}*/
+
+static inline void powerspect16s_128s_interleaved(complex16s_t *src, int32_t *dst, int len)
+{
+    int stop_len = len / SSE_LEN_INT32;
+    stop_len *= SSE_LEN_INT32;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
+            __m128i reim = _mm_load_si128((__m128i *)((const int16_t *)src + j));
+           // print8i(reim); printf("\n");
+            _mm_store_si128((__m128i*)(dst + i), _mm_madd_epi16 (reim, reim));
+            j += SSE_LEN_INT16;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
+            __m128i reim = _mm_loadu_si128((__m128i *)((const int16_t *)src + j));
+            _mm_storeu_si128((__m128i*)(dst + i), _mm_madd_epi16 (reim, reim));
+            j += SSE_LEN_INT16;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = (int32_t)src[i].re * (int32_t)src[i].re + (int32_t)src[i].im * (int32_t)src[i].im;
     }
 }

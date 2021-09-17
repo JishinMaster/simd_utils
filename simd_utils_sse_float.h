@@ -113,15 +113,7 @@ _PS_CONST(ACOSH_P4, 1.4142135263E0f);
 #endif
     printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
 }
-
-static inline void print8i(__m128i v)
-{
-    int16_t *p = (int16_t *) &v;
-#ifndef __SSE2__
-    _mm_empty();
-#endif
-    printf("[%d, %d, %d, %d,%d, %d, %d, %d]", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
-}*/
+*/
 
 static inline void log10_128f(float *src, float *dst, int len)
 {
