@@ -5966,7 +5966,37 @@ for (int i = 0; i < len; i++){
     l2_err_i16(inout_sref, inout_s3, len);
 #endif
 
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    absdiff16s_256s(inout_s1, inout_s2, inout_s3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("absdiff16s_256s %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        absdiff16s_256s(inout_s1, inout_s2, inout_s3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("absdiff16s_256s %d %lf\n", len, elapsed);
+    l2_err_i16(inout_sref, inout_s3, len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    absdiff16s_512s(inout_s1, inout_s2, inout_s3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("absdiff16s_512s %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        absdiff16s_512s(inout_s1, inout_s2, inout_s3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("absdiff16s_512s %d %lf\n", len, elapsed);
+    l2_err_i16(inout_sref, inout_s3, len);
+#endif
     printf("\n");
     /////////////////////////////////////////////////////////// POWERSPECT_S16_INTERLEAVED //////////////////////////////////////////////////////////////////////////////
     printf("POWERSPECT_S16_INTERLEAVED\n");
@@ -6004,6 +6034,38 @@ for (int i = 0; i < len; i++){
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("powerspect16s_128s_interleaved %d %lf\n", len, elapsed);
+    l2_err_i32(inout_i1, inout_iref, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    powerspect16s_256s_interleaved((complex16s_t*)inout_s1, inout_i1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("powerspect16s_256s_interleaved %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powerspect16s_256s_interleaved((complex16s_t*)inout_s1, inout_i1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powerspect16s_256s_interleaved %d %lf\n", len, elapsed);
+    l2_err_i32(inout_i1, inout_iref, len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    powerspect16s_512s_interleaved((complex16s_t*)inout_s1, inout_i1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("powerspect16s_512s_interleaved %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powerspect16s_512s_interleaved((complex16s_t*)inout_s1, inout_i1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powerspect16s_512s_interleaved %d %lf\n", len, elapsed);
     l2_err_i32(inout_i1, inout_iref, len);
 #endif
     /*for(int i = 0; i < len; i++)

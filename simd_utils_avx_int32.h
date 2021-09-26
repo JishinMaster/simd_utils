@@ -196,3 +196,87 @@ static inline void fast_copy256s_4(int32_t *src, int32_t *dst, int len)
     }
 }
 #endif
+
+static inline __m256i _mm256_absdiff_epi16(__m256i a, __m256i b)
+{
+    __m256i cmp, difab, difba;
+    cmp = _mm256_cmpgt_epi16(a,b);
+    difab = _mm256_sub_epi16(a,b);
+    difba = _mm256_sub_epi16 (b,a);
+    difab = _mm256_and_si256(cmp, difab);
+    difba = _mm256_andnot_si256(cmp, difba);
+    return _mm256_or_si256(difab, difba);
+}
+
+static inline __m256i _mm256_absdiff_epi32(__m256i a, __m256i b)
+{
+    __m256i cmp, difab, difba;
+    cmp = _mm256_cmpgt_epi32(a,b);
+    difab = _mm256_sub_epi32(a,b);
+    difba = _mm256_sub_epi32 (b,a);
+    difab = _mm256_and_si256(cmp, difab);
+    difba = _mm256_andnot_si256(cmp, difba);
+    return _mm256_or_si256(difab, difba);
+}
+
+static inline __m256i _mm256_absdiff_epi8(__m256i a, __m256i b)
+{
+    __m256i cmp, difab, difba;
+    cmp = _mm256_cmpgt_epi8(a,b);
+    difab = _mm256_sub_epi8(a,b);
+    difba = _mm256_sub_epi8 (b,a);
+    difab = _mm256_and_si256(cmp, difab);
+    difba = _mm256_andnot_si256(cmp, difba);
+    return _mm256_or_si256(difab, difba);
+}
+
+static inline void absdiff16s_256s(int16_t *src1, int16_t *src2, int16_t *dst, int len)
+{
+    int stop_len = len / AVX_LEN_INT16;
+    stop_len *= AVX_LEN_INT16;
+
+
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_INT16) {
+            __m256i a = _mm256_load_si256((__m256i *) (src1 + i));
+            __m256i b = _mm256_load_si256((__m256i *) (src2 + i));
+            _mm256_store_si256((__m256i *)(dst + i), _mm256_absdiff_epi16(a,b));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_INT16) {
+            __m256i a = _mm256_loadu_si256((__m256i *) (src1 + i));
+            __m256i b = _mm256_loadu_si256((__m256i *) (src2 + i));
+            _mm256_storeu_si256((__m256i *) (dst + i), _mm256_absdiff_epi16(a,b));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = abs(src1[i] - src2[i]);
+    }
+}
+
+static inline void powerspect16s_256s_interleaved(complex16s_t *src, int32_t *dst, int len)
+{
+    int stop_len = len / AVX_LEN_INT32;
+    stop_len *= AVX_LEN_INT32;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
+            __m256i reim = _mm256_load_si256((__m256i *)((const int16_t *)src + j));
+           // print8i(reim); printf("\n");
+            _mm256_store_si256((__m256i*)(dst + i), _mm256_madd_epi16 (reim, reim));
+            j += AVX_LEN_INT16;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
+            __m256i reim = _mm256_loadu_si256((__m256i *)((const int16_t *)src + j));
+            _mm256_storeu_si256((__m256i*)(dst + i), _mm256_madd_epi16 (reim, reim));
+            j += AVX_LEN_INT16;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = (int32_t)src[i].re * (int32_t)src[i].re + (int32_t)src[i].im * (int32_t)src[i].im;
+    }
+}
