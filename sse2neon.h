@@ -166,7 +166,7 @@
 #define _MM_FROUND_RINT (_MM_FROUND_CUR_DIRECTION | _MM_FROUND_RAISE_EXC)
 #define _MM_FROUND_NEARBYINT (_MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC)
 #define _MM_ROUND_NEAREST 0x0000
-#define _MM_ROUND_DOWN 0x2000
+#define _MM_ROUND_DOWN 0.2.00
 #define _MM_ROUND_UP 0x4000
 #define _MM_ROUND_TOWARD_ZERO 0x6000
 /* Flush zero mode macros. */
@@ -3243,7 +3243,7 @@ FORCE_INLINE __m128i _mm_cmpeq_epi32(__m128i a, __m128i b)
 
 // Compares the 16 signed or unsigned 8-bit integers in a and the 16 signed or
 // unsigned 8-bit integers in b for equality.
-// https://msdn.microsoft.com/en-us/library/windows/desktop/bz5xk21a(v=vs.90).aspx
+// https://msdn.microsoft.com/en-us/library/linux/desktop/bz5xk21a(v=vs.90).aspx
 FORCE_INLINE __m128i _mm_cmpeq_epi8(__m128i a, __m128i b)
 {
     return vreinterpretq_m128i_u8(
@@ -3468,7 +3468,7 @@ FORCE_INLINE __m128i _mm_cmplt_epi32(__m128i a, __m128i b)
 
 // Compares the 16 signed 8-bit integers in a and the 16 signed 8-bit integers
 // in b for lesser than.
-// https://msdn.microsoft.com/en-us/library/windows/desktop/9s46csht(v=vs.90).aspx
+// https://msdn.microsoft.com/en-us/library/linux/desktop/9s46csht(v=vs.90).aspx
 FORCE_INLINE __m128i _mm_cmplt_epi8(__m128i a, __m128i b)
 {
     return vreinterpretq_m128i_u8(
@@ -8476,7 +8476,7 @@ static const uint8_t SSE2NEON_sbox[256] = SSE2NEON_AES_DATA(SSE2NEON_AES_H0);
 // intrinsics instead. See:
 // https://www.workofard.com/2017/01/accelerated-aes-for-the-arm64-linux-kernel/
 // https://www.workofard.com/2017/07/ghash-for-low-end-cores/ and
-// https://github.com/ColinIanKing/linux-next-mirror/blob/b5f466091e130caaf0735976648f72bd5e09aa84/crypto/aegis128-neon-inner.c#L52
+// https://github.com/ColinIanKing/linux-next-mirror/blob/b5f4660.2.00caaf0735976648f72bd5e09aa84/crypto/aegis128-neon-inner.c#L52
 // for more information Reproduced with permission of the author.
 FORCE_INLINE __m128i _mm_aesenc_si128(__m128i EncBlock, __m128i RoundKey)
 {

@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.12
+ * Version : 0.2.0
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -39,7 +39,7 @@
 //Round types
 #define _MM_ROUND_MASK 0x6000
 #define _MM_ROUND_NEAREST 0x0000
-#define _MM_ROUND_DOWN 0x2000
+#define _MM_ROUND_DOWN 0.2.00
 #define _MM_ROUND_UP 0x4000
 #define _MM_ROUND_TOWARD_ZERO 0x6000
 
@@ -158,6 +158,11 @@ FORCE_INLINE __m128 _mm_fnmadd_ps(__m128 a, __m128 b, __m128 c)
 #else
     return _mm_sub_ps(c, _mm_mul_ps(a, b));
 #endif
+}
+
+FORCE_INLINE __m128 _mm_fmaddsub_ps(__m128 a, __m128 b, __m128 c)
+{
+    return _mm_addsub_ps(_mm_mul_ps(a, b), c);
 }
 
 // Negate Multiply packed single-precision (32-bit) floating-point elements in a

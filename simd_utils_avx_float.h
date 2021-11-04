@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.12
+ * Version : 0.2.0
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -2238,13 +2238,13 @@ static inline void sigmoid256f(float *src, float *dst, int len)
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             v8sf tmp = _mm256_add_ps(*(v8sf *) _ps256_1, exp256_ps_alternate(_mm256_xor_ps(*(v8sf *) _ps256_neg_sign_mask, src_tmp)));
-            _mm256_store_ps(dst + i, _mm256_rcp_ps(tmp));
+            _mm256_store_ps(dst + i, _mm256_div_ps(*(v8sf *) _ps256_1, tmp));  //)_mm256_rcp_ps(tmp));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_loadu_ps(src + i);
             v8sf tmp = _mm256_add_ps(*(v8sf *) _ps256_1, exp256_ps_alternate(_mm256_xor_ps(*(v8sf *) _ps256_neg_sign_mask, src_tmp)));
-            _mm256_storeu_ps(dst + i, _mm256_rcp_ps(tmp));
+            _mm256_storeu_ps(dst + i, _mm256_div_ps(*(v8sf *) _ps256_1, tmp));  //)_mm256_rcp_ps(tmp));
         }
     }
 

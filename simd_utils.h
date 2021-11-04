@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.12
+ * Version : 0.2.0
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -12,8 +12,8 @@ extern "C" {
 #endif
 
 #define MAJOR_VERSION 0
-#define MINOR_VERSION 1
-#define SUB_VERSION 11
+#define MINOR_VERSION 2
+#define SUB_VERSION 0
 
 #ifdef OMP
 #include <omp.h>
@@ -51,8 +51,10 @@ static const int32_t inv_sign_mask = ~SIGN_MASK;
 
 #include "mysincosf.h"
 
-#define INVLN10 0.4342944819032518f     //0.4342944819f
-#define INVLN2 1.4426950408889634f      //1.44269504089f
+#define INVLN10 0.4342944819032518f  //0.4342944819f
+#define INVLN2 1.4426950408889634f   //1.44269504089f
+#define LN2 0.6931471805599453094172321214581765680755001343602552541206800094f
+#define LN2_DIV_LN10 0.3010299956639811952137388947244930267681898814621085413104274611f
 #define IMM8_FLIP_VEC 0x1B              // change m128 from abcd to dcba
 #define IMM8_LO_HI_VEC 0x1E             // change m128 from abcd to cdab
 #define IMM8_PERMUTE_128BITS_LANES 0x1  // reverse abcd efgh to efgh abcd
@@ -130,8 +132,6 @@ static inline void simd_utils_get_version(void)
     printf("Simd Utils Version : %d.%d.%d\n", MAJOR_VERSION, MINOR_VERSION, SUB_VERSION);
 }
 
-#ifndef RISCV
-
 #ifdef SSE
 #define SSE_LEN_BYTES 16  // Size of SSE lane
 #define SSE_LEN_INT16 8   // number of int16 with an SSE lane
@@ -160,6 +160,15 @@ static inline __m128 _mm_fmadd_ps_custom(__m128 a, __m128 b, __m128 c)
     return _mm_add_ps(_mm_mul_ps(a, b), c);
 #else  /* FMA */
     return _mm_fmadd_ps(a, b, c);
+#endif /* FMA */
+}
+
+static inline __m128 _mm_fmaddsub_ps_custom(__m128 a, __m128 b, __m128 c)
+{
+#ifndef FMA  //Haswell comes with avx2 and fma
+    return _mm_addsub_ps(_mm_mul_ps(a, b), c);
+#else  /* FMA */
+    return _mm_fmaddsub_ps(a, b, c);
 #endif /* FMA */
 }
 
@@ -405,6 +414,7 @@ static inline __m256 _mm256_set_m128(__m128 H, __m128 L)  //not present on every
 #endif /* __clang__ */
 
 #define AVX_LEN_BYTES 32  // Size of AVX lane
+#define AVX_LEN_INT16 16  // number of int16 with an AVX lane
 #define AVX_LEN_INT32 8   // number of int32 with an AVX lane
 #define AVX_LEN_FLOAT 8   // number of float with an AVX lane
 #define AVX_LEN_DOUBLE 4  // number of double with an AVX lane
@@ -415,6 +425,15 @@ static inline __m256 _mm256_fmadd_ps_custom(__m256 a, __m256 b, __m256 c)
     return _mm256_add_ps(_mm256_mul_ps(a, b), c);
 #else  /* FMA */
     return _mm256_fmadd_ps(a, b, c);
+#endif /* FMA */
+}
+
+static inline __m256 _mm256_fmaddsub_ps_custom(__m256 a, __m256 b, __m256 c)
+{
+#ifndef FMA  //Haswell comes with avx2 and fma
+    return _mm256_addsub_ps(_mm256_mul_ps(a, b), c);
+#else  /* FMA */
+    return _mm256_fmaddsub_ps(a, b, c);
 #endif /* FMA */
 }
 
@@ -543,6 +562,7 @@ _PI256_64_CONST(0x7f, 0x7f);
 #ifdef AVX512
 
 #define AVX512_LEN_BYTES 64  // Size of AVX512 lane
+#define AVX512_LEN_INT16 32  // number of int16 with an AVX512 lane
 #define AVX512_LEN_INT32 16  // number of int32 with an AVX512 lane
 #define AVX512_LEN_FLOAT 16  // number of float with an AVX512 lane
 #define AVX512_LEN_DOUBLE 8  // number of double with an AVX512 lane
@@ -553,6 +573,24 @@ static inline __m512 _mm512_fmadd_ps_custom(__m512 a, __m512 b, __m512 c)
     return _mm512_add_ps(_mm512_mul_ps(a, b), c);
 #else  /* FMA */
     return _mm512_fmadd_ps(a, b, c);
+#endif /* FMA */
+}
+
+static inline __m512 _mm512_fmaddsub_ps_custom(__m512 a, __m512 b, __m512 c)
+{
+#ifndef FMA  //Haswell comes with avx2 and fma
+    return _mm512_addsub_ps(_mm512_mul_ps(a, b), c);
+#else  /* FMA */
+    return _mm512_fmaddsub_ps(a, b, c);
+#endif /* FMA */
+}
+
+static inline __m512 _mm512_fnmadd_ps_custom(__m512 a, __m512 b, __m512 c)
+{
+#ifndef FMA  //Haswell comes with avx2 and fma
+    return _mm512_sub_ps(c, _mm512_mul_ps(a, b));
+#else  /* FMA */
+    return _mm512_fnmadd_ps(a, b, c);
 #endif /* FMA */
 }
 
@@ -667,15 +705,45 @@ _PI512_64_CONST(0x7f, 0x7f);
 #include "simd_utils_avx512_float.h"
 #include "simd_utils_avx512_int32.h"
 
-#endif
+#endif /* AVX512 */
 
 #ifdef ICC
 #include "simd_utils_svml.h"
 #endif
 
-#else /* RISCV */
+#ifdef RISCV /* RISCV */
 #include "simd_utils_riscv.h"
 #endif /* RISCV */
+
+#ifdef ALTIVEC
+
+#define ALTIVEC_LEN_FLOAT 4
+#define ALTIVEC_LEN_BYTES 16
+
+#define ALIGN16_BEG
+#define ALIGN16_END __attribute__((aligned(16)))
+
+#define _PS_CONST(Name, Val) \
+    static const ALIGN16_BEG float _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
+#define _PI32_CONST(Name, Val) \
+    static const ALIGN16_BEG int _pi32_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
+#define _PS_CONST_TYPE(Name, Type, Val) \
+    static const ALIGN16_BEG Type _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
+#define _PI8_CONST(Name, Val)                                                                           \
+    static const ALIGN16_BEG unsigned char _pi8_##Name[16] ALIGN16_END = {Val, Val, Val, Val, Val, Val, \
+                                                                          Val, Val, Val, Val, Val, Val, Val, Val, Val, Val}
+
+_PI8_CONST(0, 0x00);
+_PS_CONST(0, 0.0f);
+_PI8_CONST(ff, 0xFF);
+
+typedef __vector float v4sf;
+typedef __vector int v4si;
+typedef __vector unsigned char v16u8;
+typedef __vector char v16s8;
+
+#include "simd_utils_altivec_float.h"
+#endif /* ALTIVEC */
 
 #ifdef CUSTOM_MALLOC
 //Thanks to Jpommier pfft https://bitbucket.org/jpommier/pffft/src/default/pffft.c
@@ -690,7 +758,6 @@ static inline int posix_memalign(void **pointer, size_t len, int alignement)
     *pointer = p;
     return 0;
 }
-
 
 static inline void *aligned_malloc(size_t len, int alignement)
 {
@@ -710,7 +777,6 @@ static inline void aligned_free(void *p)
 }
 
 #endif /* CUSTOM_MALLOC */
-
 
 
 //////////  C Test functions ////////////////

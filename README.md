@@ -26,6 +26,7 @@ Supported targets are :
 - AVX512 (experimental, most of float32 functions)
 - ARM Neon (through sse2neon plus some optimized functions).
 - RISC-V Vector extension (experimental)
+- PowerPC Alitivec (experimental)
 
 128 bit functions (SSE and NEON) are name function128type, such as asin128f, which computes the arcsinus function on an float32 array. Float64 functions have the "d" suffix.
 256 bit functions (AVX/AVX2) have 256 instead of 128 in their name, such as asin256f.
@@ -39,7 +40,7 @@ The project has been tested on :
 - Intel Cannonlake Core-i7
 - Intel SDE (emulator) for AVX-512
 - Spike (emulator) for RISCV Vector
-- Qemu 5.X (emulator) )for arm/aarch64
+- Qemu 5.X (emulator) )for arm/aarch64, and ppc
 - Cortex-a53 (Raspberry Pi 3B)
 - Cortex-a9 (ZYBO)
 
@@ -53,6 +54,7 @@ Simply include simd_utils.h in your C/C++ file, and compile with :
 - AVX support : gcc -DSSE -DAVX -mavx2  -c file.c -I .
 - AVX512 support : gcc -DSSE -DAVX -DAVX512 -march=skylake-avx512 -c file.c -I .
 - NEON support : aarch64-linux-gnu-gcc -DARM -DFMA -DSSE -flax-vector-conversions -c file.c -I .
+- ALTIVEC support : powerpc64-linux-gnu-gcc -DALTIVEC -DFMA -maltivec -flax-vector-conversions -c file.c -I .
 
 For FMA support you need to add -DFMA and -mfma to x86 targets, and -DFMA to Armv8 targets.
 

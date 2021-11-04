@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.1.12
+ * Version : 0.2.0
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -38,22 +38,18 @@
 #include <mkl_vml.h>
 #endif
 
-#ifndef RISCV
+#if 0
 typedef ALIGN16_BEG union {
     float f[4];
     int i[4];
     v4sf v;
 } ALIGN16_END V4SF;
 
-#ifdef AVX
 typedef ALIGN32_BEG union {
     float f[8];
     int i[8];
     v8sf v;
 } ALIGN32_END V8SF;
-
-#endif
-
 #endif
 
 float l2_err(float *test, float *ref, int len)
@@ -65,10 +61,10 @@ float l2_err(float *test, float *ref, int len)
     }
 
 #ifdef RELEASE
-    if (l2_err > 0.00001f)
-        printf("L2 ERR %0.7f\n", l2_err);
+    if (l2_err > 0.0000001f)
+        printf("L2 ERR %0.9f\n", l2_err);
 #else
-    printf("L2 ERR %0.7f\n", l2_err);
+    printf("L2 ERR %0.9f\n", l2_err);
 #endif
     return l2_err;
 }
@@ -82,10 +78,10 @@ float l2_err_u8(uint8_t *test, uint8_t *ref, int len)
     }
 
 #ifdef RELEASE
-    if (l2_err > 0.00001f)
-        printf("L2 ERR %0.7f\n", l2_err);
+    if (l2_err > 0.0000001f)
+        printf("L2 ERR %0.9f\n", l2_err);
 #else
-    printf("L2 ERR %0.7f\n", l2_err);
+    printf("L2 ERR %0.9f\n", l2_err);
 #endif
     return l2_err;
 }
@@ -99,10 +95,10 @@ float l2_err_i32(int32_t *test, int32_t *ref, int len)
     }
 
 #ifdef RELEASE
-    if (l2_err > 0.00001f)
-        printf("L2 ERR %0.7f\n", l2_err);
+    if (l2_err > 0.000001f)
+        printf("L2 ERR %0.9f\n", l2_err);
 #else
-    printf("L2 ERR %0.7f\n", l2_err);
+    printf("L2 ERR %0.9f\n", l2_err);
 #endif
 
     return l2_err;
@@ -117,10 +113,10 @@ float l2_err_i16(int16_t *test, int16_t *ref, int len)
     }
 
 #ifdef RELEASE
-    if (l2_err > 0.00001f)
-        printf("L2 ERR %0.7f\n", l2_err);
+    if (l2_err > 0.000001f)
+        printf("L2 ERR %0.9f\n", l2_err);
 #else
-    printf("L2 ERR %0.7f\n", l2_err);
+    printf("L2 ERR %0.9f\n", l2_err);
 #endif
 
     return l2_err;
@@ -135,10 +131,10 @@ float l2_errd(double *test, double *ref, int len)
     }
 
 #ifdef RELEASE
-    if (l2_err > 0.00001)
-        printf("L2 ERR %0.7f\n", l2_err);
+    if (l2_err > 0.000000001)
+        printf("L2 ERR %0.13f\n", l2_err);
 #else
-    printf("L2 ERR %0.7f\n", l2_err);
+    printf("L2 ERR %0.13f\n", l2_err);
 #endif
 
     return l2_err;
@@ -588,7 +584,7 @@ int main(int argc, char **argv)
     l2_err(inout, inout_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) ||defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     zero128f(inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1294,7 +1290,7 @@ int main(int argc, char **argv)
     l2_err(inout3, inout_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     minevery128f(inout, inout2, inout3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2029,7 +2025,7 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxvecmul_C %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
-    ;
+    
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
@@ -2052,7 +2048,7 @@ printf("\n");
 	 }*/
 #endif
 
-#ifdef SSE
+#if defined(SSE)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxvecmul128f((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2233,6 +2229,7 @@ printf("\n");
     printf("cplxconjvecmul128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     l2_err(inout_ref, inout2_ref, 2 * len);
+    
 #endif
 
 #ifdef AVX
@@ -3295,7 +3292,7 @@ printf("\n");
     printf("MKLvsLn %d %lf\n", len, elapsed);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     ln_128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3400,7 +3397,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("log2f_C %d %lf\n", len, elapsed);
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     log2_128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -5347,7 +5344,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout4, inout2_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxtoreal128f(inout, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
