@@ -200,8 +200,8 @@ FORCE_INLINE __m128i _mm_cvtpd_epi64(__m128d a)
 #if defined(__aarch64__)
     return vreinterpretq_m128i_s64(vcvtnq_s64_f64(a));
 #else
-    int64_t a0 = (int64_t) ((double *) &a)[0];
-    int64_t a1 = (int64_t) ((double *) &a)[1];
+    int64_t a0 = (int64_t)((double *) &a)[0];
+    int64_t a1 = (int64_t)((double *) &a)[1];
     return _mm_set_epi64(a1, a0);
 #endif
 }

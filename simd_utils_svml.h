@@ -13,7 +13,7 @@ static inline void sin128f_svml(float *src, float *dst, int len)
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
             _mm_store_ps(dst + i, _mm_sin_ps(src_tmp));
@@ -35,7 +35,7 @@ static inline void cos128f_svml(float *src, float *dst, int len)
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
             _mm_store_ps(dst + i, _mm_cos_ps(src_tmp));
@@ -57,7 +57,7 @@ static inline void sincos128f_svml(float *src, float *dst_sin, float *dst_cos, i
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t) (src), (uintptr_t) (dst_sin), (uintptr_t) (dst_cos), SSE_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(src), (uintptr_t)(dst_sin), (uintptr_t)(dst_cos), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
             v4sf dst_sin_tmp;
@@ -87,7 +87,7 @@ static inline void ln_128f_svml(float *src, float *dst, int len)
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             _mm_store_ps(dst + i, _mm_log_ps(_mm_load_ps(src + i)));
         }
@@ -107,7 +107,7 @@ static inline void atan128f_svml(float *src, float *dst, int len)
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
             _mm_store_ps(dst + i, _mm_atan_ps(src_tmp));
@@ -129,7 +129,7 @@ static inline void atan2128f_svml(float *src1, float *src2, float *dst, int len)
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             _mm_store_ps(dst + i, _mm_atan2_ps(_mm_load_ps(src1 + i), _mm_load_ps(src2 + i)));
         }
@@ -149,7 +149,7 @@ static inline void asin128f_svml(float *src, float *dst, int len)
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
             _mm_store_ps(dst + i, _mm_asin_ps(src_tmp));
@@ -171,7 +171,7 @@ static inline void tan128f_svml(float *src, float *dst, int len)
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
             _mm_store_ps(dst + i, _mm_tan_ps(src_tmp));
@@ -196,7 +196,7 @@ static inline void sin256f_svml(float *src, float *dst, int len)
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (((uintptr_t) (const void *) (src) % AVX_LEN_BYTES) == 0) {
+    if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             _mm256_store_ps(dst + i, _mm256_sin_ps(src_tmp));
@@ -218,7 +218,7 @@ static inline void cos256f_svml(float *src, float *dst, int len)
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (((uintptr_t) (const void *) (src) % AVX_LEN_BYTES) == 0) {
+    if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             _mm256_store_ps(dst + i, _mm256_cos_ps(src_tmp));
@@ -240,7 +240,7 @@ static inline void sincos256f_svml(float *src, float *dst_sin, float *dst_cos, i
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (((uintptr_t) (const void *) (src) % AVX_LEN_BYTES) == 0) {
+    if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             v8sf dst_sin_tmp;
@@ -270,7 +270,7 @@ static inline void ln_256f_svml(float *src, float *dst, int len)
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_store_ps(dst + i, _mm256_log_ps(_mm256_load_ps(src + i)));
         }
@@ -290,7 +290,7 @@ static inline void atan256f_svml(float *src, float *dst, int len)
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             _mm256_store_ps(dst + i, _mm256_atan_ps(src_tmp));
@@ -312,7 +312,7 @@ static inline void atan2256f_svml(float *src1, float *src2, float *dst, int len)
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             _mm256_store_ps(dst + i, _mm256_atan2_ps(_mm256_load_ps(src1 + i), _mm256_load_ps(src2 + i)));
         }
@@ -332,7 +332,7 @@ static inline void asin256f_svml(float *src, float *dst, int len)
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             _mm256_store_ps(dst + i, _mm256_asin_ps(src_tmp));
@@ -354,7 +354,7 @@ static inline void tan256f_svml(float *src, float *dst, int len)
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             _mm256_store_ps(dst + i, _mm256_tan_ps(src_tmp));
