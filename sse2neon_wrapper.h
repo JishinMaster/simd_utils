@@ -7,7 +7,7 @@
 
 #pragma once
 
-//JishinMaster : DTCollab sse2neon.h commit :  efcbd5181046dc6290293573979f8cc8a93d9555
+//JishinMaster : DTCollab sse2neon.h commit :  dffa3f8dea9ed8cbe73ad8fd76f33415304eb8f5
 #include "sse2neon.h"
 
 
@@ -105,11 +105,6 @@ inline __m128 _mm_blend_ps(__m128 a, __m128 b, const int i32)
 	return vreinterpretq_m128_f32(vbslq_f32(mask, a, b));
 }
 #endif
-
-FORCE_INLINE void _mm_empty()
-{
-    return;
-}
 
 FORCE_INLINE void _mm_lfence(void)
 {
