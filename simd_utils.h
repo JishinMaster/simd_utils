@@ -735,6 +735,9 @@ _PI512_64_CONST(0x7f, 0x7f);
 
 _PI8_CONST(0, 0x00);
 _PS_CONST(0, 0.0f);
+_PS_CONST(1, 1.0f);
+_PS_CONST(0p5, 0.5f);
+_PS_CONST(min1, -1.0f);
 _PI8_CONST(ff, 0xFF);
 
 typedef __vector float v4sf;

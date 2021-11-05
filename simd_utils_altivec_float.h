@@ -12,8 +12,12 @@
 #include <stdint.h>
 #include <string.h>
 
+//Compare and perm operations => perm unit
+// On e6500, VPERM operations take 2 cycles. VFPU operations take 6 cycles.
+// Complex FPU operations take 7 cycles (and block the unit for 2 cycles)
+
 //use pointer dereferencing to make it generic?
-v16u8 vec_ldu(unsigned char *v)
+static inline v16u8 vec_ldu(unsigned char *v)
 {
     v16u8 permute = vec_lvsl(0, v);
     v16u8 MSQ = vec_ld(0, v);
@@ -44,13 +48,66 @@ static inline v4sf vec_mul(v4sf a, v4sf b)
     return vec_madd(a, b, *(v4sf *) _ps_0);
 }
 
+//Useful link : http://mirror.informatimago.com/next/developer.apple.com/hardware/ve/algorithms.html
+
+//In Altivec there is no div, hence a/b = a*(1/b)
+static inline v4sf vec_div(v4sf a, v4sf b)
+{
+    return vec_mul(a, vec_re(b));
+}
+
+static inline v4sf vec_div_precise(v4sf a, v4sf b)
+{
+    //Get the reciprocal estimate
+    v4sf estimate = vec_re(b);
+
+    //One round of Newton-Raphson refinement
+    v4sf re = vec_madd(vec_nmsub(estimate, b, *(v4sf *) _ps_1), estimate, estimate);
+    return vec_mul(a, re);
+}
+
+
+/*static inline void print4(v4sf v)
+{
+    float *p = (float *) &v;
+    printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
+}*/
+
+//In Altivec there is no sqrt, hence sqrt(a)= a*rsqrt(a)
+static inline v4sf vec_sqrt(v4sf a)
+{
+#if 1  //Add a quantum so that sqrt(0) = 0 and not NaN
+    const v4sf quantum = {1.180E-38, 1.180E-38, 1.180E-38, 1.180E-38};
+    a = vec_add(a, quantum);
+#endif
+    return vec_mul(a, vec_rsqrte(a));
+}
+
+static inline v4sf vec_sqrt_precise(v4sf a)
+{
+#if 1  //Add a quantum so that sqrt(0) = 0 and not NaN
+    const v4sf quantum = {1.180E-38, 1.180E-38, 1.180E-38, 1.180E-38};
+    a = vec_add(a, quantum);
+#endif
+    //Get the square root reciprocal estimate
+    v4sf estimate = vec_rsqrte(a);
+
+    //One round of Newton-Raphson refinement
+    v4sf estimateSquared = vec_madd(estimate, estimate, *(v4sf *) _ps_0);
+    v4sf halfEstimate = vec_madd(estimate, *(v4sf *) _ps_0p5, *(v4sf *) _ps_0);
+    v4sf re = vec_madd(vec_nmsub(a, estimateSquared, *(v4sf *) _ps_1), halfEstimate, estimate);
+
+    return vec_mul(a, re);
+}
+
+
 static inline v4sf vec_set1_ps(float value)
 {
     v4sf a = {value, value, value, value};
     return a;
 }
 
-void set128f(float *dst, float value, int len)
+static inline void set128f(float *dst, float value, int len)
 {
     v4sf tmp = vec_set1_ps(value);
 
@@ -81,7 +138,7 @@ void set128f(float *dst, float value, int len)
     }
 }
 
-void zero128f(float *dst, int len)
+static inline void zero128f(float *dst, int len)
 {
     set128f(dst, 0.0f, len);
 }
@@ -349,6 +406,58 @@ static inline void log10_128f(float *src, float *dst, int len)
     }
 }
 
+static inline void magnitude128f_split(float *srcRe, float *srcIm, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned3((uintptr_t)(srcRe), (uintptr_t)(srcIm), (uintptr_t)(dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf re_tmp = vec_ld(0, srcRe + i);
+            v4sf re2 = vec_mul(re_tmp, re_tmp);
+            v4sf im_tmp = vec_ld(0, srcIm + i);
+            v4sf im2 = vec_mul(im_tmp, im_tmp);
+            vec_st(vec_sqrt(vec_add(re2, im2)), 0, dst + i);
+        }
+    } else {
+        int unalign_srcRe = (uintptr_t)(srcRe) % ALTIVEC_LEN_BYTES;
+        int unalign_srcIm = (uintptr_t)(srcRe) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t)(dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf re_tmp, re2, im_tmp, im2, res;
+
+            if (unalign_srcRe) {
+                re_tmp = (v4sf) vec_ldu((unsigned char *) (srcRe + i));
+            } else {
+                re_tmp = vec_ld(0, srcRe + i);
+            }
+
+            if (unalign_srcIm) {
+                im_tmp = (v4sf) vec_ldu((unsigned char *) (srcIm + i));
+            } else {
+                im_tmp = vec_ld(0, srcIm + i);
+            }
+
+            re2 = vec_mul(re_tmp, re_tmp);
+            im_tmp = vec_ld(0, srcIm + i);
+            im2 = vec_mul(im_tmp, im_tmp);
+            res = vec_sqrt(vec_add(re2, im2));
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &res, (unsigned char *) (dst + i));
+            } else {
+                vec_st(res, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = sqrtf(srcRe[i] * srcRe[i] + srcIm[i] * srcIm[i]);
+    }
+}
+
+
 
 //Work in progress
 #if 0
@@ -361,7 +470,7 @@ static inline void print16(v16u8 v)
     //printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
 }
 
-//To be optimized with vec_permute?
+//Best would be vec_sel(a,b,mask)?
 static inline v16u8 vec_blend(v16u8 a, v16u8 b, v16u8 mask)
 {
     v16u8 b_tmp = vec_and(b, mask);
