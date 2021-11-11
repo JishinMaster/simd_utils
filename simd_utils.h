@@ -153,6 +153,9 @@ static inline void simd_utils_get_version(void)
 
 #endif /* ARM */
 
+//Warning, declared in reverse order since it's little endian :
+// const v4sf conj_mask = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
+static const float _ps_conj_mask[4] __attribute__((aligned(16))) = {1.0f, -1.0f, 1.0f, -1.0f};
 
 static inline __m128 _mm_fmadd_ps_custom(__m128 a, __m128 b, __m128 c)
 {
@@ -169,6 +172,16 @@ static inline __m128 _mm_fmaddsub_ps_custom(__m128 a, __m128 b, __m128 c)
     return _mm_addsub_ps(_mm_mul_ps(a, b), c);
 #else  /* FMA */
     return _mm_fmaddsub_ps(a, b, c);
+#endif /* FMA */
+}
+
+static inline __m128 _mm_fmsubadd_ps_custom(__m128 a, __m128 b, __m128 c)
+{
+#ifndef FMA  //Haswell comes with avx2 and fma
+    v4sf d = _mm_mul_ps(*(v4sf *) _ps_conj_mask, c);
+    return _mm_addsub_ps(_mm_mul_ps(a, b), d);
+#else  /* FMA */
+    return _mm_fmsubadd_ps(a, b, c);
 #endif /* FMA */
 }
 
@@ -419,6 +432,9 @@ static inline __m256 _mm256_set_m128(__m128 H, __m128 L)  //not present on every
 #define AVX_LEN_FLOAT 8   // number of float with an AVX lane
 #define AVX_LEN_DOUBLE 4  // number of double with an AVX lane
 
+
+static const float _ps256_conj_mask[8] __attribute__((aligned(32))) = {1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f};
+
 static inline __m256 _mm256_fmadd_ps_custom(__m256 a, __m256 b, __m256 c)
 {
 #ifndef FMA  //Haswell comes with avx2 and fma
@@ -567,49 +583,32 @@ _PI256_64_CONST(0x7f, 0x7f);
 #define AVX512_LEN_FLOAT 16  // number of float with an AVX512 lane
 #define AVX512_LEN_DOUBLE 8  // number of double with an AVX512 lane
 
+static const float _ps512_conj_mask[16] __attribute__((aligned(64))) = {1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f,
+                                                                        1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f};
+
 static inline __m512 _mm512_fmadd_ps_custom(__m512 a, __m512 b, __m512 c)
 {
-#ifndef FMA
-    return _mm512_add_ps(_mm512_mul_ps(a, b), c);
-#else  /* FMA */
     return _mm512_fmadd_ps(a, b, c);
-#endif /* FMA */
 }
 
 static inline __m512 _mm512_fmaddsub_ps_custom(__m512 a, __m512 b, __m512 c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
-    return _mm512_addsub_ps(_mm512_mul_ps(a, b), c);
-#else  /* FMA */
     return _mm512_fmaddsub_ps(a, b, c);
-#endif /* FMA */
 }
 
 static inline __m512 _mm512_fnmadd_ps_custom(__m512 a, __m512 b, __m512 c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
-    return _mm512_sub_ps(c, _mm512_mul_ps(a, b));
-#else  /* FMA */
     return _mm512_fnmadd_ps(a, b, c);
-#endif /* FMA */
 }
 
 static inline __m512d _mm512_fmadd_pd_custom(__m512d a, __m512d b, __m512d c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
-    return _mm512_add_pd(_mm512_mul_pd(a, b), c);
-#else  /* FMA */
     return _mm512_fmadd_pd(a, b, c);
-#endif /* FMA */
 }
 
 static inline __m512d _mm512_fnmadd_pd_custom(__m512d a, __m512d b, __m512d c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
-    return _mm512_sub_pd(c, _mm512_mul_pd(a, b));
-#else  /* FMA */
     return _mm512_fnmadd_pd(a, b, c);
-#endif /* FMA */
 }
 
 #include "avx512_mathfun.h"
@@ -908,7 +907,7 @@ static inline void muladdf_C(float *_a, float *_b, float *_c, float *dst, int le
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = _a[i] * _b[i] + _c[i];
+        dst[i] = (_a[i] * _b[i]) + _c[i];
     }
 }
 
@@ -918,7 +917,7 @@ static inline void mulcaddf_C(float *_a, float _b, float *_c, float *dst, int le
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = _a[i] * _b + _c[i];
+        dst[i] = (_a[i] * _b) + _c[i];
     }
 }
 
@@ -928,7 +927,7 @@ static inline void mulcaddcf_C(float *_a, float _b, float _c, float *dst, int le
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = _a[i] * _b + _c;
+        dst[i] = (_a[i] * _b) + _c;
     }
 }
 
@@ -1122,7 +1121,7 @@ static inline void magnitudef_C_interleaved(complex32_t *src, float *dst, int le
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = sqrtf(src[i].re * src[i].re + src[i].im * src[i].im);
+        dst[i] = sqrtf(src[i].re * src[i].re + (src[i].im * src[i].im));
     }
 }
 
@@ -1132,7 +1131,7 @@ static inline void magnitudef_C_split(float *srcRe, float *srcIm, float *dst, in
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = sqrtf(srcRe[i] * srcRe[i] + srcIm[i] * srcIm[i]);
+        dst[i] = sqrtf(srcRe[i] * srcRe[i] + (srcIm[i] * srcIm[i]));
     }
 }
 
@@ -1143,7 +1142,17 @@ static inline void powerspectf_C_split(float *srcRe, float *srcIm, float *dst, i
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = srcRe[i] * srcRe[i] + srcIm[i] * srcIm[i];
+        dst[i] = srcRe[i] * srcRe[i] + (srcIm[i] * srcIm[i]);
+    }
+}
+
+static inline void powerspectf_C_interleaved(complex32_t *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src[i].re * src[i].re + (src[i].im * src[i].im);
     }
 }
 
@@ -1172,6 +1181,21 @@ static inline void sumf_C(float *src, float *dst, int len)
         tmp_acc += src[i];
     }
     *dst = tmp_acc;
+}
+
+static inline void maxlocf_C(float *src, float *max, int *idx, int len)
+{
+    float max_val = src[0];
+    int i;
+    int max_idx;
+    for (i = 1; i < len; i++) {
+        if (src[i] > max_val) {
+            max_val = src[i];
+            max_idx = i;
+        }
+    }
+    *idx = max_idx;
+    *max = max_val;
 }
 
 static inline void flipf_C(float *src, float *dst, int len)
@@ -1436,14 +1460,38 @@ static inline void truncd_C(double *src, double *dst, int len)
     }
 }
 
+static inline void cplxvecdiv_C(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        float c2d2 = src2[i].re * src2[i].re + src2[i].im * src2[i].im;
+        dst[i].re = (src1[i].re * src2[i].re + (src1[i].im * src2[i].im)) / c2d2;
+        dst[i].im = (-src1[i].re * src2[i].im + (src2[i].re * src1[i].im)) / c2d2;
+    }
+}
+
+
 static inline void cplxvecmul_C(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i].re = src1[i].re * src2[i].re - src1[i].im * src2[i].im;
-        dst[i].im = src1[i].re * src2[i].im + src2[i].re * src1[i].im;
+        dst[i].re = (src1[i].re * src2[i].re) - src1[i].im * src2[i].im;
+        dst[i].im = src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
+    }
+}
+
+static inline void cplxvecmul_C2(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i].re = (float) ((double) src1[i].re * (double) src2[i].re - (double) src1[i].im * (double) src2[i].im);
+        dst[i].im = (float) ((double) src1[i].re * (double) src2[i].im + (double) src2[i].re * (double) src1[i].im);
     }
 }
 
@@ -1453,8 +1501,8 @@ static inline void cplxvecmul_C_split(float *src1Re, float *src1Im, float *src2R
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dstRe[i] = src1Re[i] * src2Re[i] - src1Im[i] * src2Im[i];
-        dstIm[i] = src1Re[i] * src2Im[i] + src2Re[i] * src1Im[i];
+        dstRe[i] = (src1Re[i] * src2Re[i]) - src1Im[i] * src2Im[i];
+        dstIm[i] = src1Re[i] * src2Im[i] + (src2Re[i] * src1Im[i]);
     }
 }
 
@@ -1465,8 +1513,19 @@ static inline void cplxconjvecmul_C(complex32_t *src1, complex32_t *src2, comple
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i].re = src1[i].re * src2[i].re + src1[i].im * src2[i].im;
-        dst[i].im = src2[i].re * src1[i].im - src1[i].re * src2[i].im;
+        dst[i].re = src1[i].re * src2[i].re + (src1[i].im * src2[i].im);
+        dst[i].im = (src2[i].re * src1[i].im) - src1[i].re * src2[i].im;
+    }
+}
+
+static inline void cplxconjvecmul_C2(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i].re = (float) ((double) src1[i].re * (double) src2[i].re + (double) src1[i].im * (double) src2[i].im);
+        dst[i].im = (float) ((double) src2[i].re * (double) src1[i].im - (double) src1[i].re * (double) src2[i].im);
     }
 }
 
@@ -1476,8 +1535,19 @@ static inline void cplxconjvecmul_C_split(float *src1Re, float *src1Im, float *s
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dstRe[i] = src1Re[i] * src2Re[i] + src1Im[i] * src2Im[i];
-        dstIm[i] = src2Re[i] * src1Im[i] - src1Re[i] * src2Im[i];
+        dstRe[i] = src1Re[i] * src2Re[i] + (src1Im[i] * src2Im[i]);
+        dstIm[i] = (src2Re[i] * src1Im[i]) - src1Re[i] * src2Im[i];
+    }
+}
+
+static inline void cplxconjvecmul_C_split2(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dstRe[i] = (float) ((double) src1Re[i] * (double) src2Re[i] + (double) src1Im[i] * (double) src2Im[i]);
+        dstIm[i] = (float) ((double) src2Re[i] * (double) src1Im[i] - (double) src1Re[i] * (double) src2Im[i]);
     }
 }
 

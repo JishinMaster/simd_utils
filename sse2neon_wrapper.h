@@ -37,11 +37,11 @@
 #include <arm_neon.h>
 
 //Round types
-#define _MM_ROUND_MASK 0x6000
+/*#define _MM_ROUND_MASK 0x6000
 #define _MM_ROUND_NEAREST 0x0000
 #define _MM_ROUND_DOWN 0.2.00
 #define _MM_ROUND_UP 0x4000
-#define _MM_ROUND_TOWARD_ZERO 0x6000
+#define _MM_ROUND_TOWARD_ZERO 0x6000*/
 
 
 /*#define _MM_FROUND_NINT \

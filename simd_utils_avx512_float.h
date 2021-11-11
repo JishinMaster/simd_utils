@@ -598,8 +598,12 @@ static inline void minmax512f(float *src, int len, float *min_value, float *max_
 
     v16sf max_v, min_v;
     v16sf src_tmp;
+
+#if 0
     float min_f[AVX512_LEN_FLOAT] __attribute__((aligned(AVX512_LEN_BYTES)));
     float max_f[AVX512_LEN_FLOAT] __attribute__((aligned(AVX512_LEN_BYTES)));
+#endif
+
     float min_tmp;
     float max_tmp;
 
@@ -623,6 +627,32 @@ static inline void minmax512f(float *src, int len, float *min_value, float *max_
         }
     }
 
+// With SIMD reduction
+#if 1
+    v8sf max1 = _mm512_castps512_ps256(max_v);
+    v8sf min1 = _mm512_castps512_ps256(min_v);
+    v8sf max2 = _mm512_extractf32x8_ps(max_v, 1);
+    v8sf min2 = _mm512_extractf32x8_ps(min_v, 1);
+    max2 = _mm256_max_ps(max1, max2);
+    min2 = _mm256_min_ps(min1, min2);
+    v4sf max3 = _mm256_castps256_ps128(max2);
+    v4sf min3 = _mm256_castps256_ps128(min2);
+    v4sf max4 = _mm256_extractf32x4_ps(max2, 1);
+    v4sf min4 = _mm256_extractf32x4_ps(min2, 1);
+    max4 = _mm_max_ps(max3, max4);
+    min4 = _mm_min_ps(min3, min4);
+    max3 = _mm_permute_ps(max4, 0x0E);
+    min3 = _mm_permute_ps(min4, 0x0E);
+    max4 = _mm_max_ps(max3, max4);
+    min4 = _mm_min_ps(min3, min4);
+    max3 = _mm_permute_ps(max4, 0x01);
+    min3 = _mm_permute_ps(min4, 0x01);
+    max4 = _mm_max_ps(max3, max4);
+    min4 = _mm_min_ps(min3, min4);
+    _mm_store_ss(&max_tmp, max4);
+    _mm_store_ss(&min_tmp, min4);
+
+#else
     _mm512_store_ps(max_f, max_v);
     _mm512_store_ps(min_f, min_v);
 
@@ -659,6 +689,7 @@ static inline void minmax512f(float *src, int len, float *min_value, float *max_
     min_tmp = min_tmp < min_f[13] ? min_tmp : min_f[13];
     min_tmp = min_tmp < min_f[14] ? min_tmp : min_f[14];
     min_tmp = min_tmp < min_f[15] ? min_tmp : min_f[15];
+#endif
 
     for (int i = stop_len; i < len; i++) {
         max_tmp = max_tmp > src[i] ? max_tmp : src[i];
@@ -1757,6 +1788,57 @@ static inline void trunc512f(float *src, float *dst, int len)
     }
 }
 
+// must find a simple hadd alternative since it does not exist in avx512_mathfun
+/*
+static inline void cplxvecdiv512f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+
+{
+
+    int stop_len = len / (AVX512_LEN_FLOAT);  //(len << 1) >> 2;
+    stop_len = stop_len * AVX512_LEN_FLOAT;   //stop_len << 2;
+
+    int i;
+
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+        //printf("Aligned\n");
+        for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);                        // src1 = b1,a1,b0,a0 (little endian)
+            v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);                        // src2 = d1,c1,d0,c0
+            v16sf c2d2 = _mm512_mul_ps(src2_tmp, src2_tmp);
+            c2d2 = _mm512_hadd_ps(c2d2,c2d2);
+            c2d2 = _mm512_shuffle_ps(c2d2,c2d2,  _mm512_SHUFFLE(1, 1, 0, 0));
+            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                    //a1,a1,a0,a0
+            tmp1 = _mm512_mul_ps(*(v16sf*)_ps512_conj_mask,tmp1);
+            v16sf tmp2 = _mm512_shuffle_ps(src2_tmp, src2_tmp, _mm512_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
+            v16sf tmp3 = _mm512_movehdup_ps(src1_tmp);                                    //b1,b1,b0,b0
+            v16sf out = _mm512_mul_ps(tmp2, tmp3);                                        // c1b1, b1d1, c0b0, d0b0
+            out = _mm512_fmadd_ps_custom(tmp1, src2_tmp, out);
+            out = _mm512_div_ps(out, c2d2);
+            _mm512_store_ps((float *) (dst) + i, out);
+        }
+    } else {
+            v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);                        // src1 = b1,a1,b0,a0 (little endian)
+            v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);                        // src2 = d1,c1,d0,c0
+            v16sf c2d2 = _mm512_mul_ps(src2_tmp, src2_tmp);
+            c2d2 = _mm512_hadd_ps(c2d2,c2d2);
+            c2d2 = _mm512_shuffle_ps(c2d2,c2d2,  _mm512_SHUFFLE(1, 1, 0, 0));
+            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                    //a1,a1,a0,a0
+            tmp1 = _mm512_mul_ps(*(v16sf*)_ps512_conj_mask,tmp1);
+            v16sf tmp2 = _mm512_shuffle_ps(src2_tmp, src2_tmp, _mm512_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
+            v16sf tmp3 = _mm512_movehdup_ps(src1_tmp);                                    //b1,b1,b0,b0
+            v16sf out = _mm512_mul_ps(tmp2, tmp3);                                        // c1b1, b1d1, c0b0, d0b0
+            out = _mm512_fmadd_ps_custom(tmp1, src2_tmp, out);
+            out = _mm512_div_ps(out, c2d2);
+            _mm512_store_ps((float *) (dst) + i, out);
+    }
+    for (int i = stop_len; i < len; i++) {
+        float c2d2 = src2[i].re*src2[i].re + src2[i].im*src2[i].im;
+        dst[i].re = ((src1[i].re * src2[i].re) + (src1[i].im * src2[i].im))/c2d2;
+        dst[i].im = ( -(src1[i].re * src2[i].im) + (src2[i].re * src1[i].im))/c2d2;
+    }
+}
+*/
+
 static inline void cplxvecmul512f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
     int stop_len = len / (AVX512_LEN_FLOAT);  //(len << 1) >> 2;
@@ -1765,33 +1847,35 @@ static inline void cplxvecmul512f(complex32_t *src1, complex32_t *src2, complex3
     int i;
     if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
-            v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);                      // src1 = b1,a1,b0,a0 (little endian)
-            v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);                      // src2 = d1,c1,d0,c0
-            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                  //a1,a1,a0,a0
-            v16sf tmp2 = _mm512_mul_ps(tmp1, src2_tmp);                                 //a1d1,a1c1,a0d0,a0c0
-            src2_tmp = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
-            tmp1 = _mm512_movehdup_ps(src1_tmp);                                        //b1,b1,b0,b0
-            v16sf out = _mm512_mul_ps(src2_tmp, tmp1);
-            out = _mm512_fmaddsub_ps(*(v16sf *) _ps512_plus1, tmp2, out);
+            v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);  // src1 = b1,a1,b0,a0 (little endian)
+            v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);  // src2 = d1,c1,d0,c0
+            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);              //a1,a1,a0,a0
+            //v16sf tmp2 = _mm512_mul_ps(tmp1, src2_tmp);                                 //a1d1,a1c1,a0d0,a0c0
+            v16sf tmp3 = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
+            v16sf tmp4 = _mm512_movehdup_ps(src1_tmp);                                    //b1,b1,b0,b0
+            v16sf out = _mm512_mul_ps(tmp3, tmp4);
+            // out = _mm512_fmaddsub_ps(*(v16sf *) _ps512_plus1, tmp2, out);
+            out = _mm512_fmaddsub_ps(tmp1, src2_tmp, out);
             _mm512_store_ps((float *) (dst) + i, out);
         }
     } else {
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
-            v16sf src1_tmp = _mm512_loadu_ps((float *) (src1) + i);                     // src1 = b1,a1,b0,a0 (little endian)
-            v16sf src2_tmp = _mm512_loadu_ps((float *) (src2) + i);                     // src2 = d1,c1,d0,c0
-            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                  //a1,a1,a0,a0
-            v16sf tmp2 = _mm512_mul_ps(tmp1, src2_tmp);                                 //a1d1,a1c1,a0d0,a0c0
-            src2_tmp = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
-            tmp1 = _mm512_movehdup_ps(src1_tmp);                                        //b1,b1,b0,b0
-            v16sf out = _mm512_mul_ps(src2_tmp, tmp1);
-            out = _mm512_fmaddsub_ps(*(v16sf *) _ps512_plus1, tmp2, out);
+            v16sf src1_tmp = _mm512_loadu_ps((float *) (src1) + i);  // src1 = b1,a1,b0,a0 (little endian)
+            v16sf src2_tmp = _mm512_loadu_ps((float *) (src2) + i);  // src2 = d1,c1,d0,c0
+            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);               //a1,a1,a0,a0
+            //v16sf tmp2 = _mm512_mul_ps(tmp1, src2_tmp);                                 //a1d1,a1c1,a0d0,a0c0
+            v16sf tmp3 = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
+            v16sf tmp4 = _mm512_movehdup_ps(src1_tmp);                                    //b1,b1,b0,b0
+            v16sf out = _mm512_mul_ps(tmp3, tmp4);
+            //out = _mm512_fmaddsub_ps(*(v16sf *) _ps512_plus1, tmp2, out);
+            out = _mm512_fmaddsub_ps(tmp1, src2_tmp, out);
             _mm512_storeu_ps((float *) (dst) + i, out);
         }
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i].re = src1[i].re * src2[i].re - src1[i].im * src2[i].im;
-        dst[i].im = src1[i].re * src2[i].im + src2[i].re * src1[i].im;
+        dst[i].re = (src1[i].re * src2[i].re) - src1[i].im * src2[i].im;
+        dst[i].im = src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
     }
 }
 
@@ -1832,8 +1916,8 @@ static inline void cplxvecmul512f_split(float *src1Re, float *src1Im, float *src
     }
 
     for (int i = stop_len; i < len; i++) {
-        dstRe[i] = src1Re[i] * src2Re[i] - src1Im[i] * src2Im[i];
-        dstIm[i] = src1Re[i] * src2Im[i] + src2Re[i] * src1Im[i];
+        dstRe[i] = (src1Re[i] * src2Re[i]) - src1Im[i] * src2Im[i];
+        dstIm[i] = src1Re[i] * src2Im[i] + (src2Re[i] * src1Im[i]);
     }
 }
 
@@ -1843,38 +1927,50 @@ static inline void cplxconjvecmul512f(complex32_t *src1, complex32_t *src2, comp
     stop_len = stop_len * AVX512_LEN_FLOAT;   //stop_len << 2;
 
     int i;
-    const v16sf conj_mask = _mm512_set_ps(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f,
-                                          -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
+    //const v16sf conj_mask = _mm512_set_ps(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f,
+    //                                      -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
 
     if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
-            v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);                      // src1 = b1,a1,b0,a0 (little endian)
-            v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);                      // src2 = d1,c1,d0,c0
-            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                  //a1,a1,a0,a0
-            v16sf tmp2 = _mm512_mul_ps(tmp1, src2_tmp);                                 //a1d1,a1c1,a0d0,a0c0
-            src2_tmp = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
-            tmp1 = _mm512_movehdup_ps(src1_tmp);                                        //b1,b1,b0,b0
-            v16sf out = _mm512_mul_ps(src2_tmp, tmp1);
-            out = _mm512_fmadd_ps_custom(conj_mask, tmp2, out);
+            v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);                        // src1 = b1,a1,b0,a0 (little endian)
+            v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);                        // src2 = d1,c1,d0,c0
+            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                    //a1,a1,a0,a0
+            v16sf tmp2 = _mm512_mul_ps(tmp1, src2_tmp);                                   //a1d1,a1c1,a0d0,a0c0
+            v16sf tmp3 = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
+            v16sf tmp4 = _mm512_movehdup_ps(src1_tmp);                                    //b1,b1,b0,b0
+
+#ifndef FMA
+            v16sf out = _mm512_mul_ps(tmp3, tmp4);
+            out = _mm512_fmadd_ps_custom(*(v16sf *) _ps512_conj_mask, tmp2, out);
+#else
+            v16sf out = _mm512_fmsubadd_ps(tmp3, tmp4, tmp2);
+#endif
+
             _mm512_store_ps((float *) (dst) + i, out);
         }
     } else {
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
-            v16sf src1_tmp = _mm512_loadu_ps((float *) (src1) + i);                     // src1 = b1,a1,b0,a0 (little endian)
-            v16sf src2_tmp = _mm512_loadu_ps((float *) (src2) + i);                     // src2 = d1,c1,d0,c0
-            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                  //a1,a1,a0,a0
-            v16sf tmp2 = _mm512_mul_ps(tmp1, src2_tmp);                                 //a1d1,a1c1,a0d0,a0c0
-            src2_tmp = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
-            tmp1 = _mm512_movehdup_ps(src1_tmp);                                        //b1,b1,b0,b0
-            v16sf out = _mm512_mul_ps(src2_tmp, tmp1);
-            out = _mm512_fmadd_ps_custom(conj_mask, tmp2, out);
+            v16sf src1_tmp = _mm512_loadu_ps((float *) (src1) + i);                       // src1 = b1,a1,b0,a0 (little endian)
+            v16sf src2_tmp = _mm512_loadu_ps((float *) (src2) + i);                       // src2 = d1,c1,d0,c0
+            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                    //a1,a1,a0,a0
+            v16sf tmp2 = _mm512_mul_ps(tmp1, src2_tmp);                                   //a1d1,a1c1,a0d0,a0c0
+            v16sf tmp3 = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
+            v16sf tmp4 = _mm512_movehdup_ps(src1_tmp);                                    //b1,b1,b0,b0
+
+#ifndef FMA
+            v16sf out = _mm512_mul_ps(tmp3, tmp4);
+            out = _mm512_fmadd_ps_custom(*(v16sf *) _ps512_conj_mask, tmp2, out);
+#else
+            v16sf out = _mm512_fmsubadd_ps(tmp3, tmp4, tmp2);
+#endif
+
             _mm512_storeu_ps((float *) (dst) + i, out);
         }
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i].re = src1[i].re * src2[i].re + src1[i].im * src2[i].im;
-        dst[i].im = src2[i].re * src1[i].im - src1[i].re * src2[i].im;
+        dst[i].re = src1[i].re * src2[i].re + (src1[i].im * src2[i].im);
+        dst[i].im = (src2[i].re * src1[i].im) - src1[i].re * src2[i].im;
     }
 }
 
@@ -1915,8 +2011,8 @@ static inline void cplxconjvecmul512f_split(float *src1Re, float *src1Im, float 
     }
 
     for (int i = stop_len; i < len; i++) {
-        dstRe[i] = src1Re[i] * src2Re[i] + src1Im[i] * src2Im[i];
-        dstIm[i] = src2Re[i] * src1Im[i] - src1Re[i] * src2Im[i];
+        dstRe[i] = src1Re[i] * src2Re[i] + (src1Im[i] * src2Im[i]);
+        dstIm[i] = (src2Re[i] * src1Im[i]) - src1Re[i] * src2Im[i];
     }
 }
 
@@ -1926,21 +2022,21 @@ static inline void cplxconj512f(complex32_t *src, complex32_t *dst, int len)
     int stop_len = len / (AVX512_LEN_FLOAT);  //(len << 1) >> 2;
     stop_len = stop_len * AVX512_LEN_FLOAT;   //stop_len << 2;
 
-    const v16sf conj_mask = _mm512_set_ps(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f,
-                                          -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
+    //const v16sf conj_mask = _mm512_set_ps(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f,
+    //                                      -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
 
     int i;
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         //printf("Aligned\n");
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps((float *) (src) + i);
-            _mm512_store_ps((float *) (dst) + i, _mm512_mul_ps(src_tmp, conj_mask));
+            _mm512_store_ps((float *) (dst) + i, _mm512_mul_ps(src_tmp, *(v16sf *) _ps512_conj_mask));
         }
     } else {
         //printf("Unaligned\n");
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps((float *) (src) + i);
-            _mm512_storeu_ps((float *) (dst) + i, _mm512_mul_ps(src_tmp, conj_mask));
+            _mm512_storeu_ps((float *) (dst) + i, _mm512_mul_ps(src_tmp, *(v16sf *) _ps512_conj_mask));
         }
     }
 
