@@ -1546,16 +1546,14 @@ static inline void magnitude512f_split(float *srcRe, float *srcIm, float *dst, i
             v16sf re_tmp = _mm512_load_ps(srcRe + i);
             v16sf re2 = _mm512_mul_ps(re_tmp, re_tmp);
             v16sf im_tmp = _mm512_load_ps(srcIm + i);
-            v16sf im2 = _mm512_mul_ps(im_tmp, im_tmp);
-            _mm512_store_ps(dst + i, _mm512_sqrt_ps(_mm512_add_ps(re2, im2)));
+            _mm512_store_ps(dst + i, _mm512_sqrt_ps(_mm512_fmadd_ps_custom(im_tmp, im_tmp, re2)));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf re_tmp = _mm512_loadu_ps(srcRe + i);
             v16sf re2 = _mm512_mul_ps(re_tmp, re_tmp);
             v16sf im_tmp = _mm512_loadu_ps(srcIm + i);
-            v16sf im2 = _mm512_mul_ps(im_tmp, im_tmp);
-            _mm512_store_ps(dst + i, _mm512_sqrt_ps(_mm512_add_ps(re2, im2)));
+            _mm512_store_ps(dst + i, _mm512_sqrt_ps(_mm512_fmadd_ps_custom(im_tmp, im_tmp, re2)));
         }
     }
 
@@ -1574,16 +1572,14 @@ static inline void powerspect512f_split(float *srcRe, float *srcIm, float *dst, 
             v16sf re_tmp = _mm512_load_ps(srcRe + i);
             v16sf re2 = _mm512_mul_ps(re_tmp, re_tmp);
             v16sf im_tmp = _mm512_load_ps(srcIm + i);
-            v16sf im2 = _mm512_mul_ps(im_tmp, im_tmp);
-            _mm512_store_ps(dst + i, _mm512_add_ps(re2, im2));
+            _mm512_store_ps(dst + i, _mm512_fmadd_ps_custom(im_tmp, im_tmp, re2));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf re_tmp = _mm512_loadu_ps(srcRe + i);
             v16sf re2 = _mm512_mul_ps(re_tmp, re_tmp);
             v16sf im_tmp = _mm512_loadu_ps(srcIm + i);
-            v16sf im2 = _mm512_mul_ps(im_tmp, im_tmp);
-            _mm512_store_ps(dst + i, _mm512_add_ps(re2, im2));
+            _mm512_store_ps(dst + i, _mm512_fmadd_ps_custom(im_tmp, im_tmp, re2));
         }
     }
 

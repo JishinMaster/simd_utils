@@ -129,7 +129,9 @@ FORCE_INLINE __m128 _mm_fmadd_ps(__m128 a, __m128 b, __m128 c)
                                             vreinterpretq_f32_m128(b),
                                             vreinterpretq_f32_m128(a)));
 #else
-    return _mm_add_ps(_mm_mul_ps(a, b), c);
+    return vreinterpretq_m128_f32(vmlaq_f32(vreinterpretq_f32_m128(c),
+                                            vreinterpretq_f32_m128(b),
+                                            vreinterpretq_f32_m128(a)));  //_mm_add_ps(_mm_mul_ps(a, b), c);
 #endif
 }
 
@@ -156,7 +158,9 @@ FORCE_INLINE __m128 _mm_fnmadd_ps(__m128 a, __m128 b, __m128 c)
                                             vreinterpretq_f32_m128(b),
                                             vreinterpretq_f32_m128(a)));
 #else
-    return _mm_sub_ps(c, _mm_mul_ps(a, b));
+    return vreinterpretq_m128_f32(vmlsq_f32(vreinterpretq_f32_m128(c),
+                                            vreinterpretq_f32_m128(b),
+                                            vreinterpretq_f32_m128(a)));  //_mm_sub_ps(c, _mm_mul_ps(a, b));
 #endif
 }
 

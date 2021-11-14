@@ -1805,16 +1805,14 @@ static inline void magnitude256f_split(float *srcRe, float *srcIm, float *dst, i
             v8sf re_tmp = _mm256_load_ps(srcRe + i);
             v8sf re2 = _mm256_mul_ps(re_tmp, re_tmp);
             v8sf im_tmp = _mm256_load_ps(srcIm + i);
-            v8sf im2 = _mm256_mul_ps(im_tmp, im_tmp);
-            _mm256_store_ps(dst + i, _mm256_sqrt_ps(_mm256_add_ps(re2, im2)));
+            _mm256_store_ps(dst + i, _mm256_sqrt_ps(_mm256_fmadd_ps_custom(im_tmp, im_tmp, re2)));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf re_tmp = _mm256_loadu_ps(srcRe + i);
             v8sf re2 = _mm256_mul_ps(re_tmp, re_tmp);
             v8sf im_tmp = _mm256_loadu_ps(srcIm + i);
-            v8sf im2 = _mm256_mul_ps(im_tmp, im_tmp);
-            _mm256_store_ps(dst + i, _mm256_sqrt_ps(_mm256_add_ps(re2, im2)));
+            _mm256_store_ps(dst + i, _mm256_sqrt_ps(_mm256_fmadd_ps_custom(im_tmp, im_tmp, re2)));
         }
     }
 
@@ -1833,16 +1831,14 @@ static inline void powerspect256f_split(float *srcRe, float *srcIm, float *dst, 
             v8sf re_tmp = _mm256_load_ps(srcRe + i);
             v8sf re2 = _mm256_mul_ps(re_tmp, re_tmp);
             v8sf im_tmp = _mm256_load_ps(srcIm + i);
-            v8sf im2 = _mm256_mul_ps(im_tmp, im_tmp);
-            _mm256_store_ps(dst + i, _mm256_add_ps(re2, im2));
+            _mm256_store_ps(dst + i, _mm256_fmadd_ps_custom(im_tmp, im_tmp, re2));
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf re_tmp = _mm256_loadu_ps(srcRe + i);
             v8sf re2 = _mm256_mul_ps(re_tmp, re_tmp);
             v8sf im_tmp = _mm256_loadu_ps(srcIm + i);
-            v8sf im2 = _mm256_mul_ps(im_tmp, im_tmp);
-            _mm256_store_ps(dst + i, _mm256_add_ps(re2, im2));
+            _mm256_store_ps(dst + i, _mm256_fmadd_ps_custom(im_tmp, im_tmp, re2));
         }
     }
 

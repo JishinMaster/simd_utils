@@ -2122,6 +2122,10 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("powerspect128f_interleaved %d %lf\n", len, elapsed);
 
+    /*for(int i = 0; i < 2*len; i++){
+      printf("%f %f\n",inout_ref[i], inout2_ref[i]);
+    }*/
+
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
@@ -2162,7 +2166,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxvecdiv128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    l2_err(inout_ref, inout2_ref, len);
+    l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
 #if defined(AVX)
@@ -2179,7 +2183,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxvecdiv256f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    l2_err(inout_ref, inout2_ref, len);
+    l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
     printf("\n");
@@ -2250,7 +2254,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsMul_32fc_A24 %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    l2_err(inout_ref, inout2_ref, len);
+    l2_err(inout_ref, inout2_ref, 2 * len);
 
     /*for(int i = 0; i < len; i+=2){
 		printf("%f %f // %f %f // %f %f || %f %f\n",inout[i],inout[i+1],inout2[i],inout2[i+1],inout_ref[i],inout_ref[i+1], inout2_ref[i], inout2_ref[i+1]);
@@ -2271,7 +2275,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxvecmul128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    l2_err(inout_ref, inout2_ref, len);
+    l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
 #ifdef AVX
@@ -2288,7 +2292,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxvecmul256f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    l2_err(inout_ref, inout2_ref, len);
+    l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
 #ifdef AVX512
@@ -2305,7 +2309,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxvecmul512f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    l2_err(inout_ref, inout2_ref, len);
+    l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
     printf("\n");
@@ -2435,7 +2439,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsMulByConj_32fc_A11 %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    l2_err(inout_ref, inout2_ref, len);
+    l2_err(inout_ref, inout2_ref, 2 * len);
 
     clock_gettime(CLOCK_REALTIME, &start);
     ippsMulByConj_32fc_A21((const Ipp32fc *) inout, (const Ipp32fc *) inout2, (Ipp32fc *) inout2_ref, len);
@@ -2450,7 +2454,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsMulByConj_32fc_A21 %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    l2_err(inout_ref, inout2_ref, len);
+    l2_err(inout_ref, inout2_ref, 2 * len);
 
     clock_gettime(CLOCK_REALTIME, &start);
     ippsMulByConj_32fc_A24((const Ipp32fc *) inout, (const Ipp32fc *) inout2, (Ipp32fc *) inout2_ref, len);
@@ -2465,7 +2469,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsMulByConj_32fc_A24 %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    l2_err(inout_ref, inout2_ref, len);
+    l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
 #ifdef SSE

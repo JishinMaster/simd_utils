@@ -177,7 +177,7 @@ static inline __m128 _mm_fmaddsub_ps_custom(__m128 a, __m128 b, __m128 c)
 
 static inline __m128 _mm_fmsubadd_ps_custom(__m128 a, __m128 b, __m128 c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
+#if !defined(FMA) || defined(ARM)
     v4sf d = _mm_mul_ps(*(v4sf *) _ps_conj_mask, c);
     return _mm_addsub_ps(_mm_mul_ps(a, b), d);
 #else  /* FMA */
