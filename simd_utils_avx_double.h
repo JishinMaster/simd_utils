@@ -563,7 +563,7 @@ static inline v4sd atan256_pd(v4sd xx)
     flag = _mm256_blendv_pd(flag, *(v4sd *) _pd256_1, suptan3pi8);                 // if( x > tan 3pi/8 ) then flag = 1
 
     inftan3pi8inf0p66 = _mm256_and_pd(_mm256_cmp_pd(x, *(v4sd *) _pd256_TAN3PI8, _CMP_LE_OS), _mm256_cmp_pd(x, zerop66, _CMP_LE_OS));  // if( x <= tan 3pi/8 ) && (x <= 0.66)
-    y = _mm256_blendv_pd(*(v4sd *) _pd_PIO4, y, inftan3pi8inf0p66);                                                                    // y = 0 or PIO4
+    y = _mm256_blendv_pd(*(v4sd *) _pd256_PIO4, y, inftan3pi8inf0p66);                                                                 // y = 0 or PIO4
     x = _mm256_blendv_pd(_mm256_div_pd(_mm256_sub_pd(x, *(v4sd *) _pd256_1), _mm256_add_pd(x, *(v4sd *) _pd256_1)), x, inftan3pi8inf0p66);
     flag = _mm256_blendv_pd(flag, *(v4sd *) _pd256_2, _mm256_cmp_pd(*(v4sd *) _pd256_PIO4, y, _CMP_EQ_OS));  // if y = PIO4 then flag = 2
 

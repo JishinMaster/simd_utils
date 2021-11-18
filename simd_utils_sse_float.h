@@ -631,8 +631,6 @@ static inline void vectorSlope128f(float *dst, int len, float offset, float slop
     }
 }
 
-//#ifndef ARM
-
 static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
 {
     int stop_len = len / SSE_LEN_FLOAT;
@@ -712,60 +710,6 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
     }
 }
 
-//#endif  //ARM
-
-//TODO : find a way to avoid __m64
-typedef union xmm_mm_union_int {
-    __m128i xmm;
-    __m64 mm[2];
-} xmm_mm_union_int;
-
-#define COPY_XMM_TO_MM_INT(xmm_, mm0_, mm1_) \
-    {                                        \
-        xmm_mm_union_int u;                  \
-        u.xmm = xmm_;                        \
-        mm0_ = u.mm[0];                      \
-        mm1_ = u.mm[1];                      \
-    }
-
-static inline void convertInt16ToFloat32_128_old(int16_t *src, float *dst, int len, int scale_factor)
-{
-    int stop_len = len / SSE_LEN_FLOAT;
-    stop_len *= SSE_LEN_FLOAT;
-
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
-    v4sf scale_fact_vec = _mm_set1_ps(scale_fact_mult);
-
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
-            __m64 shortlo, shorthi;
-            COPY_XMM_TO_MM_INT(_mm_load_si128((__m128i *) (src + i)), shortlo, shorthi);
-
-            v4sf floatlo = _mm_mul_ps(_mm_cvtpi16_ps(shortlo), scale_fact_vec);
-            v4sf floathi = _mm_mul_ps(_mm_cvtpi16_ps(shorthi), scale_fact_vec);
-
-            _mm_store_ps(dst + i, floatlo);
-            _mm_store_ps(dst + i + SSE_LEN_FLOAT, floathi);
-        }
-    } else {
-        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
-            __m64 shortlo, shorthi;
-            COPY_XMM_TO_MM_INT(_mm_loadu_si128((__m128i *) (src + i)), shortlo, shorthi);
-
-            v4sf floatlo = _mm_mul_ps(_mm_cvtpi16_ps(shortlo), scale_fact_vec);
-            v4sf floathi = _mm_mul_ps(_mm_cvtpi16_ps(shorthi), scale_fact_vec);
-
-            _mm_storeu_ps(dst + i, floatlo);
-            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, floathi);
-        }
-    }
-
-    for (int i = stop_len; i < len; i++) {
-        dst[i] = (float) src[i] * scale_fact_mult;
-    }
-}
-
-//This improved version does not use MMX
 static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, int scale_factor)
 {
     int stop_len = len / SSE_LEN_FLOAT;
@@ -811,29 +755,32 @@ static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, 
     }
 }
 
-#ifndef ARM
 // converts 32bits complex float to two arrays real and im
 static inline void cplxtoreal128f(float *src, float *dstRe, float *dstIm, int len)
 {
-    int stop_len = 2 * len / (SSE_LEN_FLOAT);
-    stop_len *= SSE_LEN_FLOAT;
+    int stop_len = 2 * len / (2 * SSE_LEN_FLOAT);
+    stop_len *= 2 * SSE_LEN_FLOAT;
 
     int j = 0;
     if (areAligned3((uintptr_t)(src), (uintptr_t)(dstRe), (uintptr_t)(dstIm), SSE_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
-            v4sf vec1 = _mm_load_ps(src + i);
-            v4sf vec2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
-            _mm_store_ps(dstRe + j, _mm_shuffle_ps(vec1, vec2, _MM_SHUFFLE(2, 0, 2, 0)));
-            _mm_store_ps(dstIm + j, _mm_shuffle_ps(vec1, vec2, _MM_SHUFFLE(3, 1, 3, 1)));
-            j += SSE_LEN_FLOAT;
+        for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
+            v4sfx2 vec1 = _mm_load2_ps(src + i);
+            v4sfx2 vec2 = _mm_load2_ps(src + i + 2 * SSE_LEN_FLOAT);
+            _mm_store_ps(dstRe + j, vec1.val[0]);
+            _mm_store_ps(dstIm + j, vec1.val[1]);
+            _mm_store_ps(dstRe + j + SSE_LEN_FLOAT, vec2.val[0]);
+            _mm_store_ps(dstIm + j + SSE_LEN_FLOAT, vec2.val[1]);
+            j += 2 * SSE_LEN_FLOAT;
         }
     } else {
-        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
-            v4sf vec1 = _mm_loadu_ps(src + i);
-            v4sf vec2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
-            _mm_storeu_ps(dstRe + j, _mm_shuffle_ps(vec1, vec2, _MM_SHUFFLE(2, 0, 2, 0)));
-            _mm_storeu_ps(dstIm + j, _mm_shuffle_ps(vec1, vec2, _MM_SHUFFLE(3, 1, 3, 1)));
-            j += SSE_LEN_FLOAT;
+        for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
+            v4sfx2 vec1 = _mm_load2u_ps(src + i);
+            v4sfx2 vec2 = _mm_load2u_ps(src + i + 2 * SSE_LEN_FLOAT);
+            _mm_storeu_ps(dstRe + j, vec1.val[0]);
+            _mm_storeu_ps(dstIm + j, vec1.val[1]);
+            _mm_storeu_ps(dstRe + j + SSE_LEN_FLOAT, vec2.val[0]);
+            _mm_storeu_ps(dstIm + j + SSE_LEN_FLOAT, vec2.val[1]);
+            j += 2 * SSE_LEN_FLOAT;
         }
     }
 
@@ -846,29 +793,33 @@ static inline void cplxtoreal128f(float *src, float *dstRe, float *dstIm, int le
 
 static inline void realtocplx128f(float *srcRe, float *srcIm, float *dst, int len)
 {
-    int stop_len = len / (SSE_LEN_FLOAT);
-    stop_len *= SSE_LEN_FLOAT;
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= 2 * SSE_LEN_FLOAT;
 
     int j = 0;
     if (areAligned3((uintptr_t)(srcRe), (uintptr_t)(srcIm), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf re = _mm_load_ps(srcRe + i);
             v4sf im = _mm_load_ps(srcIm + i);
-            v4sf cplx0 = _mm_unpacklo_ps(re, im);
-            v4sf cplx1 = _mm_unpackhi_ps(re, im);
-            _mm_store_ps(dst + j, cplx0);
-            _mm_store_ps(dst + j + SSE_LEN_FLOAT, cplx1);
-            j += 2 * SSE_LEN_FLOAT;
+            v4sf re2 = _mm_load_ps(srcRe + i + SSE_LEN_FLOAT);
+            v4sf im2 = _mm_load_ps(srcIm + i + SSE_LEN_FLOAT);
+            v4sfx2 reim = {{re, im}};
+            v4sfx2 reim2 = {{re2, im2}};
+            _mm_store2_ps(dst + j, reim);
+            _mm_store2_ps(dst + j + 2 * SSE_LEN_FLOAT, reim2);
+            j += 4 * SSE_LEN_FLOAT;
         }
     } else {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf re = _mm_loadu_ps(srcRe + i);
             v4sf im = _mm_loadu_ps(srcIm + i);
-            v4sf cplx0 = _mm_unpacklo_ps(re, im);
-            v4sf cplx1 = _mm_unpackhi_ps(re, im);
-            _mm_storeu_ps(dst + j, cplx0);
-            _mm_storeu_ps(dst + j + SSE_LEN_FLOAT, cplx1);
-            j += 2 * SSE_LEN_FLOAT;
+            v4sf re2 = _mm_loadu_ps(srcRe + i + SSE_LEN_FLOAT);
+            v4sf im2 = _mm_loadu_ps(srcIm + i + SSE_LEN_FLOAT);
+            v4sfx2 reim = {{re, im}};
+            v4sfx2 reim2 = {{re2, im2}};
+            _mm_store2u_ps(dst + j, reim);
+            _mm_store2u_ps(dst + j + 2 * SSE_LEN_FLOAT, reim2);
+            j += 4 * SSE_LEN_FLOAT;
         }
     }
 
@@ -878,50 +829,6 @@ static inline void realtocplx128f(float *srcRe, float *srcIm, float *dst, int le
         j += 2;
     }
 }
-#else  /* ARM */
-// ARM Neon optimized version
-static inline void cplxtoreal128f(float *src, float *dstRe, float *dstIm, int len)
-{
-    int stop_len = 2 * len / (SSE_LEN_FLOAT);
-    stop_len *= SSE_LEN_FLOAT;
-
-    int j = 0;
-    for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
-        float32x4x2_t values = vld2q_f32(src + i);
-        vst1q_f32(dstRe + j, values.val[0]);
-        vst1q_f32(dstIm + j, values.val[1]);
-        j += SSE_LEN_FLOAT;
-    }
-
-    for (int i = stop_len; i < 2 * len; i += 2) {
-        dstRe[j] = src[i];
-        dstIm[j] = src[i + 1];
-        j++;
-    }
-}
-
-static inline void realtocplx128f(float *srcRe, float *srcIm, float *dst, int len)
-{
-    int stop_len = len / (SSE_LEN_FLOAT);
-    stop_len *= SSE_LEN_FLOAT;
-
-    int j = 0;
-    for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
-        v4sf re = vld1q_f32(srcRe + i);
-        v4sf im = vld1q_f32(srcIm + i);
-        float32x4x2_t reim = {{re, im}};  //double braces so that GCC does not complain
-        vst2q_f32(dst + j, reim);
-        j += 2 * SSE_LEN_FLOAT;
-    }
-
-    for (int i = stop_len; i < len; i++) {
-        dst[j] = srcRe[i];
-        dst[j + 1] = srcIm[i];
-        j += 2;
-    }
-}
-#endif /* ARM */
-
 
 static inline void convert128_64f32f(double *src, float *dst, int len)
 {
@@ -1708,6 +1615,35 @@ static inline void atan2128f(float *src1, float *src2, float *dst, int len)
 }
 
 
+static inline void atan2128f_interleaved(complex32_t *src, float *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= 2 * SSE_LEN_FLOAT;
+
+    int j = 0;
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sfx2 src_split = _mm_load2_ps((float *) (src) + j);
+            v4sfx2 src_split2 = _mm_load2_ps((float *) (src) + j + 2 * SSE_LEN_FLOAT);
+            _mm_store_ps(dst + i, atan2f_ps(src_split.val[1], src_split.val[0]));
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, atan2f_ps(src_split2.val[1], src_split2.val[0]));
+            j += 4 * SSE_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sfx2 src_split = _mm_load2u_ps((float *) (src) + j);
+            v4sfx2 src_split2 = _mm_load2u_ps((float *) (src) + j + 2 * SSE_LEN_FLOAT);
+            _mm_storeu_ps(dst + i, atan2f_ps(src_split.val[1], src_split.val[0]));
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, atan2f_ps(src_split2.val[1], src_split2.val[0]));
+            j += 4 * SSE_LEN_FLOAT;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atan2f(src[i].im, src[i].re);
+    }
+}
+
 static inline v4sf asinf_ps(v4sf xx)
 {
     v4sf a, x, z, z_tmp;
@@ -2030,6 +1966,47 @@ static inline void magnitude128f_interleaved(complex32_t *src, float *dst, int l
         dst[i] = sqrtf(src[i].re * src[i].re + (src[i].im * src[i].im));
     }
 }
+
+// 10% fastos on Atom? And on newer CPU?
+/*
+static inline void magnitude128f_interleaved2(complex32_t *src, float *dst, int len)
+{
+    int stop_len = len / (4 * SSE_LEN_FLOAT);
+    stop_len *= 4 * SSE_LEN_FLOAT;
+
+    int j = 0;
+    for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
+        v4sfx2 src_split = _mm_load2_ps((float *) (src) + j);  //a0a1a2a3, b0b1b2b3
+        v4sfx2 src_split2 = _mm_load2_ps((float *) (src) + j + 2 * SSE_LEN_FLOAT);
+        v4sfx2 src_split3 = _mm_load2_ps((float *) (src) + j + 4 * SSE_LEN_FLOAT);
+        v4sfx2 src_split4 = _mm_load2_ps((float *) (src) + j + 6 * SSE_LEN_FLOAT);
+        v4sf split_square0 = _mm_mul_ps(src_split.val[0], src_split.val[0]);
+        v4sf split2_square0 = _mm_mul_ps(src_split2.val[0], src_split2.val[0]);
+        v4sf split3_square0 = _mm_mul_ps(src_split3.val[0], src_split3.val[0]);
+        v4sf split4_square0 = _mm_mul_ps(src_split4.val[0], src_split4.val[0]);
+        v4sfx2 dst_split;
+        v4sfx2 dst_split2;
+        dst_split.val[0] = _mm_fmadd_ps_custom(src_split.val[1], src_split.val[1], split_square0);
+        dst_split.val[1] = _mm_fmadd_ps_custom(src_split2.val[1], src_split2.val[1], split2_square0);
+        dst_split2.val[0] = _mm_fmadd_ps_custom(src_split3.val[1], src_split3.val[1], split3_square0);
+        dst_split2.val[1] = _mm_fmadd_ps_custom(src_split4.val[1], src_split4.val[1], split4_square0);
+
+        dst_split.val[0] = _mm_sqrt_ps(dst_split.val[0]);
+        dst_split.val[1] = _mm_sqrt_ps(dst_split.val[1]);
+        dst_split2.val[0] = _mm_sqrt_ps(dst_split2.val[0]);
+        dst_split2.val[1] = _mm_sqrt_ps(dst_split2.val[1]);
+
+        _mm_store_ps((float *) (dst) + i, dst_split.val[0]);
+        _mm_store_ps((float *) (dst) + i + SSE_LEN_FLOAT, dst_split.val[1]);
+        _mm_store_ps((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2.val[0]);
+        _mm_store_ps((float *) (dst) + i + 3 * SSE_LEN_FLOAT, dst_split2.val[1]);
+        j += 8 * SSE_LEN_FLOAT;
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = sqrtf(src[i].re * src[i].re + (src[i].im * src[i].im));
+    }
+}*/
 
 static inline void powerspect128f_interleaved(complex32_t *src, float *dst, int len)
 {

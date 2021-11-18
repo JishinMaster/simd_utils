@@ -627,7 +627,7 @@ static inline void print8(__m256 v)
 }
 
 // converts 32bits complex float to two arrays real and im
-//Work in progress
+//Work in progress => could be improved with custom SSE mm_load2_ps
 static inline void cplxtoreal256f(float *src, float *dstRe, float *dstIm, int len)
 {
     int stop_len = 2 * len / (AVX_LEN_FLOAT);
@@ -1534,6 +1534,52 @@ static inline void atan2256f(float *src1, float *src2, float *dst, int len)
         dst[i] = atan2f(src1[i], src2[i]);
     }
 }
+
+static inline void atan2256f_interleaved(complex32_t *src, float *dst, int len)
+{
+    int stop_len = len / (2 * AVX_LEN_FLOAT);
+    stop_len *= 2 * AVX_LEN_FLOAT;
+
+    int j = 0;
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+            v4sfx2 src_1 = _mm_load2_ps((float *) (src) + j);
+            v4sfx2 src_2 = _mm_load2_ps((float *) (src) + j + 2 * SSE_LEN_FLOAT);
+            v4sfx2 src_3 = _mm_load2_ps((float *) (src) + j + 4 * SSE_LEN_FLOAT);
+            v4sfx2 src_4 = _mm_load2_ps((float *) (src) + j + 6 * SSE_LEN_FLOAT);
+
+            v8sf src_a_re = _mm256_set_m128(src_2.val[0], src_1.val[0]);
+            v8sf src_a_im = _mm256_set_m128(src_2.val[1], src_1.val[1]);
+            v8sf src_b_re = _mm256_set_m128(src_4.val[0], src_3.val[0]);
+            v8sf src_b_im = _mm256_set_m128(src_4.val[1], src_3.val[1]);
+            _mm256_store_ps(dst + i, atan2256f_ps(src_a_im, src_a_re));
+            _mm256_store_ps(dst + i + AVX_LEN_FLOAT, atan2256f_ps(src_b_im, src_b_re));
+
+            j += 4 * AVX_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+            v4sfx2 src_1 = _mm_load2u_ps((float *) (src) + j);
+            v4sfx2 src_2 = _mm_load2u_ps((float *) (src) + j + 2 * SSE_LEN_FLOAT);
+            v4sfx2 src_3 = _mm_load2u_ps((float *) (src) + j + 4 * SSE_LEN_FLOAT);
+            v4sfx2 src_4 = _mm_load2u_ps((float *) (src) + j + 6 * SSE_LEN_FLOAT);
+
+            v8sf src_a_re = _mm256_set_m128(src_2.val[0], src_1.val[0]);
+            v8sf src_a_im = _mm256_set_m128(src_2.val[1], src_1.val[1]);
+            v8sf src_b_re = _mm256_set_m128(src_4.val[0], src_3.val[0]);
+            v8sf src_b_im = _mm256_set_m128(src_4.val[1], src_3.val[1]);
+            _mm256_storeu_ps(dst + i, atan2256f_ps(src_a_im, src_a_re));
+            _mm256_storeu_ps(dst + i + AVX_LEN_FLOAT, atan2256f_ps(src_b_im, src_b_re));
+
+            j += 4 * AVX_LEN_FLOAT;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atan2f(src[i].im, src[i].re);
+    }
+}
+
 
 static inline v8sf asin256f_ps(v8sf xx)
 {

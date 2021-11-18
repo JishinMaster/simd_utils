@@ -93,9 +93,15 @@ typedef enum {
 static inline int isAligned(uintptr_t ptr, size_t alignment)
 {
 #ifndef ALWAYS_ALIGNED
+
+#ifndef ARM  //ARM manages disalignment in hardware
     if (((uintptr_t)(ptr) % alignment) == 0)
         return 1;
     return 0;
+#else
+    return 1;
+#endif
+
 #else
     return 1;
 #endif
@@ -104,10 +110,16 @@ static inline int isAligned(uintptr_t ptr, size_t alignment)
 static inline int areAligned2(uintptr_t ptr1, uintptr_t ptr2, size_t alignment)
 {
 #ifndef ALWAYS_ALIGNED
+
+#ifndef ARM  //ARM manages disalignment in hardware
     if (((uintptr_t)(ptr1) % alignment) == 0)
         if (((uintptr_t)(ptr2) % alignment) == 0)
             return 1;
     return 0;
+#else
+    return 1;
+#endif
+
 #else
     return 1;
 #endif
@@ -116,11 +128,17 @@ static inline int areAligned2(uintptr_t ptr1, uintptr_t ptr2, size_t alignment)
 static inline int areAligned3(uintptr_t ptr1, uintptr_t ptr2, uintptr_t ptr3, size_t alignment)
 {
 #ifndef ALWAYS_ALIGNED
+
+#ifndef ARM  //ARM manages disalignment in hardware
     if (((uintptr_t)(ptr1) % alignment) == 0)
         if (((uintptr_t)(ptr2) % alignment) == 0)
             if (((uintptr_t)(ptr3) % alignment) == 0)
                 return 1;
     return 0;
+#else
+    return 1;
+#endif
+
 #else
     return 1;
 #endif
@@ -152,6 +170,66 @@ static inline void simd_utils_get_version(void)
     static const ALIGN16_BEG Type _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
 
 #endif /* ARM */
+
+#ifndef ARM
+typedef struct {
+    v4sf val[2];
+} v4sfx2;
+#else
+typedef float32x4x2_t v4sfx2;
+#endif
+
+static inline v4sfx2 _mm_load2_ps(float const *mem_addr)
+{
+#ifdef ARM
+    return vld2q_f32(mem_addr);
+#else
+    v4sf tmp1 = _mm_load_ps(mem_addr);
+    v4sf tmp2 = _mm_load_ps(mem_addr + SSE_LEN_FLOAT);
+    v4sfx2 ret;
+    ret.val[0] = _mm_shuffle_ps(tmp1, tmp2, _MM_SHUFFLE(2, 0, 2, 0));
+    ret.val[1] = _mm_shuffle_ps(tmp1, tmp2, _MM_SHUFFLE(3, 1, 3, 1));
+    return ret;
+#endif
+}
+
+static inline v4sfx2 _mm_load2u_ps(float const *mem_addr)
+{
+#ifdef ARM
+    return vld2q_f32(mem_addr);
+#else
+    v4sf tmp1 = _mm_loadu_ps(mem_addr);
+    v4sf tmp2 = _mm_loadu_ps(mem_addr + SSE_LEN_FLOAT);
+    v4sfx2 ret;
+    ret.val[0] = _mm_shuffle_ps(tmp1, tmp2, _MM_SHUFFLE(2, 0, 2, 0));
+    ret.val[1] = _mm_shuffle_ps(tmp1, tmp2, _MM_SHUFFLE(3, 1, 3, 1));
+    return ret;
+#endif
+}
+
+static inline void _mm_store2_ps(float *mem_addr, v4sfx2 a)
+{
+#ifdef ARM
+    vst2q_f32(mem_addr, a);
+#else
+    v4sf tmp1 = _mm_unpacklo_ps(a.val[0], a.val[1]);
+    v4sf tmp2 = _mm_unpackhi_ps(a.val[0], a.val[1]);
+    _mm_store_ps(mem_addr, tmp1);
+    _mm_store_ps(mem_addr + SSE_LEN_FLOAT, tmp2);
+#endif
+}
+
+static inline void _mm_store2u_ps(float *mem_addr, v4sfx2 a)
+{
+#ifdef ARM
+    vst2q_f32(mem_addr, a);
+#else
+    v4sf tmp1 = _mm_unpacklo_ps(a.val[0], a.val[1]);
+    v4sf tmp2 = _mm_unpackhi_ps(a.val[0], a.val[1]);
+    _mm_storeu_ps(mem_addr, tmp1);
+    _mm_storeu_ps(mem_addr + SSE_LEN_FLOAT, tmp2);
+#endif
+}
 
 //Warning, declared in reverse order since it's little endian :
 // const v4sf conj_mask = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
@@ -1327,6 +1405,17 @@ static inline void atan2f_C(float *src1, float *src2, float *dst, int len)
         dst[i] = atan2f(src1[i], src2[i]);
     }
 }
+
+static inline void atan2f_interleaved_C(complex32_t *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = atan2f(src[i].im, src[i].re);
+    }
+}
+
 
 
 static inline void sinf_C(float *src, float *dst, int len)
