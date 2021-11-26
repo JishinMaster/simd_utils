@@ -196,7 +196,7 @@ static inline void sin256f_svml(float *src, float *dst, int len)
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             _mm256_store_ps(dst + i, _mm256_sin_ps(src_tmp));
@@ -218,7 +218,7 @@ static inline void cos256f_svml(float *src, float *dst, int len)
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             _mm256_store_ps(dst + i, _mm256_cos_ps(src_tmp));
@@ -240,7 +240,7 @@ static inline void sincos256f_svml(float *src, float *dst_sin, float *dst_cos, i
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (((uintptr_t)(const void *) (src) % AVX_LEN_BYTES) == 0) {
+    if (areAligned3((uintptr_t)(src), (uintptr_t)(dst_sin), (uintptr_t)(dst_cos), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             v8sf dst_sin_tmp;

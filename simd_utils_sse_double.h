@@ -16,47 +16,47 @@
 typedef __m128d v2sd;  // vector of 2 double (sse)
 typedef __m128i v2si;  // vector of 2 int 64 (sse)
 
-static inline void set128d(double *src, double value, int len)
+static inline void set128d(double *dst, double value, int len)
 {
     const v2sd tmp = _mm_set1_pd(value);
 
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src) % SSE_LEN_BYTES) == 0) {
+    if (isAligned((uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
-            _mm_store_pd(src + i, tmp);
+            _mm_store_pd(dst + i, tmp);
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
-            _mm_storeu_pd(src + i, tmp);
+            _mm_storeu_pd(dst + i, tmp);
         }
     }
 
     for (int i = stop_len; i < len; i++) {
-        src[i] = value;
+        dst[i] = value;
     }
 }
 
-static inline void zero128d(double *src, int len)
+static inline void zero128d(double *dst, int len)
 {
     const v2sd tmp = _mm_setzero_pd();
 
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
 
-    if (((uintptr_t)(const void *) (src) % SSE_LEN_BYTES) == 0) {
+    if (isAligned((uintptr_t)(dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
-            _mm_store_pd(src + i, tmp);
+            _mm_store_pd(dst + i, tmp);
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
-            _mm_storeu_pd(src + i, tmp);
+            _mm_storeu_pd(dst + i, tmp);
         }
     }
 
     for (int i = stop_len; i < len; i++) {
-        src[i] = 0.0;
+        dst[i] = 0.0;
     }
 }
 
@@ -421,28 +421,36 @@ static inline void trunc128d(double *src, double *dst, int len)
 //TODO : add dual accumulator like vectorSlope128f
 static inline void vectorSlope128d(double *dst, int len, double offset, double slope)
 {
+    int stop_len = len / (2 * SSE_LEN_DOUBLE);
+    stop_len *= (2 * SSE_LEN_DOUBLE);
+
     v2sd coef = _mm_set_pd(slope, 0.0);
-    v2sd slope2_vec = _mm_set1_pd(2.0 * slope);
+    v2sd slope4_vec = _mm_set1_pd(4.0 * slope);
     v2sd curVal = _mm_add_pd(_mm_set1_pd(offset), coef);
+    v2sd curVal2 = _mm_add_pd(_mm_set1_pd(offset), coef);
+    curVal2 = _mm_add_pd(curVal2, _mm_set1_pd(2.0 * slope));
 
-    int stop_len = len / SSE_LEN_DOUBLE;
-    stop_len *= SSE_LEN_DOUBLE;
-
-    if (((uintptr_t)(const void *) (dst) % SSE_LEN_BYTES) == 0) {
+    if (isAligned((uintptr_t)(dst), SSE_LEN_BYTES)) {
         _mm_store_pd(dst + 0, curVal);
+        _mm_store_pd(dst + SSE_LEN_DOUBLE, curVal2);
     } else {
         _mm_storeu_pd(dst + 0, curVal);
+        _mm_storeu_pd(dst + SSE_LEN_DOUBLE, curVal2);
     }
 
-    if (((uintptr_t)(const void *) (dst) % SSE_LEN_BYTES) == 0) {
-        for (int i = SSE_LEN_DOUBLE; i < stop_len; i += SSE_LEN_DOUBLE) {
-            curVal = _mm_add_pd(curVal, slope2_vec);
+    if (isAligned((uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 2 * SSE_LEN_DOUBLE; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
+            curVal = _mm_add_pd(curVal, slope4_vec);
             _mm_store_pd(dst + i, curVal);
+            curVal2 = _mm_add_pd(curVal2, slope4_vec);
+            _mm_store_pd(dst + i + SSE_LEN_DOUBLE, curVal2);
         }
     } else {
-        for (int i = SSE_LEN_DOUBLE; i < stop_len; i += SSE_LEN_DOUBLE) {
-            curVal = _mm_add_pd(curVal, slope2_vec);
+        for (int i = 2 * SSE_LEN_DOUBLE; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
+            curVal = _mm_add_pd(curVal, slope4_vec);
             _mm_storeu_pd(dst + i, curVal);
+            curVal2 = _mm_add_pd(curVal2, slope4_vec);
+            _mm_storeu_pd(dst + i + SSE_LEN_DOUBLE, curVal2);
         }
     }
 
@@ -450,7 +458,6 @@ static inline void vectorSlope128d(double *dst, int len, double offset, double s
         dst[i] = offset + slope * (double) i;
     }
 }
-
 
 
 // Work in progress
@@ -619,8 +626,8 @@ static inline void sincos128d(double *src, double *dst_sin, double *dst_cos, int
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst_sin[i] = sin(i);
-        dst_cos[i] = cos(i);
+        dst_sin[i] = sin(src[i]);
+        dst_cos[i] = cos(src[i]);
     }
 }
 

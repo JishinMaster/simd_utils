@@ -21,6 +21,7 @@ extern "C" {
 
 #include <math.h>
 #include <stdint.h>
+#include <stdio.h>
 
 static const float FOPI = 1.27323954473516f;
 static const float PIO4F = 0.7853981633974483096f;
@@ -60,25 +61,36 @@ static const int32_t inv_sign_mask = ~SIGN_MASK;
 #define IMM8_PERMUTE_128BITS_LANES 0x1  // reverse abcd efgh to efgh abcd
 #define M_PI 3.14159265358979323846
 
-typedef struct {
-    int16_t re;
-    int16_t im;
+typedef union {
+    struct {
+        int16_t re;
+        int16_t im;
+    };
+    int16_t c[2];
 } complex16s_t;
 
-typedef struct {
-    int32_t re;
-    int32_t im;
+typedef union {
+    struct {
+        int32_t re;
+        int32_t im;
+    };
+    int32_t c[2];
 } complex32s_t;
 
-typedef struct {
-    float re;
-    float im;
+typedef union {
+    struct {
+        float re;
+        float im;
+    };
+    float c[2];
 } complex32_t;
 
-
-typedef struct {
-    double re;
-    double im;
+typedef union {
+    struct {
+        double re;
+        double im;
+    };
+    double c[2];
 } complex64_t;
 
 typedef enum {
@@ -647,6 +659,30 @@ _PI256_64_CONST(2, 2);
 _PI256_64_CONST(4, 4);
 _PI256_64_CONST(0x7f, 0x7f);
 
+typedef struct {
+    v8sf val[2];
+} v8sfx2;
+
+static inline v8sfx2 _mm256_load2_ps(float const *mem_addr)
+{
+    v4sfx2 src_1 = _mm_load2_ps(mem_addr);
+    v4sfx2 src_2 = _mm_load2_ps(mem_addr + 2 * SSE_LEN_FLOAT);
+    v8sfx2 ret;
+    ret.val[0] = _mm256_set_m128(src_2.val[0], src_1.val[0]);
+    ret.val[1] = _mm256_set_m128(src_2.val[1], src_1.val[1]);
+    return ret;
+}
+
+static inline v8sfx2 _mm256_load2u_ps(float const *mem_addr)
+{
+    v4sfx2 src_1 = _mm_load2u_ps(mem_addr);
+    v4sfx2 src_2 = _mm_load2u_ps(mem_addr + 2 * SSE_LEN_FLOAT);
+    v8sfx2 ret;
+    ret.val[0] = _mm256_set_m128(src_2.val[0], src_1.val[0]);
+    ret.val[1] = _mm256_set_m128(src_2.val[1], src_1.val[1]);
+    return ret;
+}
+
 #include "simd_utils_avx_double.h"
 #include "simd_utils_avx_float.h"
 #include "simd_utils_avx_int32.h"
@@ -907,23 +943,23 @@ static inline void fabsf_C(float *src, float *dst, int len)
     }
 }
 
-static inline void setf_C(float *src, float value, int len)
+static inline void setf_C(float *dst, float value, int len)
 {
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        src[i] = value;
+        dst[i] = value;
     }
 }
 
-static inline void zerof_C(float *src, int len)
+static inline void zerof_C(float *dst, int len)
 {
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        src[i] = 0.0f;
+        dst[i] = 0.0f;
     }
 }
 
@@ -1777,23 +1813,23 @@ static inline void subs_c(int32_t *a, int32_t *b, int32_t *c, int len)
 }*/
 
 
-static inline void setd_C(double *src, double value, int len)
+static inline void setd_C(double *dst, double value, int len)
 {
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        src[i] = value;
+        dst[i] = value;
     }
 }
 
-static inline void zerod_C(double *src, int len)
+static inline void zerod_C(double *dst, int len)
 {
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        src[i] = 0.0;
+        dst[i] = 0.0;
     }
 }
 

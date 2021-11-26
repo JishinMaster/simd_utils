@@ -121,6 +121,7 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | atanh128f                      | atanh256f                      | atanh512f                  | atanhf_C                  | ippsAtanh_32f_A24            | X                           | X                    |
 | atan128f                       | atan256f                       | atan512f                   | atanf_C                   | ippsAtan_32f_A24             | X                           | X                    |
 | atan2128f                      | atan2256f                      | atan2512f                  | atan2f_C                  | ippsAtan2_32f_A24            | X                           | X                    |
+| atan2128f_interleaved          | atan2256f_interleaved          | X                          | atan2f_interleaved_C      | X                            | X                           | X                    |
 | asin128f                       | asin256f                       | asin512f                   | asinf_C                   | ippsAsin_32f_A24             | X                           | X                    |
 | tanh128f                       | tanh256f                       | tanh512f                   | tanhf_C                   | ippsTanh_32f_A24             | X                           | X                    |
 | tan128f                        | tan256f                        | tan512f                    | tanf_C                    | ippsTan_32f_A24              | X                           | X                    |
@@ -140,6 +141,7 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | cplxconjvecmul128f             | cplxconjvecmul256f             | cplxconjvecmul512f         | cplxconjvecmul_C          | ippsMulByConj_32fc_A24       | X                           | X                    |
 | cplxconjvecmul128f_split       | cplxconjvecmul256f_split       | cplxconjvecmul512f_split   | cplxconjvecmul_C_split    | X                            | X                           | X                    |
 | cplxconj128f                   | cplxconj256f                   | cplxconj512f               | cplxconj_C                | ippsConj_32fc_A24            | X                           | X                    |
+| cplxvecdiv12                   | cplxvecdiv256f                 | cplxvecdiv512f             | cplxvecdiv_C              | X                            | X                           | X                    |
 | set128d                        | set256d                        | set512d                    | setd_C                    | ippsSet_64f                  | X                           | X                    |
 | zero128d                       | zero256d                       | zero512d                   | zerod_C                   | ippsZero_64f                 | X                           | X                    |
 | copy128d                       | copy256d                       | copy512d                   | copyd_C                   | ippsCopy_64f                 | X                           | X                    |
@@ -168,8 +170,8 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | addc128s                       | addc256s                       | addc512s                   | addcs_C                   | X                            | addcs_vec                   | X                    |
 | vectorSlope128s                | X                              | X                          | vectorSlopes_C            | ippsVectorSlope_32s          | X                           | X                    |
 | copy128s                       | copy256s                       | copy512s                   | copys_C                   | ippsCopy_32s                 | X                           | X                    |
-| absdiff16s_128s                | vectorSlope256s                | X                          | X                         | X                            | mulcs_vec                   | X                    |
-| powerspect16s_128s_interleaved | powerspect16s_256s_interleaved | X                          | ors_c                     | ippsOr_32u                   | X                           | X                    |
+| absdiff16s_128s                | absdiff16s_256s                | X                          | X                         | X                            | mulcs_vec                   | X                    |
+| X                              | X                              | X                          | ors_c                     | ippsOr_32u                   | X                           | X                    |
 | X                              | X                              | X                          | ands_c                    | ippsAnd_32u                  | X                           | X                    |
 | sigmoid128f                    | sigmoid256f                    | X                          | sigmoidf_C                | X                            | X                           | X                    |
 | PRelu128f                      | PRelu256f                      | X                          | PReluf_C                  | X                            | X                           | PRelu128f            |
