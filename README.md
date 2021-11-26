@@ -102,7 +102,7 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | realtocplx128f                 | realtocplx256f                 | X                          | realtocplx_C              | ippsRealToCplx_32f           | X                           | X                    |
 | convert128_64f32f              | convert256_64f32f              | X                          | convert_64f32f_C          | ippsConvert_64f32f           | X                           | X                    |
 | convert128_32f64f              | convert256_32f64f              | convert512_32f64f          | convert_32f64f_C          | ippsConvert_32f64f           | X                           | X                    |
-| flip128f                       | flip256f                       | X                          | flipf_C                   | ippsFlip_32f                 | X                           | X                    |
+| flip128f                       | flip256f                       | flip512f                   | flipf_C                   | ippsFlip_32f                 | X                           | X                    |
 | maxevery128f                   | maxevery256f                   | maxevery512f               | maxeveryf_c               | ippsMaxEvery_32f             | maxeveryf_vec               | X                    |
 | minevery128f                   | minevery256f                   | minevery512f               | mineveryf_c               | ippsMinEvery_32f             | mineveryf_vec               | minevery128f         |
 | minmax128f                     | minmax256f                     | minmax512f                 | minmaxf_c                 | ippsMinMax_32f               | X                           | X                    |
@@ -127,7 +127,8 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | tan128f                        | tan256f                        | tan512f                    | tanf_C                    | ippsTan_32f_A24              | X                           | X                    |
 | magnitude128f_split            | magnitude256f_split            | magnitude512f_split        | magnitudef_C_split        | ippsMagnitude_32f            | magnitudef_split_vec        | magnitude128f_split  |
 | powerspect128f_split           | powerspect256f_split           | powerspect512f_split       | powerspectf_C_split       | ippsPowerSpectr_32f          | powerspectf_split_vec       | powerspect128f_split |
-| magnitude128f_interleaved      | X                              | X                          | magnitudef_C_interleaved  | ippsMagnitude_32fc           | X                           | X                    |
+| magnitude128f_interleaved      | magnitude256f_interleaved      | X                          | magnitudef_C_interleaved  | ippsMagnitude_32fc           | X                           | X                    |
+| powerspect128f_interleaved     | powerspect256f_interleaved     | X                          | powerspectf_C_interleaved | ippsPowerSpectr_32fc         | X                           | X                    |
 | subcrev128f                    | subcrev256f                    | subcrev512f                | subcrevf_C                | ippsSubCRev_32f              | X                           | X                    |
 | sum128f                        | sum256f                        | sum512f                    | sumf_C                    | ippsSum_32f                  | sumf_vec                    | X                    |
 | mean128f                       | mean256f                       | mean512f                   | meanf_C                   | ippsMean_32f                 | meanf_vec                   | X                    |
@@ -170,12 +171,13 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | addc128s                       | addc256s                       | addc512s                   | addcs_C                   | X                            | addcs_vec                   | X                    |
 | vectorSlope128s                | X                              | X                          | vectorSlopes_C            | ippsVectorSlope_32s          | X                           | X                    |
 | copy128s                       | copy256s                       | copy512s                   | copys_C                   | ippsCopy_32s                 | X                           | X                    |
-| absdiff16s_128s                | absdiff16s_256s                | X                          | X                         | X                            | mulcs_vec                   | X                    |
+| X                              | X                              | X                          | X                         | X                            | mulcs_vec                   | X                    |
+| absdiff16s_128s                | absdiff16s_256s                | X                          | absdiff16s_c              | X                            | X                           | X                    |
 | X                              | X                              | X                          | ors_c                     | ippsOr_32u                   | X                           | X                    |
 | X                              | X                              | X                          | ands_c                    | ippsAnd_32u                  | X                           | X                    |
-| sigmoid128f                    | sigmoid256f                    | X                          | sigmoidf_C                | X                            | X                           | X                    |
-| PRelu128f                      | PRelu256f                      | X                          | PReluf_C                  | X                            | X                           | PRelu128f            |
-| softmax128f                    | softmax256f                    | X                          | softmaxf_C                | X                            | X                           | X                    |
+| sigmoid128f                    | sigmoid256f                    | sigmoid512f                | sigmoidf_C                | X                            | X                           | X                    |
+| PRelu128f                      | PRelu256f                      | PRelu512f                  | PReluf_C                  | X                            | X                           | PRelu128f            |
+| softmax128f                    | softmax256f                    | softmax512f                | softmaxf_C                | X                            | X                           | X                    |
 
 ## Licence
 

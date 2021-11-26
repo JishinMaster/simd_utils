@@ -162,8 +162,6 @@ static inline v16sf exp512_ps(v16sf x)
 
     /* express exp(x) as exp(g + n*log(2)) */
     fx = _mm512_fmadd_ps(x, *(v16sf *) _ps512_cephes_LOG2EF, *(v16sf *) _ps512_0p5);
-
-    /* how to perform a floorf with SSE: just below */
     tmp = _mm512_floor_ps(fx);
 
     /* if greater, substract 1 */

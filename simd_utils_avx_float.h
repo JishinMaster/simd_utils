@@ -1889,39 +1889,133 @@ static inline void powerspect256f_split(float *srcRe, float *srcIm, float *dst, 
     }
 }
 
-/*static inline void magnitude256f_interleaved(complex32_t *src, float *dst, int len)
+static inline void magnitude256f_interleaved(complex32_t *src, float *dst, int len)
 {
-    int stop_len = len / AVX_LEN_FLOAT;
-    stop_len *= AVX_LEN_FLOAT;
+    int stop_len = len / (4 * AVX_LEN_FLOAT);
+    stop_len *= 4 * AVX_LEN_FLOAT;
 
     int j = 0;
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-            v8sf cplx01 = _mm256_load_ps((const float *) src + j);
-            v8sf cplx23 = _mm256_load_ps((const float *) src + j + AVX_LEN_FLOAT);  // complex is 2 floats
-            v8sf cplx01_square = _mm256_mul_ps(cplx01, cplx01);
-            v8sf cplx23_square = _mm256_mul_ps(cplx23, cplx23);
-            v8sf square_sum_0123 = _mm256_hadd_ps(cplx23_square, cplx01_square);
-            _mm256_store_ps(dst + i, _mm256_sqrt_ps(square_sum_0123));
-            j += 2 * AVX_LEN_FLOAT;
+        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+            v8sfx2 src_split = _mm256_load2_ps((float *) (src) + j);  //a0a1a2a3, b0b1b2b3
+            v8sfx2 src_split2 = _mm256_load2_ps((float *) (src) + j + 2 * AVX_LEN_FLOAT);
+            v8sfx2 src_split3 = _mm256_load2_ps((float *) (src) + j + 4 * AVX_LEN_FLOAT);
+            v8sfx2 src_split4 = _mm256_load2_ps((float *) (src) + j + 6 * AVX_LEN_FLOAT);
+            v8sf split_square0 = _mm256_mul_ps(src_split.val[0], src_split.val[0]);
+            v8sf split2_square0 = _mm256_mul_ps(src_split2.val[0], src_split2.val[0]);
+            v8sf split3_square0 = _mm256_mul_ps(src_split3.val[0], src_split3.val[0]);
+            v8sf split4_square0 = _mm256_mul_ps(src_split4.val[0], src_split4.val[0]);
+            v8sfx2 dst_split;
+            v8sfx2 dst_split2;
+            dst_split.val[0] = _mm256_fmadd_ps_custom(src_split.val[1], src_split.val[1], split_square0);
+            dst_split.val[1] = _mm256_fmadd_ps_custom(src_split2.val[1], src_split2.val[1], split2_square0);
+            dst_split2.val[0] = _mm256_fmadd_ps_custom(src_split3.val[1], src_split3.val[1], split3_square0);
+            dst_split2.val[1] = _mm256_fmadd_ps_custom(src_split4.val[1], src_split4.val[1], split4_square0);
+
+            dst_split.val[0] = _mm256_sqrt_ps(dst_split.val[0]);
+            dst_split.val[1] = _mm256_sqrt_ps(dst_split.val[1]);
+            dst_split2.val[0] = _mm256_sqrt_ps(dst_split2.val[0]);
+            dst_split2.val[1] = _mm256_sqrt_ps(dst_split2.val[1]);
+
+            _mm256_store_ps((float *) (dst) + i, dst_split.val[0]);
+            _mm256_store_ps((float *) (dst) + i + AVX_LEN_FLOAT, dst_split.val[1]);
+            _mm256_store_ps((float *) (dst) + i + 2 * AVX_LEN_FLOAT, dst_split2.val[0]);
+            _mm256_store_ps((float *) (dst) + i + 3 * AVX_LEN_FLOAT, dst_split2.val[1]);
+            j += 8 * AVX_LEN_FLOAT;
         }
     } else {
-        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-            v8sf cplx01 = _mm256_loadu_ps((const float *) src + j);
-            v8sf cplx23 = _mm256_loadu_ps((const float *) src + j + AVX_LEN_FLOAT);  // complex is 2 floats
-            v8sf cplx01_square = _mm256_mul_ps(cplx01, cplx01);
-            v8sf cplx23_square = _mm256_mul_ps(cplx23, cplx23);
-            v8sf square_sum_0123 = _mm256_hadd_ps(cplx01_square, cplx23_square);
-            _mm256_storeu_ps(dst + i, _mm256_sqrt_ps(square_sum_0123));
-            j += 2 * AVX_LEN_FLOAT;
+        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+            v8sfx2 src_split = _mm256_load2u_ps((float *) (src + j));  //a0a1a2a3, b0b1b2b3
+            v8sfx2 src_split2 = _mm256_load2u_ps((float *) (src + j + 2 * AVX_LEN_FLOAT));
+            v8sfx2 src_split3 = _mm256_load2u_ps((float *) (src + j + 4 * AVX_LEN_FLOAT));
+            v8sfx2 src_split4 = _mm256_load2u_ps((float *) (src + j + 6 * AVX_LEN_FLOAT));
+            v8sf split_square0 = _mm256_mul_ps(src_split.val[0], src_split.val[0]);
+            v8sf split2_square0 = _mm256_mul_ps(src_split2.val[0], src_split2.val[0]);
+            v8sf split3_square0 = _mm256_mul_ps(src_split3.val[0], src_split3.val[0]);
+            v8sf split4_square0 = _mm256_mul_ps(src_split4.val[0], src_split4.val[0]);
+            v8sfx2 dst_split;
+            v8sfx2 dst_split2;
+            dst_split.val[0] = _mm256_fmadd_ps_custom(src_split.val[1], src_split.val[1], split_square0);
+            dst_split.val[1] = _mm256_fmadd_ps_custom(src_split2.val[1], src_split2.val[1], split2_square0);
+            dst_split2.val[0] = _mm256_fmadd_ps_custom(src_split3.val[1], src_split3.val[1], split3_square0);
+            dst_split2.val[1] = _mm256_fmadd_ps_custom(src_split4.val[1], src_split4.val[1], split4_square0);
+
+            dst_split.val[0] = _mm256_sqrt_ps(dst_split.val[0]);
+            dst_split.val[1] = _mm256_sqrt_ps(dst_split.val[1]);
+            dst_split2.val[0] = _mm256_sqrt_ps(dst_split2.val[0]);
+            dst_split2.val[1] = _mm256_sqrt_ps(dst_split2.val[1]);
+
+            _mm256_storeu_ps(dst + i, dst_split.val[0]);
+            _mm256_storeu_ps(dst + i + AVX_LEN_FLOAT, dst_split.val[1]);
+            _mm256_storeu_ps(dst + i + 2 * AVX_LEN_FLOAT, dst_split2.val[0]);
+            _mm256_storeu_ps(dst + i + 3 * AVX_LEN_FLOAT, dst_split2.val[1]);
+            j += 8 * AVX_LEN_FLOAT;
         }
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i] = sqrtf(src[i].re * src[i].re + src[i].im * src[i].im);
+        dst[i] = sqrtf(src[i].re * src[i].re + (src[i].im * src[i].im));
     }
-}*/
+}
 
+static inline void powerspect256f_interleaved(complex32_t *src, float *dst, int len)
+{
+    int stop_len = len / (4 * AVX_LEN_FLOAT);
+    stop_len *= 4 * AVX_LEN_FLOAT;
+
+    int j = 0;
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+            v8sfx2 src_split = _mm256_load2_ps((float *) (src) + j);  //a0a1a2a3, b0b1b2b3
+            v8sfx2 src_split2 = _mm256_load2_ps((float *) (src) + j + 2 * AVX_LEN_FLOAT);
+            v8sfx2 src_split3 = _mm256_load2_ps((float *) (src) + j + 4 * AVX_LEN_FLOAT);
+            v8sfx2 src_split4 = _mm256_load2_ps((float *) (src) + j + 6 * AVX_LEN_FLOAT);
+            v8sf split_square0 = _mm256_mul_ps(src_split.val[0], src_split.val[0]);
+            v8sf split2_square0 = _mm256_mul_ps(src_split2.val[0], src_split2.val[0]);
+            v8sf split3_square0 = _mm256_mul_ps(src_split3.val[0], src_split3.val[0]);
+            v8sf split4_square0 = _mm256_mul_ps(src_split4.val[0], src_split4.val[0]);
+            v8sfx2 dst_split;
+            v8sfx2 dst_split2;
+            dst_split.val[0] = _mm256_fmadd_ps_custom(src_split.val[1], src_split.val[1], split_square0);
+            dst_split.val[1] = _mm256_fmadd_ps_custom(src_split2.val[1], src_split2.val[1], split2_square0);
+            dst_split2.val[0] = _mm256_fmadd_ps_custom(src_split3.val[1], src_split3.val[1], split3_square0);
+            dst_split2.val[1] = _mm256_fmadd_ps_custom(src_split4.val[1], src_split4.val[1], split4_square0);
+
+            _mm256_store_ps((dst + i), dst_split.val[0]);
+            _mm256_store_ps((dst + i + AVX_LEN_FLOAT), dst_split.val[1]);
+            _mm256_store_ps((dst + i + 2 * AVX_LEN_FLOAT), dst_split2.val[0]);
+            _mm256_store_ps((dst + i + 3 * AVX_LEN_FLOAT), dst_split2.val[1]);
+            j += 8 * AVX_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+            v8sfx2 src_split = _mm256_load2u_ps((float *) (src) + j);  //a0a1a2a3, b0b1b2b3
+            v8sfx2 src_split2 = _mm256_load2u_ps((float *) (src) + j + 2 * AVX_LEN_FLOAT);
+            v8sfx2 src_split3 = _mm256_load2u_ps((float *) (src) + j + 4 * AVX_LEN_FLOAT);
+            v8sfx2 src_split4 = _mm256_load2u_ps((float *) (src) + j + 6 * AVX_LEN_FLOAT);
+            v8sf split_square0 = _mm256_mul_ps(src_split.val[0], src_split.val[0]);
+            v8sf split2_square0 = _mm256_mul_ps(src_split2.val[0], src_split2.val[0]);
+            v8sf split3_square0 = _mm256_mul_ps(src_split3.val[0], src_split3.val[0]);
+            v8sf split4_square0 = _mm256_mul_ps(src_split4.val[0], src_split4.val[0]);
+            v8sfx2 dst_split;
+            v8sfx2 dst_split2;
+            dst_split.val[0] = _mm256_fmadd_ps_custom(src_split.val[1], src_split.val[1], split_square0);
+            dst_split.val[1] = _mm256_fmadd_ps_custom(src_split2.val[1], src_split2.val[1], split2_square0);
+            dst_split2.val[0] = _mm256_fmadd_ps_custom(src_split3.val[1], src_split3.val[1], split3_square0);
+            dst_split2.val[1] = _mm256_fmadd_ps_custom(src_split4.val[1], src_split4.val[1], split4_square0);
+
+            _mm256_storeu_ps((dst + i), dst_split.val[0]);
+            _mm256_storeu_ps((dst + i + AVX_LEN_FLOAT), dst_split.val[1]);
+            _mm256_storeu_ps((dst + i + 2 * AVX_LEN_FLOAT), dst_split2.val[0]);
+            _mm256_storeu_ps((dst + i + 3 * AVX_LEN_FLOAT), dst_split2.val[1]);
+            j += 8 * AVX_LEN_FLOAT;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i].re * src[i].re + (src[i].im * src[i].im);
+    }
+}
 
 static inline void subcrev256f(float *src, float value, float *dst, int len)
 {

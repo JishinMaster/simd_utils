@@ -249,11 +249,13 @@ static const float _ps_conj_mask[4] __attribute__((aligned(16))) = {1.0f, -1.0f,
 
 static inline __m128 _mm_fmadd_ps_custom(__m128 a, __m128 b, __m128 c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
-    return _mm_add_ps(_mm_mul_ps(a, b), c);
-#else  /* FMA */
+//Haswell comes with avx2 and fma
+// ARM has vmla instead of fma in 32bits
+#if defined(ARM) || defined(FMA)
     return _mm_fmadd_ps(a, b, c);
-#endif /* FMA */
+#else
+    return _mm_add_ps(_mm_mul_ps(a, b), c);
+#endif
 }
 
 static inline __m128 _mm_fmaddsub_ps_custom(__m128 a, __m128 b, __m128 c)
@@ -277,11 +279,13 @@ static inline __m128 _mm_fmsubadd_ps_custom(__m128 a, __m128 b, __m128 c)
 
 static inline __m128 _mm_fnmadd_ps_custom(__m128 a, __m128 b, __m128 c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
-    return _mm_sub_ps(c, _mm_mul_ps(a, b));
-#else  /* FMA */
+//Haswell comes with avx2 and fma
+// ARM has vmla instead of fma in 32bits
+#if defined(ARM) || defined(FMA)
     return _mm_fnmadd_ps(a, b, c);
-#endif /* FMA */
+#else
+    return _mm_sub_ps(c, _mm_mul_ps(a, b));
+#endif
 }
 
 static inline __m128d _mm_fmadd_pd_custom(__m128d a, __m128d b, __m128d c)

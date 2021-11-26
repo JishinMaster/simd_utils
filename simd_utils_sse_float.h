@@ -856,7 +856,6 @@ static inline void convert128_64f32f(double *src, float *dst, int len)
     }
 }
 
-//#ifndef ARM
 static inline void convert128_32f64f(float *src, double *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
@@ -882,7 +881,6 @@ static inline void convert128_32f64f(float *src, double *dst, int len)
         dst[i] = (double) src[i];
     }
 }
-//#endif
 
 //TODO : find a better way to work on aligned data
 static inline void flip128f(float *src, float *dst, int len)
@@ -1948,7 +1946,8 @@ static inline void powerspect128f_split(float *srcRe, float *srcIm, float *dst, 
     }
 }
 
-#ifndef ARM
+//Old version
+#if 0
 static inline void magnitude128f_interleaved(complex32_t *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
@@ -1981,47 +1980,6 @@ static inline void magnitude128f_interleaved(complex32_t *src, float *dst, int l
         dst[i] = sqrtf(src[i].re * src[i].re + (src[i].im * src[i].im));
     }
 }
-
-// 10% fastos on Atom? And on newer CPU?
-/*
-static inline void magnitude128f_interleaved2(complex32_t *src, float *dst, int len)
-{
-    int stop_len = len / (4 * SSE_LEN_FLOAT);
-    stop_len *= 4 * SSE_LEN_FLOAT;
-
-    int j = 0;
-    for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
-        v4sfx2 src_split = _mm_load2_ps((float *) (src) + j);  //a0a1a2a3, b0b1b2b3
-        v4sfx2 src_split2 = _mm_load2_ps((float *) (src) + j + 2 * SSE_LEN_FLOAT);
-        v4sfx2 src_split3 = _mm_load2_ps((float *) (src) + j + 4 * SSE_LEN_FLOAT);
-        v4sfx2 src_split4 = _mm_load2_ps((float *) (src) + j + 6 * SSE_LEN_FLOAT);
-        v4sf split_square0 = _mm_mul_ps(src_split.val[0], src_split.val[0]);
-        v4sf split2_square0 = _mm_mul_ps(src_split2.val[0], src_split2.val[0]);
-        v4sf split3_square0 = _mm_mul_ps(src_split3.val[0], src_split3.val[0]);
-        v4sf split4_square0 = _mm_mul_ps(src_split4.val[0], src_split4.val[0]);
-        v4sfx2 dst_split;
-        v4sfx2 dst_split2;
-        dst_split.val[0] = _mm_fmadd_ps_custom(src_split.val[1], src_split.val[1], split_square0);
-        dst_split.val[1] = _mm_fmadd_ps_custom(src_split2.val[1], src_split2.val[1], split2_square0);
-        dst_split2.val[0] = _mm_fmadd_ps_custom(src_split3.val[1], src_split3.val[1], split3_square0);
-        dst_split2.val[1] = _mm_fmadd_ps_custom(src_split4.val[1], src_split4.val[1], split4_square0);
-
-        dst_split.val[0] = _mm_sqrt_ps(dst_split.val[0]);
-        dst_split.val[1] = _mm_sqrt_ps(dst_split.val[1]);
-        dst_split2.val[0] = _mm_sqrt_ps(dst_split2.val[0]);
-        dst_split2.val[1] = _mm_sqrt_ps(dst_split2.val[1]);
-
-        _mm_store_ps((float *) (dst) + i, dst_split.val[0]);
-        _mm_store_ps((float *) (dst) + i + SSE_LEN_FLOAT, dst_split.val[1]);
-        _mm_store_ps((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2.val[0]);
-        _mm_store_ps((float *) (dst) + i + 3 * SSE_LEN_FLOAT, dst_split2.val[1]);
-        j += 8 * SSE_LEN_FLOAT;
-    }
-
-    for (int i = stop_len; i < len; i++) {
-        dst[i] = sqrtf(src[i].re * src[i].re + (src[i].im * src[i].im));
-    }
-}*/
 
 static inline void powerspect128f_interleaved(complex32_t *src, float *dst, int len)
 {
@@ -2058,38 +2016,70 @@ static inline void powerspect128f_interleaved(complex32_t *src, float *dst, int 
 
 #else
 
+// 10% faster on Atom? And on newer CPU?
+// On ARM 32bits, we could call vmla instead of mul + add
 static inline void magnitude128f_interleaved(complex32_t *src, float *dst, int len)
 {
     int stop_len = len / (4 * SSE_LEN_FLOAT);
     stop_len *= 4 * SSE_LEN_FLOAT;
 
     int j = 0;
-    for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
-        float32x4x2_t src_split = vld2q_f32((float *) (src) + j);  //a0a1a2a3, b0b1b2b3
-        float32x4x2_t src_split2 = vld2q_f32((float *) (src) + j + 2 * SSE_LEN_FLOAT);
-        float32x4x2_t src_split3 = vld2q_f32((float *) (src) + j + 4 * SSE_LEN_FLOAT);
-        float32x4x2_t src_split4 = vld2q_f32((float *) (src) + j + 6 * SSE_LEN_FLOAT);
-        v4sf split_square0 = _mm_mul_ps(src_split.val[0], src_split.val[0]);
-        v4sf split2_square0 = _mm_mul_ps(src_split2.val[0], src_split2.val[0]);
-        v4sf split3_square0 = _mm_mul_ps(src_split3.val[0], src_split3.val[0]);
-        v4sf split4_square0 = _mm_mul_ps(src_split4.val[0], src_split4.val[0]);
-        float32x4x2_t dst_split;
-        float32x4x2_t dst_split2;
-        dst_split.val[0] = _mm_fmadd_ps(src_split.val[1], src_split.val[1], split_square0);
-        dst_split.val[1] = _mm_fmadd_ps(src_split2.val[1], src_split2.val[1], split2_square0);
-        dst_split2.val[0] = _mm_fmadd_ps(src_split3.val[1], src_split3.val[1], split3_square0);
-        dst_split2.val[1] = _mm_fmadd_ps(src_split4.val[1], src_split4.val[1], split4_square0);
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
+            v4sfx2 src_split = _mm_load2_ps((float *) (src) + j);  //a0a1a2a3, b0b1b2b3
+            v4sfx2 src_split2 = _mm_load2_ps((float *) (src) + j + 2 * SSE_LEN_FLOAT);
+            v4sfx2 src_split3 = _mm_load2_ps((float *) (src) + j + 4 * SSE_LEN_FLOAT);
+            v4sfx2 src_split4 = _mm_load2_ps((float *) (src) + j + 6 * SSE_LEN_FLOAT);
+            v4sf split_square0 = _mm_mul_ps(src_split.val[0], src_split.val[0]);
+            v4sf split2_square0 = _mm_mul_ps(src_split2.val[0], src_split2.val[0]);
+            v4sf split3_square0 = _mm_mul_ps(src_split3.val[0], src_split3.val[0]);
+            v4sf split4_square0 = _mm_mul_ps(src_split4.val[0], src_split4.val[0]);
+            v4sfx2 dst_split;
+            v4sfx2 dst_split2;
+            dst_split.val[0] = _mm_fmadd_ps_custom(src_split.val[1], src_split.val[1], split_square0);
+            dst_split.val[1] = _mm_fmadd_ps_custom(src_split2.val[1], src_split2.val[1], split2_square0);
+            dst_split2.val[0] = _mm_fmadd_ps_custom(src_split3.val[1], src_split3.val[1], split3_square0);
+            dst_split2.val[1] = _mm_fmadd_ps_custom(src_split4.val[1], src_split4.val[1], split4_square0);
 
-        dst_split.val[0] = _mm_sqrt_ps(dst_split.val[0]);
-        dst_split.val[1] = _mm_sqrt_ps(dst_split.val[1]);
-        dst_split2.val[0] = _mm_sqrt_ps(dst_split2.val[0]);
-        dst_split2.val[1] = _mm_sqrt_ps(dst_split2.val[1]);
+            dst_split.val[0] = _mm_sqrt_ps(dst_split.val[0]);
+            dst_split.val[1] = _mm_sqrt_ps(dst_split.val[1]);
+            dst_split2.val[0] = _mm_sqrt_ps(dst_split2.val[0]);
+            dst_split2.val[1] = _mm_sqrt_ps(dst_split2.val[1]);
 
-        vst1q_f32((float *) (dst) + i, dst_split.val[0]);
-        vst1q_f32((float *) (dst) + i + SSE_LEN_FLOAT, dst_split.val[1]);
-        vst1q_f32((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2.val[0]);
-        vst1q_f32((float *) (dst) + i + 3 * SSE_LEN_FLOAT, dst_split2.val[1]);
-        j += 8 * SSE_LEN_FLOAT;
+            _mm_store_ps((float *) (dst) + i, dst_split.val[0]);
+            _mm_store_ps((float *) (dst) + i + SSE_LEN_FLOAT, dst_split.val[1]);
+            _mm_store_ps((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2.val[0]);
+            _mm_store_ps((float *) (dst) + i + 3 * SSE_LEN_FLOAT, dst_split2.val[1]);
+            j += 8 * SSE_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
+            v4sfx2 src_split = _mm_load2u_ps((float *) (src + j));  //a0a1a2a3, b0b1b2b3
+            v4sfx2 src_split2 = _mm_load2u_ps((float *) (src + j + 2 * SSE_LEN_FLOAT));
+            v4sfx2 src_split3 = _mm_load2u_ps((float *) (src + j + 4 * SSE_LEN_FLOAT));
+            v4sfx2 src_split4 = _mm_load2u_ps((float *) (src + j + 6 * SSE_LEN_FLOAT));
+            v4sf split_square0 = _mm_mul_ps(src_split.val[0], src_split.val[0]);
+            v4sf split2_square0 = _mm_mul_ps(src_split2.val[0], src_split2.val[0]);
+            v4sf split3_square0 = _mm_mul_ps(src_split3.val[0], src_split3.val[0]);
+            v4sf split4_square0 = _mm_mul_ps(src_split4.val[0], src_split4.val[0]);
+            v4sfx2 dst_split;
+            v4sfx2 dst_split2;
+            dst_split.val[0] = _mm_fmadd_ps_custom(src_split.val[1], src_split.val[1], split_square0);
+            dst_split.val[1] = _mm_fmadd_ps_custom(src_split2.val[1], src_split2.val[1], split2_square0);
+            dst_split2.val[0] = _mm_fmadd_ps_custom(src_split3.val[1], src_split3.val[1], split3_square0);
+            dst_split2.val[1] = _mm_fmadd_ps_custom(src_split4.val[1], src_split4.val[1], split4_square0);
+
+            dst_split.val[0] = _mm_sqrt_ps(dst_split.val[0]);
+            dst_split.val[1] = _mm_sqrt_ps(dst_split.val[1]);
+            dst_split2.val[0] = _mm_sqrt_ps(dst_split2.val[0]);
+            dst_split2.val[1] = _mm_sqrt_ps(dst_split2.val[1]);
+
+            _mm_storeu_ps(dst + i, dst_split.val[0]);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_split.val[1]);
+            _mm_storeu_ps(dst + i + 2 * SSE_LEN_FLOAT, dst_split2.val[0]);
+            _mm_storeu_ps(dst + i + 3 * SSE_LEN_FLOAT, dst_split2.val[1]);
+            j += 8 * SSE_LEN_FLOAT;
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -2103,34 +2093,58 @@ static inline void powerspect128f_interleaved(complex32_t *src, float *dst, int 
     stop_len *= 4 * SSE_LEN_FLOAT;
 
     int j = 0;
-    for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
-        float32x4x2_t src_split = vld2q_f32((float *) (src) + j);  //a0a1a2a3, b0b1b2b3
-        float32x4x2_t src_split2 = vld2q_f32((float *) (src) + j + 2 * SSE_LEN_FLOAT);
-        float32x4x2_t src_split3 = vld2q_f32((float *) (src) + j + 4 * SSE_LEN_FLOAT);
-        float32x4x2_t src_split4 = vld2q_f32((float *) (src) + j + 6 * SSE_LEN_FLOAT);
-        v4sf split_square0 = _mm_mul_ps(src_split.val[0], src_split.val[0]);
-        v4sf split2_square0 = _mm_mul_ps(src_split2.val[0], src_split2.val[0]);
-        v4sf split3_square0 = _mm_mul_ps(src_split3.val[0], src_split3.val[0]);
-        v4sf split4_square0 = _mm_mul_ps(src_split4.val[0], src_split4.val[0]);
-        float32x4x2_t dst_split;
-        float32x4x2_t dst_split2;
-        dst_split.val[0] = _mm_fmadd_ps(src_split.val[1], src_split.val[1], split_square0);
-        dst_split.val[1] = _mm_fmadd_ps(src_split2.val[1], src_split2.val[1], split2_square0);
-        dst_split2.val[0] = _mm_fmadd_ps(src_split3.val[1], src_split3.val[1], split3_square0);
-        dst_split2.val[1] = _mm_fmadd_ps(src_split4.val[1], src_split4.val[1], split4_square0);
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
+            v4sfx2 src_split = _mm_load2_ps((float *) (src) + j);  //a0a1a2a3, b0b1b2b3
+            v4sfx2 src_split2 = _mm_load2_ps((float *) (src) + j + 2 * SSE_LEN_FLOAT);
+            v4sfx2 src_split3 = _mm_load2_ps((float *) (src) + j + 4 * SSE_LEN_FLOAT);
+            v4sfx2 src_split4 = _mm_load2_ps((float *) (src) + j + 6 * SSE_LEN_FLOAT);
+            v4sf split_square0 = _mm_mul_ps(src_split.val[0], src_split.val[0]);
+            v4sf split2_square0 = _mm_mul_ps(src_split2.val[0], src_split2.val[0]);
+            v4sf split3_square0 = _mm_mul_ps(src_split3.val[0], src_split3.val[0]);
+            v4sf split4_square0 = _mm_mul_ps(src_split4.val[0], src_split4.val[0]);
+            v4sfx2 dst_split;
+            v4sfx2 dst_split2;
+            dst_split.val[0] = _mm_fmadd_ps_custom(src_split.val[1], src_split.val[1], split_square0);
+            dst_split.val[1] = _mm_fmadd_ps_custom(src_split2.val[1], src_split2.val[1], split2_square0);
+            dst_split2.val[0] = _mm_fmadd_ps_custom(src_split3.val[1], src_split3.val[1], split3_square0);
+            dst_split2.val[1] = _mm_fmadd_ps_custom(src_split4.val[1], src_split4.val[1], split4_square0);
 
-        vst1q_f32((float *) (dst) + i, dst_split.val[0]);
-        vst1q_f32((float *) (dst) + i + SSE_LEN_FLOAT, dst_split.val[1]);
-        vst1q_f32((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2.val[0]);
-        vst1q_f32((float *) (dst) + i + 3 * SSE_LEN_FLOAT, dst_split2.val[1]);
-        j += 8 * SSE_LEN_FLOAT;
+            _mm_store_ps((dst + i), dst_split.val[0]);
+            _mm_store_ps((dst + i + SSE_LEN_FLOAT), dst_split.val[1]);
+            _mm_store_ps((dst + i + 2 * SSE_LEN_FLOAT), dst_split2.val[0]);
+            _mm_store_ps((dst + i + 3 * SSE_LEN_FLOAT), dst_split2.val[1]);
+            j += 8 * SSE_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
+            v4sfx2 src_split = _mm_load2u_ps((float *) (src) + j);  //a0a1a2a3, b0b1b2b3
+            v4sfx2 src_split2 = _mm_load2u_ps((float *) (src) + j + 2 * SSE_LEN_FLOAT);
+            v4sfx2 src_split3 = _mm_load2u_ps((float *) (src) + j + 4 * SSE_LEN_FLOAT);
+            v4sfx2 src_split4 = _mm_load2u_ps((float *) (src) + j + 6 * SSE_LEN_FLOAT);
+            v4sf split_square0 = _mm_mul_ps(src_split.val[0], src_split.val[0]);
+            v4sf split2_square0 = _mm_mul_ps(src_split2.val[0], src_split2.val[0]);
+            v4sf split3_square0 = _mm_mul_ps(src_split3.val[0], src_split3.val[0]);
+            v4sf split4_square0 = _mm_mul_ps(src_split4.val[0], src_split4.val[0]);
+            v4sfx2 dst_split;
+            v4sfx2 dst_split2;
+            dst_split.val[0] = _mm_fmadd_ps_custom(src_split.val[1], src_split.val[1], split_square0);
+            dst_split.val[1] = _mm_fmadd_ps_custom(src_split2.val[1], src_split2.val[1], split2_square0);
+            dst_split2.val[0] = _mm_fmadd_ps_custom(src_split3.val[1], src_split3.val[1], split3_square0);
+            dst_split2.val[1] = _mm_fmadd_ps_custom(src_split4.val[1], src_split4.val[1], split4_square0);
+
+            _mm_storeu_ps((dst + i), dst_split.val[0]);
+            _mm_storeu_ps((dst + i + SSE_LEN_FLOAT), dst_split.val[1]);
+            _mm_storeu_ps((dst + i + 2 * SSE_LEN_FLOAT), dst_split2.val[0]);
+            _mm_storeu_ps((dst + i + 3 * SSE_LEN_FLOAT), dst_split2.val[1]);
+            j += 8 * SSE_LEN_FLOAT;
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i].re * src[i].re + (src[i].im * src[i].im);
     }
 }
-
 #endif
 
 static inline void subcrev128f(float *src, float value, float *dst, int len)
@@ -2374,7 +2388,8 @@ static inline void trunc128f(float *src, float *dst, int len)
     }
 }
 
-#ifndef ARM
+//Old version
+#if 0 
 // (a + ib )/ (c + id) => (ac + bd)/(c2+d2) + i(bc -ad)/(c2+d2)
 static inline void cplxvecdiv128f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 
@@ -2427,57 +2442,6 @@ static inline void cplxvecdiv128f(complex32_t *src1, complex32_t *src2, complex3
     }
 }
 
-#else
-
-//NEON
-// (a + ib )/ (c + id) => (ac + bd)/(c2+d2) + i(bc -ad)/(c2+d2)
-//Could be optimized witg vrecpeq_f32 (1/x) but with a loss in precision
-static inline void cplxvecdiv128f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
-{
-    int stop_len = len / (4 * SSE_LEN_FLOAT);
-    stop_len *= 4 * SSE_LEN_FLOAT;
-
-    for (int i = 0; i < 2 * stop_len; i += 4 * SSE_LEN_FLOAT) {
-        float32x4x2_t src1_split = vld2q_f32((float *) (src1) + i);  //a0a1a2a3, b0b1b2b3
-        float32x4x2_t src2_split = vld2q_f32((float *) (src2) + i);  //c0c1c2c3 d0d1d2d3
-        float32x4x2_t src1_split2 = vld2q_f32((float *) (src1) + i + 2 * SSE_LEN_FLOAT);
-        float32x4x2_t src2_split2 = vld2q_f32((float *) (src2) + i + 2 * SSE_LEN_FLOAT);
-        v4sf c2 = _mm_mul_ps(src2_split.val[0], src2_split.val[0]);
-        v4sf c2d2 = _mm_fmadd_ps(src2_split.val[1], src2_split.val[1], c2);
-        v4sf c2_ = _mm_mul_ps(src2_split2.val[0], src2_split2.val[0]);
-        v4sf c2d2_ = _mm_fmadd_ps(src2_split2.val[1], src2_split2.val[1], c2_);
-        //vfmsq_f32, vfmaq_f32, vmlaq_f32, vmlsq_f32
-        v4sf ac = _mm_mul_ps(src1_split.val[0], src2_split.val[0]);     //ac
-        v4sf bc = _mm_mul_ps(src1_split.val[1], src2_split.val[0]);     //bc
-        v4sf ac2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[0]);  //ac
-        v4sf bc2 = _mm_mul_ps(src1_split2.val[1], src2_split2.val[0]);  //bc
-
-        float32x4x2_t dst_split;
-        float32x4x2_t dst_split2;
-        dst_split.val[0] = _mm_fmadd_ps(src1_split.val[1], src2_split.val[1], ac);
-        dst_split.val[1] = _mm_fnmadd_ps(src1_split.val[0], src2_split.val[1], bc);
-        dst_split2.val[0] = _mm_fmadd_ps(src1_split2.val[1], src2_split2.val[1], ac2);
-        dst_split2.val[1] = _mm_fnmadd_ps(src1_split2.val[0], src2_split2.val[1], bc2);
-
-        dst_split.val[0] = _mm_div_ps(dst_split.val[0], c2d2);
-        dst_split.val[1] = _mm_div_ps(dst_split.val[1], c2d2);
-        dst_split2.val[0] = _mm_div_ps(dst_split2.val[0], c2d2_);
-        dst_split2.val[1] = _mm_div_ps(dst_split2.val[1], c2d2_);
-
-        vst2q_f32((float *) (dst) + i, dst_split);
-        vst2q_f32((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2);
-    }
-
-    for (int i = stop_len; i < len; i++) {
-        float c2d2 = src2[i].re * src2[i].re + src2[i].im * src2[i].im;
-        dst[i].re = ((src1[i].re * src2[i].re) + (src1[i].im * src2[i].im)) / c2d2;
-        dst[i].im = (-(src1[i].re * src2[i].im) + (src2[i].re * src1[i].im)) / c2d2;
-    }
-}
-
-#endif
-
-#ifndef ARM
 static inline void cplxvecmul128f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
     int stop_len = len / (SSE_LEN_FLOAT);  //(len << 1) >> 2;
@@ -2516,33 +2480,125 @@ static inline void cplxvecmul128f(complex32_t *src1, complex32_t *src2, complex3
     }
 }
 #else
+static inline void cplxvecdiv128f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+{
+    int stop_len = len / (4 * SSE_LEN_FLOAT);
+    stop_len *= 4 * SSE_LEN_FLOAT;
 
-//NEON
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < 2 * stop_len; i += 4 * SSE_LEN_FLOAT) {
+            v4sfx2 src1_split = _mm_load2_ps((float *) (src1) + i);  //a0a1a2a3, b0b1b2b3
+            v4sfx2 src2_split = _mm_load2_ps((float *) (src2) + i);  //c0c1c2c3 d0d1d2d3
+            v4sfx2 src1_split2 = _mm_load2_ps((float *) (src1) + i + 2 * SSE_LEN_FLOAT);
+            v4sfx2 src2_split2 = _mm_load2_ps((float *) (src2) + i + 2 * SSE_LEN_FLOAT);
+            v4sf c2 = _mm_mul_ps(src2_split.val[0], src2_split.val[0]);
+            v4sf c2d2 = _mm_fmadd_ps_custom(src2_split.val[1], src2_split.val[1], c2);
+            v4sf c2_ = _mm_mul_ps(src2_split2.val[0], src2_split2.val[0]);
+            v4sf c2d2_ = _mm_fmadd_ps_custom(src2_split2.val[1], src2_split2.val[1], c2_);
+            v4sf ac = _mm_mul_ps(src1_split.val[0], src2_split.val[0]);     //ac
+            v4sf bc = _mm_mul_ps(src1_split.val[1], src2_split.val[0]);     //bc
+            v4sf ac2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[0]);  //ac
+            v4sf bc2 = _mm_mul_ps(src1_split2.val[1], src2_split2.val[0]);  //bc
+
+            v4sfx2 dst_split;
+            v4sfx2 dst_split2;
+            dst_split.val[0] = _mm_fmadd_ps_custom(src1_split.val[1], src2_split.val[1], ac);
+            dst_split.val[1] = _mm_fnmadd_ps_custom(src1_split.val[0], src2_split.val[1], bc);
+            dst_split2.val[0] = _mm_fmadd_ps_custom(src1_split2.val[1], src2_split2.val[1], ac2);
+            dst_split2.val[1] = _mm_fnmadd_ps_custom(src1_split2.val[0], src2_split2.val[1], bc2);
+
+            dst_split.val[0] = _mm_div_ps(dst_split.val[0], c2d2);
+            dst_split.val[1] = _mm_div_ps(dst_split.val[1], c2d2);
+            dst_split2.val[0] = _mm_div_ps(dst_split2.val[0], c2d2_);
+            dst_split2.val[1] = _mm_div_ps(dst_split2.val[1], c2d2_);
+
+            _mm_store2_ps((float *) (dst) + i, dst_split);
+            _mm_store2_ps((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2);
+        }
+    } else {
+        for (int i = 0; i < 2 * stop_len; i += 4 * SSE_LEN_FLOAT) {
+            v4sfx2 src1_split = _mm_load2u_ps((float *) (src1) + i);  //a0a1a2a3, b0b1b2b3
+            v4sfx2 src2_split = _mm_load2u_ps((float *) (src2) + i);  //c0c1c2c3 d0d1d2d3
+            v4sfx2 src1_split2 = _mm_load2u_ps((float *) (src1) + i + 2 * SSE_LEN_FLOAT);
+            v4sfx2 src2_split2 = _mm_load2u_ps((float *) (src2) + i + 2 * SSE_LEN_FLOAT);
+            v4sf c2 = _mm_mul_ps(src2_split.val[0], src2_split.val[0]);
+            v4sf c2d2 = _mm_fmadd_ps_custom(src2_split.val[1], src2_split.val[1], c2);
+            v4sf c2_ = _mm_mul_ps(src2_split2.val[0], src2_split2.val[0]);
+            v4sf c2d2_ = _mm_fmadd_ps_custom(src2_split2.val[1], src2_split2.val[1], c2_);
+            v4sf ac = _mm_mul_ps(src1_split.val[0], src2_split.val[0]);     //ac
+            v4sf bc = _mm_mul_ps(src1_split.val[1], src2_split.val[0]);     //bc
+            v4sf ac2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[0]);  //ac
+            v4sf bc2 = _mm_mul_ps(src1_split2.val[1], src2_split2.val[0]);  //bc
+
+            v4sfx2 dst_split;
+            v4sfx2 dst_split2;
+            dst_split.val[0] = _mm_fmadd_ps_custom(src1_split.val[1], src2_split.val[1], ac);
+            dst_split.val[1] = _mm_fnmadd_ps_custom(src1_split.val[0], src2_split.val[1], bc);
+            dst_split2.val[0] = _mm_fmadd_ps_custom(src1_split2.val[1], src2_split2.val[1], ac2);
+            dst_split2.val[1] = _mm_fnmadd_ps_custom(src1_split2.val[0], src2_split2.val[1], bc2);
+
+            dst_split.val[0] = _mm_div_ps(dst_split.val[0], c2d2);
+            dst_split.val[1] = _mm_div_ps(dst_split.val[1], c2d2);
+            dst_split2.val[0] = _mm_div_ps(dst_split2.val[0], c2d2_);
+            dst_split2.val[1] = _mm_div_ps(dst_split2.val[1], c2d2_);
+
+            _mm_store2u_ps((float *) (dst) + i, dst_split);
+            _mm_store2u_ps((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        float c2d2 = src2[i].re * src2[i].re + src2[i].im * src2[i].im;
+        dst[i].re = ((src1[i].re * src2[i].re) + (src1[i].im * src2[i].im)) / c2d2;
+        dst[i].im = (-(src1[i].re * src2[i].im) + (src2[i].re * src1[i].im)) / c2d2;
+    }
+}
+
 static inline void cplxvecmul128f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
     int stop_len = len / (4 * SSE_LEN_FLOAT);
     stop_len *= 4 * SSE_LEN_FLOAT;
 
-    //vmls(a,b,c) => a -(b*c)
-    // (ac -bd) + i(ad + bc)
-    for (int i = 0; i < 2 * stop_len; i += 4 * SSE_LEN_FLOAT) {
-        float32x4x2_t src1_split = vld2q_f32((float *) (src1) + i);  //a0a1a2a3, b0b1b2b3
-        float32x4x2_t src2_split = vld2q_f32((float *) (src2) + i);  //c0c1c2c3 d0d1d2d3
-        float32x4x2_t src1_split2 = vld2q_f32((float *) (src1) + i + 2 * SSE_LEN_FLOAT);
-        float32x4x2_t src2_split2 = vld2q_f32((float *) (src2) + i + 2 * SSE_LEN_FLOAT);
-        v4sf ac = _mm_mul_ps(src1_split.val[0], src2_split.val[0]);     //ac
-        v4sf ad = _mm_mul_ps(src1_split.val[0], src2_split.val[1]);     //ad
-        v4sf ac2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[0]);  //ac
-        v4sf ad2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[1]);  //ad
-        float32x4x2_t dst_split;
-        float32x4x2_t dst_split2;
-        dst_split.val[0] = _mm_fnmadd_ps(src1_split.val[1], src2_split.val[1], ac);
-        dst_split.val[1] = _mm_fmadd_ps(src1_split.val[1], src2_split.val[0], ad);
-        dst_split2.val[0] = _mm_fnmadd_ps(src1_split2.val[1], src2_split2.val[1], ac2);
-        dst_split2.val[1] = _mm_fmadd_ps(src1_split2.val[1], src2_split2.val[0], ad2);
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < 2 * stop_len; i += 4 * SSE_LEN_FLOAT) {
+            v4sfx2 src1_split = _mm_load2_ps((float *) (src1) + i);  //a0a1a2a3, b0b1b2b3
+            v4sfx2 src2_split = _mm_load2_ps((float *) (src2) + i);  //c0c1c2c3 d0d1d2d3
+            v4sfx2 src1_split2 = _mm_load2_ps((float *) (src1) + i + 2 * SSE_LEN_FLOAT);
+            v4sfx2 src2_split2 = _mm_load2_ps((float *) (src2) + i + 2 * SSE_LEN_FLOAT);
+            v4sf ac = _mm_mul_ps(src1_split.val[0], src2_split.val[0]);     //ac
+            v4sf ad = _mm_mul_ps(src1_split.val[0], src2_split.val[1]);     //ad
+            v4sf ac2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[0]);  //ac
+            v4sf ad2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[1]);  //ad
+            v4sfx2 dst_split;
+            v4sfx2 dst_split2;
+            dst_split.val[0] = _mm_fnmadd_ps_custom(src1_split.val[1], src2_split.val[1], ac);
+            dst_split.val[1] = _mm_fmadd_ps_custom(src1_split.val[1], src2_split.val[0], ad);
+            dst_split2.val[0] = _mm_fnmadd_ps_custom(src1_split2.val[1], src2_split2.val[1], ac2);
+            dst_split2.val[1] = _mm_fmadd_ps_custom(src1_split2.val[1], src2_split2.val[0], ad2);
 
-        vst2q_f32((float *) (dst) + i, dst_split);
-        vst2q_f32((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2);
+            _mm_store2_ps((float *) (dst) + i, dst_split);
+            _mm_store2_ps((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2);
+        }
+    } else {
+        for (int i = 0; i < 2 * stop_len; i += 4 * SSE_LEN_FLOAT) {
+            v4sfx2 src1_split = _mm_load2u_ps((float *) (src1) + i);  //a0a1a2a3, b0b1b2b3
+            v4sfx2 src2_split = _mm_load2u_ps((float *) (src2) + i);  //c0c1c2c3 d0d1d2d3
+            v4sfx2 src1_split2 = _mm_load2u_ps((float *) (src1) + i + 2 * SSE_LEN_FLOAT);
+            v4sfx2 src2_split2 = _mm_load2u_ps((float *) (src2) + i + 2 * SSE_LEN_FLOAT);
+            v4sf ac = _mm_mul_ps(src1_split.val[0], src2_split.val[0]);     //ac
+            v4sf ad = _mm_mul_ps(src1_split.val[0], src2_split.val[1]);     //ad
+            v4sf ac2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[0]);  //ac
+            v4sf ad2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[1]);  //ad
+            v4sfx2 dst_split;
+            v4sfx2 dst_split2;
+            dst_split.val[0] = _mm_fnmadd_ps_custom(src1_split.val[1], src2_split.val[1], ac);
+            dst_split.val[1] = _mm_fmadd_ps_custom(src1_split.val[1], src2_split.val[0], ad);
+            dst_split2.val[0] = _mm_fnmadd_ps_custom(src1_split2.val[1], src2_split2.val[1], ac2);
+            dst_split2.val[1] = _mm_fmadd_ps_custom(src1_split2.val[1], src2_split2.val[0], ad2);
+
+            _mm_store2u_ps((float *) (dst) + i, dst_split);
+            _mm_store2u_ps((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2);
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -2592,7 +2648,8 @@ static inline void cplxvecmul128f_split(float *src1Re, float *src1Im, float *src
     }
 }
 
-#ifndef ARM
+// Old version
+#if 0
 // out = a * conj(b)
 static inline void cplxconjvecmul128f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
@@ -2648,24 +2705,46 @@ static inline void cplxconjvecmul128f(complex32_t *src1, complex32_t *src2, comp
 
     //vmls(a,b,c) => a -(b*c)
     // (ac -bd) + i(ad + bc)
-    for (int i = 0; i < 2 * stop_len; i += 4 * SSE_LEN_FLOAT) {
-        float32x4x2_t src1_split = vld2q_f32((float *) (src1) + i);  //a0a1a2a3, b0b1b2b3
-        float32x4x2_t src2_split = vld2q_f32((float *) (src2) + i);  //c0c1c2c3 d0d1d2d3
-        float32x4x2_t src1_split2 = vld2q_f32((float *) (src1) + i + 2 * SSE_LEN_FLOAT);
-        float32x4x2_t src2_split2 = vld2q_f32((float *) (src2) + i + 2 * SSE_LEN_FLOAT);
-        v4sf ac = _mm_mul_ps(src1_split.val[0], src2_split.val[0]);     //ac
-        v4sf bc = _mm_mul_ps(src1_split.val[1], src2_split.val[0]);     //bc
-        v4sf ac2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[0]);  //ac
-        v4sf bc2 = _mm_mul_ps(src1_split2.val[1], src2_split2.val[0]);  //bc
-        float32x4x2_t dst_split;
-        float32x4x2_t dst_split2;
-        dst_split.val[0] = _mm_fmadd_ps(src1_split.val[1], src2_split.val[1], ac);
-        dst_split.val[1] = _mm_fnmadd_ps(src1_split.val[0], src2_split.val[1], bc);
-        dst_split2.val[0] = _mm_fmadd_ps(src1_split2.val[1], src2_split2.val[1], ac2);
-        dst_split2.val[1] = _mm_fnmadd_ps(src1_split2.val[0], src2_split2.val[1], bc2);
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < 2 * stop_len; i += 4 * SSE_LEN_FLOAT) {
+            v4sfx2 src1_split = _mm_load2_ps((float *) (src1) + i);  //a0a1a2a3, b0b1b2b3
+            v4sfx2 src2_split = _mm_load2_ps((float *) (src2) + i);  //c0c1c2c3 d0d1d2d3
+            v4sfx2 src1_split2 = _mm_load2_ps((float *) (src1) + i + 2 * SSE_LEN_FLOAT);
+            v4sfx2 src2_split2 = _mm_load2_ps((float *) (src2) + i + 2 * SSE_LEN_FLOAT);
+            v4sf ac = _mm_mul_ps(src1_split.val[0], src2_split.val[0]);     //ac
+            v4sf bc = _mm_mul_ps(src1_split.val[1], src2_split.val[0]);     //bc
+            v4sf ac2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[0]);  //ac
+            v4sf bc2 = _mm_mul_ps(src1_split2.val[1], src2_split2.val[0]);  //bc
+            v4sfx2 dst_split;
+            v4sfx2 dst_split2;
+            dst_split.val[0] = _mm_fmadd_ps_custom(src1_split.val[1], src2_split.val[1], ac);
+            dst_split.val[1] = _mm_fnmadd_ps_custom(src1_split.val[0], src2_split.val[1], bc);
+            dst_split2.val[0] = _mm_fmadd_ps_custom(src1_split2.val[1], src2_split2.val[1], ac2);
+            dst_split2.val[1] = _mm_fnmadd_ps_custom(src1_split2.val[0], src2_split2.val[1], bc2);
 
-        vst2q_f32((float *) (dst) + i, dst_split);
-        vst2q_f32((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2);
+            _mm_store2_ps((float *) (dst) + i, dst_split);
+            _mm_store2_ps((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2);
+        }
+    } else {
+        for (int i = 0; i < 2 * stop_len; i += 4 * SSE_LEN_FLOAT) {
+            v4sfx2 src1_split = _mm_load2u_ps((float *) (src1) + i);  //a0a1a2a3, b0b1b2b3
+            v4sfx2 src2_split = _mm_load2u_ps((float *) (src2) + i);  //c0c1c2c3 d0d1d2d3
+            v4sfx2 src1_split2 = _mm_load2u_ps((float *) (src1) + i + 2 * SSE_LEN_FLOAT);
+            v4sfx2 src2_split2 = _mm_load2u_ps((float *) (src2) + i + 2 * SSE_LEN_FLOAT);
+            v4sf ac = _mm_mul_ps(src1_split.val[0], src2_split.val[0]);     //ac
+            v4sf bc = _mm_mul_ps(src1_split.val[1], src2_split.val[0]);     //bc
+            v4sf ac2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[0]);  //ac
+            v4sf bc2 = _mm_mul_ps(src1_split2.val[1], src2_split2.val[0]);  //bc
+            v4sfx2 dst_split;
+            v4sfx2 dst_split2;
+            dst_split.val[0] = _mm_fmadd_ps_custom(src1_split.val[1], src2_split.val[1], ac);
+            dst_split.val[1] = _mm_fnmadd_ps_custom(src1_split.val[0], src2_split.val[1], bc);
+            dst_split2.val[0] = _mm_fmadd_ps_custom(src1_split2.val[1], src2_split2.val[1], ac2);
+            dst_split2.val[1] = _mm_fnmadd_ps_custom(src1_split2.val[0], src2_split2.val[1], bc2);
+
+            _mm_store2u_ps((float *) (dst) + i, dst_split);
+            _mm_store2u_ps((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2);
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
