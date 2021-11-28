@@ -1613,6 +1613,38 @@ static inline void cplxvecmul_C(complex32_t *src1, complex32_t *src2, complex32_
     }
 }
 
+static inline void cplxvecmul_C_unrolled8(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+{
+    int stop_len = len / 8;
+    stop_len *= 8;
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < stop_len; i += 8) {
+        dst[i].re = (src1[i].re * src2[i].re) - src1[i].im * src2[i].im;
+        dst[i].im = src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
+        dst[i + 1].re = (src1[i + 1].re * src2[i + 1].re) - src1[i + 1].im * src2[i + 1].im;
+        dst[i + 1].im = src1[i + 1].re * src2[i + 1].im + (src2[i + 1].re * src1[i + 1].im);
+        dst[i + 2].re = (src1[i + 2].re * src2[i + 2].re) - src1[i + 2].im * src2[i + 2].im;
+        dst[i + 2].im = src1[i + 2].re * src2[i + 2].im + (src2[i + 2].re * src1[i + 2].im);
+        dst[i + 3].re = (src1[i + 3].re * src2[i + 3].re) - src1[i + 3].im * src2[i + 3].im;
+        dst[i + 3].im = src1[i + 3].re * src2[i + 3].im + (src2[i + 3].re * src1[i + 3].im);
+        dst[i + 4].re = (src1[i + 4].re * src2[i + 4].re) - src1[i + 4].im * src2[i + 4].im;
+        dst[i + 4].im = src1[i + 4].re * src2[i + 4].im + (src2[i + 4].re * src1[i + 4].im);
+        dst[i + 5].re = (src1[i + 5].re * src2[i + 5].re) - src1[i + 5].im * src2[i + 5].im;
+        dst[i + 5].im = src1[i + 5].re * src2[i + 5].im + (src2[i + 5].re * src1[i + 5].im);
+        dst[i + 6].re = (src1[i + 6].re * src2[i + 6].re) - src1[i + 6].im * src2[i + 6].im;
+        dst[i + 6].im = src1[i + 6].re * src2[i + 6].im + (src2[i + 6].re * src1[i + 6].im);
+        dst[i + 7].re = (src1[i + 7].re * src2[i + 7].re) - src1[i + 7].im * src2[i + 7].im;
+        dst[i + 7].im = src1[i + 7].re * src2[i + 7].im + (src2[i + 7].re * src1[i + 7].im);
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i].re = (src1[i].re * src2[i].re) - src1[i].im * src2[i].im;
+        dst[i].im = src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
+    }
+}
+
 static inline void cplxvecmul_C2(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
 #ifdef OMP
