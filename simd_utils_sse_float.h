@@ -756,16 +756,16 @@ static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, 
 }
 
 // converts 32bits complex float to two arrays real and im
-static inline void cplxtoreal128f(float *src, float *dstRe, float *dstIm, int len)
+static inline void cplxtoreal128f(complex32_t *src, float *dstRe, float *dstIm, int len)
 {
-    int stop_len = 2 * len / (2 * SSE_LEN_FLOAT);
-    stop_len *= 2 * SSE_LEN_FLOAT;
+    int stop_len = 2 * len / (4 * SSE_LEN_FLOAT);
+    stop_len *= 4 * SSE_LEN_FLOAT;
 
     int j = 0;
     if (areAligned3((uintptr_t)(src), (uintptr_t)(dstRe), (uintptr_t)(dstIm), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
-            v4sfx2 vec1 = _mm_load2_ps(src + i);
-            v4sfx2 vec2 = _mm_load2_ps(src + i + 2 * SSE_LEN_FLOAT);
+            v4sfx2 vec1 = _mm_load2_ps((float const *) (src) + i);
+            v4sfx2 vec2 = _mm_load2_ps((float const *) (src) + i + 2 * SSE_LEN_FLOAT);
             _mm_store_ps(dstRe + j, vec1.val[0]);
             _mm_store_ps(dstIm + j, vec1.val[1]);
             _mm_store_ps(dstRe + j + SSE_LEN_FLOAT, vec2.val[0]);
@@ -774,8 +774,8 @@ static inline void cplxtoreal128f(float *src, float *dstRe, float *dstIm, int le
         }
     } else {
         for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
-            v4sfx2 vec1 = _mm_load2u_ps(src + i);
-            v4sfx2 vec2 = _mm_load2u_ps(src + i + 2 * SSE_LEN_FLOAT);
+            v4sfx2 vec1 = _mm_load2u_ps((float const *) (src) + i);
+            v4sfx2 vec2 = _mm_load2u_ps((float const *) (src) + i + 2 * SSE_LEN_FLOAT);
             _mm_storeu_ps(dstRe + j, vec1.val[0]);
             _mm_storeu_ps(dstIm + j, vec1.val[1]);
             _mm_storeu_ps(dstRe + j + SSE_LEN_FLOAT, vec2.val[0]);
@@ -784,14 +784,13 @@ static inline void cplxtoreal128f(float *src, float *dstRe, float *dstIm, int le
         }
     }
 
-    for (int i = stop_len; i < 2 * len; i += 2) {
-        dstRe[j] = src[i];
-        dstIm[j] = src[i + 1];
-        j++;
+    for (int i = j; i < len; i++) {
+        dstRe[i] = src[i].re;
+        dstIm[i] = src[i].im;
     }
 }
 
-static inline void realtocplx128f(float *srcRe, float *srcIm, float *dst, int len)
+static inline void realtocplx128f(float *srcRe, float *srcIm, complex32_t *dst, int len)
 {
     int stop_len = len / (2 * SSE_LEN_FLOAT);
     stop_len *= 2 * SSE_LEN_FLOAT;
@@ -805,8 +804,8 @@ static inline void realtocplx128f(float *srcRe, float *srcIm, float *dst, int le
             v4sf im2 = _mm_load_ps(srcIm + i + SSE_LEN_FLOAT);
             v4sfx2 reim = {{re, im}};
             v4sfx2 reim2 = {{re2, im2}};
-            _mm_store2_ps(dst + j, reim);
-            _mm_store2_ps(dst + j + 2 * SSE_LEN_FLOAT, reim2);
+            _mm_store2_ps((float *) (dst) + j, reim);
+            _mm_store2_ps((float *) (dst) + j + 2 * SSE_LEN_FLOAT, reim2);
             j += 4 * SSE_LEN_FLOAT;
         }
     } else {
@@ -817,16 +816,15 @@ static inline void realtocplx128f(float *srcRe, float *srcIm, float *dst, int le
             v4sf im2 = _mm_loadu_ps(srcIm + i + SSE_LEN_FLOAT);
             v4sfx2 reim = {{re, im}};
             v4sfx2 reim2 = {{re2, im2}};
-            _mm_store2u_ps(dst + j, reim);
-            _mm_store2u_ps(dst + j + 2 * SSE_LEN_FLOAT, reim2);
+            _mm_store2u_ps((float *) (dst) + j, reim);
+            _mm_store2u_ps((float *) (dst) + j + 2 * SSE_LEN_FLOAT, reim2);
             j += 4 * SSE_LEN_FLOAT;
         }
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[j] = srcRe[i];
-        dst[j + 1] = srcIm[i];
-        j += 2;
+        dst[i].re = srcRe[i];
+        dst[i].im = srcIm[i];
     }
 }
 

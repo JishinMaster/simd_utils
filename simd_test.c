@@ -5904,14 +5904,14 @@ for (int i = 0; i < len; i++){
     }
 
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxtorealf_C(inout, inout_ref, inout2_ref, len);
+    cplxtorealf_C((complex32_t *) inout, inout_ref, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("cplxtorealf_C %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        cplxtorealf_C(inout, inout_ref, inout2_ref, len);
+        cplxtorealf_C((complex32_t *) inout, inout_ref, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxtorealf_C %d %lf\n", len, elapsed);
@@ -5935,14 +5935,14 @@ for (int i = 0; i < len; i++){
 
 #if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxtoreal128f(inout, inout3, inout4, len);
+    cplxtoreal128f((complex32_t *) inout, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("cplxtoreal128f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        cplxtoreal128f(inout, inout3, inout4, len);
+        cplxtoreal128f((complex32_t *) inout, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxtoreal128f %d %lf\n", len, elapsed);
@@ -5952,14 +5952,14 @@ for (int i = 0; i < len; i++){
 
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxtoreal256f(inout, inout3, inout4, len);
+    cplxtoreal256f((complex32_t *) inout, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("cplxtoreal256f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        cplxtoreal256f(inout, inout3, inout4, len);
+        cplxtoreal256f((complex32_t *) inout, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxtoreal256f %d %lf\n", len, elapsed);
@@ -5976,14 +5976,14 @@ for (int i = 0; i < len; i++){
     printf("REAL2CPLX\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
-    realtocplx_C(inout3, inout4, inout_ref, len);
+    realtocplx_C(inout3, inout4, (complex32_t *) inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("realtocplx_C %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        realtocplx_C(inout3, inout4, inout_ref, len);
+        realtocplx_C(inout3, inout4, (complex32_t *) inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("realtocplx_C %d %lf\n", len, elapsed);
@@ -6007,14 +6007,14 @@ for (int i = 0; i < len; i++){
 
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
-    realtocplx128f(inout3, inout4, inout, len);
+    realtocplx128f(inout3, inout4, (complex32_t *) inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("realtocplx128f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        realtocplx128f(inout3, inout4, inout, len);
+        realtocplx128f(inout3, inout4, (complex32_t *) inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3 / (double) loop;
     printf("realtocplx128f %d %lf\n", len, elapsed);
@@ -6027,14 +6027,14 @@ for (int i = 0; i < len; i++){
 
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
-    realtocplx256f(inout3, inout4, inout, len);
+    realtocplx256f(inout3, inout4, (complex32_t *) inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("realtocplx256f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        realtocplx256f(inout3, inout4, inout, len);
+        realtocplx256f(inout3, inout4, (complex32_t *) inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("realtocplx256f %d %lf\n", len, elapsed);

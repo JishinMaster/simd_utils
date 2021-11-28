@@ -1076,30 +1076,26 @@ static inline void divf_C(float *src1, float *src2, float *dst, int len)
     }
 }
 
-static inline void cplxtorealf_C(float *src, float *dstRe, float *dstIm, int len)
+static inline void cplxtorealf_C(complex32_t *src, float *dstRe, float *dstIm, int len)
 {
-    int j = 0;
-#ifdef OMP
-#pragma omp simd
-#endif
-    for (int i = 0; i < 2 * len; i += 2) {
-        dstRe[j] = src[i];
-        dstIm[j] = src[i + 1];
-        j++;
-    }
-}
-
-
-static inline void realtocplx_C(float *srcRe, float *srcIm, float *dst, int len)
-{
-    int j = 0;
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[j] = srcRe[i];
-        dst[j + 1] = srcIm[i];
-        j += 2;
+        dstRe[i] = src[i].re;
+        dstIm[i] = src[i].im;
+    }
+}
+
+
+static inline void realtocplx_C(float *srcRe, float *srcIm, complex32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i].re = srcRe[i];
+        dst[i].im = srcIm[i];
     }
 }
 

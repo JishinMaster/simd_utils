@@ -637,15 +637,16 @@ static inline void print8(__m256 v)
 #if 1
 // converts 32bits complex float to two arrays real and im
 //Work in progress => could be improved with custom SSE mm_load2_ps
-static inline void cplxtoreal256f(float *src, float *dstRe, float *dstIm, int len)
+static inline void cplxtoreal256f(complex32_t *src, float *dstRe, float *dstIm, int len)
 {
     int stop_len = 2 * len / (4 * AVX_LEN_FLOAT);
     stop_len *= 4 * AVX_LEN_FLOAT;
+
     int j = 0;
     if (areAligned3((uintptr_t)(src), (uintptr_t)(dstRe), (uintptr_t)(dstIm), AVX_LEN_FLOAT)) {
         for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
-            v8sf vec1 = _mm256_load_ps(src + i);                                                       //load 0 1 2 3 4 5 6 7
-            v8sf vec2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);                                       // load 8 9 10 11 12 13 14 15
+            v8sf vec1 = _mm256_load_ps((float const *) (src) + i);                                     //load 0 1 2 3 4 5 6 7
+            v8sf vec2 = _mm256_load_ps((float const *) (src) + i + AVX_LEN_FLOAT);                     // load 8 9 10 11 12 13 14 15
             v8sf vec1_permute = _mm256_permute2f128_ps(vec1, vec1, IMM8_PERMUTE_128BITS_LANES);        // reverse v1 4 5 6 7 0 1 2 3
             v8sf vec2_permute = _mm256_permute2f128_ps(vec2, vec1, IMM8_PERMUTE_128BITS_LANES);        // reverse v2 12 13 14 15 8 9 10 11
             v8sf vec1_even = _mm256_shuffle_ps(vec1, vec1_permute, _MM_SHUFFLE(2, 0, 2, 0));           // 0 2 4 6 0 2 4 6
@@ -657,8 +658,8 @@ static inline void cplxtoreal256f(float *src, float *dstRe, float *dstIm, int le
             _mm256_store_ps(dstRe + j, tmp1permute);
             _mm256_store_ps(dstIm + j, tmp2permute);
 
-            v8sf vec3 = _mm256_load_ps(src + i + 2 * AVX_LEN_FLOAT);
-            v8sf vec4 = _mm256_load_ps(src + i + 3 * AVX_LEN_FLOAT);
+            v8sf vec3 = _mm256_load_ps((float const *) (src) + i + 2 * AVX_LEN_FLOAT);
+            v8sf vec4 = _mm256_load_ps((float const *) (src) + i + 3 * AVX_LEN_FLOAT);
             v8sf vec3_permute = _mm256_permute2f128_ps(vec3, vec3, IMM8_PERMUTE_128BITS_LANES);
             v8sf vec4_permute = _mm256_permute2f128_ps(vec4, vec3, IMM8_PERMUTE_128BITS_LANES);
             v8sf vec3_even = _mm256_shuffle_ps(vec3, vec3_permute, _MM_SHUFFLE(2, 0, 2, 0));
@@ -674,8 +675,8 @@ static inline void cplxtoreal256f(float *src, float *dstRe, float *dstIm, int le
         }
     } else {
         for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
-            v8sf vec1 = _mm256_loadu_ps(src + i);                                                      //load 0 1 2 3 4 5 6 7
-            v8sf vec2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);                                      // load 8 9 10 11 12 13 14 15
+            v8sf vec1 = _mm256_loadu_ps((float const *) (src) + i);                                    //load 0 1 2 3 4 5 6 7
+            v8sf vec2 = _mm256_loadu_ps((float const *) (src) + i + AVX_LEN_FLOAT);                    // load 8 9 10 11 12 13 14 15
             v8sf vec1_permute = _mm256_permute2f128_ps(vec1, vec1, IMM8_PERMUTE_128BITS_LANES);        // reverse v1 4 5 6 7 0 1 2 3
             v8sf vec2_permute = _mm256_permute2f128_ps(vec2, vec1, IMM8_PERMUTE_128BITS_LANES);        // reverse v2 12 13 14 15 8 9 10 11
             v8sf vec1_even = _mm256_shuffle_ps(vec1, vec1_permute, _MM_SHUFFLE(2, 0, 2, 0));           // 0 2 4 6 0 2 4 6
@@ -687,8 +688,8 @@ static inline void cplxtoreal256f(float *src, float *dstRe, float *dstIm, int le
             _mm256_storeu_ps(dstRe + j, tmp1permute);
             _mm256_storeu_ps(dstIm + j, tmp2permute);
 
-            v8sf vec3 = _mm256_loadu_ps(src + i + 2 * AVX_LEN_FLOAT);
-            v8sf vec4 = _mm256_loadu_ps(src + i + 3 * AVX_LEN_FLOAT);
+            v8sf vec3 = _mm256_loadu_ps((float const *) (src) + i + 2 * AVX_LEN_FLOAT);
+            v8sf vec4 = _mm256_loadu_ps((float const *) (src) + i + 3 * AVX_LEN_FLOAT);
             v8sf vec3_permute = _mm256_permute2f128_ps(vec3, vec3, IMM8_PERMUTE_128BITS_LANES);
             v8sf vec4_permute = _mm256_permute2f128_ps(vec4, vec3, IMM8_PERMUTE_128BITS_LANES);
             v8sf vec3_even = _mm256_shuffle_ps(vec3, vec3_permute, _MM_SHUFFLE(2, 0, 2, 0));
@@ -704,10 +705,9 @@ static inline void cplxtoreal256f(float *src, float *dstRe, float *dstIm, int le
         }
     }
 
-    for (int i = stop_len; i < 2 * len; i += 2) {
-        dstRe[j] = src[i];
-        dstIm[j] = src[i + 1];
-        j++;
+    for (int i = j; i < len; i++) {
+        dstRe[i] = src[i].re;
+        dstIm[i] = src[i].im;
     }
 }
 #else
@@ -767,7 +767,7 @@ static inline void cplxtoreal256f(float *src, float *dstRe, float *dstIm, int le
 }
 #endif
 
-static inline void realtocplx256f(float *srcRe, float *srcIm, float *dst, int len)
+static inline void realtocplx256f(float *srcRe, float *srcIm, complex32_t *dst, int len)
 {
     int stop_len = len / (2 * AVX_LEN_FLOAT);
     stop_len *= 2 * AVX_LEN_FLOAT;
@@ -787,10 +787,10 @@ static inline void realtocplx256f(float *srcRe, float *srcIm, float *dst, int le
             v8sf perm1 = _mm256_permute2f128_ps(cplx0, cplx1, 0x31);     //permute mask [cplx1(255:128],cplx0[255:128])
             v8sf perm02 = _mm256_permute2f128_ps(cplx02, cplx12, 0x20);  //permute mask [cplx1(127:0],cplx0[127:0])
             v8sf perm12 = _mm256_permute2f128_ps(cplx02, cplx12, 0x31);  //permute mask [cplx1(255:128],cplx0[255:128])
-            _mm256_store_ps(dst + j, perm0);
-            _mm256_store_ps(dst + j + AVX_LEN_FLOAT, perm1);
-            _mm256_store_ps(dst + j + 2 * AVX_LEN_FLOAT, perm02);
-            _mm256_store_ps(dst + j + 3 * AVX_LEN_FLOAT, perm12);
+            _mm256_store_ps((float *) (dst) + j, perm0);
+            _mm256_store_ps((float *) (dst) + j + AVX_LEN_FLOAT, perm1);
+            _mm256_store_ps((float *) (dst) + j + 2 * AVX_LEN_FLOAT, perm02);
+            _mm256_store_ps((float *) (dst) + j + 3 * AVX_LEN_FLOAT, perm12);
             j += 4 * AVX_LEN_FLOAT;
         }
     } else {
@@ -807,18 +807,17 @@ static inline void realtocplx256f(float *srcRe, float *srcIm, float *dst, int le
             v8sf perm1 = _mm256_permute2f128_ps(cplx0, cplx1, 0x31);     //permute mask [cplx1(255:128],cplx0[255:128])
             v8sf perm02 = _mm256_permute2f128_ps(cplx02, cplx12, 0x20);  //permute mask [cplx1(127:0],cplx0[127:0])
             v8sf perm12 = _mm256_permute2f128_ps(cplx02, cplx12, 0x31);  //permute mask [cplx1(255:128],cplx0[255:128])
-            _mm256_storeu_ps(dst + j, perm0);
-            _mm256_storeu_ps(dst + j + AVX_LEN_FLOAT, perm1);
-            _mm256_storeu_ps(dst + j + 2 * AVX_LEN_FLOAT, perm02);
-            _mm256_storeu_ps(dst + j + 3 * AVX_LEN_FLOAT, perm12);
+            _mm256_storeu_ps((float *) (dst) + j, perm0);
+            _mm256_storeu_ps((float *) (dst) + j + AVX_LEN_FLOAT, perm1);
+            _mm256_storeu_ps((float *) (dst) + j + 2 * AVX_LEN_FLOAT, perm02);
+            _mm256_storeu_ps((float *) (dst) + j + 3 * AVX_LEN_FLOAT, perm12);
             j += 4 * AVX_LEN_FLOAT;
         }
     }
 
-    for (int i = stop_len; i < len; i++) {
-        dst[j] = srcRe[i];
-        dst[j + 1] = srcIm[i];
-        j += 2;
+    for (int i = j; i < len; i++) {
+        dst[i].re = srcRe[i];
+        dst[i].im = srcIm[i];
     }
 }
 
@@ -906,6 +905,8 @@ static inline void flip256f(float *src, float *dst, int len)
         dst[len - i - 1] = src[i];
     }
 
+    //Since we work in reverse we do not know for sure if destination address will be aligned
+    //Could it be improved?
     v8si reverse_reg = _mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7);
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 2 * AVX_LEN_FLOAT; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
@@ -913,8 +914,8 @@ static inline void flip256f(float *src, float *dst, int len)
             v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);               //load a,b,c,d,e,f,g,h
             v8sf src_tmp_flip = _mm256_permutevar8x32_ps(src_tmp, reverse_reg);    // reverse lanes abcdefgh to hgfedcba
             v8sf src_tmp_flip2 = _mm256_permutevar8x32_ps(src_tmp2, reverse_reg);  // reverse lanes abcdefgh to hgfedcba
-            _mm256_store_ps(dst + len - i - AVX_LEN_FLOAT, src_tmp_flip);          //store the flipped vector
-            _mm256_store_ps(dst + len - i - 2 * AVX_LEN_FLOAT, src_tmp_flip2);     //store the flipped vector
+            _mm256_storeu_ps(dst + len - i - AVX_LEN_FLOAT, src_tmp_flip);         //store the flipped vector
+            _mm256_storeu_ps(dst + len - i - 2 * AVX_LEN_FLOAT, src_tmp_flip2);    //store the flipped vector
         }
     } else {
         for (int i = AVX_LEN_FLOAT; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
