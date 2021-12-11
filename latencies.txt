@@ -1,0 +1,39 @@
+SSE
+_mm_store_ps     lat 1, cpi 1 (ivy ) 0.5 (broadwell), NEON vst1q_f32 lat 1 cpi 1 (a72)
+_mm_storeu_ps    lat 1, cpi 1 (ivy ) 0.5 (broadwell)
+_mm_load_ps      lat 1, cpi 1 (ivy ) 0.5 (broadwell) NEON vld1q_f32 lat 5 cpi 1 (a72)
+_mm_loadu_ps     lat 1, cpi 1 (ivy ) 0.5 (broadwell) 
+_mm_min_ps	 lat 3, cpi 1 (ivy ) 1 (broadwell) NEON vminq_f32 lat 3 cpi 0.5 (a72)
+_mm_max_ps       lat 3, cpi 1 (ivy ) 1 (broadwell) NEON vmaxq_f32 lat 3 cpi 0.5 (a72)
+_mm_cvtpd_ps     lat 4, cpi 1 (ivy ) 1 (broadwell) NEON vcvt_f32_f64 lat 3 cpi 1 (a72)
+_mm_mul_ps	 lat 5 (ivy) 3 (broadwell), cpi 1 (ivy) 0.5 (broadwell) NEON vmulq_f32 lat 4 cpi 1 (a72)
+_mm_div_ps	 lat 11-14 (ivy) <11 (broadwell), cpi 6 (ivy) 4 (broadwell) NEON vdivq_f32 lat 12-22 cpi 10-18 (a72)
+_mm_movelh_ps    lat 1, cpi 1
+_mm_hadd_ps		 lat 5, cpi 2 => useful for reduction! NEON vpaddq_f32 lat lat 7 cpi 3/2 (a72)
+_mm_shuffle_ps lat 1, cpi 1 NEON uses gcc __builtin_shufflevector which might be VREV64 lat 3 cpi 0.5 VSWP lat 3 cpi 1 VEXT lat 3 cpu 0.5
+_mm_cvtps_epi32 lat 3, cpi 1
+_mm_round_ps
+_mm_castsi128_ps
+
+neon blendv => vshrq_n_s32 (lat 3, cpi 1 on mask) + 
+
+AVX/AVX2
+_mm256_store_ps  lat 1, cpi 1 (ivy ) 0.5 (broadwell)
+_mm256_storeu_ps lat 1, cpi 1 (ivy ) 0.5 (broadwell)
+_mm256_load_ps   lat 1, cpi 1 (ivy ) 0.5 (broadwell)
+_mm256_loadu_ps  lat 1, cpi 1 (ivy ) 0.5 (broadwell)
+_mm256_min_ps	 lat 3, cpi 1 (ivy ) 1   (broadwell)
+_mm256_max_ps	 lat 3, cpi 1 (ivy ) 1   (broadwell)
+_mm256_cvtpd_ps  lat 4 (ivy) 6 (broadwell), cpi 1 (ivy ) 1  (broadwell)
+_mm256_mul_ps	 lat 5 (ivy) 3 (broadwell), cpi 1 (ivy) 0.5 (broadwell)
+_mm256_div_ps	 lat 18-21 (ivy) 13-17 (broadwell), cpi 14 (ivy) 10 (broadwell)
+_mm256_set_m128  lat 3, cpi 1
+_mm256_hadd_ps
+_mm256_permute_ps lat 1, cpi 1
+_mm256_permute2f128_ps lat 2(ivy) 3 (broadwell) , cpi 1
+
+//AVX512/VNNI
+_mm512_dpbusd_epi32 lat 5?, cpi 1 (icelake)
+_mm512_madd_epi16 lat 5?, cpi 1 (icelake)
+_mm512_add_epi32 lat 1, cpi 0.5 (icelake)
+_mm512_maddubs_epi16 lat 5?, cpi 1 (icelake)

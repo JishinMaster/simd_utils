@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.0
+ * Version : 0.2.1
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -39,7 +39,7 @@
 //Round types
 /*#define _MM_ROUND_MASK 0x6000
 #define _MM_ROUND_NEAREST 0x0000
-#define _MM_ROUND_DOWN 0.2.00
+#define _MM_ROUND_DOWN 0x2000
 #define _MM_ROUND_UP 0x4000
 #define _MM_ROUND_TOWARD_ZERO 0x6000*/
 
