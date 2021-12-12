@@ -908,6 +908,103 @@ int main(int argc, char **argv)
 
 
     printf("\n");
+    /////////////////////////////////////////////////////////// threshold_lt_f //////////////////////////////////////////////////////////////////////////////
+    printf("THRESHOLD_GT\n");
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) i / 20.0f;  //printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+        inout2[i] = 0.0f;
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_gt_f_C(inout, inout2_ref, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_gt_f_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold_gt_f_C(inout, inout2_ref, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold_gt_f_C %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsThreshold_GT_32f(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsThreshold_GT_32f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsThreshold_GT_32f(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsThreshold_GT_32f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold128_gt_f(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold128_gt_f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold128_gt_f(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold128_gt_f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold256_gt_f(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold256_gt_f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold256_gt_f(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold256_gt_f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold512_gt_f(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold512_gt_f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold512_gt_f(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold512_gt_f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
+    printf("\n");
     /////////////////////////////////////////////////////////// threshold_gt_f //////////////////////////////////////////////////////////////////////////////
     printf("THRESHOLD_GTABS\n");
 
@@ -1025,6 +1122,103 @@ int main(int argc, char **argv)
     /*for(int i = 0; i < len; i++){
       printf("%f %f %f\n", inout[i],inout2_ref[i],inout2[i]);
     }*/
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// threshold_gt_f //////////////////////////////////////////////////////////////////////////////
+    printf("THRESHOLD_LTABS\n");
+
+    flops = 2 * len;
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) (-i) / 20.0f + 30.0f - 0.05f * (float) i;  //printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+        inout2[i] = 0.0f;
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_ltabs_f_C(inout, inout2_ref, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_ltabs_f_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold_ltabs_f_C(inout, inout2_ref, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold_ltabs_f_C %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsThreshold_LTAbs_32f(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsThreshold_LTAbs_32f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsThreshold_LTAbs_32f(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsThreshold_LTAbs_32f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold128_ltabs_f(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold128_ltabs_f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold128_ltabs_f(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold128_ltabs_f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold256_ltabs_f(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold256_ltabs_f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold256_ltabs_f(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold256_ltabs_f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold512_ltabs_f(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold512_ltabs_f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold512_ltabs_f(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold512_ltabs_f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2, inout2_ref, len);
+#endif
 
     printf("\n");
     /////////////////////////////////////////////////////////// THRESHOLD_LTValGTVal //////////////////////////////////////////////////////////////////////////////
@@ -2024,6 +2218,24 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("powerspectf_C_split %d %lf\n", len, elapsed);
 
+#ifdef IPP
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsPowerSpectr_32f(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsPowerSpectr_32f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsPowerSpectr_32f(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsPowerSpectr_32f %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
 #if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     powerspect128f_split(inout, inout2, inout2_ref, len);
@@ -2108,6 +2320,24 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("powerspectf_C_interleaved %d %lf\n", len, elapsed);
 
+#ifdef IPP
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsPowerSpectr_32fc((const Ipp32fc *) inout, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsPowerSpectr_32fc %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsPowerSpectr_32fc((const Ipp32fc *) inout, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsPowerSpectr_32fc %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
     powerspect128f_interleaved((complex32_t *) inout, inout2_ref, len);
@@ -2172,6 +2402,24 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxvecdiv_C %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsDiv_32fc_A24((const Ipp32fc *) inout, (const Ipp32fc *) inout2, (Ipp32fc *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsDiv_32fc_A24 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsDiv_32fc_A24((const Ipp32fc *) inout, (const Ipp32fc *) inout2, (Ipp32fc *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsDiv_32fc_A24 %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout_ref, inout2_ref, 2 * len);
+#endif
 
 #if defined(SSE)
     clock_gettime(CLOCK_REALTIME, &start);
@@ -2525,6 +2773,21 @@ printf("\n");
 
     l2_err(inout_ref, inout2_ref, 2 * len);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxconjvecmul128f_more_precise((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxconjvecmul128f_more_precise %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cplxconjvecmul128f_more_precise((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cplxconjvecmul128f_more_precise %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout_ref, inout2_ref, 2 * len);
+
 #endif
 
 #ifdef AVX
@@ -2618,6 +2881,22 @@ printf("\n");
     l2_err(inout_ref, inout5, len);
     l2_err(inout2_ref, inout6, len);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxconjvecmul128f_split_more_precise(inout, inout2, inout3, inout4, inout5, inout6, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxconjvecmul128f_split_more_precise %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cplxconjvecmul128f_split_more_precise(inout, inout2, inout3, inout4, inout5, inout6, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cplxconjvecmul128f_split_more_precise %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout_ref, inout5, len);
+    l2_err(inout2_ref, inout6, len);
+
 #endif
 
 #ifdef AVX
@@ -2692,14 +2971,14 @@ printf("\n");
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConj_32fc((const Ipp32fc *) inout, (const Ipp32fc *) inout2_ref, len);
+    ippsConj_32fc((const Ipp32fc *) inout, (Ipp32fc *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConj_32fc %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        ippsConj_32fc((const Ipp32fc *) inout, (const Ipp32fc *) inout2_ref, len);
+        ippsConj_32fc((const Ipp32fc *) inout, (Ipp32fc *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsConj_32fc %d %lf\n", len, elapsed);
@@ -4729,7 +5008,7 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsTanh_32f_A24 %d %lf\n", len, elapsed);
-    l2_err(inout2_ref, inout2, len);
+    l2_err(inout_ref, inout2, len);
 #endif
 
 #ifdef SSE
