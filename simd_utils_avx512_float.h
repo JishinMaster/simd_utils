@@ -901,6 +901,60 @@ static inline void threshold512_gt_f(float *src, float *dst, int len, float valu
     }
 }
 
+#if 1
+static inline void threshold512_gtabs_f(float *src, float *dst, int len, float value)
+{
+    const v16sf pval = _mm512_set1_ps(value);
+    const v16sf mval = _mm512_set1_ps(-value);
+
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= (2 * AVX512_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_load_ps(src + i);
+            v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
+            v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
+            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            __mmask16 eqmask2 = _mm512_cmp_ps_mask(src_abs2, src_tmp2, _CMP_EQ_OS);
+            v16sf max = _mm512_max_ps(src_tmp, mval);
+            v16sf max2 = _mm512_max_ps(src_tmp2, mval);
+            v16sf min = _mm512_min_ps(src_tmp, pval);
+            v16sf min2 = _mm512_min_ps(src_tmp2, pval);
+            v16sf dst_tmp = _mm512_mask_blend_ps(eqmask, max, min);  // either A or sval (+- value)
+            v16sf dst_tmp2 = _mm512_mask_blend_ps(eqmask2, max2, min2);
+            _mm512_store_ps(dst + i, dst_tmp);
+            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_loadu_ps(src + i);
+            v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
+            v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
+            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            __mmask16 eqmask2 = _mm512_cmp_ps_mask(src_abs2, src_tmp2, _CMP_EQ_OS);
+            v16sf max = _mm512_max_ps(src_tmp, mval);
+            v16sf max2 = _mm512_max_ps(src_tmp2, mval);
+            v16sf min = _mm512_min_ps(src_tmp, pval);
+            v16sf min2 = _mm512_min_ps(src_tmp2, pval);
+            v16sf dst_tmp = _mm512_mask_blend_ps(eqmask, max, min);  // either A or sval (+- value)
+            v16sf dst_tmp2 = _mm512_mask_blend_ps(eqmask2, max2, min2);
+            _mm512_storeu_ps(dst + i, dst_tmp);
+            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] > value ? value : src[i];
+        } else {
+            dst[i] = src[i] < (-value) ? (-value) : src[i];
+        }
+    }
+}
+#else
 static inline void threshold512_gtabs_f(float *src, float *dst, int len, float value)
 {
     const v16sf pval = _mm512_set1_ps(value);
@@ -953,6 +1007,7 @@ static inline void threshold512_gtabs_f(float *src, float *dst, int len, float v
         }
     }
 }
+#endif
 
 static inline void threshold512_lt_f(float *src, float *dst, int len, float value)
 {
@@ -986,6 +1041,60 @@ static inline void threshold512_lt_f(float *src, float *dst, int len, float valu
     }
 }
 
+#if 1
+static inline void threshold512_ltabs_f(float *src, float *dst, int len, float value)
+{
+    const v16sf pval = _mm512_set1_ps(value);
+    const v16sf mval = _mm512_set1_ps(-value);
+
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= (2 * AVX512_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_load_ps(src + i);
+            v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
+            v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
+            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            __mmask16 eqmask2 = _mm512_cmp_ps_mask(src_abs2, src_tmp2, _CMP_EQ_OS);
+            v16sf max = _mm512_max_ps(src_tmp, pval);
+            v16sf max2 = _mm512_max_ps(src_tmp2, pval);
+            v16sf min = _mm512_min_ps(src_tmp, mval);
+            v16sf min2 = _mm512_min_ps(src_tmp2, mval);
+            v16sf dst_tmp = _mm512_mask_blend_ps(eqmask, min, max);  // either A or sval (+- value)
+            v16sf dst_tmp2 = _mm512_mask_blend_ps(eqmask2, min2, max2);
+            _mm512_store_ps(dst + i, dst_tmp);
+            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_loadu_ps(src + i);
+            v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
+            v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
+            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            __mmask16 eqmask2 = _mm512_cmp_ps_mask(src_abs2, src_tmp2, _CMP_EQ_OS);
+            v16sf max = _mm512_max_ps(src_tmp, pval);
+            v16sf max2 = _mm512_max_ps(src_tmp2, pval);
+            v16sf min = _mm512_min_ps(src_tmp, mval);
+            v16sf min2 = _mm512_min_ps(src_tmp2, mval);
+            v16sf dst_tmp = _mm512_mask_blend_ps(eqmask, min, max);  // either A or sval (+- value)
+            v16sf dst_tmp2 = _mm512_mask_blend_ps(eqmask2, min2, max2);
+            _mm512_storeu_ps(dst + i, dst_tmp);
+            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] < value ? value : src[i];
+        } else {
+            dst[i] = src[i] > (-value) ? (-value) : src[i];
+        }
+    }
+}
+#else
 static inline void threshold512_ltabs_f(float *src, float *dst, int len, float value)
 {
     const v16sf pval = _mm512_set1_ps(value);
@@ -1038,6 +1147,7 @@ static inline void threshold512_ltabs_f(float *src, float *dst, int len, float v
         }
     }
 }
+#endif
 
 static inline void threshold512_ltval_gtval_f(float *src, float *dst, int len, float ltlevel, float ltvalue, float gtlevel, float gtvalue)
 {
@@ -1791,8 +1901,8 @@ static inline void magnitude512f_split(float *srcRe, float *srcIm, float *dst, i
             v16sf re_square2 = _mm512_mul_ps(re_tmp2, re_tmp2);
             v16sf dst_tmp = _mm512_fmadd_ps_custom(im_tmp, im_tmp, re_square);
             v16sf dst_tmp2 = _mm512_fmadd_ps_custom(im_tmp2, im_tmp2, re_square2);
-            v16sf dst_tmp = _mm512_sqrt_ps(dst_tmp);
-            v16sf dst_tmp2 = _mm512_sqrt_ps(dst_tmp2);
+            dst_tmp = _mm512_sqrt_ps(dst_tmp);
+            dst_tmp2 = _mm512_sqrt_ps(dst_tmp2);
             _mm512_storeu_ps(dst + i, dst_tmp);
             _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
@@ -1912,16 +2022,26 @@ static inline void mean512f(float *src, float *dst, int len)
 
 static inline void sqrt512f(float *src, float *dst, int len)
 {
-    int stop_len = len / AVX512_LEN_FLOAT;
-    stop_len *= AVX512_LEN_FLOAT;
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= (2 * AVX512_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
-            _mm512_store_ps(dst + i, _mm512_sqrt_ps(_mm512_load_ps(src + i)));
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_load_ps(src + i);
+            v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf dst_tmp = _mm512_sqrt_ps(src_tmp);
+            v16sf dst_tmp2 = _mm512_sqrt_ps(src_tmp2);
+            _mm512_store_ps(dst + i, dst_tmp);
+            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
-            _mm512_storeu_ps(dst + i, _mm512_sqrt_ps(_mm512_loadu_ps(src + i)));
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_loadu_ps(src + i);
+            v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf dst_tmp = _mm512_sqrt_ps(src_tmp);
+            v16sf dst_tmp2 = _mm512_sqrt_ps(src_tmp2);
+            _mm512_storeu_ps(dst + i, dst_tmp);
+            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     }
 
@@ -1932,18 +2052,26 @@ static inline void sqrt512f(float *src, float *dst, int len)
 
 static inline void round512f(float *src, float *dst, int len)
 {
-    int stop_len = len / AVX512_LEN_FLOAT;
-    stop_len *= AVX512_LEN_FLOAT;
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= (2 * AVX512_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
-            _mm512_store_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
+            v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf dst_tmp = _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+            v16sf dst_tmp2 = _mm512_roundscale_ps(src_tmp2, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+            _mm512_store_ps(dst + i, dst_tmp);
+            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps(src + i);
-            _mm512_storeu_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
+            v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf dst_tmp = _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+            v16sf dst_tmp2 = _mm512_roundscale_ps(src_tmp2, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+            _mm512_storeu_ps(dst + i, dst_tmp);
+            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     }
 
@@ -1954,18 +2082,26 @@ static inline void round512f(float *src, float *dst, int len)
 
 static inline void ceil512f(float *src, float *dst, int len)
 {
-    int stop_len = len / AVX512_LEN_FLOAT;
-    stop_len *= AVX512_LEN_FLOAT;
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= (2 * AVX512_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
-            _mm512_store_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC));
+            v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf dst_tmp = _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC);
+            v16sf dst_tmp2 = _mm512_roundscale_ps(src_tmp2, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC);
+            _mm512_store_ps(dst + i, dst_tmp);
+            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps(src + i);
-            _mm512_storeu_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC));
+            v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf dst_tmp = _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC);
+            v16sf dst_tmp2 = _mm512_roundscale_ps(src_tmp2, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC);
+            _mm512_storeu_ps(dst + i, dst_tmp);
+            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     }
 
@@ -1976,18 +2112,26 @@ static inline void ceil512f(float *src, float *dst, int len)
 
 static inline void floor512f(float *src, float *dst, int len)
 {
-    int stop_len = len / AVX512_LEN_FLOAT;
-    stop_len *= AVX512_LEN_FLOAT;
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= (2 * AVX512_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
-            _mm512_store_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC));
+            v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf dst_tmp = _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+            v16sf dst_tmp2 = _mm512_roundscale_ps(src_tmp2, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+            _mm512_store_ps(dst + i, dst_tmp);
+            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps(src + i);
-            _mm512_storeu_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC));
+            v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf dst_tmp = _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+            v16sf dst_tmp2 = _mm512_roundscale_ps(src_tmp2, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+            _mm512_storeu_ps(dst + i, dst_tmp);
+            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     }
 
@@ -1998,18 +2142,26 @@ static inline void floor512f(float *src, float *dst, int len)
 
 static inline void trunc512f(float *src, float *dst, int len)
 {
-    int stop_len = len / AVX512_LEN_FLOAT;
-    stop_len *= AVX512_LEN_FLOAT;
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= (2 * AVX512_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
-            _mm512_store_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
+            v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf dst_tmp = _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+            v16sf dst_tmp2 = _mm512_roundscale_ps(src_tmp2, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+            _mm512_store_ps(dst + i, dst_tmp);
+            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps(src + i);
-            _mm512_storeu_ps(dst + i, _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
+            v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf dst_tmp = _mm512_roundscale_ps(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+            v16sf dst_tmp2 = _mm512_roundscale_ps(src_tmp2, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+            _mm512_storeu_ps(dst + i, dst_tmp);
+            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     }
 

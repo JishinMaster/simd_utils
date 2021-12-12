@@ -1174,6 +1174,61 @@ static inline void threshold128_gt_f(float *src, float *dst, int len, float valu
     }
 }
 
+//Alternate version
+#if 1
+static inline void threshold128_gtabs_f(float *src, float *dst, int len, float value)
+{
+    const v4sf pval = _mm_set1_ps(value);
+    const v4sf mval = _mm_set1_ps(-value);
+
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4sf src_abs = _mm_and_ps(src_tmp, *(v4sf *) _ps_pos_sign_mask);
+            v4sf src_abs2 = _mm_and_ps(src_tmp2, *(v4sf *) _ps_pos_sign_mask);
+            v4sf eqmask = _mm_cmpeq_ps(src_abs, src_tmp);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v4sf eqmask2 = _mm_cmpeq_ps(src_abs2, src_tmp2);
+            v4sf max = _mm_max_ps(src_tmp, mval);
+            v4sf max2 = _mm_max_ps(src_tmp2, mval);
+            v4sf min = _mm_min_ps(src_tmp, pval);
+            v4sf min2 = _mm_min_ps(src_tmp2, pval);
+            v4sf dst_tmp = _mm_blendv_ps(max, min, eqmask);
+            v4sf dst_tmp2 = _mm_blendv_ps(max2, min2, eqmask2);
+            _mm_store_ps(dst + i, dst_tmp);
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+            v4sf src_abs = _mm_and_ps(src_tmp, *(v4sf *) _ps_pos_sign_mask);
+            v4sf src_abs2 = _mm_and_ps(src_tmp2, *(v4sf *) _ps_pos_sign_mask);
+            v4sf eqmask = _mm_cmpeq_ps(src_abs, src_tmp);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v4sf eqmask2 = _mm_cmpeq_ps(src_abs2, src_tmp2);
+            v4sf max = _mm_max_ps(src_tmp, mval);
+            v4sf max2 = _mm_max_ps(src_tmp2, mval);
+            v4sf min = _mm_min_ps(src_tmp, pval);
+            v4sf min2 = _mm_min_ps(src_tmp2, pval);
+            v4sf dst_tmp = _mm_blendv_ps(max, min, eqmask);
+            v4sf dst_tmp2 = _mm_blendv_ps(max2, min2, eqmask2);
+            _mm_storeu_ps(dst + i, dst_tmp);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] > value ? value : src[i];
+        } else {
+            dst[i] = src[i] < (-value) ? (-value) : src[i];
+        }
+    }
+}
+#else
 static inline void threshold128_gtabs_f(float *src, float *dst, int len, float value)
 {
     const v4sf pval = _mm_set1_ps(value);
@@ -1226,6 +1281,7 @@ static inline void threshold128_gtabs_f(float *src, float *dst, int len, float v
         }
     }
 }
+#endif
 
 static inline void threshold128_lt_f(float *src, float *dst, int len, float value)
 {
@@ -1259,6 +1315,61 @@ static inline void threshold128_lt_f(float *src, float *dst, int len, float valu
     }
 }
 
+//Alternate version
+#if 1
+static inline void threshold128_ltabs_f(float *src, float *dst, int len, float value)
+{
+    const v4sf pval = _mm_set1_ps(value);
+    const v4sf mval = _mm_set1_ps(-value);
+
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4sf src_abs = _mm_and_ps(src_tmp, *(v4sf *) _ps_pos_sign_mask);
+            v4sf src_abs2 = _mm_and_ps(src_tmp2, *(v4sf *) _ps_pos_sign_mask);
+            v4sf eqmask = _mm_cmpeq_ps(src_abs, src_tmp);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v4sf eqmask2 = _mm_cmpeq_ps(src_abs2, src_tmp2);
+            v4sf max = _mm_max_ps(src_tmp, pval);
+            v4sf max2 = _mm_max_ps(src_tmp2, pval);
+            v4sf min = _mm_min_ps(src_tmp, mval);
+            v4sf min2 = _mm_min_ps(src_tmp2, mval);
+            v4sf dst_tmp = _mm_blendv_ps(min, max, eqmask);
+            v4sf dst_tmp2 = _mm_blendv_ps(min2, max2, eqmask2);
+            _mm_store_ps(dst + i, dst_tmp);
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+            v4sf src_abs = _mm_and_ps(src_tmp, *(v4sf *) _ps_pos_sign_mask);
+            v4sf src_abs2 = _mm_and_ps(src_tmp2, *(v4sf *) _ps_pos_sign_mask);
+            v4sf eqmask = _mm_cmpeq_ps(src_abs, src_tmp);  //if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v4sf eqmask2 = _mm_cmpeq_ps(src_abs2, src_tmp2);
+            v4sf max = _mm_max_ps(src_tmp, pval);
+            v4sf max2 = _mm_max_ps(src_tmp2, pval);
+            v4sf min = _mm_min_ps(src_tmp, mval);
+            v4sf min2 = _mm_min_ps(src_tmp2, mval);
+            v4sf dst_tmp = _mm_blendv_ps(min, max, eqmask);
+            v4sf dst_tmp2 = _mm_blendv_ps(min2, max2, eqmask2);
+            _mm_storeu_ps(dst + i, dst_tmp);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] < value ? value : src[i];
+        } else {
+            dst[i] = src[i] > (-value) ? (-value) : src[i];
+        }
+    }
+}
+#else
 static inline void threshold128_ltabs_f(float *src, float *dst, int len, float value)
 {
     const v4sf pval = _mm_set1_ps(value);
@@ -1311,6 +1422,7 @@ static inline void threshold128_ltabs_f(float *src, float *dst, int len, float v
         }
     }
 }
+#endif
 
 static inline void threshold128_ltval_gtval_f(float *src, float *dst, int len, float ltlevel, float ltvalue, float gtlevel, float gtvalue)
 {
@@ -2484,16 +2596,26 @@ static inline void meankahan128f(float *src, float *dst, int len)
 
 static inline void sqrt128f(float *src, float *dst, int len)
 {
-    int stop_len = len / SSE_LEN_FLOAT;
-    stop_len *= SSE_LEN_FLOAT;
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
-            _mm_store_ps(dst + i, _mm_sqrt_ps(_mm_load_ps(src + i)));
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4sf dst_tmp = _mm_sqrt_ps(src_tmp);
+            v4sf dst_tmp2 = _mm_sqrt_ps(src_tmp2);
+            _mm_store_ps(dst + i, dst_tmp);
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
-            _mm_storeu_ps(dst + i, _mm_sqrt_ps(_mm_loadu_ps(src + i)));
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+            v4sf dst_tmp = _mm_sqrt_ps(src_tmp);
+            v4sf dst_tmp2 = _mm_sqrt_ps(src_tmp2);
+            _mm_storeu_ps(dst + i, dst_tmp);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
     }
 
@@ -2505,18 +2627,26 @@ static inline void sqrt128f(float *src, float *dst, int len)
 
 static inline void round128f(float *src, float *dst, int len)
 {
-    int stop_len = len / SSE_LEN_FLOAT;
-    stop_len *= SSE_LEN_FLOAT;
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
-            _mm_store_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTONEAREST));
+            v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4sf dst_tmp = _mm_round_ps(src_tmp, ROUNDTONEAREST);
+            v4sf dst_tmp2 = _mm_round_ps(src_tmp2, ROUNDTONEAREST);
+            _mm_store_ps(dst + i, dst_tmp);
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
-            _mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTONEAREST));
+            v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+            v4sf dst_tmp = _mm_round_ps(src_tmp, ROUNDTONEAREST);
+            v4sf dst_tmp2 = _mm_round_ps(src_tmp2, ROUNDTONEAREST);
+            _mm_storeu_ps(dst + i, dst_tmp);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
     }
 
@@ -2527,18 +2657,26 @@ static inline void round128f(float *src, float *dst, int len)
 
 static inline void ceil128f(float *src, float *dst, int len)
 {
-    int stop_len = len / SSE_LEN_FLOAT;
-    stop_len *= SSE_LEN_FLOAT;
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
-            _mm_store_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOCEIL));
+            v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4sf dst_tmp = _mm_round_ps(src_tmp, ROUNDTOCEIL);
+            v4sf dst_tmp2 = _mm_round_ps(src_tmp2, ROUNDTOCEIL);
+            _mm_store_ps(dst + i, dst_tmp);
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
-            _mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOCEIL));
+            v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+            v4sf dst_tmp = _mm_round_ps(src_tmp, ROUNDTOCEIL);
+            v4sf dst_tmp2 = _mm_round_ps(src_tmp2, ROUNDTOCEIL);
+            _mm_storeu_ps(dst + i, dst_tmp);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
     }
 
@@ -2549,18 +2687,26 @@ static inline void ceil128f(float *src, float *dst, int len)
 
 static inline void floor128f(float *src, float *dst, int len)
 {
-    int stop_len = len / SSE_LEN_FLOAT;
-    stop_len *= SSE_LEN_FLOAT;
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
-            _mm_store_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOFLOOR));
+            v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4sf dst_tmp = _mm_round_ps(src_tmp, ROUNDTOFLOOR);
+            v4sf dst_tmp2 = _mm_round_ps(src_tmp2, ROUNDTOFLOOR);
+            _mm_store_ps(dst + i, dst_tmp);
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
-            _mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOFLOOR));
+            v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+            v4sf dst_tmp = _mm_round_ps(src_tmp, ROUNDTOFLOOR);
+            v4sf dst_tmp2 = _mm_round_ps(src_tmp2, ROUNDTOFLOOR);
+            _mm_storeu_ps(dst + i, dst_tmp);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
     }
 
@@ -2571,18 +2717,26 @@ static inline void floor128f(float *src, float *dst, int len)
 
 static inline void trunc128f(float *src, float *dst, int len)
 {
-    int stop_len = len / SSE_LEN_FLOAT;
-    stop_len *= SSE_LEN_FLOAT;
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
-            _mm_store_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOZERO));
+            v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4sf dst_tmp = _mm_round_ps(src_tmp, ROUNDTOZERO);
+            v4sf dst_tmp2 = _mm_round_ps(src_tmp2, ROUNDTOZERO);
+            _mm_store_ps(dst + i, dst_tmp);
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
-            _mm_storeu_ps(dst + i, _mm_round_ps(src_tmp, ROUNDTOZERO));
+            v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+            v4sf dst_tmp = _mm_round_ps(src_tmp, ROUNDTOZERO);
+            v4sf dst_tmp2 = _mm_round_ps(src_tmp2, ROUNDTOZERO);
+            _mm_storeu_ps(dst + i, dst_tmp);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
     }
 
