@@ -132,7 +132,7 @@ static inline void log2_512f(float *src, float *dst, int len)
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i] = log10f(src[i]);
+        dst[i] = log2f(src[i]);
     }
 }
 

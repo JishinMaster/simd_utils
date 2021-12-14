@@ -171,7 +171,7 @@ static inline void log2_256f(float *src, float *dst, int len)
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i] = log10f(src[i]);
+        dst[i] = log2f(src[i]);
     }
 }
 
@@ -2359,10 +2359,10 @@ static inline void magnitude256f_interleaved(complex32_t *src, float *dst, int l
         }
     } else {
         for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
-            v8sfx2 src_split = _mm256_load2u_ps((float *) (src + j));  //a0a1a2a3, b0b1b2b3
-            v8sfx2 src_split2 = _mm256_load2u_ps((float *) (src + j + 2 * AVX_LEN_FLOAT));
-            v8sfx2 src_split3 = _mm256_load2u_ps((float *) (src + j + 4 * AVX_LEN_FLOAT));
-            v8sfx2 src_split4 = _mm256_load2u_ps((float *) (src + j + 6 * AVX_LEN_FLOAT));
+            v8sfx2 src_split = _mm256_load2u_ps((float *) (src) + j);  //a0a1a2a3, b0b1b2b3
+            v8sfx2 src_split2 = _mm256_load2u_ps((float *) (src) + j + 2 * AVX_LEN_FLOAT);
+            v8sfx2 src_split3 = _mm256_load2u_ps((float *) (src) + j + 4 * AVX_LEN_FLOAT);
+            v8sfx2 src_split4 = _mm256_load2u_ps((float *) (src) + j + 6 * AVX_LEN_FLOAT);
             v8sf split_square0 = _mm256_mul_ps(src_split.val[0], src_split.val[0]);
             v8sf split2_square0 = _mm256_mul_ps(src_split2.val[0], src_split2.val[0]);
             v8sf split3_square0 = _mm256_mul_ps(src_split3.val[0], src_split3.val[0]);
@@ -2379,10 +2379,10 @@ static inline void magnitude256f_interleaved(complex32_t *src, float *dst, int l
             dst_split2.val[0] = _mm256_sqrt_ps(dst_split2.val[0]);
             dst_split2.val[1] = _mm256_sqrt_ps(dst_split2.val[1]);
 
-            _mm256_storeu_ps(dst + i, dst_split.val[0]);
-            _mm256_storeu_ps(dst + i + AVX_LEN_FLOAT, dst_split.val[1]);
-            _mm256_storeu_ps(dst + i + 2 * AVX_LEN_FLOAT, dst_split2.val[0]);
-            _mm256_storeu_ps(dst + i + 3 * AVX_LEN_FLOAT, dst_split2.val[1]);
+            _mm256_storeu_ps((float *) (dst) + i, dst_split.val[0]);
+            _mm256_storeu_ps((float *) (dst) + i + AVX_LEN_FLOAT, dst_split.val[1]);
+            _mm256_storeu_ps((float *) (dst) + i + 2 * AVX_LEN_FLOAT, dst_split2.val[0]);
+            _mm256_storeu_ps((float *) (dst) + i + 3 * AVX_LEN_FLOAT, dst_split2.val[1]);
             j += 8 * AVX_LEN_FLOAT;
         }
     }
