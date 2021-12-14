@@ -378,7 +378,6 @@ _PS_CONST(cephes_FOPI, 1.27323954473516);  // 4 / M_PI
 
 #endif /* ARM */
 
-
 /* the smallest non denormalized double number */
 /*_PD_CONST_TYPE(min_norm_pos, int64_t, 0x00800000);
 _PD_CONST_TYPE(mant_mask, int64_t, 0x7f800000);
@@ -737,7 +736,6 @@ static inline __m512d _mm512_fnmadd_pd_custom(__m512d a, __m512d b, __m512d c)
     static const ALIGN64_BEG int64_t _pi512_64_##Name[8] ALIGN64_END = {Val, Val, Val, Val, Val, Val, Val, Val}
 #define _PD512_CONST_TYPE(Name, Type, Val) \
     static const ALIGN64_BEG Type _pd512_##Name[8] ALIGN64_END = {Val, Val, Val, Val, Val, Val, Val, Val}
-
 
 _PD512_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
 _PD512_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);

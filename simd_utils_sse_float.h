@@ -100,6 +100,15 @@ _PS_CONST(ACOSH_P2, 2.6454905019E-2f);
 _PS_CONST(ACOSH_P3, -1.1784741703E-1f);
 _PS_CONST(ACOSH_P4, 1.4142135263E0f);
 
+/* For log10f */
+_PS_CONST(cephes_L102A, 3.0078125E-1f);
+_PS_CONST(cephes_L102B, 2.48745663981195213739E-4f);
+_PS_CONST(cephes_L10EA, 4.3359375E-1f);
+_PS_CONST(cephes_L10EB, 7.00731903251827651129E-4f);
+
+/* For log2f */
+_PS_CONST(cephes_LOG2EA, 0.44269504088896340735992f);
+
 #define ROUNDTONEAREST (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC)
 #define ROUNDTOFLOOR (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC)
 #define ROUNDTOCEIL (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)
@@ -114,6 +123,98 @@ static inline void print4(__m128 v)
 #endif
     printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
 }*/
+
+static inline v4sf log10_ps(v4sf x)
+{
+    v4si emm0;
+    v4sf one = *(v4sf *) _ps_1;
+    v4sf invalid_mask = _mm_cmple_ps(x, _mm_setzero_ps());
+    x = _mm_max_ps(x, *(v4sf *) _ps_min_norm_pos); /* cut off denormalized stuff */
+    emm0 = _mm_srli_epi32(_mm_castps_si128(x), 23);
+
+    /* keep only the fractional part */
+    x = _mm_and_ps(x, *(v4sf *) _ps_inv_mant_mask);
+    x = _mm_or_ps(x, *(v4sf *) _ps_0p5);
+    emm0 = _mm_sub_epi32(emm0, *(v4si *) _pi32_0x7f);
+    v4sf e = _mm_cvtepi32_ps(emm0);
+    e = _mm_add_ps(e, one);
+
+    v4sf mask = _mm_cmplt_ps(x, *(v4sf *) _ps_cephes_SQRTHF);
+    v4sf tmp = _mm_and_ps(x, mask);
+    x = _mm_sub_ps(x, one);
+    e = _mm_sub_ps(e, _mm_and_ps(one, mask));
+    x = _mm_add_ps(x, tmp);
+
+    v4sf z = _mm_mul_ps(x, x);
+    v4sf y = _mm_fmadd_ps_custom(*(v4sf *) _ps_cephes_log_p0, x, *(v4sf *) _ps_cephes_log_p1);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p2);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p3);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p4);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p5);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p6);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p7);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p8);
+    y = _mm_mul_ps(y, x);
+    y = _mm_mul_ps(y, z);
+
+    y = _mm_fnmadd_ps_custom(z, *(v4sf *) _ps_0p5, y);
+    
+    //Could it be improved with more parallelism or would it worsen precision?
+    tmp = _mm_add_ps(x,y);
+    z = _mm_mul_ps(tmp, *(v4sf *) _ps_cephes_L10EB);
+    z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_cephes_L10EA, z);
+    z = _mm_fmadd_ps_custom(x, *(v4sf *) _ps_cephes_L10EA, z);
+    z = _mm_fmadd_ps_custom(e, *(v4sf *) _ps_cephes_L102B, z);
+    x = _mm_fmadd_ps_custom(e, *(v4sf *) _ps_cephes_L102A, z);
+    
+    x = _mm_or_ps(x, invalid_mask);  // negative arg will be NAN
+    return x;
+}
+
+static inline v4sf log2_ps(v4sf x)
+{
+    v4si emm0;
+    v4sf one = *(v4sf *) _ps_1;
+    v4sf invalid_mask = _mm_cmple_ps(x, _mm_setzero_ps());
+    x = _mm_max_ps(x, *(v4sf *) _ps_min_norm_pos); /* cut off denormalized stuff */
+    emm0 = _mm_srli_epi32(_mm_castps_si128(x), 23);
+
+    /* keep only the fractional part */
+    x = _mm_and_ps(x, *(v4sf *) _ps_inv_mant_mask);
+    x = _mm_or_ps(x, *(v4sf *) _ps_0p5);
+    emm0 = _mm_sub_epi32(emm0, *(v4si *) _pi32_0x7f);
+    v4sf e = _mm_cvtepi32_ps(emm0);
+    e = _mm_add_ps(e, one);
+
+    v4sf mask = _mm_cmplt_ps(x, *(v4sf *) _ps_cephes_SQRTHF);
+    v4sf tmp = _mm_and_ps(x, mask);
+    x = _mm_sub_ps(x, one);
+    e = _mm_sub_ps(e, _mm_and_ps(one, mask));
+    x = _mm_add_ps(x, tmp);
+
+    v4sf z = _mm_mul_ps(x, x);
+    v4sf y = _mm_fmadd_ps_custom(*(v4sf *) _ps_cephes_log_p0, x, *(v4sf *) _ps_cephes_log_p1);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p2);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p3);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p4);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p5);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p6);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p7);
+    y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p8);
+    y = _mm_mul_ps(y, x);
+    y = _mm_mul_ps(y, z);
+
+    y = _mm_fnmadd_ps_custom(z, *(v4sf *) _ps_0p5, y);
+    
+    //Could it be improved with more parallelism or would it worsen precision?
+    tmp = _mm_add_ps(y,x);
+    z = _mm_mul_ps(y, *(v4sf *) _ps_cephes_LOG2EA);
+    z = _mm_fmadd_ps_custom(x, *(v4sf *) _ps_cephes_LOG2EA, z);
+    z = _mm_add_ps(z, tmp);
+    x = _mm_add_ps(z, e);
+    x = _mm_or_ps(x, invalid_mask);  // negative arg will be NAN
+    return x;
+}
 
 
 static inline void log10_128f(float *src, float *dst, int len)
@@ -140,6 +241,28 @@ static inline void log10_128f(float *src, float *dst, int len)
     }
 }
 
+static inline void log10_128f_precise(float *src, float *dst, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = log10_ps(_mm_load_ps(src + i));
+            _mm_store_ps(dst + i, src_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = log10_ps(_mm_loadu_ps(src + i));
+            _mm_storeu_ps(dst + i, src_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = log10f(src[i]);
+    }
+}
+
 static inline void log2_128f(float *src, float *dst, int len)
 {
     const v4sf invln2f = _mm_set1_ps((float) INVLN2);
@@ -156,6 +279,28 @@ static inline void log2_128f(float *src, float *dst, int len)
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = log_ps(_mm_loadu_ps(src + i));
             _mm_storeu_ps(dst + i, _mm_mul_ps(src_tmp, invln2f));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = log2f(src[i]);
+    }
+}
+
+static inline void log2_128f_precise(float *src, float *dst, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = log2_ps(_mm_load_ps(src + i));
+            _mm_store_ps(dst + i, src_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = log2_ps(_mm_loadu_ps(src + i));
+            _mm_storeu_ps(dst + i, src_tmp);
         }
     }
 

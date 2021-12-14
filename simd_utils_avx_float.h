@@ -127,6 +127,125 @@ _PS256_CONST(ACOSH_P2, 2.6454905019E-2f);
 _PS256_CONST(ACOSH_P3, -1.1784741703E-1f);
 _PS256_CONST(ACOSH_P4, 1.4142135263E0f);
 
+/* For log10f */
+_PS256_CONST(cephes_L102A, 3.0078125E-1f);
+_PS256_CONST(cephes_L102B, 2.48745663981195213739E-4f);
+_PS256_CONST(cephes_L10EA, 4.3359375E-1f);
+_PS256_CONST(cephes_L10EB, 7.00731903251827651129E-4f);
+
+/* For log2f */
+_PS256_CONST(cephes_LOG2EA, 0.44269504088896340735992f);
+
+static inline v8sf log10256_ps(v8sf x)
+{
+    v8si imm0;
+    v8sf one = *(v8sf *) _ps256_1;
+
+    v8sf invalid_mask = _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_LE_OS);
+
+    x = _mm256_max_ps(x, *(v8sf *) _ps256_min_norm_pos); /* cut off denormalized stuff */
+
+    // can be done with AVX2
+    imm0 = _mm256_srli_epi32(_mm256_castps_si256(x), 23);
+
+    /* keep only the fractional part */
+    x = _mm256_and_ps(x, *(v8sf *) _ps256_inv_mant_mask);
+    x = _mm256_or_ps(x, *(v8sf *) _ps256_0p5);
+
+    // this is again another AVX2 instruction
+    imm0 = _mm256_sub_epi32(imm0, *(v8si *) _pi32_256_0x7f);
+    v8sf e = _mm256_cvtepi32_ps(imm0);
+
+    e = _mm256_add_ps(e, one);
+
+    v8sf mask = _mm256_cmp_ps(x, *(v8sf *) _ps256_cephes_SQRTHF, _CMP_LT_OS);
+    v8sf tmp = _mm256_and_ps(x, mask);
+    x = _mm256_sub_ps(x, one);
+    e = _mm256_sub_ps(e, _mm256_and_ps(one, mask));
+    x = _mm256_add_ps(x, tmp);
+
+    v8sf z = _mm256_mul_ps(x, x);
+
+    v8sf y = _mm256_fmadd_ps_custom(*(v8sf *) _ps256_cephes_log_p0, x, *(v8sf *) _ps256_cephes_log_p1);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p2);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p3);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p4);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p5);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p6);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p7);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p8);
+    y = _mm256_mul_ps(y, x);
+    y = _mm256_mul_ps(y, z);
+
+    y = _mm256_fnmadd_ps_custom(z, *(v8sf *) _ps256_0p5, y);
+
+    //Could it be improved with more parallelism or would it worsen precision?
+    tmp = _mm256_add_ps(x,y);
+    z = _mm256_mul_ps(tmp, *(v8sf *) _ps256_cephes_L10EB);
+    z = _mm256_fmadd_ps_custom(y, *(v8sf *) _ps256_cephes_L10EA, z);
+    z = _mm256_fmadd_ps_custom(x, *(v8sf *) _ps256_cephes_L10EA, z);
+    z = _mm256_fmadd_ps_custom(e, *(v8sf *) _ps256_cephes_L102B, z);
+    x = _mm256_fmadd_ps_custom(e, *(v8sf *) _ps256_cephes_L102A, z);
+
+    x = _mm256_or_ps(x, invalid_mask);  // negative arg will be NAN
+    return x;
+}
+
+static inline v8sf log2256_ps(v8sf x)
+{
+    v8si imm0;
+    v8sf one = *(v8sf *) _ps256_1;
+
+    v8sf invalid_mask = _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_LE_OS);
+
+    x = _mm256_max_ps(x, *(v8sf *) _ps256_min_norm_pos); /* cut off denormalized stuff */
+
+    // can be done with AVX2
+    imm0 = _mm256_srli_epi32(_mm256_castps_si256(x), 23);
+
+    /* keep only the fractional part */
+    x = _mm256_and_ps(x, *(v8sf *) _ps256_inv_mant_mask);
+    x = _mm256_or_ps(x, *(v8sf *) _ps256_0p5);
+
+    // this is again another AVX2 instruction
+    imm0 = _mm256_sub_epi32(imm0, *(v8si *) _pi32_256_0x7f);
+    v8sf e = _mm256_cvtepi32_ps(imm0);
+
+    e = _mm256_add_ps(e, one);
+
+    v8sf mask = _mm256_cmp_ps(x, *(v8sf *) _ps256_cephes_SQRTHF, _CMP_LT_OS);
+    v8sf tmp = _mm256_and_ps(x, mask);
+    x = _mm256_sub_ps(x, one);
+    e = _mm256_sub_ps(e, _mm256_and_ps(one, mask));
+    x = _mm256_add_ps(x, tmp);
+
+    v8sf z = _mm256_mul_ps(x, x);
+
+    v8sf y = _mm256_fmadd_ps_custom(*(v8sf *) _ps256_cephes_log_p0, x, *(v8sf *) _ps256_cephes_log_p1);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p2);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p3);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p4);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p5);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p6);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p7);
+    y = _mm256_fmadd_ps_custom(y, x, *(v8sf *) _ps256_cephes_log_p8);
+    y = _mm256_mul_ps(y, x);
+    y = _mm256_mul_ps(y, z);
+
+    y = _mm256_fnmadd_ps_custom(z, *(v8sf *) _ps256_0p5, y);
+    
+    //Could it be improved with more parallelism or would it worsen precision?
+    tmp = _mm256_add_ps(y,x);
+    z = _mm256_mul_ps(y, *(v8sf *) _ps256_cephes_LOG2EA);
+    z = _mm256_fmadd_ps_custom(x, *(v8sf *) _ps256_cephes_LOG2EA, z);
+    z = _mm256_add_ps(z, tmp);
+    x = _mm256_add_ps(z, e);
+
+    x = _mm256_or_ps(x, invalid_mask);  // negative arg will be NAN
+    return x;
+}
+
+
 static inline void log10_256f(float *src, float *dst, int len)
 {
     const v8sf invln10f = _mm256_set1_ps((float) INVLN10);  //_mm256_broadcast_ss(&invln10f_mask);
@@ -151,6 +270,28 @@ static inline void log10_256f(float *src, float *dst, int len)
     }
 }
 
+static inline void log10_256f_precise(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = log10256_ps(_mm256_load_ps(src + i));
+            _mm256_store_ps(dst + i, src_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = log10256_ps(_mm256_loadu_ps(src + i));
+            _mm256_storeu_ps(dst + i, src_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = log10f(src[i]);
+    }
+}
+
 static inline void log2_256f(float *src, float *dst, int len)
 {
     const v8sf invln2f = _mm256_set1_ps((float) INVLN2);  //_mm256_broadcast_ss(&invln10f_mask);
@@ -167,6 +308,28 @@ static inline void log2_256f(float *src, float *dst, int len)
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = log256_ps(_mm256_loadu_ps(src + i));
             _mm256_storeu_ps(dst + i, _mm256_mul_ps(src_tmp, invln2f));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = log2f(src[i]);
+    }
+}
+
+static inline void log2_256f_precise(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = log2256_ps(_mm256_load_ps(src + i));
+            _mm256_store_ps(dst + i, src_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = log2256_ps(_mm256_loadu_ps(src + i));
+            _mm256_storeu_ps(dst + i, src_tmp);
         }
     }
 

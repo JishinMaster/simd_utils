@@ -88,6 +88,124 @@ _PS512_CONST(ACOSH_P2, 2.6454905019E-2f);
 _PS512_CONST(ACOSH_P3, -1.1784741703E-1f);
 _PS512_CONST(ACOSH_P4, 1.4142135263E0f);
 
+/* For log10f */
+_PS512_CONST(cephes_L102A, 3.0078125E-1f);
+_PS512_CONST(cephes_L102B, 2.48745663981195213739E-4f);
+_PS512_CONST(cephes_L10EA, 4.3359375E-1f);
+_PS512_CONST(cephes_L10EB, 7.00731903251827651129E-4f);
+
+/* For log2f */
+_PS512_CONST(cephes_LOG2EA, 0.44269504088896340735992f);
+
+static inline v16sf log10512_ps(v16sf x)
+{
+    v16si imm0;
+    v16sf one = *(v16sf *) _ps512_1;
+
+    v16sf invalid_mask = (v16sf) _mm512_movm_epi32(_mm512_cmp_ps_mask(x, _mm512_setzero_ps(), _CMP_LE_OS));
+    x = _mm512_max_ps(x, *(v16sf *) _ps512_min_norm_pos); /* cut off denormalized stuff */
+
+    // can be done with AVX2
+    imm0 = _mm512_srli_epi32(_mm512_castps_si512(x), 23);
+
+    /* keep only the fractional part */
+    x = _mm512_and_ps(x, *(v16sf *) _ps512_inv_mant_mask);
+    x = _mm512_or_ps(x, *(v16sf *) _ps512_0p5);
+
+    // this is again another AVX2 instruction
+    imm0 = _mm512_sub_epi32(imm0, *(v16si *) _pi32_512_0x7f);
+    v16sf e = _mm512_cvtepi32_ps(imm0);
+
+    e = _mm512_add_ps(e, one);
+
+    v16sf mask = (v16sf) _mm512_movm_epi32(_mm512_cmp_ps_mask(x, *(v16sf *) _ps512_cephes_SQRTHF, _CMP_LT_OS));
+
+    v16sf tmp = _mm512_and_ps(x, mask);
+    x = _mm512_sub_ps(x, one);
+    e = _mm512_sub_ps(e, _mm512_and_ps(one, mask));
+    x = _mm512_add_ps(x, tmp);
+
+    v16sf z = _mm512_mul_ps(x, x);
+
+    v16sf y = _mm512_fmadd_ps(*(v16sf *) _ps512_cephes_log_p0, x, *(v16sf *) _ps512_cephes_log_p1);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p2);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p3);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p4);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p5);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p6);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p7);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p8);
+    y = _mm512_mul_ps(y, x);
+    y = _mm512_mul_ps(y, z);
+
+    y = _mm512_fnmadd_ps(z, *(v16sf *) _ps512_0p5, y);
+
+    //Could it be improved with more parallelism or would it worsen precision?
+    tmp = _mm512_add_ps(x,y);
+    z = _mm512_mul_ps(tmp, *(v16sf *) _ps512_cephes_L10EB);
+    z = _mm512_fmadd_ps_custom(y, *(v16sf *) _ps512_cephes_L10EA, z);
+    z = _mm512_fmadd_ps_custom(x, *(v16sf *) _ps512_cephes_L10EA, z);
+    z = _mm512_fmadd_ps_custom(e, *(v16sf *) _ps512_cephes_L102B, z);
+    x = _mm512_fmadd_ps_custom(e, *(v16sf *) _ps512_cephes_L102A, z);
+    
+    x = _mm512_or_ps(x, invalid_mask);  // negative arg will be NAN
+    return x;
+}
+
+static inline v16sf log2512_ps(v16sf x)
+{
+    v16si imm0;
+    v16sf one = *(v16sf *) _ps512_1;
+
+    v16sf invalid_mask = (v16sf) _mm512_movm_epi32(_mm512_cmp_ps_mask(x, _mm512_setzero_ps(), _CMP_LE_OS));
+    x = _mm512_max_ps(x, *(v16sf *) _ps512_min_norm_pos); /* cut off denormalized stuff */
+
+    // can be done with AVX2
+    imm0 = _mm512_srli_epi32(_mm512_castps_si512(x), 23);
+
+    /* keep only the fractional part */
+    x = _mm512_and_ps(x, *(v16sf *) _ps512_inv_mant_mask);
+    x = _mm512_or_ps(x, *(v16sf *) _ps512_0p5);
+
+    // this is again another AVX2 instruction
+    imm0 = _mm512_sub_epi32(imm0, *(v16si *) _pi32_512_0x7f);
+    v16sf e = _mm512_cvtepi32_ps(imm0);
+
+    e = _mm512_add_ps(e, one);
+
+    v16sf mask = (v16sf) _mm512_movm_epi32(_mm512_cmp_ps_mask(x, *(v16sf *) _ps512_cephes_SQRTHF, _CMP_LT_OS));
+
+    v16sf tmp = _mm512_and_ps(x, mask);
+    x = _mm512_sub_ps(x, one);
+    e = _mm512_sub_ps(e, _mm512_and_ps(one, mask));
+    x = _mm512_add_ps(x, tmp);
+
+    v16sf z = _mm512_mul_ps(x, x);
+
+    v16sf y = _mm512_fmadd_ps(*(v16sf *) _ps512_cephes_log_p0, x, *(v16sf *) _ps512_cephes_log_p1);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p2);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p3);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p4);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p5);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p6);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p7);
+    y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p8);
+    y = _mm512_mul_ps(y, x);
+    y = _mm512_mul_ps(y, z);
+
+    y = _mm512_fnmadd_ps(z, *(v16sf *) _ps512_0p5, y);
+
+    //Could it be improved with more parallelism or would it worsen precision?
+    tmp = _mm512_add_ps(y,x);
+    z = _mm512_mul_ps(y, *(v16sf *) _ps512_cephes_LOG2EA);
+    z = _mm512_fmadd_ps_custom(x, *(v16sf *) _ps512_cephes_LOG2EA, z);
+    z = _mm512_add_ps(z, tmp);
+    x = _mm512_add_ps(z, e);
+    
+    x = _mm512_or_ps(x, invalid_mask);  // negative arg will be NAN
+    return x;
+}
+
 static inline void log10_512f(float *src, float *dst, int len)
 {
     const v16sf invln10f = _mm512_set1_ps((float) INVLN10);  //_mm512_broadcast_ss(&invln10f_mask);
@@ -112,6 +230,28 @@ static inline void log10_512f(float *src, float *dst, int len)
     }
 }
 
+static inline void log10_512f_precise(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = log10512_ps(_mm512_load_ps(src + i));
+            _mm512_store_ps(dst + i, src_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = log10512_ps(_mm512_loadu_ps(src + i));
+            _mm512_storeu_ps(dst + i, src_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = log10f(src[i]);
+    }
+}
+
 static inline void log2_512f(float *src, float *dst, int len)
 {
     const v16sf invln2f = _mm512_set1_ps((float) INVLN2);  //_mm512_broadcast_ss(&invln10f_mask);
@@ -128,6 +268,28 @@ static inline void log2_512f(float *src, float *dst, int len)
         for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = log512_ps(_mm512_loadu_ps(src + i));
             _mm512_storeu_ps(dst + i, _mm512_mul_ps(src_tmp, invln2f));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = log2f(src[i]);
+    }
+}
+
+static inline void log2_512f_precise(float *src, float *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = log2512_ps(_mm512_load_ps(src + i));
+            _mm512_store_ps(dst + i, src_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = log2512_ps(_mm512_loadu_ps(src + i));
+            _mm512_storeu_ps(dst + i, src_tmp);
         }
     }
 

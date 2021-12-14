@@ -79,8 +79,8 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | SSE/NEON                       | AVX/AVX2                       | AVX512                     | C_REF                     | IPP_REF                      | RISCV                       | ALTIVEC              |
 |--------------------------------|--------------------------------|----------------------------|---------------------------|------------------------------|-----------------------------|----------------------|
 |                                |                                |                            |                           |                              |                             |                      |
-| log10_128f                     | log10_256f                     | log10_512f                 | log10f_C                  | ippsLog10_32f_A24            | X                           | log10_128f           |
-| log2_128f                      | log2_256f                      | log2_512f                  | log2f_C                   |                              | X                           | log2_128f            |
+| log10_128f/precise             | log10_256f/precise             | log10_512f/precise         | log10f_C                  | ippsLog10_32f_A24            | X                           | log10_128f           |
+| log2_128f/precise              | log2_256f/precise              | log2_512f/precise          | log2f_C                   |                              | X                           | log2_128f            |
 | ln_128f                        | ln_256f                        | ln_512f                    | lnf_C                     | ippsLn_32f_A24               | X                           | ln_128f              |
 | exp_128f                       | exp_256f                       | exp_512f                   | expf_C                    | ippsExp_32f_A24              | X                           | X                    |
 | fabs128f                       | fabs256f                       | fabs512f                   | fabsf_C                   | ippsAbs_32f                  | X                           | X                    |
