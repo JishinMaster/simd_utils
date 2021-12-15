@@ -583,7 +583,7 @@ static inline void mulc512f(float *src, float value, float *dst, int len)
     stop_len *= (2 * AVX512_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2*AVX512_LEN_FLOAT) {
             v16sf src_tmp1 = _mm512_load_ps(src + i);
             v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
             v16sf dst_tmp1 = _mm512_mul_ps(tmp, src_tmp1);
@@ -592,7 +592,7 @@ static inline void mulc512f(float *src, float value, float *dst, int len)
             _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2*AVX512_LEN_FLOAT) {
             v16sf src_tmp1 = _mm512_loadu_ps(src + i);
             v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
             v16sf dst_tmp1 = _mm512_mul_ps(tmp, src_tmp1);

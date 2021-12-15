@@ -667,7 +667,7 @@ static inline void mulc256f(float *src, float value, float *dst, int len)
     stop_len *= (2 * AVX_LEN_FLOAT);
 
     if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2*AVX_LEN_FLOAT) {
             v8sf src_tmp1 = _mm256_load_ps(src + i);
             v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
             v8sf dst_tmp1 = _mm256_mul_ps(tmp, src_tmp1);
@@ -676,7 +676,7 @@ static inline void mulc256f(float *src, float value, float *dst, int len)
             _mm256_store_ps(dst + i + AVX_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 2*AVX_LEN_FLOAT) {
             v8sf src_tmp1 = _mm256_loadu_ps(src + i);
             v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
             v8sf dst_tmp1 = _mm256_mul_ps(tmp, src_tmp1);

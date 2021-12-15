@@ -1156,6 +1156,39 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
     }
 }
 
+
+static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+
+    // Default bankers rounding => round to nearest even
+    if (rounding_mode == RndFinancial) {
+#ifdef OMP
+#pragma omp simd
+#endif
+        for (int i = 0; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint16_t)(tmp > 65535.0f ? 65535.0f : tmp);  //round to nearest even with round(x/2)*2
+        }
+    } else {
+        if (rounding_mode == RndZero) {
+            fesetround(FE_TOWARDZERO);
+        } else {
+            fesetround(FE_TONEAREST);
+        }
+
+        // Default round toward zero
+#ifdef OMP
+#pragma omp simd
+#endif
+        for (int i = 0; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (uint16_t)(tmp > 65535.0f ? 65535.0f : tmp);
+        }
+    }
+}
+
 static inline void convertInt16ToFloat32_C(int16_t *src, float *dst, int len, int scale_factor)
 {
     float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
