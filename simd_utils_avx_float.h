@@ -877,6 +877,55 @@ static inline void print8(__m256 v)
     printf("[%3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g]", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
 }
 
+static inline void convertInt16ToFloat32_256(int16_t *src, float *dst, int len, int scale_factor)
+{
+    int stop_len = len / (2 * AVX_LEN_FLOAT);
+    stop_len *= (2 * AVX_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
+
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+            v8si vec = _mm256_load_si256((__m256i *) (src + i));  //loads 1 2 3 4 5 6 7 8 8 9 10 11 12 13 14 15 16
+            v8si low_unordered = _mm256_unpacklo_epi16(vec, vec);           // low 1 1 2 2 3 3 4 4  9 9 10 10 11 11 12 12
+            v8si high_unordered = _mm256_unpackhi_epi16(vec, vec);          // high 5 5 6 6 7 7 8 8 13 13 14 14 15 15 16 16
+            v8si low = _mm256_permute2f128_ps(low_unordered, high_unordered, 0x20); // low 1 1 2 2 3 3 4 45 5 6 6 7 7 8 8 
+            v8si high = _mm256_permute2f128_ps(low_unordered, high_unordered, 0x31); // high 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16
+            low = _mm256_srai_epi32(low, 0x10);                   //make low 1 -1 2 -1 3 -1 4 -4
+            high = _mm256_srai_epi32(high, 0x10);                 // make high 5 -1 6 -1 7 -1 8 -1
+
+            //convert the vector to float and scale it
+            v8sf floatlo = _mm256_mul_ps(_mm256_cvtepi32_ps(low), scale_fact_vec);
+            v8sf floathi = _mm256_mul_ps(_mm256_cvtepi32_ps(high), scale_fact_vec);
+
+            _mm256_store_ps(dst + i, floatlo);
+            _mm256_store_ps(dst + i + AVX_LEN_FLOAT, floathi);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+            v8si vec = _mm256_loadu_si256((__m256i *) (src + i));  //loads 1 2 3 4 5 6 7 8 8 9 10 11 12 13 14 15 16
+            v8si low_unordered = _mm256_unpacklo_epi16(vec, vec);           // low 1 1 2 2 3 3 4 4  9 9 10 10 11 11 12 12
+            v8si high_unordered = _mm256_unpackhi_epi16(vec, vec);          // high 5 5 6 6 7 7 8 8 13 13 14 14 15 15 16 16
+            v8si low = _mm256_permute2f128_ps(low_unordered, high_unordered, 0x20); // low 1 1 2 2 3 3 4 45 5 6 6 7 7 8 8 
+            v8si high = _mm256_permute2f128_ps(low_unordered, high_unordered, 0x31); // high 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16
+            low = _mm256_srai_epi32(low, 0x10);                   //make low 1 -1 2 -1 3 -1 4 -4
+            high = _mm256_srai_epi32(high, 0x10);                 // make high 5 -1 6 -1 7 -1 8 -1
+
+            //convert the vector to float and scale it
+            v8sf floatlo = _mm256_mul_ps(_mm256_cvtepi32_ps(low), scale_fact_vec);
+            v8sf floathi = _mm256_mul_ps(_mm256_cvtepi32_ps(high), scale_fact_vec);
+
+            _mm256_storeu_ps(dst + i, floatlo);
+            _mm256_storeu_ps(dst + i + AVX_LEN_FLOAT, floathi);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = (float) src[i] * scale_fact_mult;
+    }
+}
+
 #if 1
 // converts 32bits complex float to two arrays real and im
 //Work in progress => could be improved with custom SSE mm_load2_ps

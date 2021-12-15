@@ -6654,6 +6654,24 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    convertInt16ToFloat32_256(inout_s1, inout_ref, len, 4);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("convertInt16ToFloat32_256 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        convertInt16ToFloat32_256(inout_s1, inout_ref, len, 4);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("convertInt16ToFloat32_256 %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+    /*for(int i = 0; i < len; i++)
+    	printf("%d %f %f %f\n" ,inout_s1[i], (float)inout_s1[i]/(1 << 4),inout_ref[i],inout2_ref[i]);*/
 
     printf("\n");
     /////////////////////////////////////////////////////////// VECTOR_SLOPE //////////////////////////////////////////////////////////////////////////////

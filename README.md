@@ -100,7 +100,7 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | vectorSlope128f                | vectorSlope256f                | vectorSlope512f            | vectorSlopef_C            | ippsVectorSlope_32f          | X                           | X                    |
 | convertFloat32ToU8_128         | X                              | X                          | convertFloat32ToU8_C      | ippsConvert_32f8u_Sfs        | X                           | X                    |
 | convertFloat32ToU16_128        | X                              | X                          | convertFloat32ToU16_C     | ippsConvert_32f16u_Sfs       | X                           | X                    |
-| convertInt16ToFloat32_128      | X                              | X                          | convertInt16ToFloat32_C   | ippsConvert_16s32f_Sfs       | X                           | X                    |
+| convertInt16ToFloat32_128      | convertInt16ToFloat32_256      | X                          | convertInt16ToFloat32_C   | ippsConvert_16s32f_Sfs       | X                           | X                    |
 | cplxtoreal128f                 | cplxtoreal256f                 | X                          | cplxtorealf_C             | ippsCplxToReal_32fc          | X                           | cplxtoreal128f       |
 | realtocplx128f                 | realtocplx256f                 | X                          | realtocplx_C              | ippsRealToCplx_32f           | X                           | X                    |
 | convert128_64f32f              | convert256_64f32f              | X                          | convert_64f32f_C          | ippsConvert_64f32f           | X                           | X                    |

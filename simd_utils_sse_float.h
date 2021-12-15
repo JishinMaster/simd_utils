@@ -1032,7 +1032,6 @@ static inline void convertFloat32ToU16_128(float *src, uint16_t *dst, int len, i
     }
 }
 
-
 static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, int scale_factor)
 {
     int stop_len = len / (2 * SSE_LEN_FLOAT);
