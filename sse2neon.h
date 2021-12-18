@@ -7394,11 +7394,11 @@ FORCE_INLINE __m128 _mm_blend_ps(__m128 _a, __m128 _b, const char imm8)
 FORCE_INLINE __m128i _mm_blendv_epi8(__m128i _a, __m128i _b, __m128i _mask)
 {
     // Use a signed shift right to create a mask with the sign bit
-    uint8x16_t mask =
-        vreinterpretq_u8_s8(vshrq_n_s8(vreinterpretq_s8_m128i(_mask), 7));
+    /*uint8x16_t mask =
+        vreinterpretq_u8_s8(vshrq_n_s8(vreinterpretq_s8_m128i(_mask), 7));*/
     uint8x16_t a = vreinterpretq_u8_m128i(_a);
     uint8x16_t b = vreinterpretq_u8_m128i(_b);
-    return vreinterpretq_m128i_u8(vbslq_u8(mask, b, a));
+    return vreinterpretq_m128i_u8(vbslq_u8(vreinterpretq_s8_m128i(_mask), b, a));
 }
 
 // Blend packed double-precision (64-bit) floating-point elements from a and b
@@ -7406,16 +7406,16 @@ FORCE_INLINE __m128i _mm_blendv_epi8(__m128i _a, __m128i _b, __m128i _mask)
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_blendv_pd
 FORCE_INLINE __m128d _mm_blendv_pd(__m128d _a, __m128d _b, __m128d _mask)
 {
-    uint64x2_t mask =
-        vreinterpretq_u64_s64(vshrq_n_s64(vreinterpretq_s64_m128d(_mask), 63));
+    /*uint64x2_t mask =
+        vreinterpretq_u64_s64(vshrq_n_s64(vreinterpretq_s64_m128d(_mask), 63));*/
 #if defined(__aarch64__)
     float64x2_t a = vreinterpretq_f64_m128d(_a);
     float64x2_t b = vreinterpretq_f64_m128d(_b);
-    return vreinterpretq_m128d_f64(vbslq_f64(mask, b, a));
+    return vreinterpretq_m128d_f64(vbslq_f64(vreinterpretq_s64_m128d(_mask), b, a));
 #else
     uint64x2_t a = vreinterpretq_u64_m128d(_a);
     uint64x2_t b = vreinterpretq_u64_m128d(_b);
-    return vreinterpretq_m128d_u64(vbslq_u64(mask, b, a));
+    return vreinterpretq_m128d_u64(vbslq_u64(vreinterpretq_s64_m128d(_mask), b, a));
 #endif
 }
 
@@ -7425,11 +7425,12 @@ FORCE_INLINE __m128d _mm_blendv_pd(__m128d _a, __m128d _b, __m128d _mask)
 FORCE_INLINE __m128 _mm_blendv_ps(__m128 _a, __m128 _b, __m128 _mask)
 {
     // Use a signed shift right to create a mask with the sign bit
-    uint32x4_t mask =
-        vreinterpretq_u32_s32(vshrq_n_s32(vreinterpretq_s32_m128(_mask), 31));
+    /*uint32x4_t mask =
+        vreinterpretq_u32_s32(vshrq_n_s32(vreinterpretq_s32_m128(_mask), 31));*/
     float32x4_t a = vreinterpretq_f32_m128(_a);
     float32x4_t b = vreinterpretq_f32_m128(_b);
-    return vreinterpretq_m128_f32(vbslq_f32(mask, b, a));
+    return vreinterpretq_m128_f32(vbslq_f32(vreinterpretq_s32_m128(_mask), b, a));
+    //return vreinterpretq_m128_f32(vbslq_f32(mask, b, a));
 }
 
 // Round the packed double-precision (64-bit) floating-point elements in a up
