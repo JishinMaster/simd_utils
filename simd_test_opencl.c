@@ -287,8 +287,8 @@ cl_mem alloc_dev(cl_context ctx, cl_mem_flags rw, size_t size, void *host_ptr, i
     } else if (alloc_type == NATIVE_COPY) {
         flags |= CL_MEM_COPY_HOST_PTR;
     } else if (alloc_type == ALLOC_HOST_PTR) {
-        //flags |= CL_MEM_ALLOC_HOST_PTR;
-        //flags |= CL_MEM_USE_HOST_PTR;
+        // flags |= CL_MEM_ALLOC_HOST_PTR;
+        // flags |= CL_MEM_USE_HOST_PTR;
         ptr = NULL;
     } else {
         printf("wrong alloc_type %d\n", alloc_type);
@@ -507,7 +507,7 @@ int main(int argc, char **argv)
 
         clock_gettime(CLOCK_REALTIME, &start);
         sincos128f(host_a_f, host_b_f, host_c_ref_f, nbElts);
-        //exp_128f(host_a_f, host_c_ref_f, nbElts);
+        // exp_128f(host_a_f, host_c_ref_f, nbElts);
         clock_gettime(CLOCK_REALTIME, &stop);
         elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
         printf("sincos128f %d %0.3lf\n", nbElts, elapsed);

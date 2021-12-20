@@ -1,4 +1,4 @@
-/* 
+/*
    AVX implementation of sin, cos, sincos, exp and log
 
    Based on "sse_mathfun.h", by Julien Pommier
@@ -181,7 +181,7 @@ _PS256_CONST(cephes_FOPI, 1.27323954473516);  // 4 / M_PI
 
 #ifndef FMA
 
-/* natural logarithm computed for 8 simultaneous float 
+/* natural logarithm computed for 8 simultaneous float
    return NaN for x <= 0
 */
 static inline v8sf log256_ps(v8sf x)
@@ -189,7 +189,7 @@ static inline v8sf log256_ps(v8sf x)
     v8si imm0;
     v8sf one = *(v8sf *) _ps256_1;
 
-    //v8sf invalid_mask = _mm256_cmple_ps(x, _mm256_setzero_ps());
+    // v8sf invalid_mask = _mm256_cmple_ps(x, _mm256_setzero_ps());
     v8sf invalid_mask = _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_LE_OS);
 
     x = _mm256_max_ps(x, *(v8sf *) _ps256_min_norm_pos); /* cut off denormalized stuff */
@@ -207,13 +207,13 @@ static inline v8sf log256_ps(v8sf x)
 
     e = _mm256_add_ps(e, one);
 
-    /* part2: 
+    /* part2:
      if( x < SQRTHF ) {
        e -= 1;
        x = x + x - 1.0;
      } else { x = x - 1.0; }
   */
-    //v8sf mask = _mm256_cmplt_ps(x, *(v8sf*)_ps256_cephes_SQRTHF);
+    // v8sf mask = _mm256_cmplt_ps(x, *(v8sf*)_ps256_cephes_SQRTHF);
     v8sf mask = _mm256_cmp_ps(x, *(v8sf *) _ps256_cephes_SQRTHF, _CMP_LT_OS);
     v8sf tmp = _mm256_and_ps(x, mask);
     x = _mm256_sub_ps(x, one);
@@ -271,13 +271,13 @@ static inline v8sf exp256_ps(v8sf x)
     fx = _mm256_add_ps(fx, *(v8sf *) _ps256_0p5);
 
     /* how to perform a floorf with SSE: just below */
-    //imm0 = _mm256_cvttps_epi32(fx);
-    //tmp  = _mm256_cvtepi32_ps(imm0);
+    // imm0 = _mm256_cvttps_epi32(fx);
+    // tmp  = _mm256_cvtepi32_ps(imm0);
 
     tmp = _mm256_floor_ps(fx);
 
     /* if greater, substract 1 */
-    //v8sf mask = _mm256_cmpgt_ps(tmp, fx);
+    // v8sf mask = _mm256_cmpgt_ps(tmp, fx);
     v8sf mask = _mm256_cmp_ps(tmp, fx, _CMP_GT_OS);
     mask = _mm256_and_ps(mask, one);
     fx = _mm256_sub_ps(tmp, mask);
@@ -357,19 +357,19 @@ static inline v8sf sin256_ps(v8sf x)
     /* j=(j+1) & (~1) (see the cephes sources) */
     // another two AVX2 instruction
     imm2 = _mm256_add_epi32(imm2, *(v8si *) _pi32_256_1);
-    imm2 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_inv1);  //FT
+    imm2 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_inv1);  // FT
     y = _mm256_cvtepi32_ps(imm2);
 
     /* get the swap sign flag */
-    imm0 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_4);  //FT
+    imm0 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_4);  // FT
     imm0 = _mm256_slli_epi32(imm0, 29);
-    /* get the polynom selection mask 
+    /* get the polynom selection mask
      there is one polynom for 0 <= x <= Pi/4
      and another one for Pi/4<x<=Pi/2
 
      Both branches will be computed.
   */
-    imm2 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_2);  //FT
+    imm2 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_2);  // FT
     imm2 = _mm256_cmpeq_epi32(imm2, *(v8si *) _pi32_256_0);
 #else
     /* we use SSE2 routines to perform the integer ops */
@@ -405,7 +405,7 @@ static inline v8sf sin256_ps(v8sf x)
     v8sf poly_mask = _mm256_castsi256_ps(imm2);
     sign_bit = _mm256_xor_ps(sign_bit, swap_sign_bit);
 
-    /* The magic pass: "Extended precision modular arithmetic" 
+    /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
     xmm1 = *(v8sf *) _ps256_minus_cephes_DP1;
     xmm2 = *(v8sf *) _ps256_minus_cephes_DP2;
@@ -522,7 +522,7 @@ static inline v8sf cos256_ps(v8sf x)
     v8sf sign_bit = _mm256_castsi256_ps(imm0);
     v8sf poly_mask = _mm256_castsi256_ps(imm2);
 
-    /* The magic pass: "Extended precision modular arithmetic" 
+    /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
     xmm1 = *(v8sf *) _ps256_minus_cephes_DP1;
     xmm2 = *(v8sf *) _ps256_minus_cephes_DP2;
@@ -606,12 +606,12 @@ static inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c)
     /* get the swap sign flag for the sine */
     imm0 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_4);
     imm0 = _mm256_slli_epi32(imm0, 29);
-    //v8sf swap_sign_bit_sin = _mm256_castsi256_ps(imm0);
+    // v8sf swap_sign_bit_sin = _mm256_castsi256_ps(imm0);
 
     /* get the polynom selection mask for the sine*/
     imm2 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_2);
     imm2 = _mm256_cmpeq_epi32(imm2, *(v8si *) _pi32_256_0);
-    //v8sf poly_mask = _mm256_castsi256_ps(imm2);
+    // v8sf poly_mask = _mm256_castsi256_ps(imm2);
 #else
     /* we use SSE2 routines to perform the integer ops */
     COPY_IMM_TO_XMM(_mm256_cvttps_epi32(y), imm2_1, imm2_2);
@@ -647,7 +647,7 @@ static inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c)
     v8sf swap_sign_bit_sin = _mm256_castsi256_ps(imm0);
     v8sf poly_mask = _mm256_castsi256_ps(imm2);
 
-    /* The magic pass: "Extended precision modular arithmetic" 
+    /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
     xmm1 = *(v8sf *) _ps256_minus_cephes_DP1;
     xmm2 = *(v8sf *) _ps256_minus_cephes_DP2;
@@ -723,7 +723,7 @@ static inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c)
 #else /* FMA */
 
 
-/* natural logarithm computed for 8 simultaneous float 
+/* natural logarithm computed for 8 simultaneous float
    return NaN for x <= 0
 */
 static inline v8sf log256_ps(v8sf x)
@@ -863,19 +863,19 @@ static inline v8sf sin256_ps(v8sf x)
     /* j=(j+1) & (~1) (see the cephes sources) */
     // another two AVX2 instruction
     imm2 = _mm256_add_epi32(imm2, *(v8si *) _pi32_256_1);
-    imm2 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_inv1);  //FT
+    imm2 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_inv1);  // FT
     y = _mm256_cvtepi32_ps(imm2);
 
     /* get the swap sign flag */
-    imm0 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_4);  //FT
+    imm0 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_4);  // FT
     imm0 = _mm256_slli_epi32(imm0, 29);
-    /* get the polynom selection mask 
+    /* get the polynom selection mask
      there is one polynom for 0 <= x <= Pi/4
      and another one for Pi/4<x<=Pi/2
 
      Both branches will be computed.
   */
-    imm2 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_2);  //FT
+    imm2 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_2);  // FT
     imm2 = _mm256_cmpeq_epi32(imm2, *(v8si *) _pi32_256_0);
 #else
     /* we use SSE2 routines to perform the integer ops */
@@ -911,7 +911,7 @@ static inline v8sf sin256_ps(v8sf x)
     v8sf poly_mask = _mm256_castsi256_ps(imm2);
     sign_bit = _mm256_xor_ps(sign_bit, swap_sign_bit);
 
-    /* The magic pass: "Extended precision modular arithmetic" 
+    /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
     x = _mm256_fmadd_ps(y, *(v8sf *) _ps256_minus_cephes_DP1, x);
     x = _mm256_fmadd_ps(y, *(v8sf *) _ps256_minus_cephes_DP2, x);
@@ -1014,7 +1014,7 @@ static inline v8sf cos256_ps(v8sf x)
     v8sf sign_bit = _mm256_castsi256_ps(imm0);
     v8sf poly_mask = _mm256_castsi256_ps(imm2);
 
-    /* The magic pass: "Extended precision modular arithmetic" 
+    /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
     x = _mm256_fmadd_ps(y, *(v8sf *) _ps256_minus_cephes_DP1, x);
     x = _mm256_fmadd_ps(y, *(v8sf *) _ps256_minus_cephes_DP2, x);
@@ -1084,12 +1084,12 @@ static inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c)
     /* get the swap sign flag for the sine */
     imm0 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_4);
     imm0 = _mm256_slli_epi32(imm0, 29);
-    //v8sf swap_sign_bit_sin = _mm256_castsi256_ps(imm0);
+    // v8sf swap_sign_bit_sin = _mm256_castsi256_ps(imm0);
 
     /* get the polynom selection mask for the sine*/
     imm2 = _mm256_and_si256(imm2, *(v8si *) _pi32_256_2);
     imm2 = _mm256_cmpeq_epi32(imm2, *(v8si *) _pi32_256_0);
-    //v8sf poly_mask = _mm256_castsi256_ps(imm2);
+    // v8sf poly_mask = _mm256_castsi256_ps(imm2);
 #else
     /* we use SSE2 routines to perform the integer ops */
     COPY_IMM_TO_XMM(_mm256_cvttps_epi32(y), imm2_1, imm2_2);
@@ -1125,7 +1125,7 @@ static inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c)
     v8sf swap_sign_bit_sin = _mm256_castsi256_ps(imm0);
     v8sf poly_mask = _mm256_castsi256_ps(imm2);
 
-    /* The magic pass: "Extended precision modular arithmetic" 
+    /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
     x = _mm256_fmadd_ps(y, *(v8sf *) _ps256_minus_cephes_DP1, x);
     x = _mm256_fmadd_ps(y, *(v8sf *) _ps256_minus_cephes_DP2, x);

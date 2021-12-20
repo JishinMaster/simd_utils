@@ -7,7 +7,7 @@
 
 #pragma once
 
-//JishinMaster : DTCollab sse2neon.h commit :  dffa3f8dea9ed8cbe73ad8fd76f33415304eb8f5
+// JishinMaster : DTCollab sse2neon.h commit :  dffa3f8dea9ed8cbe73ad8fd76f33415304eb8f5
 #include "sse2neon.h"
 
 
@@ -36,7 +36,7 @@
 
 #include <arm_neon.h>
 
-//Round types
+// Round types
 /*#define _MM_ROUND_MASK 0x6000
 #define _MM_ROUND_NEAREST 0x0000
 #define _MM_ROUND_DOWN 0x2000
@@ -59,7 +59,7 @@
 
 /*
 From https://developer.arm.com/docs/ddi0595/e/aarch64-system-registers/fpcr
-RMode, bits [23:22] 
+RMode, bits [23:22]
 Rounding Mode control field. The encoding of this field is:
 RMode	Meaning
 0b00	Round to Nearest (RN) mode.
@@ -209,8 +209,8 @@ FORCE_INLINE __m128i _mm_cvtpd_epi64(__m128d a)
 #if defined(__aarch64__)
     return vreinterpretq_m128i_s64(vcvtnq_s64_f64(a));
 #else
-    int64_t a0 = (int64_t)((double *) &a)[0];
-    int64_t a1 = (int64_t)((double *) &a)[1];
+    int64_t a0 = (int64_t) ((double *) &a)[0];
+    int64_t a1 = (int64_t) ((double *) &a)[1];
     return _mm_set_epi64(a1, a0);
 #endif
 }

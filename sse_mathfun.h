@@ -141,7 +141,7 @@ typedef union xmm_mm_union {
 
 #ifndef FMA
 
-/* natural logarithm computed for 4 simultaneous float 
+/* natural logarithm computed for 4 simultaneous float
    return NaN for x <= 0
  */
 static inline v4sf log_ps(v4sf x)
@@ -187,7 +187,7 @@ static inline v4sf log_ps(v4sf x)
        e -= 1;
        x = x + x - 1.0;
      } else { x = x - 1.0; }
-	 */
+     */
     v4sf mask = _mm_cmplt_ps(x, *(v4sf *) _ps_cephes_SQRTHF);
     v4sf tmp = _mm_and_ps(x, mask);
     x = _mm_sub_ps(x, one);
@@ -259,8 +259,8 @@ static inline v4sf exp_ps(v4sf x)
     /* step 2 : cast back to float */
     tmp = _mm_cvtpi32x2_ps(mm0, mm1);
 #else
-    //emm0 = _mm_cvttps_epi32(fx);
-    //tmp = _mm_cvtepi32_ps(emm0);
+    // emm0 = _mm_cvttps_epi32(fx);
+    // tmp = _mm_cvtepi32_ps(emm0);
     tmp = _mm_round_ps(fx, _MM_FROUND_FLOOR);
 #endif
     /* if greater, substract 1 */
@@ -376,7 +376,7 @@ static inline v4sf sin_ps(v4sf x)
      and another one for Pi/4<x<=Pi/2
 
      Both branches will be computed.
-	 */
+     */
     emm2 = _mm_and_si128(emm2, *(v4si *) _pi32_2);
     emm2 = _mm_cmpeq_epi32(emm2, _mm_setzero_si128());
 
@@ -771,7 +771,7 @@ static inline v4sf log_ps(v4sf x)
        e -= 1;
        x = x + x - 1.0;
      } else { x = x - 1.0; }
-	 */
+     */
     v4sf mask = _mm_cmplt_ps(x, *(v4sf *) _ps_cephes_SQRTHF);
     v4sf tmp = _mm_and_ps(x, mask);
     x = _mm_sub_ps(x, one);
@@ -817,8 +817,8 @@ static inline v4sf exp_ps(v4sf x)
     fx = _mm_fmadd_ps(x, *(v4sf *) _ps_cephes_LOG2EF, *(v4sf *) _ps_0p5);
 
     /* how to perform a floorf with SSE: just below */
-    //emm0 = _mm_cvttps_epi32(fx);
-    //tmp = _mm_cvtepi32_ps(emm0);
+    // emm0 = _mm_cvttps_epi32(fx);
+    // tmp = _mm_cvtepi32_ps(emm0);
     tmp = _mm_round_ps(fx, _MM_FROUND_FLOOR);
 
     /* if greater, substract 1 */
@@ -908,7 +908,7 @@ static inline v4sf sin_ps(v4sf x)
      and another one for Pi/4<x<=Pi/2
 
      Both branches will be computed.
-	 */
+     */
     emm2 = _mm_and_si128(emm2, *(v4si *) _pi32_2);
     emm2 = _mm_cmpeq_epi32(emm2, _mm_setzero_si128());
 

@@ -15,7 +15,7 @@ static inline void add256s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     int stop_len = len / AVX_LEN_INT32;
     stop_len *= AVX_LEN_INT32;
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
             _mm256_store_si256((__m256i *) (dst + i), _mm256_add_epi32(_mm256_load_si256((__m256i *) (src1 + i)),
                                                                        _mm256_load_si256((__m256i *) (src2 + i))));
@@ -60,7 +60,7 @@ static inline void sub256s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     int stop_len = len / AVX_LEN_INT32;
     stop_len *= AVX_LEN_INT32;
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
             _mm256_store_si256((__m256i *) (dst + i), _mm256_sub_epi32(_mm256_load_si256((__m256i *) (src1 + i)),
                                                                        _mm256_load_si256((__m256i *) (src2 + i))));
@@ -84,7 +84,7 @@ static inline void addc256s(int32_t *src, int32_t value, int32_t *dst, int len)
 
     const v8si tmp = _mm256_set1_epi32(value);
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
             _mm256_store_si256((__m256i *) (dst + i), _mm256_add_epi32(tmp, _mm256_load_si256((__m256i *) (src + i))));
         }
@@ -243,7 +243,7 @@ static inline void absdiff16s_256s(int16_t *src1, int16_t *src2, int16_t *dst, i
     stop_len *= AVX_LEN_INT16;
 
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT16) {
             __m256i a = _mm256_load_si256((__m256i *) (src1 + i));
             __m256i b = _mm256_load_si256((__m256i *) (src2 + i));
@@ -268,7 +268,7 @@ static inline void powerspect16s_256s_interleaved(complex16s_t *src, int32_t *ds
     stop_len *= AVX_LEN_INT32;
 
     int j = 0;
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
             __m256i reim = _mm256_load_si256((__m256i *) ((const int16_t *) src + j));
             // print8i(reim); printf("\n");

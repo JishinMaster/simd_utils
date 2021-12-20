@@ -6444,7 +6444,7 @@ FORCE_INLINE __m128i _mm_xor_si128(__m128i a, __m128i b)
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_addsub_pd
 FORCE_INLINE __m128d _mm_addsub_pd(__m128d a, __m128d b)
 {
-    //static const __m128d mask = _mm_set_pd(1.0f, -1.0f);
+    // static const __m128d mask = _mm_set_pd(1.0f, -1.0f);
     static const double mask[2] __attribute__((aligned(16))) = {-1.0, 1.0};
 #if defined(__aarch64__)
     return vreinterpretq_m128d_f64(vfmaq_f64(vreinterpretq_f64_m128d(a),
@@ -6462,7 +6462,7 @@ FORCE_INLINE __m128d _mm_addsub_pd(__m128d a, __m128d b)
 FORCE_INLINE __m128 _mm_addsub_ps(__m128 a, __m128 b)
 {
     static const float mask[4] __attribute__((aligned(16))) = {-1.0f, 1.0f, -1.0f, 1.0f};
-    //const __m128 mask = _mm_setr_ps(-1.0f, 1.0f, -1.0f, 1.0f);
+    // const __m128 mask = _mm_setr_ps(-1.0f, 1.0f, -1.0f, 1.0f);
 #if defined(__aarch64__) || defined(__ARM_FEATURE_FMA) /* VFPv4+ */
     return vreinterpretq_m128_f32(vfmaq_f32(vreinterpretq_f32_m128(a),
                                             vreinterpretq_f32_m128(*(__m128 *) mask),
@@ -7077,7 +7077,7 @@ FORCE_INLINE __m128i _mm_shuffle_epi8(__m128i a, __m128i b)
 FORCE_INLINE __m64 _mm_shuffle_pi8(__m64 a, __m64 b)
 {
     const int8x8_t controlMask =
-        vand_s8(vreinterpret_s8_m64(b), vdup_n_s8((int8_t)(0x1 << 7 | 0x07)));
+        vand_s8(vreinterpret_s8_m64(b), vdup_n_s8((int8_t) (0x1 << 7 | 0x07)));
     int8x8_t res = vtbl1_s8(vreinterpret_s8_m64(a), controlMask);
     return vreinterpret_m64_s8(res);
 }
@@ -7430,7 +7430,7 @@ FORCE_INLINE __m128 _mm_blendv_ps(__m128 _a, __m128 _b, __m128 _mask)
     float32x4_t a = vreinterpretq_f32_m128(_a);
     float32x4_t b = vreinterpretq_f32_m128(_b);
     return vreinterpretq_m128_f32(vbslq_f32(vreinterpretq_s32_m128(_mask), b, a));
-    //return vreinterpretq_m128_f32(vbslq_f32(mask, b, a));
+    // return vreinterpretq_m128_f32(vbslq_f32(mask, b, a));
 }
 
 // Round the packed double-precision (64-bit) floating-point elements in a up
@@ -8276,7 +8276,7 @@ FORCE_INLINE __m128i _mm_stream_load_si128(__m128i *p)
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_test_all_ones
 FORCE_INLINE int _mm_test_all_ones(__m128i a)
 {
-    return (uint64_t)(vgetq_lane_s64(a, 0) & vgetq_lane_s64(a, 1)) ==
+    return (uint64_t) (vgetq_lane_s64(a, 0) & vgetq_lane_s64(a, 1)) ==
            ~(uint64_t) 0;
 }
 
@@ -8397,8 +8397,8 @@ FORCE_INLINE uint64_t _mm_crc32_u64(uint64_t crc, uint64_t v)
                          : [c] "+r"(crc)
                          : [v] "r"(v));
 #else
-    crc = _mm_crc32_u32((uint32_t)(crc), v & 0xffffffff);
-    crc = _mm_crc32_u32((uint32_t)(crc), (v >> 32) & 0xffffffff);
+    crc = _mm_crc32_u32((uint32_t) (crc), v & 0xffffffff);
+    crc = _mm_crc32_u32((uint32_t) (crc), (v >> 32) & 0xffffffff);
 #endif
     return crc;
 }
@@ -8503,7 +8503,7 @@ FORCE_INLINE __m128i _mm_aesenc_si128(__m128i EncBlock, __m128i RoundKey)
     v = vqtbx4q_u8(v, _sse2neon_vld1q_u8_x4(SSE2NEON_sbox + 0xc0), w - 0xc0);
 
     // mix columns
-    w = (v << 1) ^ (uint8x16_t)(((int8x16_t) v >> 7) & 0x1b);
+    w = (v << 1) ^ (uint8x16_t) (((int8x16_t) v >> 7) & 0x1b);
     w ^= (uint8x16_t) vrev32q_u16((uint16x8_t) v);
     w ^= vqtbl1q_u8(v ^ w, vld1q_u8(ror32by8));
 
@@ -8511,8 +8511,8 @@ FORCE_INLINE __m128i _mm_aesenc_si128(__m128i EncBlock, __m128i RoundKey)
     return vreinterpretq_m128i_u8(w) ^ RoundKey;
 
 #else /* ARMv7-A NEON implementation */
-#define SSE2NEON_AES_B2W(b0, b1, b2, b3)                                       \
-    (((uint32_t)(b3) << 24) | ((uint32_t)(b2) << 16) | ((uint32_t)(b1) << 8) | \
+#define SSE2NEON_AES_B2W(b0, b1, b2, b3)                                          \
+    (((uint32_t) (b3) << 24) | ((uint32_t) (b2) << 16) | ((uint32_t) (b1) << 8) | \
      (b0))
 #define SSE2NEON_AES_F2(x) ((x << 1) ^ (((x >> 7) & 1) * 0x011b /* WPOLY */))
 #define SSE2NEON_AES_F3(x) (SSE2NEON_AES_F2(x) ^ x)

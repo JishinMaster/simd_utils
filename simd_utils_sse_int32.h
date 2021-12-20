@@ -19,7 +19,7 @@ static inline void add128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     int stop_len = len / SSE_LEN_INT32;
     stop_len *= SSE_LEN_INT32;
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
             _mm_store_si128((__m128i *) (dst + i), _mm_add_epi32(_mm_load_si128((__m128i *) (src1 + i)),
                                                                  _mm_load_si128((__m128i *) (src2 + i))));
@@ -37,7 +37,7 @@ static inline void add128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 }
 
 
-//result is wrong, the instruction casts to 64bit
+// result is wrong, the instruction casts to 64bit
 #if 0
 static inline void mul128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {
@@ -65,7 +65,7 @@ static inline void sub128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     int stop_len = len / SSE_LEN_INT32;
     stop_len *= SSE_LEN_INT32;
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
             _mm_store_si128((__m128i *) (dst + i), _mm_sub_epi32(_mm_load_si128((__m128i *) (src1 + i)),
                                                                  _mm_load_si128((__m128i *) (src2 + i))));
@@ -89,7 +89,7 @@ static inline void addc128s(int32_t *src, int32_t value, int32_t *dst, int len)
 
     const v4si tmp = _mm_set1_epi32(value);
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
             _mm_store_si128((__m128i *) (dst + i), _mm_add_epi32(tmp, _mm_load_si128((__m128i *) (src + i))));
         }
@@ -115,7 +115,7 @@ static inline void vectorSlope128s(int *dst, int len, int offset, int slope)
     int stop_len = len / (2 * SSE_LEN_INT32);
     stop_len *= (2 * SSE_LEN_INT32);
 
-    if (isAligned((uintptr_t)(dst), SSE_LEN_BYTES)) {
+    if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
         _mm_store_si128((__m128i *) dst, curVal);
         _mm_store_si128((__m128i *) (dst + SSE_LEN_INT32), curVal2);
     } else {
@@ -123,7 +123,7 @@ static inline void vectorSlope128s(int *dst, int len, int offset, int slope)
         _mm_storeu_si128((__m128i *) (dst + SSE_LEN_INT32), curVal2);
     }
 
-    if (isAligned((uintptr_t)(dst), SSE_LEN_BYTES)) {
+    if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 2 * SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
             curVal = _mm_add_epi32(curVal, slope8_vec);
             _mm_store_si128((__m128i *) (dst + i), curVal);
@@ -151,10 +151,10 @@ static inline void sum128s(int32_t *src, int32_t *dst, int len)
 
     __attribute__((aligned(SSE_LEN_BYTES))) int32_t accumulate[SSE_LEN_INT32] = {0, 0, 0, 0};
     int32_t tmp_acc = 0;
-    v4si vec_acc1 = _mm_setzero_si128();  //initialize the vector accumulator
-    v4si vec_acc2 = _mm_setzero_si128();  //initialize the vector accumulator
+    v4si vec_acc1 = _mm_setzero_si128();  // initialize the vector accumulator
+    v4si vec_acc2 = _mm_setzero_si128();  // initialize the vector accumulator
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
             v4si vec_tmp1 = _mm_load_si128((__m128i *) (src + i));
             vec_acc1 = _mm_add_epi32(vec_acc1, vec_tmp1);
@@ -286,7 +286,7 @@ static inline void fast_copy128s_4(int32_t *src, int32_t *dst, int len)
 }
 
 
-//Adapted from NEON2SSE (does not exists for X86)
+// Adapted from NEON2SSE (does not exists for X86)
 static inline __m128i _mm_absdiff_epi16(__m128i a, __m128i b)
 {
 #ifndef ARM
@@ -302,7 +302,7 @@ static inline __m128i _mm_absdiff_epi16(__m128i a, __m128i b)
 #endif
 }
 
-//Adapted from NEON2SSE (does not exists for X86)
+// Adapted from NEON2SSE (does not exists for X86)
 static inline __m128i _mm_absdiff_epi32(__m128i a, __m128i b)
 {
 #ifndef ARM
@@ -339,7 +339,7 @@ static inline void absdiff16s_128s(int16_t *src1, int16_t *src2, int16_t *dst, i
     stop_len *= SSE_LEN_INT16;
 
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_INT16) {
             __m128i a = _mm_load_si128((__m128i *) (src1 + i));
             __m128i b = _mm_load_si128((__m128i *) (src2 + i));
@@ -374,7 +374,7 @@ static inline void powerspect16s_128s_interleaved(complex16s_t *src, int32_t *ds
     stop_len *= SSE_LEN_INT32;
 
     int j = 0;
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), SSE_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
             __m128i reim = _mm_load_si128((__m128i *) ((const int16_t *) src + j));
             // print8i(reim); printf("\n");

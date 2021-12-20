@@ -59,6 +59,7 @@ Simply include simd_utils.h in your C/C++ file, and compile with :
 
 For FMA support you need to add -DFMA and -mfma to x86 targets, and -DFMA to Armv8 targets.
 For ARMV7 targets, you could also add -DSSE2NEON_PRECISE_SQRT for improved accuracy with sqrt and rsqrt
+For X86 targets with ICC compiler, simply add -DICC to activate Intel SVML intrinsics.
 
 ## OpenCL (experimental)
 
@@ -99,7 +100,7 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | div128f                        | div256f                        | div512f                    | divf_C                    | ippsDiv_32f_A24              | X                           | X                    |
 | vectorSlope128f                | vectorSlope256f                | vectorSlope512f            | vectorSlopef_C            | ippsVectorSlope_32f          | X                           | X                    |
 | convertFloat32ToU8_128         | X                              | X                          | convertFloat32ToU8_C      | ippsConvert_32f8u_Sfs        | X                           | X                    |
-| convertFloat32ToU16_128        | X                              | X                          | convertFloat32ToU16_C     | ippsConvert_32f16u_Sfs       | X                           | X                    |
+| convertFloat32ToI16_128        | X                              | X                          | convertFloat32ToI16_C     | ippsConvert_32f16s_Sfs       | X                           | X                    |
 | convertInt16ToFloat32_128      | convertInt16ToFloat32_256      | X                          | convertInt16ToFloat32_C   | ippsConvert_16s32f_Sfs       | X                           | X                    |
 | cplxtoreal128f                 | cplxtoreal256f                 | X                          | cplxtorealf_C             | ippsCplxToReal_32fc          | X                           | cplxtoreal128f       |
 | realtocplx128f                 | realtocplx256f                 | X                          | realtocplx_C              | ippsRealToCplx_32f           | X                           | X                    |

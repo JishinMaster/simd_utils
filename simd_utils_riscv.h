@@ -24,17 +24,17 @@ int clock_gettime(clockid_t clock_id, struct timespec *tp)
 }
 
 /* ELEN : element length, 8,16,32,64bits
-	VLEN : Vector Length, at least 128bits
-	32 registers in the 0.10 standard, plus vstart, vxsat, vxrm, vcsr, vtype, vl, vlenb
-	VSEW : Vector Standard Element Width (dynamic), with of the base element : 8,16,32,64,...,1024bits
-	(up to 64bit in the current intrinsics
-	LMUL : Vector register grouping => may group multiple VLEN registers, so that 1 instruction can be applied to multiple registers. If LMUL is < 1, the operation applies only to a part of the register
-	LMUL = 1,2,4,8, 1, 1/2, 1/4, 1/8
-	VLMAX = LMUL*VLEN/SEW
-	Vector Tail Agnostic and Vector Mask Agnostic vta and vma allow to mask operations on vector such as only part of a vector is modified
-	Vector Fixed-Point Rounding Mode Register vxrm for rounding mode : round-to-nearest-up rnu, round-to-nearest-even rne, round-down rdn, round-to-odd rod
+    VLEN : Vector Length, at least 128bits
+    32 registers in the 0.10 standard, plus vstart, vxsat, vxrm, vcsr, vtype, vl, vlenb
+    VSEW : Vector Standard Element Width (dynamic), with of the base element : 8,16,32,64,...,1024bits
+    (up to 64bit in the current intrinsics
+    LMUL : Vector register grouping => may group multiple VLEN registers, so that 1 instruction can be applied to multiple registers. If LMUL is < 1, the operation applies only to a part of the register
+    LMUL = 1,2,4,8, 1, 1/2, 1/4, 1/8
+    VLMAX = LMUL*VLEN/SEW
+    Vector Tail Agnostic and Vector Mask Agnostic vta and vma allow to mask operations on vector such as only part of a vector is modified
+    Vector Fixed-Point Rounding Mode Register vxrm for rounding mode : round-to-nearest-up rnu, round-to-nearest-even rne, round-down rdn, round-to-odd rod
 */
-//load vector float32, 8
+// load vector float32, 8
 #define VSETVL vsetvl_e32m8
 
 #define VLEV_FLOAT vle32_v_f32m8
@@ -80,9 +80,9 @@ static inline void print_vec_uint(vuint32m8_t vec)
 }
 // e32 => float32 (e64 float 64)
 // m8 8 elements (m4 4 elements)
-/* i = vsetvl_e32m8(len) asks for 
-	n float32 elements grouped by 8. l returns the total number of elements achievable
-	with this configuration
+/* i = vsetvl_e32m8(len) asks for
+    n float32 elements grouped by 8. l returns the total number of elements achievable
+    with this configuration
 */
 void addf_vec(float *a, float *b, float *c, int len)
 {
@@ -144,14 +144,14 @@ static inline void sinf_vec(float *src, float *dst, int len)
        and another one for Pi/4<x<=Pi/2
 
        Both branches will be computed.
-	     */
+         */
         emm2 = vand_vx_i32m8(emm2, 2, i);
 
         /// emm2 == 0 ? 0xFFFFFFFF : 0x00000000
         vbool4_t poly_mask = vmseq_vx_i32m8_b4(emm2, 0, i);
-        //vbool4_t not_poly_mask=vmnot_m_b4(poly_mask, i);
+        // vbool4_t not_poly_mask=vmnot_m_b4(poly_mask, i);
 
-        sign_bit_int = vxor_vv_i32m8(sign_bit_int, emm0, i);  //emm0 is swap_sign_bit
+        sign_bit_int = vxor_vv_i32m8(sign_bit_int, emm0, i);  // emm0 is swap_sign_bit
 
         /* The magic pass: "Extended precision modular arithmetic"
         x = ((x - y * DP1) - y * DP2) - y * DP3; */
@@ -194,7 +194,7 @@ static inline void sinf_vec(float *src, float *dst, int len)
     }
 }
 
-//Work in progress
+// Work in progress
 #if 1
 static inline void sincosf_vec(float *src, float *s, float *c, int len)
 {
@@ -296,13 +296,13 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
 
 static inline void sumf_vec(float *src, float *dst, int len)
 {
-    float acc[32] = {0};  //max size?
+    float acc[32] = {0};  // max size?
 
     size_t i;
     float *src_tmp = src;
 
     i = VSETVL(len);
-    V_ELT vacc = VLEV_FLOAT(acc, i);  //initialised at 0?
+    V_ELT vacc = VLEV_FLOAT(acc, i);  // initialised at 0?
 
     int len_ori = len;
 
@@ -376,16 +376,16 @@ static inline void powerspectf_interleaved_vec(complex32_t *src, float *dst, int
     float *dst_tmp = dst;
 
     for (; (i = VSETVL(len)) > 0; len -= i) {
-        //complex are a + ib, c + id, e + if, etc
-        //load in re_tmp a,c,e, etc => i elements in range 0..2*i with a stride of 2
-        //load in im_tmp b,d,f, etc => i elements in range 0..2*i with a stride of 2
+        // complex are a + ib, c + id, e + if, etc
+        // load in re_tmp a,c,e, etc => i elements in range 0..2*i with a stride of 2
+        // load in im_tmp b,d,f, etc => i elements in range 0..2*i with a stride of 2
         V_ELT re_tmp = vlse32_v_f32m8(src_tmp, 2 * sizeof(float), i);
         V_ELT im_tmp = vlse32_v_f32m8(src_tmp + 1, 2 * sizeof(float), i);
         V_ELT re2 = VMUL_FLOAT(re_tmp, re_tmp, i);
         V_ELT tmp = VFMA_FLOAT(re2, im_tmp, im_tmp, i);
         VSEV_FLOAT(dst_tmp, tmp, i);
 
-        //src_tmp increases twice as fast since it's complex and not float
+        // src_tmp increases twice as fast since it's complex and not float
         src_tmp += 2 * i;
         dst_tmp += i;
     }
@@ -398,16 +398,16 @@ static inline void magnitudef_interleaved_vec(complex32_t *src, float *dst, int 
     float *dst_tmp = dst;
 
     for (; (i = VSETVL(len)) > 0; len -= i) {
-        //complex are a + ib, c + id, e + if, etc
-        //load in re_tmp a,c,e, etc => i elements in range 0..2*i with a stride of 2
-        //load in im_tmp b,d,f, etc => i elements in range 0..2*i with a stride of 2
+        // complex are a + ib, c + id, e + if, etc
+        // load in re_tmp a,c,e, etc => i elements in range 0..2*i with a stride of 2
+        // load in im_tmp b,d,f, etc => i elements in range 0..2*i with a stride of 2
         V_ELT re_tmp = vlse32_v_f32m8(src_tmp, 2 * sizeof(float), i);
         V_ELT im_tmp = vlse32_v_f32m8(src_tmp + 1, 2 * sizeof(float), i);
         V_ELT re2 = VMUL_FLOAT(re_tmp, re_tmp, i);
         V_ELT tmp = VFMA_FLOAT(re2, im_tmp, im_tmp, i);
         VSEV_FLOAT(dst_tmp, vfsqrt_v_f32m8(tmp, i), i);
 
-        //src_tmp increases twice as fast since it's complex and not float
+        // src_tmp increases twice as fast since it's complex and not float
         src_tmp += 2 * i;
         dst_tmp += i;
     }
@@ -496,7 +496,7 @@ static inline void threshold_gtabs_f_vec(float *src, float *dst, int len, float 
         vbool4_t gtmask = vmfgt_vf_f32m8_b4(va_abs, value, i);
 
         /*weird way to achieve the equivalent of _mm_blendv_ps(mval, pval, eqmask);
-         no way to broadcast a float to a vector yet, so we have to use an undefined vector 
+         no way to broadcast a float to a vector yet, so we have to use an undefined vector
          merged with the negative value (not(mask))and then merge with the value */
         V_ELT sval;
         sval = vfmerge_vfm_f32m8(vmnot_m_b4(eqmask, i), sval, -value, i);

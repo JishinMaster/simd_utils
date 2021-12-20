@@ -14,7 +14,7 @@ static inline void add512s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     int stop_len = len / AVX512_LEN_INT32;
     stop_len *= AVX512_LEN_INT32;
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
             _mm512_store_si512((__m512i *) (dst + i), _mm512_add_epi32(_mm512_load_si512((__m512i *) (src1 + i)),
                                                                        _mm512_load_si512((__m512i *) (src2 + i))));
@@ -31,7 +31,7 @@ static inline void add512s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     }
 }
 
-//Work in progress
+// Work in progress
 #if 0 
 static inline void mul512s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {
@@ -59,7 +59,7 @@ static inline void sub512s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     int stop_len = len / AVX512_LEN_INT32;
     stop_len *= AVX512_LEN_INT32;
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
             _mm512_store_si512((__m512i *) (dst + i), _mm512_sub_epi32(_mm512_load_si512((__m512i *) (src1 + i)),
                                                                        _mm512_load_si512((__m512i *) (src2 + i))));
@@ -83,7 +83,7 @@ static inline void addc512s(int32_t *src, int32_t value, int32_t *dst, int len)
 
     const v16si tmp = _mm512_set1_epi32(value);
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
             _mm512_store_si512((__m512i *) (dst + i), _mm512_add_epi32(tmp, _mm512_load_si512((__m512i *) (src + i))));
         }
@@ -105,7 +105,7 @@ static inline void copy512s(int32_t *src, int32_t *dst, int len)
     int stop_len = len / AVX512_LEN_INT32;
     stop_len *= AVX512_LEN_INT32;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
 #ifdef OMP
 #pragma omp parallel for schedule(auto)
 #endif
@@ -132,7 +132,7 @@ static inline void copy512s_2(int32_t *src, int32_t *dst, int len)
     stop_len *= (2 * AVX512_LEN_INT32);
 
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
 #ifdef OMP
 #pragma omp parallel for schedule(auto)
 #endif
@@ -228,7 +228,7 @@ static inline void fast_copy512s_4(int32_t *src, int32_t *dst, int len)
     }
 }
 
-//to be improved?
+// to be improved?
 static inline __m512i _mm512_absdiff_epi16(__m512i a, __m512i b)
 {
     __m512i cmp, difab, difba;
@@ -274,7 +274,7 @@ static inline void absdiff16s_512s(int16_t *src1, int16_t *src2, int16_t *dst, i
     stop_len *= AVX512_LEN_INT16;
 
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_INT16) {
             __m512i a = _mm512_load_si512((__m512i *) (src1 + i));
             __m512i b = _mm512_load_si512((__m512i *) (src2 + i));
@@ -299,7 +299,7 @@ static inline void powerspect16s_512s_interleaved(complex16s_t *src, int32_t *ds
     stop_len *= AVX512_LEN_INT32;
 
     int j = 0;
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
             __m512i reim = _mm512_load_si512((__m512i *) ((const int16_t *) src + j));
             // print8i(reim); printf("\n");

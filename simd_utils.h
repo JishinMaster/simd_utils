@@ -52,8 +52,8 @@ static const int32_t inv_sign_mask = ~SIGN_MASK;
 
 #include "mysincosf.h"
 
-#define INVLN10 0.4342944819032518f  //0.4342944819f
-#define INVLN2 1.4426950408889634f   //1.44269504089f
+#define INVLN10 0.4342944819032518f  // 0.4342944819f
+#define INVLN2 1.4426950408889634f   // 1.44269504089f
 #define LN2 0.6931471805599453094172321214581765680755001343602552541206800094f
 #define LN2_DIV_LN10 0.3010299956639811952137388947244930267681898814621085413104274611f
 #define IMM8_FLIP_VEC 0x1B              // change m128 from abcd to dcba
@@ -99,15 +99,15 @@ typedef enum {
     RndFinancial,
 } FloatRoundingMode;
 
-/* if the user insures that all of their pointers are aligned, 
- * they can use ALWAYS_ALIGNED to hope for some minor speedup on small vectors 
+/* if the user insures that all of their pointers are aligned,
+ * they can use ALWAYS_ALIGNED to hope for some minor speedup on small vectors
  */
 static inline int isAligned(uintptr_t ptr, size_t alignment)
 {
 #ifndef ALWAYS_ALIGNED
 
-#ifndef ARM  //ARM manages disalignment in hardware
-    if (((uintptr_t)(ptr) % alignment) == 0)
+#ifndef ARM  // ARM manages disalignment in hardware
+    if (((uintptr_t) (ptr) % alignment) == 0)
         return 1;
     return 0;
 #else
@@ -123,9 +123,9 @@ static inline int areAligned2(uintptr_t ptr1, uintptr_t ptr2, size_t alignment)
 {
 #ifndef ALWAYS_ALIGNED
 
-#ifndef ARM  //ARM manages disalignment in hardware
-    if (((uintptr_t)(ptr1) % alignment) == 0)
-        if (((uintptr_t)(ptr2) % alignment) == 0)
+#ifndef ARM  // ARM manages disalignment in hardware
+    if (((uintptr_t) (ptr1) % alignment) == 0)
+        if (((uintptr_t) (ptr2) % alignment) == 0)
             return 1;
     return 0;
 #else
@@ -141,10 +141,10 @@ static inline int areAligned3(uintptr_t ptr1, uintptr_t ptr2, uintptr_t ptr3, si
 {
 #ifndef ALWAYS_ALIGNED
 
-#ifndef ARM  //ARM manages disalignment in hardware
-    if (((uintptr_t)(ptr1) % alignment) == 0)
-        if (((uintptr_t)(ptr2) % alignment) == 0)
-            if (((uintptr_t)(ptr3) % alignment) == 0)
+#ifndef ARM  // ARM manages disalignment in hardware
+    if (((uintptr_t) (ptr1) % alignment) == 0)
+        if (((uintptr_t) (ptr2) % alignment) == 0)
+            if (((uintptr_t) (ptr3) % alignment) == 0)
                 return 1;
     return 0;
 #else
@@ -243,14 +243,14 @@ static inline void _mm_store2u_ps(float *mem_addr, v4sfx2 a)
 #endif
 }
 
-//Warning, declared in reverse order since it's little endian :
-// const v4sf conj_mask = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
+// Warning, declared in reverse order since it's little endian :
+//  const v4sf conj_mask = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
 static const float _ps_conj_mask[4] __attribute__((aligned(16))) = {1.0f, -1.0f, 1.0f, -1.0f};
 
 static inline __m128 _mm_fmadd_ps_custom(__m128 a, __m128 b, __m128 c)
 {
-//Haswell comes with avx2 and fma
-// ARM has vmla instead of fma in 32bits
+// Haswell comes with avx2 and fma
+//  ARM has vmla instead of fma in 32bits
 #if defined(ARM) || defined(FMA)
     return _mm_fmadd_ps(a, b, c);
 #else
@@ -260,7 +260,7 @@ static inline __m128 _mm_fmadd_ps_custom(__m128 a, __m128 b, __m128 c)
 
 static inline __m128 _mm_fmaddsub_ps_custom(__m128 a, __m128 b, __m128 c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
+#ifndef FMA  // Haswell comes with avx2 and fma
     return _mm_addsub_ps(_mm_mul_ps(a, b), c);
 #else  /* FMA */
     return _mm_fmaddsub_ps(a, b, c);
@@ -279,8 +279,8 @@ static inline __m128 _mm_fmsubadd_ps_custom(__m128 a, __m128 b, __m128 c)
 
 static inline __m128 _mm_fnmadd_ps_custom(__m128 a, __m128 b, __m128 c)
 {
-//Haswell comes with avx2 and fma
-// ARM has vmla instead of fma in 32bits
+// Haswell comes with avx2 and fma
+//  ARM has vmla instead of fma in 32bits
 #if defined(ARM) || defined(FMA)
     return _mm_fnmadd_ps(a, b, c);
 #else
@@ -290,7 +290,7 @@ static inline __m128 _mm_fnmadd_ps_custom(__m128 a, __m128 b, __m128 c)
 
 static inline __m128d _mm_fmadd_pd_custom(__m128d a, __m128d b, __m128d c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
+#ifndef FMA  // Haswell comes with avx2 and fma
     return _mm_add_pd(_mm_mul_pd(a, b), c);
 #else  /* FMA */
     return _mm_fmadd_pd(a, b, c);
@@ -299,7 +299,7 @@ static inline __m128d _mm_fmadd_pd_custom(__m128d a, __m128d b, __m128d c)
 
 static inline __m128d _mm_fnmadd_pd_custom(__m128d a, __m128d b, __m128d c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
+#ifndef FMA  // Haswell comes with avx2 and fma
     return _mm_sub_pd(c, _mm_mul_pd(a, b));
 #else  /* FMA */
     return _mm_fnmadd_pd(a, b, c);
@@ -511,7 +511,7 @@ _PD_CONST(min1, -1.0);
 #ifndef __clang__
 #ifndef __INTEL_COMPILER
 #ifndef __cplusplus                                       // TODO : it seems to be defined with G++ 9.2 and not GCC 9.2
-static inline __m256 _mm256_set_m128(__m128 H, __m128 L)  //not present on every GCC version
+static inline __m256 _mm256_set_m128(__m128 H, __m128 L)  // not present on every GCC version
 {
     return _mm256_insertf128_ps(_mm256_castps128_ps256(L), H, 1);
 }
@@ -530,7 +530,7 @@ static const float _ps256_conj_mask[8] __attribute__((aligned(32))) = {1.0f, -1.
 
 static inline __m256 _mm256_fmadd_ps_custom(__m256 a, __m256 b, __m256 c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
+#ifndef FMA  // Haswell comes with avx2 and fma
     return _mm256_add_ps(_mm256_mul_ps(a, b), c);
 #else  /* FMA */
     return _mm256_fmadd_ps(a, b, c);
@@ -539,7 +539,7 @@ static inline __m256 _mm256_fmadd_ps_custom(__m256 a, __m256 b, __m256 c)
 
 static inline __m256 _mm256_fmaddsub_ps_custom(__m256 a, __m256 b, __m256 c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
+#ifndef FMA  // Haswell comes with avx2 and fma
     return _mm256_addsub_ps(_mm256_mul_ps(a, b), c);
 #else  /* FMA */
     return _mm256_fmaddsub_ps(a, b, c);
@@ -548,7 +548,7 @@ static inline __m256 _mm256_fmaddsub_ps_custom(__m256 a, __m256 b, __m256 c)
 
 static inline __m256 _mm256_fnmadd_ps_custom(__m256 a, __m256 b, __m256 c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
+#ifndef FMA  // Haswell comes with avx2 and fma
     return _mm256_sub_ps(c, _mm256_mul_ps(a, b));
 #else  /* FMA */
     return _mm256_fnmadd_ps(a, b, c);
@@ -557,7 +557,7 @@ static inline __m256 _mm256_fnmadd_ps_custom(__m256 a, __m256 b, __m256 c)
 
 static inline __m256d _mm256_fmadd_pd_custom(__m256d a, __m256d b, __m256d c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
+#ifndef FMA  // Haswell comes with avx2 and fma
     return _mm256_add_pd(_mm256_mul_pd(a, b), c);
 #else  /* FMA */
     return _mm256_fmadd_pd(a, b, c);
@@ -566,7 +566,7 @@ static inline __m256d _mm256_fmadd_pd_custom(__m256d a, __m256d b, __m256d c)
 
 static inline __m256d _mm256_fnmadd_pd_custom(__m256d a, __m256d b, __m256d c)
 {
-#ifndef FMA  //Haswell comes with avx2 and fma
+#ifndef FMA  // Haswell comes with avx2 and fma
     return _mm256_sub_pd(c, _mm256_mul_pd(a, b));
 #else  /* FMA */
     return _mm256_fnmadd_pd(a, b, c);
@@ -864,13 +864,13 @@ typedef __vector char v16s8;
 #endif /* ALTIVEC */
 
 #ifdef CUSTOM_MALLOC
-//Thanks to Jpommier pfft https://bitbucket.org/jpommier/pffft/src/default/pffft.c
+// Thanks to Jpommier pfft https://bitbucket.org/jpommier/pffft/src/default/pffft.c
 static inline int posix_memalign(void **pointer, size_t len, int alignement)
 {
     void *p, *p0 = malloc(len + alignement);
     if (!p0)
         return (void *) NULL;
-    p = (void *) (((size_t) p0 + alignement) & (~((size_t)(alignement - 1))));
+    p = (void *) (((size_t) p0 + alignement) & (~((size_t) (alignement - 1))));
     *((void **) p - 1) = p0;
 
     *pointer = p;
@@ -882,12 +882,12 @@ static inline void *aligned_malloc(size_t len, int alignement)
     void *p, *p0 = malloc(len + alignement);
     if (!p0)
         return (void *) NULL;
-    p = (void *) (((size_t) p0 + alignement) & (~((size_t)(alignement - 1))));
+    p = (void *) (((size_t) p0 + alignement) & (~((size_t) (alignement - 1))));
     *((void **) p - 1) = p0;
     return p;
 }
 
-//Work in progress
+// Work in progress
 static inline void aligned_free(void *p)
 {
     if (p)
@@ -1127,7 +1127,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = floorf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
         }
     } else if (rounding_mode == RndNear) {
 #ifdef OMP
@@ -1135,7 +1135,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
         }
     } else if (rounding_mode == RndFinancial) {
 #ifdef OMP
@@ -1143,7 +1143,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
-            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
         }
     } else {
 #ifdef OMP
@@ -1151,15 +1151,14 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = src[i] * scale_fact_mult;
-            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
         }
     }
 }
 
 
-static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
+static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
 {
-
     float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
 
     // Default bankers rounding => round to nearest even
@@ -1169,7 +1168,7 @@ static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
-            dst[i] = (uint16_t)(tmp > 65535.0f ? 65535.0f : tmp);  //round to nearest even with round(x/2)*2
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
         }
     } else {
         if (rounding_mode == RndZero) {
@@ -1184,7 +1183,7 @@ static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = nearbyintf(src[i] * scale_fact_mult);
-            dst[i] = (uint16_t)(tmp > 65535.0f ? 65535.0f : tmp);
+            dst[i] = (uint16_t) (tmp > 32767.0f ? 32767.0f : tmp);
         }
     }
 }
@@ -2055,8 +2054,8 @@ static inline void sigmoidf_C(float *src, float *dst, int len)
     }
 }
 
-//parametric ReLU
-//simple ReLU can be expressed as threshold_lt with value = 0
+// parametric ReLU
+// simple ReLU can be expressed as threshold_lt with value = 0
 static inline void PReluf_C(float *src, float *dst, float alpha, int len)
 {
 #ifdef OMP

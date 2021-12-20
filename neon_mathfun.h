@@ -25,7 +25,7 @@
   (this is the zlib license)
 */
 
-//Update : use of FMA
+// Update : use of FMA
 
 #ifndef INC_SIMD_NEON_MATHFUN_H_
 #define INC_SIMD_NEON_MATHFUN_H_
@@ -84,7 +84,7 @@ typedef int32x4_t v4si;        // vector of 4 uint32
 
 #ifndef FMA
 
-/* natural logarithm computed for 4 simultaneous float 
+/* natural logarithm computed for 4 simultaneous float
    return NaN for x <= 0
 */
 static inline v4sf log_ps(v4sf x)
@@ -108,7 +108,7 @@ static inline v4sf log_ps(v4sf x)
 
     e = vaddq_f32(e, one);
 
-    /* part2: 
+    /* part2:
      if( x < SQRTHF ) {
        e -= 1;
        x = x + x - 1.0;
@@ -255,7 +255,7 @@ static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
     emm2 = vandq_u32(emm2, vdupq_n_u32(~1));
     y = vcvtq_f32_u32(emm2);
 
-    /* get the polynom selection mask 
+    /* get the polynom selection mask
      there is one polynom for 0 <= x <= Pi/4
      and another one for Pi/4<x<=Pi/2
 
@@ -263,7 +263,7 @@ static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
   */
     v4su poly_mask = vtstq_u32(emm2, vdupq_n_u32(2));
 
-    /* The magic pass: "Extended precision modular arithmetic" 
+    /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
     xmm1 = vmulq_n_f32(y, c_minus_cephes_DP1);
     xmm2 = vmulq_n_f32(y, c_minus_cephes_DP2);
@@ -275,7 +275,7 @@ static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
     sign_mask_sin = veorq_u32(sign_mask_sin, vtstq_u32(emm2, vdupq_n_u32(4)));
     sign_mask_cos = vtstq_u32(vsubq_u32(emm2, vdupq_n_u32(2)), vdupq_n_u32(4));
 
-    /* Evaluate the first polynom  (0 <= x <= Pi/4) in y1, 
+    /* Evaluate the first polynom  (0 <= x <= Pi/4) in y1,
      and the second polynom      (Pi/4 <= x <= 0) in y2 */
     v4sf z = vmulq_f32(x, x);
     v4sf y1, y2;
@@ -305,7 +305,7 @@ static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
 
 #else /* FMA */
 
-//FMA version
+// FMA version
 static inline v4sf log_ps(v4sf x)
 {
     v4sf one = vdupq_n_f32(1);
@@ -327,7 +327,7 @@ static inline v4sf log_ps(v4sf x)
 
     e = vaddq_f32(e, one);
 
-    /* part2: 
+    /* part2:
      if( x < SQRTHF ) {
        e -= 1;
        x = x + x - 1.0;
@@ -365,7 +365,7 @@ static inline v4sf log_ps(v4sf x)
     return x;
 }
 
-//FMA version
+// FMA version
 static inline v4sf exp_ps(v4sf x)
 {
     v4sf tmp, fx;
@@ -387,11 +387,11 @@ static inline v4sf exp_ps(v4sf x)
 
     fx = vsubq_f32(tmp, vreinterpretq_f32_u32(mask));
 
-    //tmp = vmulq_f32(fx, vdupq_n_f32(c_cephes_exp_C1));
-    //x = vsubq_f32(x, tmp);
+    // tmp = vmulq_f32(fx, vdupq_n_f32(c_cephes_exp_C1));
+    // x = vsubq_f32(x, tmp);
     x = vfmaq_f32(x, fx, vdupq_n_f32(-c_cephes_exp_C1));
-    //v4sf z = vmulq_f32(fx, vdupq_n_f32(c_cephes_exp_C2));
-    //x = vsubq_f32(x, z);
+    // v4sf z = vmulq_f32(fx, vdupq_n_f32(c_cephes_exp_C2));
+    // x = vsubq_f32(x, z);
     x = vfmaq_f32(x, fx, vdupq_n_f32(-c_cephes_exp_C2));
 
     static const float cephes_exp_p[6] = {c_cephes_exp_p0, c_cephes_exp_p1, c_cephes_exp_p2, c_cephes_exp_p3, c_cephes_exp_p4, c_cephes_exp_p5};
@@ -424,7 +424,7 @@ static inline v4sf exp_ps(v4sf x)
 }
 
 
-//FMA version
+// FMA version
 static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
 {  // any x
     v4sf y;
@@ -445,7 +445,7 @@ static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
     emm2 = vandq_u32(emm2, vdupq_n_u32(~1));
     y = vcvtq_f32_u32(emm2);
 
-    /* get the polynom selection mask 
+    /* get the polynom selection mask
      there is one polynom for 0 <= x <= Pi/4
      and another one for Pi/4<x<=Pi/2
 
@@ -453,7 +453,7 @@ static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
   */
     v4su poly_mask = vtstq_u32(emm2, vdupq_n_u32(2));
 
-    /* The magic pass: "Extended precision modular arithmetic" 
+    /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
 
     x = vfmaq_n_f32(x, y, c_minus_cephes_DP1);
@@ -463,7 +463,7 @@ static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
     sign_mask_sin = veorq_u32(sign_mask_sin, vtstq_u32(emm2, vdupq_n_u32(4)));
     sign_mask_cos = vtstq_u32(vsubq_u32(emm2, vdupq_n_u32(2)), vdupq_n_u32(4));
 
-    /* Evaluate the first polynom  (0 <= x <= Pi/4) in y1, 
+    /* Evaluate the first polynom  (0 <= x <= Pi/4) in y1,
      and the second polynom      (Pi/4 <= x <= 0) in y2 */
     v4sf z = vmulq_f32(x, x);
     v4sf y1, y2;
