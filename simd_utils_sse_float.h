@@ -797,7 +797,6 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
                 _mm_storeu_si128((__m128i *) (dst + i), _mm_packus_epi16(tmp5, tmp6));
             }
         }
-
         for (int i = stop_len; i < len; i++) {
             float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
             dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);  // round to nearest even with round(x/2)*2
@@ -851,6 +850,7 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
             dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
         }
     }
+    _mm_empty();
 }
 
 static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
@@ -890,7 +890,7 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
                 _mm_storeu_si128((__m128i *) (dst + i), tmp5);
             }
         }
-
+        
         for (int i = stop_len; i < len; i++) {
             float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
             dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
@@ -903,7 +903,6 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
             _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
             fesetround(FE_TONEAREST);
         }
-
         if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
             for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
                 v4sf src_tmp1 = _mm_load_ps(src + i);
@@ -931,13 +930,13 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
                 _mm_storeu_si128((__m128i *) (dst + i), tmp5);
             }
         }
-
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
             float tmp = nearbyintf(src[i] * scale_fact_mult);
             dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
         }
     }
+    _mm_empty();
 }
 
 static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, int scale_factor)

@@ -202,7 +202,6 @@ static inline void fast_copy256s_4(int32_t *src, int32_t *dst, int len)
         dst[i] = src[i];
     }
 }
-#endif
 
 static inline __m256i _mm256_absdiff_epi16(__m256i a, __m256i b)
 {
@@ -287,3 +286,5 @@ static inline void powerspect16s_256s_interleaved(complex16s_t *src, int32_t *ds
         dst[i] = (int32_t) src[i].re * (int32_t) src[i].re + (int32_t) src[i].im * (int32_t) src[i].im;
     }
 }
+
+#endif

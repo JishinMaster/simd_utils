@@ -7405,6 +7405,7 @@ for (int i = 0; i < len; i++){
 #endif
 
 #ifdef AVX
+#ifdef __AVX2__
     clock_gettime(CLOCK_REALTIME, &start);
     convertInt16ToFloat32_256(inout_s1, inout_ref, len, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -7418,6 +7419,7 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertInt16ToFloat32_256 %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2_ref, len);
+#endif
 #endif
 
     /*for(int i = 0; i < len; i++)
@@ -7873,6 +7875,7 @@ for (int i = 0; i < len; i++){
 #endif
 
 #ifdef AVX
+#ifdef __AVX2__
     clock_gettime(CLOCK_REALTIME, &start);
     absdiff16s_256s(inout_s1, inout_s2, inout_s3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -7886,6 +7889,7 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("absdiff16s_256s %d %lf\n", len, elapsed);
     l2_err_i16(inout_sref, inout_s3, len);
+#endif
 #endif
 
 #ifdef AVX512
@@ -7944,6 +7948,7 @@ for (int i = 0; i < len; i++){
 #endif
 
 #ifdef AVX
+#ifdef __AVX2__
     clock_gettime(CLOCK_REALTIME, &start);
     powerspect16s_256s_interleaved((complex16s_t *) inout_s1, inout_i1, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -7957,6 +7962,7 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("powerspect16s_256s_interleaved %d %lf\n", len, elapsed);
     l2_err_i32(inout_i1, inout_iref, len);
+#endif
 #endif
 
 #ifdef AVX512

@@ -777,6 +777,7 @@ static inline void vectorSlope256f(float *dst, int len, float offset, float slop
     }
 }
 
+#ifdef __AVX2__
 static inline void convertInt16ToFloat32_256(int16_t *src, float *dst, int len, int scale_factor)
 {
     int stop_len = len / (2 * AVX_LEN_FLOAT);
@@ -825,6 +826,7 @@ static inline void convertInt16ToFloat32_256(int16_t *src, float *dst, int len, 
         dst[i] = (float) src[i] * scale_fact_mult;
     }
 }
+#endif
 
 #if 1
 // converts 32bits complex float to two arrays real and im
@@ -1099,13 +1101,20 @@ static inline void flip256f(float *src, float *dst, int len)
 
     // Since we work in reverse we do not know for sure if destination address will be aligned
     // Could it be improved?
+#ifdef __AVX2__
     v8si reverse_reg = _mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+#endif
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst + len - AVX_LEN_FLOAT), AVX_LEN_BYTES)) {
         for (int i = 2 * AVX_LEN_FLOAT; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);                                // load a,b,c,d,e,f,g,h
             v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);               // load a,b,c,d,e,f,g,h
+#ifdef __AVX2__
             v8sf src_tmp_flip = _mm256_permutevar8x32_ps(src_tmp, reverse_reg);    // reverse lanes abcdefgh to hgfedcba
             v8sf src_tmp_flip2 = _mm256_permutevar8x32_ps(src_tmp2, reverse_reg);  // reverse lanes abcdefgh to hgfedcba
+#else
+            v8sf src_tmp_flip = _mm256_permute2f128_ps(src_tmp, src_tmp, IMM8_PERMUTE_128BITS_LANES); 
+            v8sf src_tmp_flip2 = _mm256_permute2f128_ps(src_tmp2, src_tmp2, IMM8_PERMUTE_128BITS_LANES); 
+#endif
             _mm256_storeu_ps(dst + len - i - AVX_LEN_FLOAT, src_tmp_flip);         // store the flipped vector
             _mm256_storeu_ps(dst + len - i - 2 * AVX_LEN_FLOAT, src_tmp_flip2);    // store the flipped vector
         }
@@ -1113,8 +1122,13 @@ static inline void flip256f(float *src, float *dst, int len)
         for (int i = 2 * AVX_LEN_FLOAT; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_loadu_ps(src + i);                               // load a,b,c,d,e,f,g,h
             v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);              // load a,b,c,d,e,f,g,h
+#ifdef __AVX2__
             v8sf src_tmp_flip = _mm256_permutevar8x32_ps(src_tmp, reverse_reg);    // reverse lanes abcdefgh to hgfedcba
             v8sf src_tmp_flip2 = _mm256_permutevar8x32_ps(src_tmp2, reverse_reg);  // reverse lanes abcdefgh to hgfedcba
+#else
+            v8sf src_tmp_flip = _mm256_permute2f128_ps(src_tmp, src_tmp, IMM8_PERMUTE_128BITS_LANES); 
+            v8sf src_tmp_flip2 = _mm256_permute2f128_ps(src_tmp2, src_tmp2, IMM8_PERMUTE_128BITS_LANES); 
+#endif
             _mm256_storeu_ps(dst + len - i - AVX_LEN_FLOAT, src_tmp_flip);         // store the flipped vector
             _mm256_storeu_ps(dst + len - i - 2 * AVX_LEN_FLOAT, src_tmp_flip2);    // store the flipped vector
         }
