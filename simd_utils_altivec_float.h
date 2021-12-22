@@ -66,13 +66,6 @@ static inline v4sf vec_div_precise(v4sf a, v4sf b)
     return vec_mul(a, re);
 }
 
-
-/*static inline void print4(v4sf v)
-{
-    float *p = (float *) &v;
-    printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
-}*/
-
 // In Altivec there is no sqrt, hence sqrt(a)= a*rsqrt(a)
 static inline v4sf vec_sqrt(v4sf a)
 {

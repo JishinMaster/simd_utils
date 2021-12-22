@@ -10,9 +10,6 @@
 #include <stdint.h>
 #include "immintrin.h"
 
-typedef __m512d v8sd;  // vector of 8 double (avx512)
-
-
 static inline void set512d(double *dst, double value, int len)
 {
     const v8sd tmp = _mm512_set1_pd(value);
@@ -630,14 +627,6 @@ static inline void atan512d(double *src, double *dst, int len)
 
 // Work in progress
 #if 0
-static inline void print8d(__m512d v)
-{
-    double *p = (double *) &v;
-#ifndef USE_SSE2
-    _mm_empty();
-#endif
-    printf("[%13.8g, %13.8g %13.8g, %13.8g %13.8g, %13.8g %13.8g, %13.8g ]", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
-}
 
 static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
 {

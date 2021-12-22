@@ -18,120 +18,6 @@
 #include <math.h>
 #include <string.h>
 
-_PS_CONST(min1, -1.0f);
-_PS_CONST(min2, -2.0f);
-_PS_CONST(min0p5, -0.5f);
-
-// For tanf
-_PS_CONST(DP123, 0.78515625 + 2.4187564849853515625e-4 + 3.77489497744594108e-8);
-
-// Neg values to better migrate to FMA
-_PS_CONST(DP1, -0.78515625f);
-_PS_CONST(DP2, -2.4187564849853515625E-4f);
-_PS_CONST(DP3, -3.77489497744594108E-8f);
-
-_PS_CONST(FOPI, 1.27323954473516); /* 4/pi */
-_PS_CONST(TAN_P0, 9.38540185543E-3);
-_PS_CONST(TAN_P1, 3.11992232697E-3);
-_PS_CONST(TAN_P2, 2.44301354525E-2);
-_PS_CONST(TAN_P3, 5.34112807005E-2);
-_PS_CONST(TAN_P4, 1.33387994085E-1);
-_PS_CONST(TAN_P5, 3.33331568548E-1);
-
-_PS_CONST(ASIN_P0, 4.2163199048E-2);
-_PS_CONST(ASIN_P1, 2.4181311049E-2);
-_PS_CONST(ASIN_P2, 4.5470025998E-2);
-_PS_CONST(ASIN_P3, 7.4953002686E-2);
-_PS_CONST(ASIN_P4, 1.6666752422E-1);
-
-_PS_CONST(PIF, 3.14159265358979323846);      // PI
-_PS_CONST(mPIF, -3.14159265358979323846);    // -PI
-_PS_CONST(PIO2F, 1.57079632679489661923);    // PI/2 1.570796326794896619
-_PS_CONST(mPIO2F, -1.57079632679489661923);  // -PI/2 1.570796326794896619
-_PS_CONST(PIO4F, 0.785398163397448309615);   // PI/4 0.7853981633974483096
-
-_PS_CONST(TANPI8F, 0.414213562373095048802);   // tan(pi/8) => 0.4142135623730950
-_PS_CONST(TAN3PI8F, 2.414213562373095048802);  // tan(3*pi/8) => 2.414213562373095
-
-_PS_CONST(ATAN_P0, 8.05374449538e-2);
-_PS_CONST(ATAN_P1, -1.38776856032E-1);
-_PS_CONST(ATAN_P2, 1.99777106478E-1);
-_PS_CONST(ATAN_P3, -3.33329491539E-1);
-
-_PS_CONST_TYPE(pos_sign_mask, int, (int) 0x7FFFFFFF);
-_PS_CONST_TYPE(neg_sign_mask, int, (int) ~0x7FFFFFFF);
-
-_PS_CONST(MAXLOGF, 88.72283905206835f);
-_PS_CONST(MAXLOGFDIV2, 44.361419526034176f);
-_PS_CONST(MINLOGF, -103.278929903431851103f);
-_PS_CONST(cephes_exp_minC1, -0.693359375f);
-_PS_CONST(cephes_exp_minC2, 2.12194440e-4f);
-
-_PS_CONST(0p625, 0.625f);
-_PS_CONST(TANH_P0, -5.70498872745E-3f);
-_PS_CONST(TANH_P1, 2.06390887954E-2f);
-_PS_CONST(TANH_P2, -5.37397155531E-2f);
-_PS_CONST(TANH_P3, 1.33314422036E-1f);
-_PS_CONST(TANH_P4, -3.33332819422E-1f);
-
-_PS_CONST(MAXNUMF, 3.4028234663852885981170418348451692544e38f);
-_PS_CONST(minMAXNUMF, -3.4028234663852885981170418348451692544e38f);
-_PS_CONST(SINH_P0, 2.03721912945E-4f);
-_PS_CONST(SINH_P1, 8.33028376239E-3f);
-_PS_CONST(SINH_P2, 1.66667160211E-1f);
-
-_PS_CONST(1emin4, 1e-4f);
-_PS_CONST(ATANH_P0, 1.81740078349E-1f);
-_PS_CONST(ATANH_P1, 8.24370301058E-2f);
-_PS_CONST(ATANH_P2, 1.46691431730E-1f);
-_PS_CONST(ATANH_P3, 1.99782164500E-1f);
-_PS_CONST(ATANH_P4, 3.33337300303E-1f);
-
-_PS_CONST(1500, 1500.0f);
-_PS_CONST(LOGE2F, 0.693147180559945309f);
-_PS_CONST(ASINH_P0, 2.0122003309E-2f);
-_PS_CONST(ASINH_P1, -4.2699340972E-2f);
-_PS_CONST(ASINH_P2, 7.4847586088E-2f);
-_PS_CONST(ASINH_P3, -1.6666288134E-1f);
-
-_PS_CONST(ACOSH_P0, 1.7596881071E-3f);
-_PS_CONST(ACOSH_P1, -7.5272886713E-3f);
-_PS_CONST(ACOSH_P2, 2.6454905019E-2f);
-_PS_CONST(ACOSH_P3, -1.1784741703E-1f);
-_PS_CONST(ACOSH_P4, 1.4142135263E0f);
-
-/* For log10f */
-_PS_CONST(cephes_L102A, 3.0078125E-1f);
-_PS_CONST(cephes_L102B, 2.48745663981195213739E-4f);
-_PS_CONST(cephes_L10EA, 4.3359375E-1f);
-_PS_CONST(cephes_L10EB, 7.00731903251827651129E-4f);
-
-/* For log2f */
-_PS_CONST(cephes_LOG2EA, 0.44269504088896340735992f);
-
-#define ROUNDTONEAREST (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC)
-#define ROUNDTOFLOOR (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC)
-#define ROUNDTOCEIL (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)
-#define ROUNDTOZERO (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC)
-
-static inline void print4(__m128 v)
-{
-    float *p = (float *) &v;
-#ifndef __SSE2__
-    _mm_empty();
-#endif
-    printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
-}
-
-static inline void print4short(__m64 v)
-{
-    uint16_t *p = (uint16_t *) &v;
-#ifndef __SSE2__
-    _mm_empty();
-#endif
-    printf("[%u, %u, %u, %u]", p[0], p[1], p[2], p[3]);
-}
-
 static inline v4sf log10_ps(v4sf x)
 {
     v4si emm0;
@@ -1025,11 +911,9 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
                 v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
                 v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
                 /*tmp1 = _mm_min_ps(tmp1, max_short_val_ps);
-                tmp2 = _mm_min_ps(tmp2, max_short_val_ps);
-                print4(tmp1);printf("\n");*/
+                tmp2 = _mm_min_ps(tmp2, max_short_val_ps);*/
                 __m64 cvt1 = _mm_cvtps_pi16(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
                 __m64 cvt2 = _mm_cvtps_pi16(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
-                // print4short(cvt1);printf("\n");
                 v4si tmp5 = _mm_set_epi64(cvt2, cvt1);
                 _mm_store_si128((__m128i *) (dst + i), tmp5);
             }
@@ -2361,9 +2245,6 @@ static inline v4sf tanf_ps(v4sf xx)
     z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP1, x);
     z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP2, z);
     z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP3, z);
-    // print4(*(v4sf*)_ps_DP1);print4(*(v4sf*)_ps_DP2);print4(*(v4sf*)_ps_DP3);printf("\n");
-    // print4(y);printf("\n");
-
 
     zz = _mm_mul_ps(z, z);  // z*z
 
@@ -3015,17 +2896,13 @@ static inline void cplxvecdiv128f(complex32_t *src1, complex32_t *src2, complex3
     int i;
 
     if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-        //printf("Aligned\n");
         for (i = 0; i < 2 * stop_len; i += SSE_LEN_FLOAT) {
             v4sf src1_tmp = _mm_load_ps((float *) (src1) + i);  // src1 = b1,a1,b0,a0 (little endian)
             v4sf src2_tmp = _mm_load_ps((float *) (src2) + i);  // src2 = d1,c1,d0,c0
             v4sf c2d2 = _mm_mul_ps(src2_tmp, src2_tmp);
             c2d2 = _mm_hadd_ps(c2d2, c2d2);
-            //    print4(c2d2);
             c2d2 = _mm_shuffle_ps(c2d2, c2d2, _MM_SHUFFLE(1, 1, 0, 0));
-            //print4(c2d2);
             //            c2d2 = _mm_rcp_ps(c2d2);
-            //print4(c2d2);printf("\n");
             v4sf tmp1 = _mm_moveldup_ps(src1_tmp);  //a1,a1,a0,a0
             tmp1 = _mm_mul_ps(*(v4sf *) _ps_conj_mask, tmp1);
             v4sf tmp2 = _mm_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
@@ -3064,7 +2941,6 @@ static inline void cplxvecmul128f(complex32_t *src1, complex32_t *src2, complex3
 
     int i;
     if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-        //printf("Aligned\n");
         for (i = 0; i < 2 * stop_len; i += SSE_LEN_FLOAT) {
             v4sf src1_tmp = _mm_load_ps((float *) (src1) + i);                        // src1 = b1,a1,b0,a0 (little endian)
             v4sf src2_tmp = _mm_load_ps((float *) (src2) + i);                        // src2 = d1,c1,d0,c0
@@ -3076,7 +2952,6 @@ static inline void cplxvecmul128f(complex32_t *src1, complex32_t *src2, complex3
             _mm_store_ps((float *) (dst) + i, out);
         }
     } else {
-        //printf("Unaligned\n");
         for (i = 0; i < 2 * stop_len; i += SSE_LEN_FLOAT) {
             v4sf src1_tmp = _mm_loadu_ps((float *) (src1) + i);                       // src1 = b1,a1,b0,a0 (little endian)
             v4sf src2_tmp = _mm_loadu_ps((float *) (src2) + i);                       // src2 = d1,c1,d0,c0
@@ -3274,16 +3149,11 @@ static inline void cplxconjvecmul128f(complex32_t *src1, complex32_t *src2, comp
     int i;
     //const v4sf conj_mask = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
     if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), SSE_LEN_BYTES)) {
-        //printf("Aligned\n");
         for (i = 0; i < 2 * stop_len; i += SSE_LEN_FLOAT) {
             v4sf src1_tmp = _mm_load_ps((float *) (src1) + i);                        // src1 = b1,a1,b0,a0 (little endian)
             v4sf src2_tmp = _mm_load_ps((float *) (src2) + i);                        // src2 = d1,c1,d0,c0
             v4sf tmp1 = _mm_moveldup_ps(src1_tmp);                                    //a1,a1,a0,a0
             v4sf tmp2 = _mm_mul_ps(tmp1, src2_tmp);                                   //a1d1,a1c1,a0d0,a0c0
-                                                                                      /* print4(src1_tmp);
-            print4(src2_tmp);
-            print4(tmp1);
-            print4(tmp2);printf("\n");*/
             v4sf tmp3 = _mm_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
             v4sf tmp4 = _mm_movehdup_ps(src1_tmp);                                    //b1,b1,b0,b0
             v4sf out = _mm_mul_ps(tmp3, tmp4);                                        // c1b1,b1d1,c0b0,d0b0
@@ -3291,7 +3161,6 @@ static inline void cplxconjvecmul128f(complex32_t *src1, complex32_t *src2, comp
             _mm_store_ps((float *) (dst) + i, out);
         }
     } else {
-        //printf("Unaligned\n");
         for (i = 0; i < 2 * stop_len; i += SSE_LEN_FLOAT) {
             v4sf src1_tmp = _mm_loadu_ps((float *) (src1) + i);                       // src1 = b1,a1,b0,a0 (little endian)
             v4sf src2_tmp = _mm_loadu_ps((float *) (src2) + i);                       // src2 = d1,c1,d0,c0
@@ -3382,7 +3251,6 @@ static inline void cplxconjvecmul128f_precise(complex32_t *src1, complex32_t *sr
     int i;
     // const v4sf conj_mask = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
     if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), SSE_LEN_BYTES)) {
-        // printf("Aligned\n");
         for (i = 0; i < 2 * stop_len; i += SSE_LEN_FLOAT) {
             v4sf src1_tmp = _mm_load_ps((float *) (src1) + i);                        // src1 = b1,a1,b0,a0 (little endian)
             v4sf src2_tmp = _mm_load_ps((float *) (src2) + i);                        // src2 = d1,c1,d0,c0
@@ -3397,7 +3265,6 @@ static inline void cplxconjvecmul128f_precise(complex32_t *src1, complex32_t *sr
             _mm_store_ps((float *) (dst) + i, out);
         }
     } else {
-        // printf("Unaligned\n");
         for (i = 0; i < 2 * stop_len; i += SSE_LEN_FLOAT) {
             v4sf src1_tmp = _mm_loadu_ps((float *) (src1) + i);                       // src1 = b1,a1,b0,a0 (little endian)
             v4sf src2_tmp = _mm_loadu_ps((float *) (src2) + i);                       // src2 = d1,c1,d0,c0
@@ -3693,7 +3560,6 @@ static inline void cplxconj128f(complex32_t *src, complex32_t *dst, int len)
 
     int i;
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
-        // printf("Aligned\n");
         for (i = 0; i < 2 * stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps((float *) (src) + i);
             v4sf src_tmp2 = _mm_load_ps((float *) (src) + i + SSE_LEN_FLOAT);
@@ -3703,7 +3569,6 @@ static inline void cplxconj128f(complex32_t *src, complex32_t *dst, int len)
             _mm_store_ps((float *) (dst) + i + SSE_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        // printf("Unaligned\n");
         for (i = 0; i < 2 * stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps((float *) (src) + i);
             v4sf src_tmp2 = _mm_loadu_ps((float *) (src) + i + SSE_LEN_FLOAT);

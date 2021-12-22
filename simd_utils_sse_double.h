@@ -13,9 +13,6 @@
 #include "sse2neon_wrapper.h"
 #endif
 
-typedef __m128d v2sd;  // vector of 2 double (sse)
-typedef __m128i v2si;  // vector of 2 int 64 (sse)
-
 static inline void set128d(double *dst, double value, int len)
 {
     const v2sd tmp = _mm_set1_pd(value);
@@ -495,24 +492,6 @@ static inline v2si _mm_cvttpd_epi64_custom(v2sd x)
 #endif
 }
 
-static inline void print2(__m128d v)
-{
-    double *p = (double *) &v;
-#ifndef USE_SSE2
-    _mm_empty();
-#endif
-    printf("[%13.8g, %13.8g]", p[0], p[1]);
-}
-
-static inline void print2i(__m128i v)
-{
-    int64_t *p = (int64_t *) &v;
-#ifndef USE_SSE2
-    _mm_empty();
-#endif
-    printf("[%ld, %ld]", p[0], p[1]);
-}
-
 static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
 {
     v2sd xmm1, xmm2, xmm3 = _mm_setzero_pd(), sign_bit_sin, y;
@@ -631,7 +610,6 @@ static inline void sincos128d(double *src, double *dst_sin, double *dst_cos, int
     }
 }
 
-
 static inline v2sd asin_pd(v2sd x)
 {
     v2sd a, z;
@@ -705,7 +683,6 @@ static inline v2sd asin_pd(v2sd x)
 
     return (z);
 }
-
 
 static inline v2sd atan_pd(v2sd xx)
 {

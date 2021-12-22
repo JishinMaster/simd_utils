@@ -10,8 +10,6 @@
 #include <stdint.h>
 #include "immintrin.h"
 
-typedef __m256d v4sd;  // vector of 4 double (avx)
-
 static inline void set256d(double *dst, double value, int len)
 {
     const v4sd tmp = _mm256_set1_pd(value);
@@ -629,26 +627,7 @@ static inline void atan256d(double *src, double *dst, int len)
     }
 }
 
-
 #ifdef __AVX2__
-
-static inline void print4d(__m256d v)
-{
-    double *p = (double *) &v;
-#ifndef USE_SSE2
-    _mm_empty();
-#endif
-    printf("[%13.8g, %13.8g %13.8g, %13.8g]", p[0], p[1], p[2], p[3]);
-}
-
-static inline void print4id(__m256i v)
-{
-    int64_t *p = (int64_t *) &v;
-#ifndef USE_SSE2
-    _mm_empty();
-#endif
-    printf("[%ld, %ld %ld, %ld]", p[0], p[1], p[2], p[3]);
-}
 
 static inline v4sid _mm256_cvttpd_epi64_custom(v4sd x)
 {

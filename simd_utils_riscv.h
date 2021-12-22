@@ -50,8 +50,6 @@ int clock_gettime(clockid_t clock_id, struct timespec *tp)
 #define VSUB_INT vsub_vv_i32m8
 #define V_ELT_INT vint32m8_t
 
-
-
 static inline void print_vec(V_ELT vec)
 {
     float observ[32];
@@ -101,14 +99,11 @@ void addf_vec(float *a, float *b, float *c, int len)
     }
 }
 
-
 static inline void sinf_vec(float *src, float *dst, int len)
 {
     size_t i;
     float *src_tmp = src;
     float *dst_tmp = dst;
-
-
 
     for (; (i = VSETVL(len)) > 0; len -= i) {
         V_ELT x = VLEV_FLOAT(src_tmp, i);
@@ -195,14 +190,12 @@ static inline void sinf_vec(float *src, float *dst, int len)
 }
 
 // Work in progress
-#if 1
 static inline void sincosf_vec(float *src, float *s, float *c, int len)
 {
     size_t i;
     float *src_tmp = src;
     float *s_tmp = s;
     float *c_tmp = c;
-
 
     for (; (i = VSETVL(len)) > 0; len -= i) {
         V_ELT x = VLEV_FLOAT(src_tmp, i);
@@ -292,7 +285,6 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
         c_tmp += i;
     }
 }
-#endif
 
 static inline void sumf_vec(float *src, float *dst, int len)
 {
@@ -507,7 +499,6 @@ static inline void threshold_gtabs_f_vec(float *src, float *dst, int len, float 
         dst_tmp += i;
     }
 }
-
 
 static inline void threshold_ltval_gtval_f_vec(float *src, float *dst, int len, float ltlevel, float ltvalue, float gtlevel, float gtvalue)
 {

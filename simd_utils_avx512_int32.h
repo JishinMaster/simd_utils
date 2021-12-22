@@ -99,7 +99,6 @@ static inline void addc512s(int32_t *src, int32_t value, int32_t *dst, int len)
 }
 
 // Experimental
-
 static inline void copy512s(int32_t *src, int32_t *dst, int len)
 {
     int stop_len = len / AVX512_LEN_INT32;
@@ -302,7 +301,6 @@ static inline void powerspect16s_512s_interleaved(complex16s_t *src, int32_t *ds
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
             __m512i reim = _mm512_load_si512((__m512i *) ((const int16_t *) src + j));
-            // print8i(reim); printf("\n");
             _mm512_store_si512((__m512i *) (dst + i), _mm512_madd_epi16(reim, reim));
             j += AVX512_LEN_INT16;
         }

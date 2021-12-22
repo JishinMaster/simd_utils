@@ -9,94 +9,6 @@
 #include <stdint.h>
 #include "immintrin.h"
 
-_PS512_CONST(min1, -1.0f);
-_PS512_CONST(plus1, 1.0f);
-_PS512_CONST(min2, -2.0f);
-_PS512_CONST(min0p5, -0.5f);
-
-// For tanf
-_PS512_CONST(DP123, 0.78515625 + 2.4187564849853515625e-4 + 3.77489497744594108e-8);
-
-// Neg values to better migrate to FMA
-_PS512_CONST(DP1, -0.78515625);
-_PS512_CONST(DP2, -2.4187564849853515625e-4);
-_PS512_CONST(DP3, -3.77489497744594108e-8);
-
-_PS512_CONST(FOPI, 1.27323954473516); /* 4/pi */
-_PS512_CONST(TAN_P0, 9.38540185543E-3);
-_PS512_CONST(TAN_P1, 3.11992232697E-3);
-_PS512_CONST(TAN_P2, 2.44301354525E-2);
-_PS512_CONST(TAN_P3, 5.34112807005E-2);
-_PS512_CONST(TAN_P4, 1.33387994085E-1);
-_PS512_CONST(TAN_P5, 3.33331568548E-1);
-
-_PS512_CONST(ASIN_P0, 4.2163199048E-2);
-_PS512_CONST(ASIN_P1, 2.4181311049E-2);
-_PS512_CONST(ASIN_P2, 4.5470025998E-2);
-_PS512_CONST(ASIN_P3, 7.4953002686E-2);
-_PS512_CONST(ASIN_P4, 1.6666752422E-1);
-
-_PS512_CONST(PIF, 3.14159265358979323846);      // PI
-_PS512_CONST(mPIF, -3.14159265358979323846);    // -PI
-_PS512_CONST(PIO2F, 1.57079632679489661923);    // PI/2 1.570796326794896619
-_PS512_CONST(mPIO2F, -1.57079632679489661923);  // -PI/2 1.570796326794896619
-_PS512_CONST(PIO4F, 0.785398163397448309615);   // PI/4 0.7853981633974483096
-
-_PS512_CONST(TANPI8F, 0.414213562373095048802);   // tan(pi/8) => 0.4142135623730950
-_PS512_CONST(TAN3PI8F, 2.414213562373095048802);  // tan(3*pi/8) => 2.414213562373095
-
-_PS512_CONST(ATAN_P0, 8.05374449538e-2);
-_PS512_CONST(ATAN_P1, -1.38776856032E-1);
-_PS512_CONST(ATAN_P2, 1.99777106478E-1);
-_PS512_CONST(ATAN_P3, -3.33329491539E-1);
-
-_PS512_CONST_TYPE(pos_sign_mask, int, (int) 0x7FFFFFFF);
-_PS512_CONST_TYPE(neg_sign_mask, int, (int) ~0x7FFFFFFF);
-
-_PS512_CONST(MAXLOGF, 88.72283905206835f);
-_PS512_CONST(MAXLOGFDIV2, 44.361419526034176f);
-_PS512_CONST(0p625, 0.625f);
-_PS512_CONST(TANH_P0, -5.70498872745E-3f);
-_PS512_CONST(TANH_P1, 2.06390887954E-2f);
-_PS512_CONST(TANH_P2, -5.37397155531E-2f);
-_PS512_CONST(TANH_P3, 1.33314422036E-1f);
-_PS512_CONST(TANH_P4, -3.33332819422E-1f);
-
-_PS512_CONST(MAXNUMF, 3.4028234663852885981170418348451692544e38f);
-_PS512_CONST(minMAXNUMF, -3.4028234663852885981170418348451692544e38f);
-_PS512_CONST(SINH_P0, 2.03721912945E-4f);
-_PS512_CONST(SINH_P1, 8.33028376239E-3f);
-_PS512_CONST(SINH_P2, 1.66667160211E-1f);
-
-_PS512_CONST(1emin4, 1e-4f);
-_PS512_CONST(ATANH_P0, 1.81740078349E-1f);
-_PS512_CONST(ATANH_P1, 8.24370301058E-2f);
-_PS512_CONST(ATANH_P2, 1.46691431730E-1f);
-_PS512_CONST(ATANH_P3, 1.99782164500E-1f);
-_PS512_CONST(ATANH_P4, 3.33337300303E-1f);
-
-_PS512_CONST(1500, 1500.0f);
-_PS512_CONST(LOGE2F, 0.693147180559945309f);
-_PS512_CONST(ASINH_P0, 2.0122003309E-2f);
-_PS512_CONST(ASINH_P1, -4.2699340972E-2f);
-_PS512_CONST(ASINH_P2, 7.4847586088E-2f);
-_PS512_CONST(ASINH_P3, -1.6666288134E-1f);
-
-_PS512_CONST(ACOSH_P0, 1.7596881071E-3f);
-_PS512_CONST(ACOSH_P1, -7.5272886713E-3f);
-_PS512_CONST(ACOSH_P2, 2.6454905019E-2f);
-_PS512_CONST(ACOSH_P3, -1.1784741703E-1f);
-_PS512_CONST(ACOSH_P4, 1.4142135263E0f);
-
-/* For log10f */
-_PS512_CONST(cephes_L102A, 3.0078125E-1f);
-_PS512_CONST(cephes_L102B, 2.48745663981195213739E-4f);
-_PS512_CONST(cephes_L10EA, 4.3359375E-1f);
-_PS512_CONST(cephes_L10EB, 7.00731903251827651129E-4f);
-
-/* For log2f */
-_PS512_CONST(cephes_LOG2EA, 0.44269504088896340735992f);
-
 static inline v16sf log10512_ps(v16sf x)
 {
     v16si imm0;
@@ -2344,7 +2256,6 @@ static inline void cplxvecdiv512f(complex32_t *src1, complex32_t *src2, complex3
     int i;
 
     if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
-        //printf("Aligned\n");
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);                        // src1 = b1,a1,b0,a0 (little endian)
             v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);                        // src2 = d1,c1,d0,c0
@@ -2566,18 +2477,13 @@ static inline void cplxconj512f(complex32_t *src, complex32_t *dst, int len)
     int stop_len = len / (AVX512_LEN_FLOAT);  //(len << 1) >> 2;
     stop_len = stop_len * AVX512_LEN_FLOAT;   // stop_len << 2;
 
-    // const v16sf conj_mask = _mm512_set_ps(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f,
-    //                                       -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
-
     int i;
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
-        // printf("Aligned\n");
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps((float *) (src) + i);
             _mm512_store_ps((float *) (dst) + i, _mm512_mul_ps(src_tmp, *(v16sf *) _ps512_conj_mask));
         }
     } else {
-        // printf("Unaligned\n");
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps((float *) (src) + i);
             _mm512_storeu_ps((float *) (dst) + i, _mm512_mul_ps(src_tmp, *(v16sf *) _ps512_conj_mask));
