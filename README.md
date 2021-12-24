@@ -1,7 +1,7 @@
 # simd_utils
 
 A header only library implementing common mathematical functions using SIMD intrinsics.
-This library is C/C++ compatible (tested with GCC7.5/9.3 and clang 9).
+This library is C/C++ compatible (tested with GCC7.5/9.3/11.2, clang 9/11, and ICC 21).
 
 Thanks to Julien Pommier and Giovanni Garberoglio for their work on sin,cos,log, and exp functions in SSE, AVX, and NEON intrinsics.
 Thanks to the DLTcollab team for their work on sse2neon.
@@ -34,7 +34,8 @@ Supported targets are :
 Vector functions (RISCV) for which the SIMD length makes less sense, are name functionType_vec, such as subs_vec, which substract an int32 array from and other one.
 
 The project has been tested on :
-- Intel Atom
+- Intel Pentium T3200
+- Intel Atom Silvermont
 - Intel Ivy Bridge Core-i7
 - Intel Skylake Core-i7
 - Intel Cannonlake Core-i7
