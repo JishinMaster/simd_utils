@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.1
+ * Version : 0.2.2
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -92,44 +92,42 @@ static inline void simd_utils_get_version(void)
 
 #ifdef SSE
 
-// For X86 devices with only SSE2
 #ifdef NO_SSE3
-static inline __m128 _mm_movehdup_ps (__m128 __X)
+static inline __m128 _mm_movehdup_ps(__m128 __X)
 {
-    return _mm_shuffle_ps (__X, __X, 0xF5);
+    return _mm_shuffle_ps(__X, __X, 0xF5);
 }
 
-static inline __m128 _mm_moveldup_ps (__m128 __X)
+static inline __m128 _mm_moveldup_ps(__m128 __X)
 {
-    return _mm_shuffle_ps (__X, __X, 0xA0);
+    return _mm_shuffle_ps(__X, __X, 0xA0);
 }
 #endif
 
-// For X86 devices with only SSE2 and SSE3 (before CoreI7)
 #ifdef NO_SSE4
 static inline __m128i _mm_cmpeq_epi64(__m128i __X, __m128i __Y)
 {
-    int64_t* ptr_x = (int64_t*)&__X;
-    int64_t* ptr_y = (int64_t*)&__Y;
+    int64_t *ptr_x = (int64_t *) &__X;
+    int64_t *ptr_y = (int64_t *) &__Y;
     __m128i ret;
-    int64_t* ptr_ret = (int64_t*)&ret;
-    
-    ptr_ret[0] = (ptr_x[0] == ptr_y[0])? 0xFFFFFFFFFFFFFFFF : 0;
-    ptr_ret[1] = (ptr_x[1] == ptr_y[1])? 0xFFFFFFFFFFFFFFFF : 0;
+    int64_t *ptr_ret = (int64_t *) &ret;
+
+    ptr_ret[0] = (ptr_x[0] == ptr_y[0]) ? 0xFFFFFFFFFFFFFFFF : 0;
+    ptr_ret[1] = (ptr_x[1] == ptr_y[1]) ? 0xFFFFFFFFFFFFFFFF : 0;
     return ret;
 }
 
 static inline __m128d _mm_blendv_pd(__m128d __X, __m128d __Y, __m128d __M)
 {
     __m128d b_tmp = _mm_and_pd(__Y, __M);
-    __m128d a_tmp = _mm_and_pd(__X, _mm_cmpeq_pd(__M,*(__m128d *)_pd_zero));  
+    __m128d a_tmp = _mm_and_pd(__X, _mm_cmpeq_pd(__M, *(__m128d *) _pd_zero));
     return _mm_or_pd(a_tmp, b_tmp);
 }
 
 static inline __m128 _mm_blendv_ps(__m128 __X, __m128 __Y, __m128 __M)
 {
     __m128 b_tmp = _mm_and_ps(__Y, __M);
-    __m128 a_tmp = _mm_and_ps(__X, _mm_cmpeq_ps(__M,*(__m128 *)_ps_zero));  
+    __m128 a_tmp = _mm_and_ps(__X, _mm_cmpeq_ps(__M, *(__m128 *) _ps_zero));
     return _mm_or_ps(a_tmp, b_tmp);
 }
 
@@ -140,34 +138,41 @@ static inline __m128i _mm_stream_load_si128(__m128i *__X)
 
 static inline __m128 _mm_round_ps(__m128 X, int mode)
 {
-__m128 ret;
-__m128i reti;
-unsigned int old_mode = _MM_GET_ROUNDING_MODE();
-switch(mode){
+    __m128 ret;
+    __m128i reti;
+    unsigned int old_mode = _MM_GET_ROUNDING_MODE();
+    switch (mode) {
     case _MM_FROUND_TRUNC:
     case _MM_ROUND_TOWARD_ZERO:
     case ROUNDTOZERO:
         _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-        break;    
+        break;
     case ROUNDTOCEIL:
     case _MM_ROUND_UP:
         _MM_SET_ROUNDING_MODE(_MM_ROUND_UP);
-        break;    
+        break;
     case ROUNDTOFLOOR:
     case _MM_ROUND_DOWN:
         _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
         break;
     default:
-        _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);
+        //_MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);
         break;
+    }
+    reti = _mm_cvtps_epi32(X);
+    ret = _mm_cvtepi32_ps(reti);
+    _MM_SET_ROUNDING_MODE(old_mode);
+    return ret;
 }
-reti = _mm_cvtps_epi32(X);
-ret = _mm_cvtepi32_ps(reti);
-_MM_SET_ROUNDING_MODE(old_mode);
-return ret;
+
+/* not accurate but might do the trick for most cases
+   where the full range is not needed */
+static inline __m128i _mm_packus_epi32(__m128i a, __m128i b)
+{
+    return _mm_packs_epi32(a, b);
 }
 #endif
-  
+
 #ifndef ARM
 #include "sse_mathfun.h"
 #else /* ARM */
@@ -409,6 +414,42 @@ static inline __m512d _mm512_fnmadd_pd_custom(__m512d a, __m512d b, __m512d c)
 }
 
 #include "avx512_mathfun.h"
+
+static inline v16sfx2 _mm512_load2_ps(float const *mem_addr)
+{
+    v16sf vec1 = _mm512_load_ps(mem_addr);                     // load 0 1 2 3 4 5 6 7
+    v16sf vec2 = _mm512_load_ps(mem_addr + AVX512_LEN_FLOAT);  // load 8 9 10 11 12 13 14 15
+    v16sfx2 ret;
+    ret.val[0] = _mm512_permutex2var_ps(vec2, *(v16si *) _pi32_512_idx_re, vec1);
+    ret.val[1] = _mm512_permutex2var_ps(vec2, *(v16si *) _pi32_512_idx_im, vec1);
+    return ret;
+}
+
+static inline v16sfx2 _mm512_load2u_ps(float const *mem_addr)
+{
+    v16sf vec1 = _mm512_loadu_ps(mem_addr);                     // load 0 1 2 3 4 5 6 7
+    v16sf vec2 = _mm512_loadu_ps(mem_addr + AVX512_LEN_FLOAT);  // load 8 9 10 11 12 13 14 15
+    v16sfx2 ret;
+    ret.val[0] = _mm512_permutex2var_ps(vec2, *(v16si *) _pi32_512_idx_re, vec1);
+    ret.val[1] = _mm512_permutex2var_ps(vec2, *(v16si *) _pi32_512_idx_im, vec1);
+    return ret;
+}
+
+static inline void _mm512_store2_ps(float *mem_addr, v16sfx2 a)
+{
+    v16sf tmp1 = _mm512_permutex2var_ps(a.val[1], *(v16si *) _pi32_512_idx_cplx_lo, a.val[0]);
+    v16sf tmp2 = _mm512_permutex2var_ps(a.val[1], *(v16si *) _pi32_512_idx_cplx_hi, a.val[0]);
+    _mm512_store_ps(mem_addr, tmp1);
+    _mm512_store_ps(mem_addr + AVX512_LEN_FLOAT, tmp2);
+}
+
+static inline void _mm512_store2u_ps(float *mem_addr, v16sfx2 a)
+{
+    v16sf tmp1 = _mm512_permutex2var_ps(a.val[1], *(v16si *) _pi32_512_idx_cplx_lo, a.val[0]);
+    v16sf tmp2 = _mm512_permutex2var_ps(a.val[1], *(v16si *) _pi32_512_idx_cplx_hi, a.val[0]);
+    _mm512_storeu_ps(mem_addr, tmp1);
+    _mm512_storeu_ps(mem_addr + AVX512_LEN_FLOAT, tmp2);
+}
 
 #include "simd_utils_avx512_double.h"
 #include "simd_utils_avx512_float.h"
@@ -748,7 +789,38 @@ static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int 
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = nearbyintf(src[i] * scale_fact_mult);
-            dst[i] = (uint16_t) (tmp > 32767.0f ? 32767.0f : tmp);
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
+        }
+    }
+}
+
+static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+
+    // Default bankers rounding => round to nearest even
+    if (rounding_mode == RndFinancial) {
+#ifdef OMP
+#pragma omp simd
+#endif
+        for (int i = 0; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        if (rounding_mode == RndZero) {
+            fesetround(FE_TOWARDZERO);
+        } else {
+            fesetround(FE_TONEAREST);
+        }
+
+        // Default round toward zero
+#ifdef OMP
+#pragma omp simd
+#endif
+        for (int i = 0; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);
         }
     }
 }

@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.1
+ * Version : 0.2.2
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -96,6 +96,45 @@ static inline void addc256s(int32_t *src, int32_t value, int32_t *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i] + value;
+    }
+}
+
+static inline void vectorSlope256s(int *dst, int len, int offset, int slope)
+{
+    v8si coef = _mm256_set_epi32(7 * slope, 6 * slope, 5 * slope, 4 * slope, 3 * slope, 2 * slope, slope, 0);
+    v8si slope16_vec = _mm256_set1_epi32(16 * slope);
+    v8si curVal = _mm256_add_epi32(_mm256_set1_epi32(offset), coef);
+    v8si curVal2 = _mm256_add_epi32(_mm256_set1_epi32(offset), coef);
+    curVal2 = _mm256_add_epi32(curVal2, _mm256_set1_epi32(8 * slope));
+    int stop_len = len / (2 * AVX_LEN_INT32);
+    stop_len *= (2 * AVX_LEN_INT32);
+
+    if (((uintptr_t) (const void *) (dst) % AVX_LEN_BYTES) == 0) {
+        _mm256_store_epi32((__m256i *) (dst + 0), curVal);
+        _mm256_store_epi32((__m256i *) (dst + AVX_LEN_INT32), curVal2);
+    } else {
+        _mm256_storeu_si256((__m256i *) (dst + 0), curVal);
+        _mm256_storeu_si256((__m256i *) (dst + AVX_LEN_INT32), curVal2);
+    }
+
+    if (((uintptr_t) (const void *) (dst) % AVX_LEN_BYTES) == 0) {
+        for (int i = 2 * AVX_LEN_INT32; i < stop_len; i += 2 * AVX_LEN_INT32) {
+            curVal = _mm256_add_epi32(curVal, slope16_vec);
+            _mm256_store_si256((__m256i *) (dst + i), curVal);
+            curVal2 = _mm256_add_epi32(curVal2, slope16_vec);
+            _mm256_store_si256((__m256i *) (dst + i + AVX_LEN_INT32), curVal2);
+        }
+    } else {
+        for (int i = 2 * AVX_LEN_INT32; i < stop_len; i += 2 * AVX_LEN_INT32) {
+            curVal = _mm256_add_epi32(curVal, slope16_vec);
+            _mm256_storeu_si256((__m256i *) (dst + i), curVal);
+            curVal2 = _mm256_add_epi32(curVal2, slope16_vec);
+            _mm256_storeu_si256((__m256i *) (dst + i + AVX_LEN_INT32), curVal2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = offset + slope * i;
     }
 }
 
@@ -286,5 +325,6 @@ static inline void powerspect16s_256s_interleaved(complex16s_t *src, int32_t *ds
         dst[i] = (int32_t) src[i].re * (int32_t) src[i].re + (int32_t) src[i].im * (int32_t) src[i].im;
     }
 }
+
 
 #endif

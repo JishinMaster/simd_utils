@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.1
+ * Version : 0.2.2
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -826,9 +826,286 @@ static inline void convertInt16ToFloat32_256(int16_t *src, float *dst, int len, 
         dst[i] = (float) src[i] * scale_fact_mult;
     }
 }
+
+static inline void convertFloat32ToU8_256(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int stop_len = len / (4 * AVX_LEN_FLOAT);
+    stop_len *= (4 * AVX_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
+
+    v8si idx = _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0);
+
+    // Default bankers rounding => round to nearest even
+    if (rounding_mode == RndFinancial) {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_load_ps(src + i);
+                v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+                v8sf src_tmp3 = _mm256_load_ps(src + i + 2 * AVX_LEN_FLOAT);
+                v8sf src_tmp4 = _mm256_load_ps(src + i + 3 * AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8sf tmp3 = _mm256_mul_ps(src_tmp3, scale_fact_vec);
+                v8sf tmp4 = _mm256_mul_ps(src_tmp4, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp3_int = _mm256_cvtps_epi32(tmp3);
+                v8si tmp4_int = _mm256_cvtps_epi32(tmp4);
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                v8si tmp6 = _mm256_packs_epi32(tmp3_int, tmp4_int);
+                v8si tmp7 = _mm256_packus_epi16(tmp5, tmp6);
+                tmp7 = _mm256_permutevar8x32_epi32(tmp7, idx);
+                _mm256_store_si256((__m256i *) (dst + i), tmp7);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_loadu_ps(src + i);
+                v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+                v8sf src_tmp3 = _mm256_loadu_ps(src + i + 2 * AVX_LEN_FLOAT);
+                v8sf src_tmp4 = _mm256_loadu_ps(src + i + 3 * AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8sf tmp3 = _mm256_mul_ps(src_tmp3, scale_fact_vec);
+                v8sf tmp4 = _mm256_mul_ps(src_tmp4, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp3_int = _mm256_cvtps_epi32(tmp3);
+                v8si tmp4_int = _mm256_cvtps_epi32(tmp4);
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                v8si tmp6 = _mm256_packs_epi32(tmp3_int, tmp4_int);
+                v8si tmp7 = _mm256_packus_epi16(tmp5, tmp6);
+                tmp7 = _mm256_permutevar8x32_epi32(tmp7, idx);
+                _mm256_storeu_si256((__m256i *) (dst + i), tmp7);
+            }
+        }
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        if (rounding_mode == RndZero) {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+            fesetround(FE_TOWARDZERO);
+        } else {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
+            fesetround(FE_TONEAREST);
+        }
+
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_load_ps(src + i);
+                v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+                v8sf src_tmp3 = _mm256_load_ps(src + i + 2 * AVX_LEN_FLOAT);
+                v8sf src_tmp4 = _mm256_load_ps(src + i + 3 * AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8sf tmp3 = _mm256_mul_ps(src_tmp3, scale_fact_vec);
+                v8sf tmp4 = _mm256_mul_ps(src_tmp4, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp2_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp3_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp3, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp4_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp4, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                v8si tmp6 = _mm256_packs_epi32(tmp3_int, tmp4_int);
+                v8si tmp7 = _mm256_packus_epi16(tmp5, tmp6);
+                tmp7 = _mm256_permutevar8x32_epi32(tmp7, idx);
+                _mm256_store_si256((__m256i *) (dst + i), tmp7);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_loadu_ps(src + i);
+                v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+                v8sf src_tmp3 = _mm256_loadu_ps(src + i + 2 * AVX_LEN_FLOAT);
+                v8sf src_tmp4 = _mm256_loadu_ps(src + i + 3 * AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8sf tmp3 = _mm256_mul_ps(src_tmp3, scale_fact_vec);
+                v8sf tmp4 = _mm256_mul_ps(src_tmp4, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp2_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp3_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp3, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp4_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp4, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                v8si tmp6 = _mm256_packs_epi32(tmp3_int, tmp4_int);
+                v8si tmp7 = _mm256_packus_epi16(tmp5, tmp6);
+                tmp7 = _mm256_permutevar8x32_epi32(tmp7, idx);
+                _mm256_storeu_si256((__m256i *) (dst + i), tmp7);
+            }
+        }
+
+        // Default round toward zero
+        for (int i = stop_len; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
+        }
+    }
+}
+
+// Thanks to :
+//  https://coderedirect.com/questions/559388/how-can-i-convert-a-vector-of-float-to-short-int-using-avx-instructions
+static inline void convertFloat32ToI16_256(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int stop_len = len / (2 * AVX_LEN_FLOAT);
+    stop_len *= (2 * AVX_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
+    //  Default bankers rounding => round to nearest even
+    if (rounding_mode == RndFinancial) {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_load_ps(src + i);
+                v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_store_si256((__m256i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_loadu_ps(src + i);
+                v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_storeu_si256((__m256i *) (dst + i), tmp5);
+            }
+        }
+
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        if (rounding_mode == RndZero) {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+            fesetround(FE_TOWARDZERO);
+        } else {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTONEAREST;
+            fesetround(FE_TONEAREST);
+        }
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_load_ps(src + i);
+                v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp2_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_store_si256((__m256i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_loadu_ps(src + i);
+                v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp2_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_storeu_si256((__m256i *) (dst + i), tmp5);
+            }
+        }
+        // Default round toward zero
+        for (int i = stop_len; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
+        }
+    }
+}
+
+static inline void convertFloat32ToU16_256(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int stop_len = len / (2 * AVX_LEN_FLOAT);
+    stop_len *= (2 * AVX_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
+    //  Default bankers rounding => round to nearest even
+    if (rounding_mode == RndFinancial) {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_load_ps(src + i);
+                v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp5 = _mm256_packus_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_store_si256((__m256i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_loadu_ps(src + i);
+                v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp5 = _mm256_packus_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_storeu_si256((__m256i *) (dst + i), tmp5);
+            }
+        }
+
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        if (rounding_mode == RndZero) {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+            fesetround(FE_TOWARDZERO);
+        } else {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTONEAREST;
+            fesetround(FE_TONEAREST);
+        }
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_load_ps(src + i);
+                v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp2_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp5 = _mm256_packus_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_store_si256((__m256i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_loadu_ps(src + i);
+                v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp2_int = _mm256_cvtps_epi32(_mm256_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v8si tmp5 = _mm256_packus_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_storeu_si256((__m256i *) (dst + i), tmp5);
+            }
+        }
+        // Default round toward zero
+        for (int i = stop_len; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);
+        }
+    }
+}
 #endif
 
-#if 1
 // converts 32bits complex float to two arrays real and im
 // Work in progress => could be improved with custom SSE mm_load2_ps
 static inline void cplxtoreal256f(complex32_t *src, float *dstRe, float *dstIm, int len)
@@ -837,10 +1114,27 @@ static inline void cplxtoreal256f(complex32_t *src, float *dstRe, float *dstIm, 
     stop_len *= 4 * AVX_LEN_FLOAT;
 
     int j = 0;
+
+#ifdef __AVX2__
+    v8si idx = _mm256_set_epi32(7, 5, 3, 1, 6, 4, 2, 0);
+#endif
+
     if (areAligned3((uintptr_t) (src), (uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX_LEN_FLOAT)) {
         for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
-            v8sf vec1 = _mm256_load_ps((float const *) (src) + i);                                     // load 0 1 2 3 4 5 6 7
-            v8sf vec2 = _mm256_load_ps((float const *) (src) + i + AVX_LEN_FLOAT);                     // load 8 9 10 11 12 13 14 15
+            v8sf vec1 = _mm256_load_ps((float const *) (src) + i);                  // load 0 1 2 3 4 5 6 7
+            v8sf vec2 = _mm256_load_ps((float const *) (src) + i + AVX_LEN_FLOAT);  // load 8 9 10 11 12 13 14 15
+            v8sf vec3 = _mm256_load_ps((float const *) (src) + i + 2 * AVX_LEN_FLOAT);
+            v8sf vec4 = _mm256_load_ps((float const *) (src) + i + 3 * AVX_LEN_FLOAT);
+#ifdef __AVX2__
+            v8sf vec1_permute = _mm256_permutevar8x32_ps(vec1, idx);
+            v8sf vec2_permute = _mm256_permutevar8x32_ps(vec2, idx);
+            v8sf vec3_permute = _mm256_permutevar8x32_ps(vec3, idx);
+            v8sf vec4_permute = _mm256_permutevar8x32_ps(vec4, idx);
+            v8sf tmp1permute = _mm256_permute2f128_ps(vec1_permute, vec2_permute, 0x20);
+            v8sf tmp2permute = _mm256_permute2f128_ps(vec1_permute, vec2_permute, 0x31);
+            v8sf tmp3permute = _mm256_permute2f128_ps(vec3_permute, vec4_permute, 0x20);
+            v8sf tmp4permute = _mm256_permute2f128_ps(vec3_permute, vec4_permute, 0x31);
+#else
             v8sf vec1_permute = _mm256_permute2f128_ps(vec1, vec1, IMM8_PERMUTE_128BITS_LANES);        // reverse v1 4 5 6 7 0 1 2 3
             v8sf vec2_permute = _mm256_permute2f128_ps(vec2, vec1, IMM8_PERMUTE_128BITS_LANES);        // reverse v2 12 13 14 15 8 9 10 11
             v8sf vec1_even = _mm256_shuffle_ps(vec1, vec1_permute, _MM_SHUFFLE(2, 0, 2, 0));           // 0 2 4 6 0 2 4 6
@@ -849,11 +1143,6 @@ static inline void cplxtoreal256f(complex32_t *src, float *dstRe, float *dstIm, 
             v8sf vec2_odd = _mm256_shuffle_ps(vec2, vec2_permute, _MM_SHUFFLE(3, 1, 3, 1));            // 9 11 13 15
             v8sf tmp1permute = _mm256_insertf128_ps(vec1_even, _mm256_castps256_ps128(vec2_even), 1);  // 0 2 4 6 8 10 12 14
             v8sf tmp2permute = _mm256_insertf128_ps(vec1_odd, _mm256_castps256_ps128(vec2_odd), 1);    // 1 3 5 7 9 11 13 15
-            _mm256_store_ps(dstRe + j, tmp1permute);
-            _mm256_store_ps(dstIm + j, tmp2permute);
-
-            v8sf vec3 = _mm256_load_ps((float const *) (src) + i + 2 * AVX_LEN_FLOAT);
-            v8sf vec4 = _mm256_load_ps((float const *) (src) + i + 3 * AVX_LEN_FLOAT);
             v8sf vec3_permute = _mm256_permute2f128_ps(vec3, vec3, IMM8_PERMUTE_128BITS_LANES);
             v8sf vec4_permute = _mm256_permute2f128_ps(vec4, vec3, IMM8_PERMUTE_128BITS_LANES);
             v8sf vec3_even = _mm256_shuffle_ps(vec3, vec3_permute, _MM_SHUFFLE(2, 0, 2, 0));
@@ -862,6 +1151,9 @@ static inline void cplxtoreal256f(complex32_t *src, float *dstRe, float *dstIm, 
             v8sf vec4_odd = _mm256_shuffle_ps(vec4, vec4_permute, _MM_SHUFFLE(3, 1, 3, 1));
             v8sf tmp3permute = _mm256_insertf128_ps(vec3_even, _mm256_castps256_ps128(vec4_even), 1);
             v8sf tmp4permute = _mm256_insertf128_ps(vec3_odd, _mm256_castps256_ps128(vec4_odd), 1);
+#endif
+            _mm256_store_ps(dstRe + j, tmp1permute);
+            _mm256_store_ps(dstIm + j, tmp2permute);
             _mm256_store_ps(dstRe + j + AVX_LEN_FLOAT, tmp3permute);
             _mm256_store_ps(dstIm + j + AVX_LEN_FLOAT, tmp4permute);
 
@@ -869,8 +1161,20 @@ static inline void cplxtoreal256f(complex32_t *src, float *dstRe, float *dstIm, 
         }
     } else {
         for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
-            v8sf vec1 = _mm256_loadu_ps((float const *) (src) + i);                                    // load 0 1 2 3 4 5 6 7
-            v8sf vec2 = _mm256_loadu_ps((float const *) (src) + i + AVX_LEN_FLOAT);                    // load 8 9 10 11 12 13 14 15
+            v8sf vec1 = _mm256_loadu_ps((float const *) (src) + i);                  // load 0 1 2 3 4 5 6 7
+            v8sf vec2 = _mm256_loadu_ps((float const *) (src) + i + AVX_LEN_FLOAT);  // load 8 9 10 11 12 13 14 15
+            v8sf vec3 = _mm256_loadu_ps((float const *) (src) + i + 2 * AVX_LEN_FLOAT);
+            v8sf vec4 = _mm256_loadu_ps((float const *) (src) + i + 3 * AVX_LEN_FLOAT);
+#ifdef __AVX2__
+            v8sf vec1_permute = _mm256_permutevar8x32_ps(vec1, idx);
+            v8sf vec2_permute = _mm256_permutevar8x32_ps(vec2, idx);
+            v8sf vec3_permute = _mm256_permutevar8x32_ps(vec3, idx);
+            v8sf vec4_permute = _mm256_permutevar8x32_ps(vec4, idx);
+            v8sf tmp1permute = _mm256_permute2f128_ps(vec1_permute, vec2_permute, 0x20);
+            v8sf tmp2permute = _mm256_permute2f128_ps(vec1_permute, vec2_permute, 0x31);
+            v8sf tmp3permute = _mm256_permute2f128_ps(vec3_permute, vec4_permute, 0x20);
+            v8sf tmp4permute = _mm256_permute2f128_ps(vec3_permute, vec4_permute, 0x31);
+#else
             v8sf vec1_permute = _mm256_permute2f128_ps(vec1, vec1, IMM8_PERMUTE_128BITS_LANES);        // reverse v1 4 5 6 7 0 1 2 3
             v8sf vec2_permute = _mm256_permute2f128_ps(vec2, vec1, IMM8_PERMUTE_128BITS_LANES);        // reverse v2 12 13 14 15 8 9 10 11
             v8sf vec1_even = _mm256_shuffle_ps(vec1, vec1_permute, _MM_SHUFFLE(2, 0, 2, 0));           // 0 2 4 6 0 2 4 6
@@ -879,11 +1183,6 @@ static inline void cplxtoreal256f(complex32_t *src, float *dstRe, float *dstIm, 
             v8sf vec2_odd = _mm256_shuffle_ps(vec2, vec2_permute, _MM_SHUFFLE(3, 1, 3, 1));            // 9 11 13 15
             v8sf tmp1permute = _mm256_insertf128_ps(vec1_even, _mm256_castps256_ps128(vec2_even), 1);  // 0 2 4 6 8 10 12 14
             v8sf tmp2permute = _mm256_insertf128_ps(vec1_odd, _mm256_castps256_ps128(vec2_odd), 1);    // 1 3 5 7 9 11 13 15
-            _mm256_storeu_ps(dstRe + j, tmp1permute);
-            _mm256_storeu_ps(dstIm + j, tmp2permute);
-
-            v8sf vec3 = _mm256_loadu_ps((float const *) (src) + i + 2 * AVX_LEN_FLOAT);
-            v8sf vec4 = _mm256_loadu_ps((float const *) (src) + i + 3 * AVX_LEN_FLOAT);
             v8sf vec3_permute = _mm256_permute2f128_ps(vec3, vec3, IMM8_PERMUTE_128BITS_LANES);
             v8sf vec4_permute = _mm256_permute2f128_ps(vec4, vec3, IMM8_PERMUTE_128BITS_LANES);
             v8sf vec3_even = _mm256_shuffle_ps(vec3, vec3_permute, _MM_SHUFFLE(2, 0, 2, 0));
@@ -892,6 +1191,9 @@ static inline void cplxtoreal256f(complex32_t *src, float *dstRe, float *dstIm, 
             v8sf vec4_odd = _mm256_shuffle_ps(vec4, vec4_permute, _MM_SHUFFLE(3, 1, 3, 1));
             v8sf tmp3permute = _mm256_insertf128_ps(vec3_even, _mm256_castps256_ps128(vec4_even), 1);
             v8sf tmp4permute = _mm256_insertf128_ps(vec3_odd, _mm256_castps256_ps128(vec4_odd), 1);
+#endif
+            _mm256_storeu_ps(dstRe + j, tmp1permute);
+            _mm256_storeu_ps(dstIm + j, tmp2permute);
             _mm256_storeu_ps(dstRe + j + AVX_LEN_FLOAT, tmp3permute);
             _mm256_storeu_ps(dstIm + j + AVX_LEN_FLOAT, tmp4permute);
 
@@ -904,62 +1206,6 @@ static inline void cplxtoreal256f(complex32_t *src, float *dstRe, float *dstIm, 
         dstIm[i] = src[i].im;
     }
 }
-#else
-static inline void cplxtoreal256f(float *src, float *dstRe, float *dstIm, int len)
-{
-    int stop_len = 2 * len / (4 * AVX_LEN_FLOAT);
-    stop_len *= 4 * AVX_LEN_FLOAT;
-    v8si evenodd_idx = _mm256_setr_epi32(0, 2, 4, 6, 1, 3, 5, 7);
-    int j = 0;
-    if (areAligned3((uintptr_t) (src), (uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
-            v8sf vec1 = _mm256_load_ps(src + i);                  // load 0 1 2 3 4 5 6 7
-            v8sf vec2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);  // load 8 9 10 11 12 13 14 15
-            v8sf vec3 = _mm256_load_ps(src + i + 2 * AVX_LEN_FLOAT);
-            v8sf vec4 = _mm256_load_ps(src + i + 3 * AVX_LEN_FLOAT);
-            v8sf vec1_permute = _mm256_permutevar8x32_ps(vec1, evenodd_idx);  // 0 2 4 6 1 3 5 7
-            v8sf vec2_permute = _mm256_permutevar8x32_ps(vec2, evenodd_idx);  // 8 10 12 14 9 11 13 15
-            v8sf vec3_permute = _mm256_permutevar8x32_ps(vec3, evenodd_idx);
-            v8sf vec4_permute = _mm256_permutevar8x32_ps(vec4, evenodd_idx);
-            v8sf tmp1permute = _mm256_permute2f128_ps(vec1_permute, vec2_permute, 0x20);
-            v8sf tmp2permute = _mm256_permute2f128_ps(vec1_permute, vec2_permute, 0x31);
-            v8sf tmp3permute = _mm256_permute2f128_ps(vec3_permute, vec4_permute, 0x20);
-            v8sf tmp4permute = _mm256_permute2f128_ps(vec3_permute, vec4_permute, 0x31);
-            _mm256_store_ps(dstRe + j, tmp1permute);
-            _mm256_store_ps(dstIm + j, tmp2permute);
-            _mm256_store_ps(dstRe + j + AVX_LEN_FLOAT, tmp3permute);
-            _mm256_store_ps(dstIm + j + AVX_LEN_FLOAT, tmp4permute);
-            j += 2 * AVX_LEN_FLOAT;
-        }
-    } else {
-        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
-            v8sf vec1 = _mm256_load_ps(src + i);                  // load 0 1 2 3 4 5 6 7
-            v8sf vec2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);  // load 8 9 10 11 12 13 14 15
-            v8sf vec3 = _mm256_load_ps(src + i + 2 * AVX_LEN_FLOAT);
-            v8sf vec4 = _mm256_load_ps(src + i + 3 * AVX_LEN_FLOAT);
-            v8sf vec1_permute = _mm256_permutevar8x32_ps(vec1, evenodd_idx);  // 0 2 4 6 1 3 5 7
-            v8sf vec2_permute = _mm256_permutevar8x32_ps(vec2, evenodd_idx);  // 8 10 12 14 9 11 13 15
-            v8sf vec3_permute = _mm256_permutevar8x32_ps(vec3, evenodd_idx);
-            v8sf vec4_permute = _mm256_permutevar8x32_ps(vec4, evenodd_idx);
-            v8sf tmp1permute = _mm256_permute2f128_ps(vec1_permute, vec2_permute, 0x20);
-            v8sf tmp2permute = _mm256_permute2f128_ps(vec1_permute, vec2_permute, 0x31);
-            v8sf tmp3permute = _mm256_permute2f128_ps(vec3_permute, vec4_permute, 0x20);
-            v8sf tmp4permute = _mm256_permute2f128_ps(vec3_permute, vec4_permute, 0x31);
-            _mm256_store_ps(dstRe + j, tmp1permute);
-            _mm256_store_ps(dstIm + j, tmp2permute);
-            _mm256_store_ps(dstRe + j + AVX_LEN_FLOAT, tmp3permute);
-            _mm256_store_ps(dstIm + j + AVX_LEN_FLOAT, tmp4permute);
-            j += 2 * AVX_LEN_FLOAT;
-        }
-    }
-
-    for (int i = stop_len; i < 2 * len; i += 2) {
-        dstRe[j] = src[i];
-        dstIm[j] = src[i + 1];
-        j++;
-    }
-}
-#endif
 
 static inline void realtocplx256f(float *srcRe, float *srcIm, complex32_t *dst, int len)
 {
@@ -1106,31 +1352,31 @@ static inline void flip256f(float *src, float *dst, int len)
 #endif
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst + len - AVX_LEN_FLOAT), AVX_LEN_BYTES)) {
         for (int i = 2 * AVX_LEN_FLOAT; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
-            v8sf src_tmp = _mm256_load_ps(src + i);                                // load a,b,c,d,e,f,g,h
-            v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);               // load a,b,c,d,e,f,g,h
+            v8sf src_tmp = _mm256_load_ps(src + i);                   // load a,b,c,d,e,f,g,h
+            v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);  // load a,b,c,d,e,f,g,h
 #ifdef __AVX2__
             v8sf src_tmp_flip = _mm256_permutevar8x32_ps(src_tmp, reverse_reg);    // reverse lanes abcdefgh to hgfedcba
             v8sf src_tmp_flip2 = _mm256_permutevar8x32_ps(src_tmp2, reverse_reg);  // reverse lanes abcdefgh to hgfedcba
 #else
-            v8sf src_tmp_flip = _mm256_permute2f128_ps(src_tmp, src_tmp, IMM8_PERMUTE_128BITS_LANES); 
-            v8sf src_tmp_flip2 = _mm256_permute2f128_ps(src_tmp2, src_tmp2, IMM8_PERMUTE_128BITS_LANES); 
+            v8sf src_tmp_flip = _mm256_permute2f128_ps(src_tmp, src_tmp, IMM8_PERMUTE_128BITS_LANES);
+            v8sf src_tmp_flip2 = _mm256_permute2f128_ps(src_tmp2, src_tmp2, IMM8_PERMUTE_128BITS_LANES);
 #endif
-            _mm256_storeu_ps(dst + len - i - AVX_LEN_FLOAT, src_tmp_flip);         // store the flipped vector
-            _mm256_storeu_ps(dst + len - i - 2 * AVX_LEN_FLOAT, src_tmp_flip2);    // store the flipped vector
+            _mm256_storeu_ps(dst + len - i - AVX_LEN_FLOAT, src_tmp_flip);       // store the flipped vector
+            _mm256_storeu_ps(dst + len - i - 2 * AVX_LEN_FLOAT, src_tmp_flip2);  // store the flipped vector
         }
     } else {
         for (int i = 2 * AVX_LEN_FLOAT; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
-            v8sf src_tmp = _mm256_loadu_ps(src + i);                               // load a,b,c,d,e,f,g,h
-            v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);              // load a,b,c,d,e,f,g,h
+            v8sf src_tmp = _mm256_loadu_ps(src + i);                   // load a,b,c,d,e,f,g,h
+            v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);  // load a,b,c,d,e,f,g,h
 #ifdef __AVX2__
             v8sf src_tmp_flip = _mm256_permutevar8x32_ps(src_tmp, reverse_reg);    // reverse lanes abcdefgh to hgfedcba
             v8sf src_tmp_flip2 = _mm256_permutevar8x32_ps(src_tmp2, reverse_reg);  // reverse lanes abcdefgh to hgfedcba
 #else
-            v8sf src_tmp_flip = _mm256_permute2f128_ps(src_tmp, src_tmp, IMM8_PERMUTE_128BITS_LANES); 
-            v8sf src_tmp_flip2 = _mm256_permute2f128_ps(src_tmp2, src_tmp2, IMM8_PERMUTE_128BITS_LANES); 
+            v8sf src_tmp_flip = _mm256_permute2f128_ps(src_tmp, src_tmp, IMM8_PERMUTE_128BITS_LANES);
+            v8sf src_tmp_flip2 = _mm256_permute2f128_ps(src_tmp2, src_tmp2, IMM8_PERMUTE_128BITS_LANES);
 #endif
-            _mm256_storeu_ps(dst + len - i - AVX_LEN_FLOAT, src_tmp_flip);         // store the flipped vector
-            _mm256_storeu_ps(dst + len - i - 2 * AVX_LEN_FLOAT, src_tmp_flip2);    // store the flipped vector
+            _mm256_storeu_ps(dst + len - i - AVX_LEN_FLOAT, src_tmp_flip);       // store the flipped vector
+            _mm256_storeu_ps(dst + len - i - 2 * AVX_LEN_FLOAT, src_tmp_flip2);  // store the flipped vector
         }
     }
 

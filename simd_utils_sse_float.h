@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.1
+ * Version : 0.2.2
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -853,6 +853,116 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
     _mm_empty();
 }
 
+static inline void convertFloat32ToU8_128_(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int stop_len = len / (4 * SSE_LEN_FLOAT);
+    stop_len *= (4 * SSE_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v4sf scale_fact_vec = _mm_set1_ps(scale_fact_mult);
+
+    // Default bankers rounding => round to nearest even
+    if (rounding_mode == RndFinancial) {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
+                v4sf src_tmp1 = _mm_load_ps(src + i);
+                v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+                v4sf src_tmp3 = _mm_load_ps(src + i + 2 * SSE_LEN_FLOAT);
+                v4sf src_tmp4 = _mm_load_ps(src + i + 3 * SSE_LEN_FLOAT);
+                v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
+                v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+                v4sf tmp3 = _mm_mul_ps(src_tmp3, scale_fact_vec);
+                v4sf tmp4 = _mm_mul_ps(src_tmp4, scale_fact_vec);
+                v4si tmp1_int = _mm_cvtps_epi32(tmp1);
+                v4si tmp2_int = _mm_cvtps_epi32(tmp2);
+                v4si tmp3_int = _mm_cvtps_epi32(tmp3);
+                v4si tmp4_int = _mm_cvtps_epi32(tmp4);
+                v4si tmp5 = _mm_packs_epi32(tmp1_int, tmp2_int);
+                v4si tmp6 = _mm_packs_epi32(tmp3_int, tmp4_int);
+                v4si tmp7 = _mm_packus_epi16(tmp5, tmp6);
+                _mm_store_si128((__m128i *) (dst + i), tmp7);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
+                v4sf src_tmp1 = _mm_loadu_ps(src + i);
+                v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+                v4sf src_tmp3 = _mm_loadu_ps(src + i + 2 * SSE_LEN_FLOAT);
+                v4sf src_tmp4 = _mm_loadu_ps(src + i + 3 * SSE_LEN_FLOAT);
+                v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
+                v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+                v4sf tmp3 = _mm_mul_ps(src_tmp3, scale_fact_vec);
+                v4sf tmp4 = _mm_mul_ps(src_tmp4, scale_fact_vec);
+                v4si tmp1_int = _mm_cvtps_epi32(tmp1);
+                v4si tmp2_int = _mm_cvtps_epi32(tmp2);
+                v4si tmp3_int = _mm_cvtps_epi32(tmp3);
+                v4si tmp4_int = _mm_cvtps_epi32(tmp4);
+                v4si tmp5 = _mm_packs_epi32(tmp1_int, tmp2_int);
+                v4si tmp6 = _mm_packs_epi32(tmp3_int, tmp4_int);
+                v4si tmp7 = _mm_packus_epi16(tmp5, tmp6);
+                _mm_storeu_si128((__m128i *) (dst + i), tmp7);
+            }
+        }
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        if (rounding_mode == RndZero) {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+            fesetround(FE_TOWARDZERO);
+        } else {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
+            fesetround(FE_TONEAREST);
+        }
+
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
+                v4sf src_tmp1 = _mm_load_ps(src + i);
+                v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+                v4sf src_tmp3 = _mm_load_ps(src + i + 2 * SSE_LEN_FLOAT);
+                v4sf src_tmp4 = _mm_load_ps(src + i + 3 * SSE_LEN_FLOAT);
+                v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
+                v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+                v4sf tmp3 = _mm_mul_ps(src_tmp3, scale_fact_vec);
+                v4sf tmp4 = _mm_mul_ps(src_tmp4, scale_fact_vec);
+                v4si tmp1_int = _mm_cvtps_epi32(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp2_int = _mm_cvtps_epi32(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp3_int = _mm_cvtps_epi32(_mm_round_ps(tmp3, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp4_int = _mm_cvtps_epi32(_mm_round_ps(tmp4, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp5 = _mm_packs_epi32(tmp1_int, tmp2_int);
+                v4si tmp6 = _mm_packs_epi32(tmp3_int, tmp4_int);
+                v4si tmp7 = _mm_packus_epi16(tmp5, tmp6);
+                _mm_store_si128((__m128i *) (dst + i), tmp7);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
+                v4sf src_tmp1 = _mm_loadu_ps(src + i);
+                v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+                v4sf src_tmp3 = _mm_loadu_ps(src + i + 2 * SSE_LEN_FLOAT);
+                v4sf src_tmp4 = _mm_loadu_ps(src + i + 3 * SSE_LEN_FLOAT);
+                v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
+                v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+                v4sf tmp3 = _mm_mul_ps(src_tmp3, scale_fact_vec);
+                v4sf tmp4 = _mm_mul_ps(src_tmp4, scale_fact_vec);
+                v4si tmp1_int = _mm_cvtps_epi32(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp2_int = _mm_cvtps_epi32(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp3_int = _mm_cvtps_epi32(_mm_round_ps(tmp3, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp4_int = _mm_cvtps_epi32(_mm_round_ps(tmp4, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp5 = _mm_packs_epi32(tmp1_int, tmp2_int);
+                v4si tmp6 = _mm_packs_epi32(tmp3_int, tmp4_int);
+                v4si tmp7 = _mm_packus_epi16(tmp5, tmp6);
+                _mm_storeu_si128((__m128i *) (dst + i), tmp7);
+            }
+        }
+
+        // Default round toward zero
+        for (int i = stop_len; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
+        }
+    }
+}
+
 static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
 {
     int stop_len = len / (2 * SSE_LEN_FLOAT);
@@ -860,7 +970,7 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
 
     float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     v4sf scale_fact_vec = _mm_set1_ps(scale_fact_mult);
-    // v4sf max_short_val_ps = _mm_set1_ps(32767.0f);
+
     //  Default bankers rounding => round to nearest even
     if (rounding_mode == RndFinancial) {
         if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
@@ -869,8 +979,6 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
                 v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
                 v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
                 v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
-                /*tmp1 = _mm_min_ps(tmp1, max_short_val_ps);
-                tmp2 = _mm_min_ps(tmp2, max_short_val_ps);*/
                 __m64 cvt1 = _mm_cvtps_pi16(tmp1);
                 __m64 cvt2 = _mm_cvtps_pi16(tmp2);
                 v4si tmp5 = _mm_set_epi64(cvt2, cvt1);
@@ -882,15 +990,13 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
                 v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
                 v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
                 v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
-                /*tmp1 = _mm_min_ps(tmp1, max_short_val_ps);
-                tmp2 = _mm_min_ps(tmp2, max_short_val_ps);*/
                 __m64 cvt1 = _mm_cvtps_pi16(tmp1);
                 __m64 cvt2 = _mm_cvtps_pi16(tmp2);
                 v4si tmp5 = _mm_set_epi64(cvt2, cvt1);
                 _mm_storeu_si128((__m128i *) (dst + i), tmp5);
             }
         }
-        
+
         for (int i = stop_len; i < len; i++) {
             float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
             dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
@@ -909,8 +1015,6 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
                 v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
                 v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
                 v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
-                /*tmp1 = _mm_min_ps(tmp1, max_short_val_ps);
-                tmp2 = _mm_min_ps(tmp2, max_short_val_ps);*/
                 __m64 cvt1 = _mm_cvtps_pi16(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
                 __m64 cvt2 = _mm_cvtps_pi16(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
                 v4si tmp5 = _mm_set_epi64(cvt2, cvt1);
@@ -922,8 +1026,6 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
                 v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
                 v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
                 v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
-                /*tmp1 = _mm_min_ps(tmp1, max_short_val_ps);
-                tmp2 = _mm_min_ps(tmp2, max_short_val_ps);*/
                 __m64 cvt1 = _mm_cvtps_pi16(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
                 __m64 cvt2 = _mm_cvtps_pi16(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
                 v4si tmp5 = _mm_set_epi64(cvt2, cvt1);
@@ -937,6 +1039,159 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
         }
     }
     _mm_empty();
+}
+
+// Better? to be unrolled once more
+static inline void convertFloat32ToI16_128_(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v4sf scale_fact_vec = _mm_set1_ps(scale_fact_mult);
+    //  Default bankers rounding => round to nearest even
+    if (rounding_mode == RndFinancial) {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+                v4sf src_tmp1 = _mm_load_ps(src + i);
+                v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+                v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
+                v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+                v4si tmp1_int = _mm_cvtps_epi32(tmp1);
+                v4si tmp2_int = _mm_cvtps_epi32(tmp2);
+                v4si tmp5 = _mm_packs_epi32(tmp1_int, tmp2_int);
+                _mm_store_si128((__m128i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+                v4sf src_tmp1 = _mm_loadu_ps(src + i);
+                v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+                v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
+                v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+                v4si tmp1_int = _mm_cvtps_epi32(tmp1);
+                v4si tmp2_int = _mm_cvtps_epi32(tmp2);
+                v4si tmp5 = _mm_packs_epi32(tmp1_int, tmp2_int);
+                _mm_storeu_si128((__m128i *) (dst + i), tmp5);
+            }
+        }
+
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        if (rounding_mode == RndZero) {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+            fesetround(FE_TOWARDZERO);
+        } else {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
+            fesetround(FE_TONEAREST);
+        }
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+                v4sf src_tmp1 = _mm_load_ps(src + i);
+                v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+                v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
+                v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+                v4si tmp1_int = _mm_cvtps_epi32(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp2_int = _mm_cvtps_epi32(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp5 = _mm_packs_epi32(tmp1_int, tmp2_int);
+                _mm_store_si128((__m128i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+                v4sf src_tmp1 = _mm_loadu_ps(src + i);
+                v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+                v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
+                v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+                v4si tmp1_int = _mm_cvtps_epi32(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp2_int = _mm_cvtps_epi32(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp5 = _mm_packs_epi32(tmp1_int, tmp2_int);
+                _mm_storeu_si128((__m128i *) (dst + i), tmp5);
+            }
+        }
+        // Default round toward zero
+        for (int i = stop_len; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
+        }
+    }
+}
+
+static inline void convertFloat32ToU16_128(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v4sf scale_fact_vec = _mm_set1_ps(scale_fact_mult);
+    //  Default bankers rounding => round to nearest even
+    if (rounding_mode == RndFinancial) {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+                v4sf src_tmp1 = _mm_load_ps(src + i);
+                v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+                v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
+                v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+                v4si tmp1_int = _mm_cvtps_epi32(tmp1);
+                v4si tmp2_int = _mm_cvtps_epi32(tmp2);
+                v4si tmp5 = _mm_packus_epi32(tmp1_int, tmp2_int);
+                _mm_store_si128((__m128i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+                v4sf src_tmp1 = _mm_loadu_ps(src + i);
+                v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+                v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
+                v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+                v4si tmp1_int = _mm_cvtps_epi32(tmp1);
+                v4si tmp2_int = _mm_cvtps_epi32(tmp2);
+                v4si tmp5 = _mm_packus_epi32(tmp1_int, tmp2_int);
+                _mm_storeu_si128((__m128i *) (dst + i), tmp5);
+            }
+        }
+
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        if (rounding_mode == RndZero) {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+            fesetround(FE_TOWARDZERO);
+        } else {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
+            fesetround(FE_TONEAREST);
+        }
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+                v4sf src_tmp1 = _mm_load_ps(src + i);
+                v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+                v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
+                v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+                v4si tmp1_int = _mm_cvtps_epi32(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp2_int = _mm_cvtps_epi32(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp5 = _mm_packus_epi32(tmp1_int, tmp2_int);
+                _mm_store_si128((__m128i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+                v4sf src_tmp1 = _mm_loadu_ps(src + i);
+                v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+                v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
+                v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+                v4si tmp1_int = _mm_cvtps_epi32(_mm_round_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp2_int = _mm_cvtps_epi32(_mm_round_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v4si tmp5 = _mm_packus_epi32(tmp1_int, tmp2_int);
+                _mm_storeu_si128((__m128i *) (dst + i), tmp5);
+            }
+        }
+        // Default round toward zero
+        for (int i = stop_len; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);
+        }
+    }
 }
 
 static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, int scale_factor)
@@ -1085,22 +1340,38 @@ static inline void convert128_64f32f(double *src, float *dst, int len)
 
 static inline void convert128_32f64f(float *src, double *dst, int len)
 {
-    int stop_len = len / SSE_LEN_FLOAT;
-    stop_len *= SSE_LEN_FLOAT;
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
-            v4sf src_tmp = _mm_load_ps(src + i);                                          // load a,b,c,d
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);  // load a,b,c,d
+            v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
             v4sf src_tmp_hi = _mm_shuffle_ps(src_tmp, src_tmp, _MM_SHUFFLE(1, 0, 3, 2));  // rotate vec from abcd to cdab
-            _mm_store_pd(dst + i, _mm_cvtps_pd(src_tmp));                                 // store the c and d converted in 64bits
-            _mm_store_pd(dst + i + 2, _mm_cvtps_pd(src_tmp_hi));                          // store the a and b converted in 64bits
+            v4sf src_tmp_hi2 = _mm_shuffle_ps(src_tmp2, src_tmp2, _MM_SHUFFLE(1, 0, 3, 2));
+            v2sd dst_tmp = _mm_cvtps_pd(src_tmp);
+            v2sd dst_tmp_hi = _mm_cvtps_pd(src_tmp_hi);
+            v2sd dst_tmp2 = _mm_cvtps_pd(src_tmp2);
+            v2sd dst_tmp_hi2 = _mm_cvtps_pd(src_tmp_hi2);
+            _mm_store_pd(dst + i, dst_tmp);                      // store the c and d converted in 64bits
+            _mm_store_pd(dst + i + SSE_LEN_DOUBLE, dst_tmp_hi);  // store the a and b converted in 64bits
+            _mm_store_pd(dst + i + 2 * SSE_LEN_DOUBLE, dst_tmp2);
+            _mm_store_pd(dst + i + 3 * SSE_LEN_DOUBLE, dst_tmp_hi2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
-            v4sf src_tmp = _mm_loadu_ps(src + i);                                         // load a,b,c,d
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);  // load a,b,c,d
+            v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
             v4sf src_tmp_hi = _mm_shuffle_ps(src_tmp, src_tmp, _MM_SHUFFLE(1, 0, 3, 2));  // rotate vec from abcd to cdab
-            _mm_storeu_pd(dst + i, _mm_cvtps_pd(src_tmp));                                // store the c and d converted in 64bits
-            _mm_storeu_pd(dst + i + 2, _mm_cvtps_pd(src_tmp_hi));                         // store the a and b converted in 64bits
+            v4sf src_tmp_hi2 = _mm_shuffle_ps(src_tmp2, src_tmp2, _MM_SHUFFLE(1, 0, 3, 2));
+            v2sd dst_tmp = _mm_cvtps_pd(src_tmp);
+            v2sd dst_tmp_hi = _mm_cvtps_pd(src_tmp_hi);
+            v2sd dst_tmp2 = _mm_cvtps_pd(src_tmp2);
+            v2sd dst_tmp_hi2 = _mm_cvtps_pd(src_tmp_hi2);
+            _mm_storeu_pd(dst + i, dst_tmp);                      // store the c and d converted in 64bits
+            _mm_storeu_pd(dst + i + SSE_LEN_DOUBLE, dst_tmp_hi);  // store the a and b converted in 64bits
+            _mm_storeu_pd(dst + i + 2 * SSE_LEN_DOUBLE, dst_tmp2);
+            _mm_storeu_pd(dst + i + 3 * SSE_LEN_DOUBLE, dst_tmp_hi2);
         }
     }
 

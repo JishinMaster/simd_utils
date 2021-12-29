@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.1
+ * Version : 0.2.2
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -655,7 +655,6 @@ static inline void div512f(float *src1, float *src2, float *dst, int len)
     }
 }
 
-// WArning : store are always aligned?
 static inline void vectorSlope512f(float *dst, int len, float offset, float slope)
 {
     v16sf coef = _mm512_set_ps(15.0f * slope, 14.0f * slope, 13.0f * slope, 12.0f * slope,
@@ -699,20 +698,489 @@ static inline void vectorSlope512f(float *dst, int len, float offset, float slop
     }
 }
 
-static inline void convert512_32f64f(float *src, double *dst, int len)
+static inline void convertInt16ToFloat32_512(int16_t *src, float *dst, int len, int scale_factor)
 {
-    int stop_len = len / AVX_LEN_FLOAT;
-    stop_len *= AVX_LEN_FLOAT;
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= (2 * AVX512_LEN_FLOAT);
 
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v16sf scale_fact_vec = _mm512_set1_ps(scale_fact_mult);
+
+    v16si idx_lo = _mm512_set_epi16(15, 15, 14, 14, 13, 13, 12, 12, 11, 11, 10, 10,
+                                    9, 9, 8, 8, 7, 7, 6, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 0, 0);
+    v16si idx_hi = _mm512_set_epi16(31, 31, 30, 30, 29, 29, 28, 28, 27, 27, 26, 26, 25, 25, 24, 24,
+                                    23, 23, 22, 22, 21, 21, 20, 20, 19, 19, 18, 18, 17, 17, 16, 16);
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-            __m256 src_tmp = _mm256_load_ps(src + i);            // load a,b,c,d
-            _mm512_store_pd(dst + i, _mm512_cvtps_pd(src_tmp));  // store the abcd converted in 64bits
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16si vec = _mm512_load_si512((__m512i *) (src + i));
+            v16si low = _mm512_permutexvar_epi16(idx_lo, vec);   // low 1 1 2 2 3 3 .. 15 15
+            v16si high = _mm512_permutexvar_epi16(idx_hi, vec);  // high 16 16 17 17 .. 31 31
+            low = _mm512_srai_epi32(low, 0x10);                  // make low 1 -1 2 -1 3 -1 4 -4
+            high = _mm512_srai_epi32(high, 0x10);                // make high 5 -1 6 -1 7 -1 8 -1
+
+            // convert the vector to float and scale it
+            v16sf floatlo = _mm512_mul_ps(_mm512_cvtepi32_ps(low), scale_fact_vec);
+            v16sf floathi = _mm512_mul_ps(_mm512_cvtepi32_ps(high), scale_fact_vec);
+
+            _mm512_store_ps(dst + i, floatlo);
+            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, floathi);
         }
     } else {
-        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-            __m256 src_tmp = _mm256_loadu_ps(src + i);            // load a,b,c,d
-            _mm512_storeu_pd(dst + i, _mm512_cvtps_pd(src_tmp));  // store the c and d converted in 64bits
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16si vec = _mm512_loadu_si512((__m512i *) (src + i));
+            v16si low = _mm512_permutexvar_epi16(idx_lo, vec);   // low 1 1 2 2 3 3 .. 15 15
+            v16si high = _mm512_permutexvar_epi16(idx_hi, vec);  // high 16 16 17 17 .. 31 31
+            low = _mm512_srai_epi32(low, 0x10);                  // make low 1 -1 2 -1 3 -1 4 -4
+            high = _mm512_srai_epi32(high, 0x10);                // make high 5 -1 6 -1 7 -1 8 -1
+
+            // convert the vector to float and scale it
+            v16sf floatlo = _mm512_mul_ps(_mm512_cvtepi32_ps(low), scale_fact_vec);
+            v16sf floathi = _mm512_mul_ps(_mm512_cvtepi32_ps(high), scale_fact_vec);
+
+            _mm512_storeu_ps(dst + i, floatlo);
+            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, floathi);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = (float) src[i] * scale_fact_mult;
+    }
+}
+
+static inline void convertFloat32ToU8_512(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int stop_len = len / (4 * AVX512_LEN_FLOAT);
+    stop_len *= (4 * AVX512_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v16sf scale_fact_vec = _mm512_set1_ps(scale_fact_mult);
+
+    v16si idx = _mm512_set_epi32(15, 11, 7, 3, 14, 10, 6, 2, 13, 9, 5, 1, 12, 8, 4, 0);
+
+    // Default bankers rounding => round to nearest even
+    if (rounding_mode == RndFinancial) {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
+                v16sf src_tmp1 = _mm512_load_ps(src + i);
+                v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+                v16sf src_tmp3 = _mm512_load_ps(src + i + 2 * AVX512_LEN_FLOAT);
+                v16sf src_tmp4 = _mm512_load_ps(src + i + 3 * AVX512_LEN_FLOAT);
+                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+                v16sf tmp3 = _mm512_mul_ps(src_tmp3, scale_fact_vec);
+                v16sf tmp4 = _mm512_mul_ps(src_tmp4, scale_fact_vec);
+                v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
+                v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
+                v16si tmp3_int = _mm512_cvtps_epi32(tmp3);
+                v16si tmp4_int = _mm512_cvtps_epi32(tmp4);
+                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
+                v16si tmp6 = _mm512_packs_epi32(tmp3_int, tmp4_int);
+                v16si tmp7 = _mm512_packus_epi16(tmp5, tmp6);
+                tmp7 = _mm512_permutexvar_epi32(idx, tmp7);
+                _mm512_store_si512((__m512i *) (dst + i), tmp7);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
+                v16sf src_tmp1 = _mm512_loadu_ps(src + i);
+                v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+                v16sf src_tmp3 = _mm512_loadu_ps(src + i + 2 * AVX512_LEN_FLOAT);
+                v16sf src_tmp4 = _mm512_loadu_ps(src + i + 3 * AVX512_LEN_FLOAT);
+                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+                v16sf tmp3 = _mm512_mul_ps(src_tmp3, scale_fact_vec);
+                v16sf tmp4 = _mm512_mul_ps(src_tmp4, scale_fact_vec);
+                v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
+                v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
+                v16si tmp3_int = _mm512_cvtps_epi32(tmp3);
+                v16si tmp4_int = _mm512_cvtps_epi32(tmp4);
+                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
+                v16si tmp6 = _mm512_packs_epi32(tmp3_int, tmp4_int);
+                v16si tmp7 = _mm512_packus_epi16(tmp5, tmp6);
+                tmp7 = _mm512_permutexvar_epi32(idx, tmp7);
+                _mm512_storeu_si512((__m512i *) (dst + i), tmp7);
+            }
+        }
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        if (rounding_mode == RndZero) {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+            fesetround(FE_TOWARDZERO);
+        } else {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
+            fesetround(FE_TONEAREST);
+        }
+
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
+                v16sf src_tmp1 = _mm512_load_ps(src + i);
+                v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+                v16sf src_tmp3 = _mm512_load_ps(src + i + 2 * AVX512_LEN_FLOAT);
+                v16sf src_tmp4 = _mm512_load_ps(src + i + 3 * AVX512_LEN_FLOAT);
+                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+                v16sf tmp3 = _mm512_mul_ps(src_tmp3, scale_fact_vec);
+                v16sf tmp4 = _mm512_mul_ps(src_tmp4, scale_fact_vec);
+                v16si tmp1_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp2_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp3_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp3, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp4_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp4, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
+                v16si tmp6 = _mm512_packs_epi32(tmp3_int, tmp4_int);
+                v16si tmp7 = _mm512_packus_epi16(tmp5, tmp6);
+                tmp7 = _mm512_permutexvar_epi32(idx, tmp7);
+                _mm512_store_si512((__m512i *) (dst + i), tmp7);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
+                v16sf src_tmp1 = _mm512_loadu_ps(src + i);
+                v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+                v16sf src_tmp3 = _mm512_loadu_ps(src + i + 2 * AVX512_LEN_FLOAT);
+                v16sf src_tmp4 = _mm512_loadu_ps(src + i + 3 * AVX512_LEN_FLOAT);
+                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+                v16sf tmp3 = _mm512_mul_ps(src_tmp3, scale_fact_vec);
+                v16sf tmp4 = _mm512_mul_ps(src_tmp4, scale_fact_vec);
+                v16si tmp1_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp2_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp3_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp3, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp4_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp4, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
+                v16si tmp6 = _mm512_packs_epi32(tmp3_int, tmp4_int);
+                v16si tmp7 = _mm512_packus_epi16(tmp5, tmp6);
+                tmp7 = _mm512_permutexvar_epi32(idx, tmp7);
+                _mm512_storeu_si512((__m512i *) (dst + i), tmp7);
+            }
+        }
+
+        // Default round toward zero
+        for (int i = stop_len; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
+        }
+    }
+}
+
+static inline void convertFloat32ToU16_512(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= (2 * AVX512_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v16sf scale_fact_vec = _mm512_set1_ps(scale_fact_mult);
+
+    v16si idx = _mm512_set_epi64(7, 5, 3, 1, 6, 4, 2, 0);
+
+    //  Default bankers rounding => round to nearest even
+    if (rounding_mode == RndFinancial) {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+                v16sf src_tmp1 = _mm512_load_ps(src + i);
+                v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+                v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
+                v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
+                v16si tmp5 = _mm512_packus_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
+                _mm512_store_si512((__m512i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+                v16sf src_tmp1 = _mm512_loadu_ps(src + i);
+                v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+                v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
+                v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
+                v16si tmp5 = _mm512_packus_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
+                _mm512_storeu_si512((__m512i *) (dst + i), tmp5);
+            }
+        }
+
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        if (rounding_mode == RndZero) {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+            fesetround(FE_TOWARDZERO);
+        } else {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTONEAREST;
+            fesetround(FE_TONEAREST);
+        }
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+                v16sf src_tmp1 = _mm512_load_ps(src + i);
+                v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+                v16si tmp1_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp2_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp5 = _mm512_packus_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
+                _mm512_store_si512((__m512i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+                v16sf src_tmp1 = _mm512_loadu_ps(src + i);
+                v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+                v16si tmp1_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp2_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp5 = _mm512_packus_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
+                _mm512_storeu_si512((__m512i *) (dst + i), tmp5);
+            }
+        }
+        // Default round toward zero
+        for (int i = stop_len; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);
+        }
+    }
+}
+
+
+static inline void convertFloat32ToI16_512(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= (2 * AVX512_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v16sf scale_fact_vec = _mm512_set1_ps(scale_fact_mult);
+
+    v16si idx = _mm512_set_epi64(7, 5, 3, 1, 6, 4, 2, 0);
+
+    //  Default bankers rounding => round to nearest even
+    if (rounding_mode == RndFinancial) {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+                v16sf src_tmp1 = _mm512_load_ps(src + i);
+                v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+                v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
+                v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
+                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
+                _mm512_store_si512((__m512i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+                v16sf src_tmp1 = _mm512_loadu_ps(src + i);
+                v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+                v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
+                v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
+                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
+                _mm512_storeu_si512((__m512i *) (dst + i), tmp5);
+            }
+        }
+
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        if (rounding_mode == RndZero) {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+            fesetround(FE_TOWARDZERO);
+        } else {
+            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTONEAREST;
+            fesetround(FE_TONEAREST);
+        }
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+                v16sf src_tmp1 = _mm512_load_ps(src + i);
+                v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+                v16si tmp1_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp2_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
+                _mm512_store_si512((__m512i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+                v16sf src_tmp1 = _mm512_loadu_ps(src + i);
+                v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+                v16si tmp1_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp2_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
+                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
+                _mm512_storeu_si512((__m512i *) (dst + i), tmp5);
+            }
+        }
+        // Default round toward zero
+        for (int i = stop_len; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
+        }
+    }
+}
+
+static inline void cplxtoreal512f(complex32_t *src, float *dstRe, float *dstIm, int len)
+{
+    int stop_len = 2 * len / (4 * AVX512_LEN_FLOAT);
+    stop_len *= 4 * AVX512_LEN_FLOAT;
+
+    int j = 0;
+
+    if (areAligned3((uintptr_t) (src), (uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX512_LEN_FLOAT)) {
+        for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
+            v16sfx2 tmp = _mm512_load2_ps((float const *) (src) + i);
+            v16sfx2 tmp2 = _mm512_load2_ps((float const *) (src) + i + 2 * AVX512_LEN_FLOAT);
+            _mm512_store_ps(dstRe + j, tmp.val[0]);
+            _mm512_store_ps(dstIm + j, tmp.val[1]);
+            _mm512_store_ps(dstRe + j + AVX512_LEN_FLOAT, tmp2.val[0]);
+            _mm512_store_ps(dstIm + j + AVX512_LEN_FLOAT, tmp2.val[1]);
+
+            j += 2 * AVX512_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
+            v16sfx2 tmp = _mm512_load2u_ps((float const *) (src) + i);
+            v16sfx2 tmp2 = _mm512_load2u_ps((float const *) (src) + i + 2 * AVX512_LEN_FLOAT);
+            _mm512_storeu_ps(dstRe + j, tmp.val[0]);
+            _mm512_storeu_ps(dstIm + j, tmp.val[1]);
+            _mm512_storeu_ps(dstRe + j + AVX512_LEN_FLOAT, tmp2.val[0]);
+            _mm512_storeu_ps(dstIm + j + AVX512_LEN_FLOAT, tmp2.val[1]);
+
+            j += 2 * AVX512_LEN_FLOAT;
+        }
+    }
+
+    for (int i = j; i < len; i++) {
+        dstRe[i] = src[i].re;
+        dstIm[i] = src[i].im;
+    }
+}
+
+
+static inline void realtocplx512f(float *srcRe, float *srcIm, complex32_t *dst, int len)
+{
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= 2 * AVX512_LEN_FLOAT;
+
+    int j = 0;
+
+    if (areAligned3((uintptr_t) (srcRe), (uintptr_t) (srcIm), (uintptr_t) (dst), AVX512_LEN_FLOAT)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sfx2 vec1, vec2;
+            vec1.val[0] = _mm512_load_ps(srcRe + i);
+            vec1.val[1] = _mm512_load_ps(srcIm + i);
+            vec2.val[0] = _mm512_load_ps(srcRe + i + AVX512_LEN_FLOAT);
+            vec2.val[1] = _mm512_load_ps(srcIm + i + AVX512_LEN_FLOAT);
+            _mm512_store2_ps((float *) (dst) + j, vec1);
+            _mm512_store2_ps((float *) (dst) + j + 2 * AVX512_LEN_FLOAT, vec2);
+
+            j += 4 * AVX512_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sfx2 vec1, vec2;
+            vec1.val[0] = _mm512_loadu_ps(srcRe + i);
+            vec1.val[1] = _mm512_loadu_ps(srcIm + i);
+            vec2.val[0] = _mm512_loadu_ps(srcRe + i + AVX512_LEN_FLOAT);
+            vec2.val[1] = _mm512_loadu_ps(srcIm + i + AVX512_LEN_FLOAT);
+            _mm512_store2u_ps((float *) (dst) + j, vec1);
+            _mm512_store2u_ps((float *) (dst) + j + 2 * AVX512_LEN_FLOAT, vec2);
+
+            j += 4 * AVX512_LEN_FLOAT;
+        }
+    }
+
+    for (int i = j; i < len; i++) {
+        dst[i].re = srcRe[i];
+        dst[i].im = srcIm[i];
+    }
+}
+
+
+static inline void convert512_64f32f(double *src, float *dst, int len)
+{
+    int stop_len = len / (4 * AVX512_LEN_DOUBLE);
+    stop_len *= (4 * AVX512_LEN_DOUBLE);
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_load_pd(src + i);
+            v8sd src_tmp2 = _mm512_load_pd(src + i + AVX512_LEN_DOUBLE);
+            v8sd src_tmp3 = _mm512_load_pd(src + i + 2 * AVX512_LEN_DOUBLE);
+            v8sd src_tmp4 = _mm512_load_pd(src + i + 3 * AVX512_LEN_DOUBLE);
+            v8sf src_lo = _mm512_cvtpd_ps(src_tmp);
+            v8sf src_hi = _mm512_cvtpd_ps(src_tmp2);
+            v8sf src_lo2 = _mm512_cvtpd_ps(src_tmp3);
+            v8sf src_hi2 = _mm512_cvtpd_ps(src_tmp4);
+            v16sf dst_tmp, dst_tmp2;
+            dst_tmp = _mm512_insertf32x8(dst_tmp, src_lo, 0);
+            dst_tmp = _mm512_insertf32x8(dst_tmp, src_hi, 1);
+            dst_tmp2 = _mm512_insertf32x8(dst_tmp2, src_lo2, 0);
+            dst_tmp2 = _mm512_insertf32x8(dst_tmp2, src_hi2, 1);
+            _mm512_store_ps(dst + j, dst_tmp);
+            _mm512_store_ps(dst + j + AVX512_LEN_FLOAT, dst_tmp2);
+            j += 2 * AVX512_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_loadu_pd(src + i);
+            v8sd src_tmp2 = _mm512_loadu_pd(src + i + AVX512_LEN_DOUBLE);
+            v8sd src_tmp3 = _mm512_loadu_pd(src + i + 2 * AVX512_LEN_DOUBLE);
+            v8sd src_tmp4 = _mm512_loadu_pd(src + i + 3 * AVX512_LEN_DOUBLE);
+            v8sf src_lo = _mm512_cvtpd_ps(src_tmp);
+            v8sf src_hi = _mm512_cvtpd_ps(src_tmp2);
+            v8sf src_lo2 = _mm512_cvtpd_ps(src_tmp3);
+            v8sf src_hi2 = _mm512_cvtpd_ps(src_tmp4);
+            v16sf dst_tmp, dst_tmp2;
+            dst_tmp = _mm512_insertf32x8(dst_tmp, src_lo, 0);
+            dst_tmp = _mm512_insertf32x8(dst_tmp, src_hi, 1);
+            dst_tmp2 = _mm512_insertf32x8(dst_tmp2, src_lo2, 0);
+            dst_tmp2 = _mm512_insertf32x8(dst_tmp2, src_hi2, 1);
+            _mm512_storeu_ps(dst + j, dst_tmp);
+            _mm512_storeu_ps(dst + j + AVX512_LEN_FLOAT, dst_tmp2);
+            j += 2 * AVX512_LEN_FLOAT;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = (float) src[i];
+    }
+}
+
+static inline void convert512_32f64f(float *src, double *dst, int len)
+{
+    int stop_len = len / (2 * AVX_LEN_FLOAT);
+    stop_len *= (2 * AVX_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_load_ps(src + i);  // load a,b,c,d
+            v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+            v8sd dst_tmp = _mm512_cvtps_pd(src_tmp);
+            v8sd dst_tmp2 = _mm512_cvtps_pd(src_tmp2);
+            _mm512_store_pd(dst + i, dst_tmp);  // store the abcd converted in 64bits
+            _mm512_store_pd(dst + i + AVX512_LEN_DOUBLE, dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_loadu_ps(src + i);  // load a,b,c,d
+            v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+            v8sd dst_tmp = _mm512_cvtps_pd(src_tmp);
+            v8sd dst_tmp2 = _mm512_cvtps_pd(src_tmp2);
+            _mm512_storeu_pd(dst + i, dst_tmp);  // store the abcd converted in 64bits
+            _mm512_storeu_pd(dst + i + AVX512_LEN_DOUBLE, dst_tmp2);
         }
     }
 
@@ -725,7 +1193,7 @@ static inline void flip512f(float *src, float *dst, int len)
 {
     int stop_len = len / (2 * AVX512_LEN_FLOAT);
     stop_len *= (2 * AVX512_LEN_FLOAT);
-    __m512i flip_idx = _mm512_set_epi32(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+    v16si flip_idx = _mm512_set_epi32(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
 
     for (int i = 0; i < 2 * AVX512_LEN_FLOAT; i++) {
         dst[len - i - 1] = src[i];
@@ -1719,6 +2187,35 @@ static inline void atan2512f(float *src1, float *src2, float *dst, int len)
     }
 }
 
+static inline void atan2512f_interleaved(complex32_t *src, float *dst, int len)
+{
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= 2 * AVX512_LEN_FLOAT;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sfx2 src1 = _mm512_load2_ps((float *) (src) + j);
+            v16sfx2 src2 = _mm512_load2_ps((float *) (src) + j + 2 * AVX512_LEN_FLOAT);
+            _mm512_store_ps(dst + i, atan2512f_ps(src1.val[1], src1.val[0]));
+            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, atan2512f_ps(src2.val[1], src2.val[0]));
+            j += 4 * AVX512_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sfx2 src1 = _mm512_load2u_ps((float *) (src) + j);
+            v16sfx2 src2 = _mm512_load2u_ps((float *) (src) + j + 2 * AVX512_LEN_FLOAT);
+            _mm512_storeu_ps(dst + i, atan2512f_ps(src1.val[1], src1.val[0]));
+            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, atan2512f_ps(src2.val[1], src2.val[0]));
+            j += 4 * AVX512_LEN_FLOAT;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atan2f(src[i].im, src[i].re);
+    }
+}
+
 static inline v16sf asin512f_ps(v16sf xx)
 {
     v16sf a, x, z, z_tmp;
@@ -2022,6 +2519,134 @@ static inline void powerspect512f_split(float *srcRe, float *srcIm, float *dst, 
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = srcRe[i] * srcRe[i] + srcIm[i] * srcIm[i];
+    }
+}
+
+static inline void magnitude512f_interleaved(complex32_t *src, float *dst, int len)
+{
+    int stop_len = len / (4 * AVX_LEN_FLOAT);
+    stop_len *= 4 * AVX_LEN_FLOAT;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+            v16sfx2 src_split = _mm512_load2_ps((float *) (src) + j);  // a0a1a2a3, b0b1b2b3
+            v16sfx2 src_split2 = _mm512_load2_ps((float *) (src) + j + 2 * AVX_LEN_FLOAT);
+            v16sfx2 src_split3 = _mm512_load2_ps((float *) (src) + j + 4 * AVX_LEN_FLOAT);
+            v16sfx2 src_split4 = _mm512_load2_ps((float *) (src) + j + 6 * AVX_LEN_FLOAT);
+            v16sf split_square0 = _mm512_mul_ps(src_split.val[0], src_split.val[0]);
+            v16sf split2_square0 = _mm512_mul_ps(src_split2.val[0], src_split2.val[0]);
+            v16sf split3_square0 = _mm512_mul_ps(src_split3.val[0], src_split3.val[0]);
+            v16sf split4_square0 = _mm512_mul_ps(src_split4.val[0], src_split4.val[0]);
+            v16sfx2 dst_split;
+            v16sfx2 dst_split2;
+            dst_split.val[0] = _mm512_fmadd_ps(src_split.val[1], src_split.val[1], split_square0);
+            dst_split.val[1] = _mm512_fmadd_ps(src_split2.val[1], src_split2.val[1], split2_square0);
+            dst_split2.val[0] = _mm512_fmadd_ps(src_split3.val[1], src_split3.val[1], split3_square0);
+            dst_split2.val[1] = _mm512_fmadd_ps(src_split4.val[1], src_split4.val[1], split4_square0);
+
+            dst_split.val[0] = _mm512_sqrt_ps(dst_split.val[0]);
+            dst_split.val[1] = _mm512_sqrt_ps(dst_split.val[1]);
+            dst_split2.val[0] = _mm512_sqrt_ps(dst_split2.val[0]);
+            dst_split2.val[1] = _mm512_sqrt_ps(dst_split2.val[1]);
+
+            _mm512_store_ps((float *) (dst) + i, dst_split.val[0]);
+            _mm512_store_ps((float *) (dst) + i + AVX_LEN_FLOAT, dst_split.val[1]);
+            _mm512_store_ps((float *) (dst) + i + 2 * AVX_LEN_FLOAT, dst_split2.val[0]);
+            _mm512_store_ps((float *) (dst) + i + 3 * AVX_LEN_FLOAT, dst_split2.val[1]);
+            j += 8 * AVX_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+            v16sfx2 src_split = _mm512_load2u_ps((float *) (src) + j);  // a0a1a2a3, b0b1b2b3
+            v16sfx2 src_split2 = _mm512_load2u_ps((float *) (src) + j + 2 * AVX_LEN_FLOAT);
+            v16sfx2 src_split3 = _mm512_load2u_ps((float *) (src) + j + 4 * AVX_LEN_FLOAT);
+            v16sfx2 src_split4 = _mm512_load2u_ps((float *) (src) + j + 6 * AVX_LEN_FLOAT);
+            v16sf split_square0 = _mm512_mul_ps(src_split.val[0], src_split.val[0]);
+            v16sf split2_square0 = _mm512_mul_ps(src_split2.val[0], src_split2.val[0]);
+            v16sf split3_square0 = _mm512_mul_ps(src_split3.val[0], src_split3.val[0]);
+            v16sf split4_square0 = _mm512_mul_ps(src_split4.val[0], src_split4.val[0]);
+            v16sfx2 dst_split;
+            v16sfx2 dst_split2;
+            dst_split.val[0] = _mm512_fmadd_ps(src_split.val[1], src_split.val[1], split_square0);
+            dst_split.val[1] = _mm512_fmadd_ps(src_split2.val[1], src_split2.val[1], split2_square0);
+            dst_split2.val[0] = _mm512_fmadd_ps(src_split3.val[1], src_split3.val[1], split3_square0);
+            dst_split2.val[1] = _mm512_fmadd_ps(src_split4.val[1], src_split4.val[1], split4_square0);
+
+            dst_split.val[0] = _mm512_sqrt_ps(dst_split.val[0]);
+            dst_split.val[1] = _mm512_sqrt_ps(dst_split.val[1]);
+            dst_split2.val[0] = _mm512_sqrt_ps(dst_split2.val[0]);
+            dst_split2.val[1] = _mm512_sqrt_ps(dst_split2.val[1]);
+
+            _mm512_storeu_ps((float *) (dst) + i, dst_split.val[0]);
+            _mm512_storeu_ps((float *) (dst) + i + AVX_LEN_FLOAT, dst_split.val[1]);
+            _mm512_storeu_ps((float *) (dst) + i + 2 * AVX_LEN_FLOAT, dst_split2.val[0]);
+            _mm512_storeu_ps((float *) (dst) + i + 3 * AVX_LEN_FLOAT, dst_split2.val[1]);
+            j += 8 * AVX_LEN_FLOAT;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = sqrtf(src[i].re * src[i].re + (src[i].im * src[i].im));
+    }
+}
+
+static inline void powerspect512f_interleaved(complex32_t *src, float *dst, int len)
+{
+    int stop_len = len / (4 * AVX_LEN_FLOAT);
+    stop_len *= 4 * AVX_LEN_FLOAT;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+            v16sfx2 src_split = _mm512_load2_ps((float *) (src) + j);  // a0a1a2a3, b0b1b2b3
+            v16sfx2 src_split2 = _mm512_load2_ps((float *) (src) + j + 2 * AVX_LEN_FLOAT);
+            v16sfx2 src_split3 = _mm512_load2_ps((float *) (src) + j + 4 * AVX_LEN_FLOAT);
+            v16sfx2 src_split4 = _mm512_load2_ps((float *) (src) + j + 6 * AVX_LEN_FLOAT);
+            v16sf split_square0 = _mm512_mul_ps(src_split.val[0], src_split.val[0]);
+            v16sf split2_square0 = _mm512_mul_ps(src_split2.val[0], src_split2.val[0]);
+            v16sf split3_square0 = _mm512_mul_ps(src_split3.val[0], src_split3.val[0]);
+            v16sf split4_square0 = _mm512_mul_ps(src_split4.val[0], src_split4.val[0]);
+            v16sfx2 dst_split;
+            v16sfx2 dst_split2;
+            dst_split.val[0] = _mm512_fmadd_ps(src_split.val[1], src_split.val[1], split_square0);
+            dst_split.val[1] = _mm512_fmadd_ps(src_split2.val[1], src_split2.val[1], split2_square0);
+            dst_split2.val[0] = _mm512_fmadd_ps(src_split3.val[1], src_split3.val[1], split3_square0);
+            dst_split2.val[1] = _mm512_fmadd_ps(src_split4.val[1], src_split4.val[1], split4_square0);
+
+            _mm512_store_ps((float *) (dst) + i, dst_split.val[0]);
+            _mm512_store_ps((float *) (dst) + i + AVX_LEN_FLOAT, dst_split.val[1]);
+            _mm512_store_ps((float *) (dst) + i + 2 * AVX_LEN_FLOAT, dst_split2.val[0]);
+            _mm512_store_ps((float *) (dst) + i + 3 * AVX_LEN_FLOAT, dst_split2.val[1]);
+            j += 8 * AVX_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+            v16sfx2 src_split = _mm512_load2u_ps((float *) (src) + j);  // a0a1a2a3, b0b1b2b3
+            v16sfx2 src_split2 = _mm512_load2u_ps((float *) (src) + j + 2 * AVX_LEN_FLOAT);
+            v16sfx2 src_split3 = _mm512_load2u_ps((float *) (src) + j + 4 * AVX_LEN_FLOAT);
+            v16sfx2 src_split4 = _mm512_load2u_ps((float *) (src) + j + 6 * AVX_LEN_FLOAT);
+            v16sf split_square0 = _mm512_mul_ps(src_split.val[0], src_split.val[0]);
+            v16sf split2_square0 = _mm512_mul_ps(src_split2.val[0], src_split2.val[0]);
+            v16sf split3_square0 = _mm512_mul_ps(src_split3.val[0], src_split3.val[0]);
+            v16sf split4_square0 = _mm512_mul_ps(src_split4.val[0], src_split4.val[0]);
+            v16sfx2 dst_split;
+            v16sfx2 dst_split2;
+            dst_split.val[0] = _mm512_fmadd_ps(src_split.val[1], src_split.val[1], split_square0);
+            dst_split.val[1] = _mm512_fmadd_ps(src_split2.val[1], src_split2.val[1], split2_square0);
+            dst_split2.val[0] = _mm512_fmadd_ps(src_split3.val[1], src_split3.val[1], split3_square0);
+            dst_split2.val[1] = _mm512_fmadd_ps(src_split4.val[1], src_split4.val[1], split4_square0);
+
+            _mm512_storeu_ps((float *) (dst) + i, dst_split.val[0]);
+            _mm512_storeu_ps((float *) (dst) + i + AVX_LEN_FLOAT, dst_split.val[1]);
+            _mm512_storeu_ps((float *) (dst) + i + 2 * AVX_LEN_FLOAT, dst_split2.val[0]);
+            _mm512_storeu_ps((float *) (dst) + i + 3 * AVX_LEN_FLOAT, dst_split2.val[1]);
+            j += 8 * AVX_LEN_FLOAT;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i].re * src[i].re + (src[i].im * src[i].im);
     }
 }
 

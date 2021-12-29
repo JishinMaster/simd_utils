@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.1
+ * Version : 0.2.2
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -345,6 +345,7 @@ _PS_CONST(ATANH_P2, 1.46691431730E-1f);
 _PS_CONST(ATANH_P3, 1.99782164500E-1f);
 _PS_CONST(ATANH_P4, 3.33337300303E-1f);
 
+_PS_CONST_TYPE(zero, int, (int) 0x00000000);
 _PS_CONST(1500, 1500.0f);
 _PS_CONST(LOGE2F, 0.693147180559945309f);
 _PS_CONST(ASINH_P0, 2.0122003309E-2f);
@@ -368,6 +369,7 @@ _PS_CONST(cephes_L10EB, 7.00731903251827651129E-4f);
 _PS_CONST(cephes_LOG2EA, 0.44269504088896340735992f);
 
 /////////////// DOUBLE //////////////////
+_PD_CONST_TYPE(zero, int, (int) 0x00000000);
 _PD_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
 _PD_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);
 _PD_CONST_TYPE(inv_mant_mask, int64_t, ~0xFFFFFFFFFFFFFL);
@@ -827,6 +829,9 @@ typedef __m512i v16si;  // vector of 16 int   (avx512)
 typedef __m512i v8sid;  // vector of 8 64bits int   (avx512)
 typedef __m256i v8si;   // vector of 8 int   (avx)
 typedef __m512d v8sd;   // vector of 8 double (avx512)
+typedef struct {
+    v16sf val[2];
+} v16sfx2;
 
 #define _PI64AVX512_CONST(Name, Val) \
     static const ALIGN64_BEG int _pi64avx_##Name[8] ALIGN64_END = {Val, Val, Val, Val, Val, Val, Val, Val}
@@ -861,6 +866,20 @@ _PI64AVX512_CONST(1, 1);
 _PI64AVX512_CONST(inv1, ~1);
 _PI64AVX512_CONST(2, 2);
 _PI64AVX512_CONST(4, 4);
+
+// used for cplxtoreal transforms
+
+// Select alternatively indexes between Real and Complex Elements of the two 512bit vectors
+//  indexes with 0x1X means second vector argument and X position (hexa)
+static const int _pi32_512_idx_re[16] __attribute__((aligned(64))) = {0x10, 0x12, 0x14, 0x16,
+                                                                      0x18, 0x1A, 0x1C, 0x1E, 0, 2, 4, 6, 8, 10, 12, 14};
+static const int _pi32_512_idx_im[16] __attribute__((aligned(64))) = {0x11, 0x13, 0x15, 0x17,
+                                                                      0x19, 0x1B, 0x1D, 0x1F, 1, 3, 5, 7, 9, 11, 13, 15};
+// used for realtocplx transforms
+static const int _pi32_512_idx_cplx_lo[16] __attribute__((aligned(64))) = {0x10, 0, 0x11, 1,
+                                                                           0x12, 2, 0x13, 3, 0x14, 4, 0x15, 5, 0x16, 6, 0x17, 7};
+static const int _pi32_512_idx_cplx_hi[16] __attribute__((aligned(64))) = {0x18, 8, 0x19, 9,
+                                                                           0x1A, 10, 0x1B, 11, 0x1C, 12, 0x1D, 13, 0x1E, 14, 0x1F, 15};
 
 ////////// SINGLE /////////////
 _PS512_CONST(1, 1.0f);

@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.1
+ * Version : 0.2.2
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -526,6 +526,7 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
 
     /* get the polynom selection mask for the sine*/
     emm2 = _mm_and_si128(emm2, *(v2si *) _pi64_2);
+    // SSE3
     emm2 = _mm_cmpeq_epi64(emm2, _mm_setzero_si128());
     v2sd poly_mask = _mm_castsi128_pd(emm2);
     // print2i(emm2);

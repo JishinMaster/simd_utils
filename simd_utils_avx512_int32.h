@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.1
+ * Version : 0.2.2
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -95,6 +95,49 @@ static inline void addc512s(int32_t *src, int32_t value, int32_t *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i] + value;
+    }
+}
+
+static inline void vectorSlope512s(int *dst, int len, int offset, int slope)
+{
+    v16si coef = _mm512_set_epi32(15 * slope, 14 * slope, 13 * slope, 12 * slope,
+                                  11 * slope, 10 * slope, 9 * slope, 8 * slope,
+                                  7 * slope, 6 * slope, 5 * slope, 4 * slope,
+                                  3 * slope, 2 * slope, slope, 0);
+    v16si slope32_vec = _mm512_set1_epi32(32 * slope);
+    v16si curVal = _mm512_add_epi32(_mm512_set1_epi32(offset), coef);
+    v16si curVal2 = _mm512_add_epi32(_mm512_set1_epi32(offset), coef);
+    curVal2 = _mm512_add_epi32(curVal2, _mm512_set1_epi32(16 * slope));
+
+    int stop_len = len / (2 * AVX512_LEN_INT32);
+    stop_len *= (2 * AVX512_LEN_INT32);
+
+    if (isAligned((uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        _mm512_store_si512((__m512i *) (dst + 0), curVal);
+        _mm512_store_si512((__m512i *) (dst + AVX512_LEN_INT32), curVal2);
+    } else {
+        _mm512_storeu_si512((__m512i *) (dst + 0), curVal);
+        _mm512_storeu_si512((__m512i *) (dst + AVX512_LEN_INT32), curVal2);
+    }
+
+    if (isAligned((uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 2 * AVX512_LEN_INT32; i < stop_len; i += 2 * AVX512_LEN_INT32) {
+            curVal = _mm512_add_epi32(curVal, slope32_vec);
+            _mm512_store_si512((__m512i *) (dst + i), curVal);
+            curVal2 = _mm512_add_epi32(curVal2, slope32_vec);
+            _mm512_store_si512((__m512i *) (dst + i + AVX512_LEN_INT32), curVal2);
+        }
+    } else {
+        for (int i = 2 * AVX512_LEN_INT32; i < stop_len; i += 2 * AVX512_LEN_INT32) {
+            curVal = _mm512_add_epi32(curVal, slope32_vec);
+            _mm512_storeu_si512((__m512i *) (dst + i), curVal);
+            curVal2 = _mm512_add_epi32(curVal2, slope32_vec);
+            _mm512_storeu_si512((__m512i *) (dst + i + AVX512_LEN_INT32), curVal2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = offset + slope * i;
     }
 }
 
