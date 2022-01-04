@@ -7195,7 +7195,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout4, inout2_ref, len);
 #endif
 
-#ifdef AVX
+#ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
     cplxtoreal512f((complex32_t *) inout, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
