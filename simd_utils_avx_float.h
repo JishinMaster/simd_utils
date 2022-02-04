@@ -331,6 +331,117 @@ static inline v8sf exp256_ps_alternate(v8sf x)
     return z;
 }
 
+#ifdef __AVX2__
+// from https://stackoverflow.com/questions/57454416/AVX-integer-2n-powers-of-2-for-32-bit-integers-without-avx2
+static inline v8sf power_of_two256f(v8si b)
+{
+    /*#ifndef __AVX2__
+        v8si exp = _mm256_add_epi32(b, _mm256_set1_epi32(127));
+        v8sf f = _mm256_castsi256_ps(_mm256_slli_epi32(exp, 23));
+        return f;
+    #else*/
+    return _mm256_cvtepi32_ps(_mm256_sllv_epi32(*(v8si *) _pi32_256_1, b));
+    //#endif
+}
+
+static inline v8sf cbrt256f_ps(v8sf xx)
+{
+    v8sf e, rem, sign;
+    v8sf x, z;
+
+    x = xx;
+    sign = _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_GT_OS);
+    x = _mm256_and_ps(x, *(v8sf *) _ps256_pos_sign_mask);
+
+    z = x;
+    /* extract power of 2, leaving
+     * mantissa between 0.5 and 1
+     */
+    // x = frexpf(x, &e);
+    // solve problem for zero
+    v8si emm0 = _mm256_srli_epi32(_mm256_castps_si256(x), 23);
+    x = _mm256_and_ps(x, *(v8sf *) _ps256_inv_mant_mask);
+    x = _mm256_or_ps(x, *(v8sf *) _ps256_0p5);
+    emm0 = _mm256_sub_epi32(emm0, *(v8si *) _pi32_256_0x7f);
+    e = _mm256_cvtepi32_ps(emm0);
+    e = _mm256_add_ps(e, *(v8sf *) _ps256_1);
+
+    /* Approximate cube root of number between .5 and 1,
+     * peak relative error = 9.2e-6
+     */
+    v8sf tmp;
+    tmp = _mm256_fmadd_ps_custom(*(v8sf *) _ps256_CBRTF_P0, x, *(v8sf *) _ps256_CBRTF_P1);
+    tmp = _mm256_fmadd_ps_custom(x, tmp, *(v8sf *) _ps256_CBRTF_P2);
+    tmp = _mm256_fmadd_ps_custom(x, tmp, *(v8sf *) _ps256_CBRTF_P3);
+    x = _mm256_fmadd_ps_custom(x, tmp, *(v8sf *) _ps256_CBRTF_P4);
+
+    /* exponent divided by 3 */
+    v8sf e_sign = _mm256_cmp_ps(e, _mm256_setzero_ps(), _CMP_GE_OS);
+    e = _mm256_and_ps(e, *(v8sf *) _ps256_pos_sign_mask);
+
+    rem = e;
+    e = _mm256_mul_ps(e, *(v8sf *) _ps256_0p3);
+    v8sf e_tmp = _mm256_mul_ps(*(v8sf *) _ps256_3, _mm256_round_ps(e, ROUNDTOZERO));
+    rem = _mm256_sub_ps(rem, e_tmp);
+
+    v8sf mul1, mul2;
+    v8sf mul_cst1 = _mm256_blendv_ps(*(v8sf *) _ps256_cephes_invCBRT2, *(v8sf *) _ps256_cephes_CBRT2, e_sign);
+    v8sf mul_cst2 = _mm256_blendv_ps(*(v8sf *) _ps256_cephes_invCBRT4, *(v8sf *) _ps256_cephes_CBRT4, e_sign);
+    mul1 = _mm256_mul_ps(x, mul_cst1);
+    mul2 = _mm256_mul_ps(x, mul_cst2);
+
+    v8si remi = _mm256_cvtps_epi32(rem);  // rem integer
+    v8si rem1 = _mm256_cmpeq_epi32(remi, _mm256_set1_epi32(1));
+    v8si rem2 = _mm256_cmpeq_epi32(remi, _mm256_set1_epi32(2));
+
+    x = _mm256_blendv_ps(x, mul1, _mm256_castsi256_ps(rem1));  // rem==1
+    x = _mm256_blendv_ps(x, mul2, _mm256_castsi256_ps(rem2));  // rem==2
+
+    /* multiply by power of 2 */
+    //  x = ldexpf(x, e);
+    // v8sf cst = _mm256_srli_epi32()
+    // x= x* (1 >> e)
+    // AVX2 : _mm256_srlv_epi32 pour shift
+    v8sf cst = power_of_two256f(_mm256_cvtps_epi32(e));
+    // blend sign of e
+    x = _mm256_blendv_ps(_mm256_div_ps(x, cst), _mm256_mul_ps(x, cst), e_sign);
+
+    /* Newton iteration */
+    // x -= (x - (z / (x * x))) * 0.333333333333;
+    v8sf tmp2 = _mm256_mul_ps(x, x);
+    tmp2 = _mm256_div_ps(z, tmp2);
+    tmp2 = _mm256_sub_ps(x, tmp2);
+    tmp2 = _mm256_mul_ps(tmp2, *(v8sf *) _ps256_0p3);
+    x = _mm256_sub_ps(x, tmp2);
+
+    x = _mm256_blendv_ps(_mm256_mul_ps(x, *(v8sf *) _ps256_min1), x, sign);
+    return x;
+}
+
+static inline void cbrt256f(float *src, float *dst, int len)
+{
+    int stop_len = len / (AVX_LEN_FLOAT);
+    stop_len *= (AVX_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf x = _mm256_load_ps(src + i);
+            v8sf dst_tmp = cbrt256f_ps(x);
+            _mm256_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf x = _mm256_loadu_ps(src + i);
+            v8sf dst_tmp = cbrt256f_ps(x);
+            _mm256_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = cbrtf(src[i]);
+    }
+}
+#endif
+
 static inline void fabs256f(float *src, float *dst, int len)
 {
     int stop_len = len / (2 * AVX_LEN_FLOAT);
@@ -1948,6 +2059,36 @@ static inline void sincos256f(float *src, float *dst_sin, float *dst_cos, int le
 
     for (int i = stop_len; i < len; i++) {
         mysincosf(src[i], dst_sin + i, dst_cos + i);
+    }
+}
+
+// e^ix = cos(x) + i*sin(x)
+static inline void euler256f(float *src, complex32_t *dst, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_load_ps(src + i);
+            v8sfx2 dst_tmp;
+            sincos256_ps(src_tmp, &(dst_tmp.val[0]), &(dst_tmp.val[1]));
+            _mm256_store2_ps((float *) dst + j, dst_tmp);
+            j += 2 * AVX_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_loadu_ps(src + i);
+            v8sfx2 dst_tmp;
+            sincos256_ps(src_tmp, &(dst_tmp.val[0]), &(dst_tmp.val[1]));
+            _mm256_store2u_ps((float *) dst + j, dst_tmp);
+            j += 2 * AVX_LEN_FLOAT;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        mysincosf(src[i], &(dst[i].re), &(dst[i].im));
     }
 }
 

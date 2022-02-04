@@ -229,7 +229,14 @@ _PI64_CONST(0x7f, 0x7f);
 
 /////////////// SINGLE //////////////////
 _PS_CONST(1, 1.0f);
+_PS_CONST(0p3, 0.333333333333f);
+_PS_CONST(min0p3, -0.333333333333f);
 _PS_CONST(0p5, 0.5f);
+_PS_CONST(min1, -1.0f);
+_PS_CONST(min2, -2.0f);
+_PS_CONST(min0p5, -0.5f);
+_PS_CONST(3, 3.0f);
+
 /* the smallest non denormalized float number */
 _PS_CONST_TYPE(min_norm_pos, int, 0x00800000);
 _PS_CONST_TYPE(mant_mask, int, 0x7f800000);
@@ -275,10 +282,6 @@ _PS_CONST(coscof_p0, 2.443315711809948E-005f);
 _PS_CONST(coscof_p1, -1.388731625493765E-003f);
 _PS_CONST(coscof_p2, 4.166664568298827E-002f);
 _PS_CONST(cephes_FOPI, 1.27323954473516f);  // 4 / M_PI
-
-_PS_CONST(min1, -1.0f);
-_PS_CONST(min2, -2.0f);
-_PS_CONST(min0p5, -0.5f);
 
 // For tanf
 _PS_CONST(DP123, 0.78515625 + 2.4187564849853515625e-4 + 3.77489497744594108e-8);
@@ -367,6 +370,17 @@ _PS_CONST(cephes_L10EB, 7.00731903251827651129E-4f);
 
 /* For log2f */
 _PS_CONST(cephes_LOG2EA, 0.44269504088896340735992f);
+
+/* For cbrtf */
+_PS_CONST(cephes_CBRT2, 1.25992104989487316477f);
+_PS_CONST(cephes_CBRT4, 1.58740105196819947475f);
+_PS_CONST(cephes_invCBRT2, 0.7937005259840997373740956123328f);
+_PS_CONST(cephes_invCBRT4, 0.6299605249474365823842821870329f);
+_PS_CONST(CBRTF_P0, -0.13466110473359520655053f);
+_PS_CONST(CBRTF_P1, 0.54664601366395524503440f);
+_PS_CONST(CBRTF_P2, -0.95438224771509446525043f);
+_PS_CONST(CBRTF_P3, 1.1399983354717293273738f);
+_PS_CONST(CBRTF_P4, 0.40238979564544752126924f);
 
 /////////////// DOUBLE //////////////////
 _PD_CONST_TYPE(zero, int, (int) 0x00000000);
@@ -600,6 +614,9 @@ _PI256_64_CONST(0x7f, 0x7f);
 
 /////////////// SINGLE //////////////////
 _PS256_CONST(1, 1.0f);
+_PS256_CONST(3, 3.0f);
+_PS256_CONST(0p3, 0.333333333333f);
+_PS256_CONST(min0p3, -0.333333333333f);
 _PS256_CONST(0p5, 0.5f);
 /* the smallest non denormalized float number */
 _PS256_CONST_TYPE(min_norm_pos, int, 0x00800000);
@@ -737,6 +754,17 @@ _PS256_CONST(cephes_L10EB, 7.00731903251827651129E-4f);
 
 /* For log2f */
 _PS256_CONST(cephes_LOG2EA, 0.44269504088896340735992f);
+
+/* For cbrtf */
+_PS256_CONST(cephes_CBRT2, 1.25992104989487316477f);
+_PS256_CONST(cephes_CBRT4, 1.58740105196819947475f);
+_PS256_CONST(cephes_invCBRT2, 0.7937005259840997373740956123328f);
+_PS256_CONST(cephes_invCBRT4, 0.6299605249474365823842821870329f);
+_PS256_CONST(CBRTF_P0, -0.13466110473359520655053f);
+_PS256_CONST(CBRTF_P1, 0.54664601366395524503440f);
+_PS256_CONST(CBRTF_P2, -0.95438224771509446525043f);
+_PS256_CONST(CBRTF_P3, 1.1399983354717293273738f);
+_PS256_CONST(CBRTF_P4, 0.40238979564544752126924f);
 
 /////////////// DOUBLE //////////////////
 _PD256_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
@@ -883,7 +911,11 @@ static const int _pi32_512_idx_cplx_hi[16] __attribute__((aligned(64))) = {0x18,
 
 ////////// SINGLE /////////////
 _PS512_CONST(1, 1.0f);
+_PS512_CONST(3, 3.0f);
+_PS512_CONST(0p3, 0.333333333333f);
+_PS512_CONST(min0p3, -0.333333333333f);
 _PS512_CONST(0p5, 0.5f);
+
 /* the smallest non denormalized float number */
 _PS512_CONST_TYPE(min_norm_pos, int, 0x00800000);
 _PS512_CONST_TYPE(mant_mask, int, 0x7f800000);
@@ -1017,6 +1049,17 @@ _PS512_CONST(cephes_L10EB, 7.00731903251827651129E-4f);
 /* For log2f */
 _PS512_CONST(cephes_LOG2EA, 0.44269504088896340735992f);
 
+/* For cbrtf */
+_PS512_CONST(cephes_CBRT2, 1.25992104989487316477f);
+_PS512_CONST(cephes_CBRT4, 1.58740105196819947475f);
+_PS512_CONST(cephes_invCBRT2, 0.7937005259840997373740956123328f);
+_PS512_CONST(cephes_invCBRT4, 0.6299605249474365823842821870329f);
+_PS512_CONST(CBRTF_P0, -0.13466110473359520655053f);
+_PS512_CONST(CBRTF_P1, 0.54664601366395524503440f);
+_PS512_CONST(CBRTF_P2, -0.95438224771509446525043f);
+_PS512_CONST(CBRTF_P3, 1.1399983354717293273738f);
+_PS512_CONST(CBRTF_P4, 0.40238979564544752126924f);
+
 ////////// DOUBLE /////////////
 _PD512_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
 _PD512_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);
@@ -1127,8 +1170,8 @@ typedef __vector char v16s8;
 #endif
 
 /// PRINT FUNCTIONS */
-/*
 
+/*
 static inline void print4(__m128 v)
 {
     float *p = (float *) &v;
@@ -1138,6 +1181,15 @@ static inline void print4(__m128 v)
     printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
 }
 
+static inline void print4i(__m128i v)
+{
+    int *p = (int *) &v;
+#ifndef __SSE2__
+    _mm_empty();
+#endif
+    printf("[%d, %d, %d, %d]", p[0], p[1], p[2], p[3]);
+}*/
+/*
 static inline void print4short(__m64 v)
 {
     uint16_t *p = (uint16_t *) &v;

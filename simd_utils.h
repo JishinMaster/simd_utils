@@ -377,6 +377,26 @@ static inline v8sfx2 _mm256_load2u_ps(float const *mem_addr)
     return ret;
 }
 
+static inline void _mm256_store2_ps(float *mem_addr, v8sfx2 a)
+{
+    v8sf cplx0 = _mm256_unpacklo_ps(a.val[0], a.val[1]);
+    v8sf cplx1 = _mm256_unpackhi_ps(a.val[0], a.val[1]);
+    v8sf perm0 = _mm256_permute2f128_ps(cplx0, cplx1, 0x20);  // permute mask [cplx1(127:0],cplx0[127:0])
+    v8sf perm1 = _mm256_permute2f128_ps(cplx0, cplx1, 0x31);  // permute mask [cplx1(255:128],cplx0[255:128])
+    _mm256_store_ps(mem_addr, perm0);
+    _mm256_store_ps(mem_addr + AVX_LEN_FLOAT, perm1);
+}
+
+static inline void _mm256_store2u_ps(float *mem_addr, v8sfx2 a)
+{
+    v8sf cplx0 = _mm256_unpacklo_ps(a.val[0], a.val[1]);
+    v8sf cplx1 = _mm256_unpackhi_ps(a.val[0], a.val[1]);
+    v8sf perm0 = _mm256_permute2f128_ps(cplx0, cplx1, 0x20);  // permute mask [cplx1(127:0],cplx0[127:0])
+    v8sf perm1 = _mm256_permute2f128_ps(cplx0, cplx1, 0x31);  // permute mask [cplx1(255:128],cplx0[255:128])
+    _mm256_storeu_ps(mem_addr, perm0);
+    _mm256_storeu_ps(mem_addr + AVX_LEN_FLOAT, perm1);
+}
+
 #include "simd_utils_avx_double.h"
 #include "simd_utils_avx_float.h"
 #include "simd_utils_avx_int32.h"
@@ -538,6 +558,16 @@ static inline void expf_C(float *src, float *dst, int len)
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] = expf(src[i]);
+    }
+}
+
+static inline void cbrtf_C(float *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = cbrtf(src[i]);
     }
 }
 
@@ -1159,6 +1189,17 @@ static inline void sincosd_C(double *src, double *dst_sin, double *dst_cos, int 
     for (int i = 0; i < len; i++) {
         dst_sin[i] = sin(src[i]);
         dst_cos[i] = cos(src[i]);
+    }
+}
+
+// e^ix = cos(x) + i*sin(x)
+static inline void eulerf_C(float *src, complex32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        mysincosf(src[i], &(dst[i].re), &(dst[i].im));
     }
 }
 

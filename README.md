@@ -84,6 +84,7 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | log2_128f/precise          | log2_256f/precise          | log2_512f/precise          | log2f_C                   |                              | X                           | log2_128f            |
 | ln_128f                    | ln_256f                    | ln_512f                    | lnf_C                     | ippsLn_32f_A24               | X                           | ln_128f              |
 | exp_128f                   | exp_256f                   | exp_512f                   | expf_C                    | ippsExp_32f_A24              | X                           | X                    |
+| cbrt128f                   | cbrt256f                   | cbrt512f                   | cbrtf_C                   | X                            | X                           | X                    |
 | fabs128f                   | fabs256f                   | fabs512f                   | fabsf_C                   | ippsAbs_32f                  | X                           | X                    |
 | set128f                    | set256f                    | set512f                    | setf_C                    | ippsSet_32f                  | X                           | set128f              |
 | zero128f                   | zero256f                   | zero512f                   | zerof_C                   | ippsZero_32f                 | X                           | zero128f             |
@@ -119,6 +120,7 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | sin128f                    | sin256f                    | sin512f                    | sinf_C                    | ippsSin_32f_A24              | sinf_vec                    | X                    |
 | cos128f                    | cos256f                    | cos512f                    | cosf_C                    | ippsCos_32f_A24              | X                           | X                    |
 | sincos128f                 | sincos256f                 | sincos512f                 | sincosf_C                 | ippsSinCos_32f_A24           | sincosf_vec                 | X                    |
+| euler128f                  | euler256f                  | euler512f                  | eulerf_C                  | X                            | X                           | X                    |
 | cosh128f                   | cosh256f                   | cosh512f                   | coshf_C                   | ippsCosh_32f_A24             | X                           | X                    |
 | sinh128f                   | sinh256f                   | sinh512f                   | sinhf_C                   | ippsSinh_32f_A24             | X                           | X                    |
 | acosh128f                  | acosh256f                  | acosh512f                  | acoshf_C                  | ippsAcosh_32f_A24            | X                           | X                    |

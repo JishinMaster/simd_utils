@@ -4044,6 +4044,76 @@ printf("\n");
     }*/
 
     printf("\n");
+    /////////////////////////////////////////////////////////// EULER //////////////////////////////////////////////////////////////////////////////
+    printf("EULER\n");
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    eulerf_C(inout, (complex32_t *) inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("eulerf_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        eulerf_C(inout, (complex32_t *) inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("eulerf_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    euler128f(inout, (complex32_t *) inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("euler128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        euler128f(inout, (complex32_t *) inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("euler128f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, 2 * len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    euler256f(inout, (complex32_t *) inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("euler256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        euler256f(inout, (complex32_t *) inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("euler256f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, 2 * len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    euler512f(inout, (complex32_t *) inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("euler512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        euler512f(inout, (complex32_t *) inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("euler512f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, 2 * len);
+#endif
+
+    /*for (int i = 0; i < len; i++) {
+        printf("%f %f %f %f %f\n",inout[i], inout_ref[i],inout2[i],inout2_ref[i],inout3[i]);
+    }*/
+
+
+    printf("\n");
     /////////////////////////////////////////////////////////// LOGN //////////////////////////////////////////////////////////////////////////////
     printf("LOGN\n");
 
@@ -8462,6 +8532,85 @@ for (int i = 0; i < len; i++){
 
     l2_err_i32(inout_i2, inout_iref, len);
 #endif
+#endif
+
+    printf("\n");
+
+    /////////////////////////////////////////////////////////// CBTRF //////////////////////////////////////////////////////////////////////////////
+    printf("CBTRF\n");
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = 1.0f / ((float) i + 0.000000001f);  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    cbrtf_C(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cbrtf_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cbrtf_C(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cbrtf_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    cbrt128f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cbrt128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cbrt128f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cbrt128f %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout_ref, len);
+
+    /*for (int i = 0; i < len; i++) {
+        printf("%f %f %f\n", inout[i],inout_ref[i],inout2[i]);
+    }*/
+#endif
+
+#ifdef AVX
+#ifdef __AVX2__
+    clock_gettime(CLOCK_REALTIME, &start);
+    cbrt256f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cbrt256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cbrt256f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cbrt256f %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout_ref, len);
+#endif
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    cbrt512f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cbrt512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cbrt512f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cbrt512f %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout_ref, len);
 #endif
 
     free(inout);

@@ -308,6 +308,187 @@ static inline void exp_128f_(float *src, float *dst, int len)
     }
 }
 
+/////////////// CBRT
+// Test, seems okay, see sse_mathfun
+static inline void frexpf128f(float *src, float *dst, int len)
+{
+    int stop_len = len / (SSE_LEN_FLOAT);
+    stop_len *= (SSE_LEN_FLOAT);
+    int ep[4];
+    float fr[4];
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf x = _mm_load_ps(src + i);
+            // x = _mm_max_ps(x, *(v4sf *) _ps_min_norm_pos);
+            v4si emm0 = _mm_srli_epi32(_mm_castps_si128(x), 23);
+            v4sf x_frac = _mm_and_ps(x, *(v4sf *) _ps_inv_mant_mask);
+            x_frac = _mm_or_ps(x_frac, *(v4sf *) _ps_0p5);
+            emm0 = _mm_sub_epi32(emm0, *(v4si *) _pi32_0x7f);
+            v4sf e = _mm_cvtepi32_ps(emm0);
+            e = _mm_add_ps(e, *(v4sf *) _ps_1);
+
+            /*v4si emm0 = _mm_srli_epi32( _mm_castps_si128(x), 23);
+            v4sf invalid_mask = _mm_castsi128_ps ( _mm_cmpeq_epi32( _mm_and_si128(_mm_castps_si128(x), vneg), vneg));
+            v4sf zero_mask    = _mm_castsi128_ps ( _mm_cmpeq_epi32(emm0, _mm_setzero_si128()));
+            v4sf inf_mask     = _mm_castsi128_ps ( _mm_cmpeq_epi32( _mm_and_si128(_mm_castps_si128(x), vexp), vexp));
+            v4sf x_frac   = _mm_and_ps(x, _mm_castsi128_ps(_mm_set1_epi32(~0x7f800000)));
+            x_frac  = _mm_or_ps (x_frac, *(v4sf*)_ps_0p5);
+            emm0 = _mm_sub_epi32(emm0, _mm_set1_epi32(126));
+            v4sf e  = _mm_cvtepi32_ps(emm0);*/
+            print4(x);
+            print4(x_frac);
+            print4i(emm0);
+            print4(e);
+            printf("\n");
+            fr[0] = frexpf(src[i], &ep[0]);
+            fr[1] = frexpf(src[i + 1], &ep[1]);
+            fr[2] = frexpf(src[i + 2], &ep[2]);
+            fr[3] = frexpf(src[i + 3], &ep[3]);
+            printf("%f %d\n", fr[0], ep[0]);
+            printf("%f %d\n", fr[1], ep[1]);
+            printf("%f %d\n", fr[2], ep[2]);
+            printf("%f %d\n", fr[3], ep[3]);
+        }
+    }
+}
+
+static inline void ldexp128f(float *src, int ex, float *dst, int len)
+{
+    int stop_len = len / (SSE_LEN_FLOAT);
+    stop_len *= (SSE_LEN_FLOAT);
+    int ep[4];
+    float fr[4];
+    v4sf cst = _mm_set1_ps((float) (1 << ex));
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf x = _mm_load_ps(src + i);
+            v4sf x_ex = _mm_mul_ps(x, cst);
+            print4(x);
+            printf("\n");
+            print4(x_ex);
+            printf("\n");
+            fr[0] = ldexpf(src[i], ex);
+            fr[1] = ldexpf(src[i + 1], ex);
+            fr[2] = ldexpf(src[i + 2], ex);
+            fr[3] = ldexpf(src[i + 3], ex);
+            printf("%3.24g %3.24g %3.24g %3.24g\n", fr[0], fr[1], fr[2], fr[3]);
+        }
+    }
+}
+
+// from https://stackoverflow.com/questions/57454416/sse-integer-2n-powers-of-2-for-32-bit-integers-without-avx2
+static inline v4sf power_of_twof(v4si b)
+{
+    v4si exp = _mm_add_epi32(b, _mm_set1_epi32(127));
+    v4sf f = _mm_castsi128_ps(_mm_slli_epi32(exp, 23));
+    return f;
+}
+
+static inline v4sf cbrtf_ps(v4sf xx)
+{
+    v4sf e, rem, sign;
+    v4sf x, z;
+
+    x = xx;
+    sign = _mm_cmpgt_ps(x, _mm_setzero_ps());
+    x = _mm_and_ps(x, *(v4sf *) _ps_pos_sign_mask);
+
+    z = x;
+    /* extract power of 2, leaving
+     * mantissa between 0.5 and 1
+     */
+    // x = frexpf(x, &e);
+    // solve problem for zero
+    v4si emm0 = _mm_srli_epi32(_mm_castps_si128(x), 23);
+    x = _mm_and_ps(x, *(v4sf *) _ps_inv_mant_mask);
+    x = _mm_or_ps(x, *(v4sf *) _ps_0p5);
+    emm0 = _mm_sub_epi32(emm0, *(v4si *) _pi32_0x7f);
+    e = _mm_cvtepi32_ps(emm0);
+    e = _mm_add_ps(e, *(v4sf *) _ps_1);
+    /* Approximate cube root of number between .5 and 1,
+     * peak relative error = 9.2e-6
+     */
+    v4sf tmp;
+    tmp = _mm_fmadd_ps_custom(*(v4sf *) _ps_CBRTF_P0, x, *(v4sf *) _ps_CBRTF_P1);
+    tmp = _mm_fmadd_ps_custom(x, tmp, *(v4sf *) _ps_CBRTF_P2);
+    tmp = _mm_fmadd_ps_custom(x, tmp, *(v4sf *) _ps_CBRTF_P3);
+    x = _mm_fmadd_ps_custom(x, tmp, *(v4sf *) _ps_CBRTF_P4);
+
+    /* exponent divided by 3 */
+    v4sf e_sign = _mm_cmpge_ps(e, _mm_setzero_ps());
+    e = _mm_and_ps(e, *(v4sf *) _ps_pos_sign_mask);
+
+    rem = e;
+    e = _mm_mul_ps(e, *(v4sf *) _ps_0p3);
+    v4sf e_tmp = _mm_mul_ps(*(v4sf *) _ps_3, _mm_round_ps(e, ROUNDTOZERO));
+    rem = _mm_sub_ps(rem, e_tmp);
+
+    v4sf mul1, mul2;
+    v4sf mul_cst1 = _mm_blendv_ps(*(v4sf *) _ps_cephes_invCBRT2, *(v4sf *) _ps_cephes_CBRT2, e_sign);
+    v4sf mul_cst2 = _mm_blendv_ps(*(v4sf *) _ps_cephes_invCBRT4, *(v4sf *) _ps_cephes_CBRT4, e_sign);
+    mul1 = _mm_mul_ps(x, mul_cst1);
+    mul2 = _mm_mul_ps(x, mul_cst2);
+
+    v4si remi = _mm_cvtps_epi32(rem);  // rem integer
+    v4si rem1 = _mm_cmpeq_epi32(remi, _mm_set1_epi32(1));
+    v4si rem2 = _mm_cmpeq_epi32(remi, _mm_set1_epi32(2));
+
+    x = _mm_blendv_ps(x, mul1, _mm_castsi128_ps(rem1));  // rem==1
+    x = _mm_blendv_ps(x, mul2, _mm_castsi128_ps(rem2));  // rem==2
+
+    /* multiply by power of 2 */
+    //  x = ldexpf(x, e);
+    // v4sf cst = _mm_srli_epi32()
+    // x= x* (1 >> e)
+    // AVX2 : _mm256_srlv_epi32 pour shift
+    v4sf cst = power_of_twof(_mm_cvtps_epi32(e));
+    // blend sign of e
+    x = _mm_blendv_ps(_mm_div_ps(x, cst), _mm_mul_ps(x, cst), e_sign);
+
+    /* Newton iteration */
+    // x -= (x - (z / (x * x))) * 0.333333333333;
+    v4sf tmp2 = _mm_mul_ps(x, x);
+    tmp2 = _mm_div_ps(z, tmp2);
+    tmp2 = _mm_sub_ps(x, tmp2);
+    tmp2 = _mm_mul_ps(tmp2, *(v4sf *) _ps_0p3);
+    x = _mm_sub_ps(x, tmp2);
+
+    x = _mm_blendv_ps(_mm_mul_ps(x, *(v4sf *) _ps_min1), x, sign);
+    return x;
+}
+
+static inline void cbrt128f(float *src, float *dst, int len)
+{
+    int stop_len = len / (SSE_LEN_FLOAT);
+    stop_len *= (SSE_LEN_FLOAT);
+    // float fr[4];
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf x = _mm_load_ps(src + i);
+            // printf("x : ");print4(x);printf("\n");
+            v4sf dst_tmp = cbrtf_ps(x);
+            /*printf("out : ");print4(tmp);printf("\n");
+            fr[0] = cbrtf(src[i]);
+            fr[1] = cbrtf(src[i+1]);
+            fr[2] = cbrtf(src[i+2]);
+            fr[3] = cbrtf(src[i+3]);
+            printf("%3.9g %3.9g %3.9g %3.9g\n",fr[0], fr[1], fr[2], fr[3]);*/
+            _mm_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf x = _mm_loadu_ps(src + i);
+            v4sf dst_tmp = cbrtf_ps(x);
+            _mm_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = cbrtf(src[i]);
+    }
+}
+/////
+
 static inline void fabs128f(float *src, float *dst, int len)
 {
     int stop_len = len / (2 * SSE_LEN_FLOAT);
@@ -1955,6 +2136,36 @@ static inline void sincos128f(float *src, float *dst_sin, float *dst_cos, int le
 
     for (int i = stop_len; i < len; i++) {
         mysincosf(src[i], dst_sin + i, dst_cos + i);
+    }
+}
+
+// e^ix = cos(x) + i*sin(x)
+static inline void euler128f(float *src, complex32_t *dst, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            v4sfx2 dst_tmp;
+            sincos_ps(src_tmp, &(dst_tmp.val[0]), &(dst_tmp.val[1]));
+            _mm_store2_ps((float *) dst + j, dst_tmp);
+            j += 2 * SSE_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            v4sfx2 dst_tmp;
+            sincos_ps(src_tmp, &(dst_tmp.val[0]), &(dst_tmp.val[1]));
+            _mm_store2u_ps((float *) dst + j, dst_tmp);
+            j += 2 * SSE_LEN_FLOAT;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        mysincosf(src[i], &(dst[i].re), &(dst[i].im));
     }
 }
 

@@ -250,6 +250,106 @@ static inline void exp_512f(float *src, float *dst, int len)
     }
 }
 
+static inline v16sf power_of_two512f(v16si b)
+{
+    return _mm512_cvtepi32_ps(_mm512_sllv_epi32(*(v16si *) _pi32_512_1, b));
+}
+
+static inline v16sf cbrt512f_ps(v16sf xx)
+{
+    v16sf e, rem;
+    __mmask16 sign;
+    v16sf x, z;
+
+    x = xx;
+    sign = _mm512_cmp_ps_mask(x, _mm512_setzero_ps(), _CMP_GT_OS);
+    x = _mm512_and_ps(x, *(v16sf *) _ps512_pos_sign_mask);
+
+    z = x;
+    /* extract power of 2, leaving
+     * mantissa between 0.5 and 1
+     */
+    // x = frexpf(x, &e);
+    // solve problem for zero
+    v16si emm0 = _mm512_srli_epi32(_mm512_castps_si512(x), 23);
+    x = _mm512_and_ps(x, *(v16sf *) _ps512_inv_mant_mask);
+    x = _mm512_or_ps(x, *(v16sf *) _ps512_0p5);
+    emm0 = _mm512_sub_epi32(emm0, *(v16si *) _pi32_512_0x7f);
+    e = _mm512_cvtepi32_ps(emm0);
+    e = _mm512_add_ps(e, *(v16sf *) _ps512_1);
+
+    /* Approximate cube root of number between .5 and 1,
+     * peak relative error = 9.2e-6
+     */
+    v16sf tmp;
+    tmp = _mm512_fmadd_ps(*(v16sf *) _ps512_CBRTF_P0, x, *(v16sf *) _ps512_CBRTF_P1);
+    tmp = _mm512_fmadd_ps(x, tmp, *(v16sf *) _ps512_CBRTF_P2);
+    tmp = _mm512_fmadd_ps(x, tmp, *(v16sf *) _ps512_CBRTF_P3);
+    x = _mm512_fmadd_ps(x, tmp, *(v16sf *) _ps512_CBRTF_P4);
+
+    /* exponent divided by 3 */
+    __mmask16 e_sign = _mm512_cmp_ps_mask(e, _mm512_setzero_ps(), _CMP_GE_OS);
+    e = _mm512_and_ps(e, *(v16sf *) _ps512_pos_sign_mask);
+
+    rem = e;
+    e = _mm512_mul_ps(e, *(v16sf *) _ps512_0p3);
+    v16sf e_tmp = _mm512_mul_ps(*(v16sf *) _ps512_3, _mm512_roundscale_ps(e, ROUNDTOZERO));
+    rem = _mm512_sub_ps(rem, e_tmp);
+
+    v16sf mul1, mul2;
+    v16sf mul_cst1 = _mm512_mask_blend_ps(e_sign, *(v16sf *) _ps512_cephes_invCBRT2, *(v16sf *) _ps512_cephes_CBRT2);
+    v16sf mul_cst2 = _mm512_mask_blend_ps(e_sign, *(v16sf *) _ps512_cephes_invCBRT4, *(v16sf *) _ps512_cephes_CBRT4);
+    mul1 = _mm512_mul_ps(x, mul_cst1);
+    mul2 = _mm512_mul_ps(x, mul_cst2);
+
+    v16si remi = _mm512_cvtps_epi32(rem);  // rem integer
+    __mmask16 rem1 = _mm512_cmpeq_epi32_mask(remi, _mm512_set1_epi32(1));
+    __mmask16 rem2 = _mm512_cmpeq_epi32_mask(remi, _mm512_set1_epi32(2));
+
+    x = _mm512_mask_blend_ps(rem1, x, mul1);  // rem==1
+    x = _mm512_mask_blend_ps(rem2, x, mul2);  // rem==2
+
+    /* multiply by power of 2 */
+    //  x = ldexpf(x, e);
+    v16sf cst = power_of_two512f(_mm512_cvtps_epi32(e));
+    // blend sign of e
+    x = _mm512_mask_blend_ps(e_sign, _mm512_div_ps(x, cst), _mm512_mul_ps(x, cst));
+
+    /* Newton iteration */
+    // x -= (x - (z / (x * x))) * 0.333333333333;
+    v16sf tmp2 = _mm512_mul_ps(x, x);
+    tmp2 = _mm512_div_ps(z, tmp2);
+    tmp2 = _mm512_sub_ps(x, tmp2);
+    tmp2 = _mm512_mul_ps(tmp2, *(v16sf *) _ps512_0p3);
+    x = _mm512_sub_ps(x, tmp2);
+
+    x = _mm512_mask_blend_ps(sign, _mm512_mul_ps(x, *(v16sf *) _ps512_min1), x);
+    return x;
+}
+
+static inline void cbrt512f(float *src, float *dst, int len)
+{
+    int stop_len = len / (AVX512_LEN_FLOAT);
+    stop_len *= (AVX512_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf x = _mm512_load_ps(src + i);
+            v16sf dst_tmp = cbrt512f_ps(x);
+            _mm512_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf x = _mm512_loadu_ps(src + i);
+            v16sf dst_tmp = cbrt512f_ps(x);
+            _mm512_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = cbrtf(src[i]);
+    }
+}
+
 static inline void fabs512f(float *src, float *dst, int len)
 {
     int stop_len = len / (2 * AVX512_LEN_FLOAT);
@@ -1810,6 +1910,36 @@ static inline void sincos512f(float *src, float *dst_sin, float *dst_cos, int le
 
     for (int i = stop_len; i < len; i++) {
         mysincosf(src[i], dst_sin + i, dst_cos + i);
+    }
+}
+
+// e^ix = cos(x) + i*sin(x)
+static inline void euler512f(float *src, complex32_t *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_load_ps(src + i);
+            v16sfx2 dst_tmp;
+            sincos512_ps(src_tmp, &(dst_tmp.val[0]), &(dst_tmp.val[1]));
+            _mm512_store2_ps((float *) dst + j, dst_tmp);
+            j += 2 * AVX512_LEN_FLOAT;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf src_tmp = _mm512_loadu_ps(src + i);
+            v16sfx2 dst_tmp;
+            sincos512_ps(src_tmp, &(dst_tmp.val[0]), &(dst_tmp.val[1]));
+            _mm512_store2u_ps((float *) dst + j, dst_tmp);
+            j += 2 * AVX512_LEN_FLOAT;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        mysincosf(src[i], &(dst[i].re), &(dst[i].im));
     }
 }
 
