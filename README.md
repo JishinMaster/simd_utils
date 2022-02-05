@@ -120,7 +120,7 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | sin128f                    | sin256f                    | sin512f                    | sinf_C                    | ippsSin_32f_A24              | sinf_vec                    | X                    |
 | cos128f                    | cos256f                    | cos512f                    | cosf_C                    | ippsCos_32f_A24              | X                           | X                    |
 | sincos128f                 | sincos256f                 | sincos512f                 | sincosf_C                 | ippsSinCos_32f_A24           | sincosf_vec                 | X                    |
-| euler128f                  | euler256f                  | euler512f                  | eulerf_C                  | X                            | X                           | X                    |
+| sincos128f_interleaved     | sincos256f_interleaved     | sincos512f_interleaved     | sincosf_C_interleaved     | X                            | X                           | X                    |
 | cosh128f                   | cosh256f                   | cosh512f                   | coshf_C                   | ippsCosh_32f_A24             | X                           | X                    |
 | sinh128f                   | sinh256f                   | sinh512f                   | sinhf_C                   | ippsSinh_32f_A24             | X                           | X                    |
 | acosh128f                  | acosh256f                  | acosh512f                  | acoshf_C                  | ippsAcosh_32f_A24            | X                           | X                    |

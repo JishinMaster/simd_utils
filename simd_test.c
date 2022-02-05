@@ -4044,67 +4044,67 @@ printf("\n");
     }*/
 
     printf("\n");
-    /////////////////////////////////////////////////////////// EULER //////////////////////////////////////////////////////////////////////////////
-    printf("EULER\n");
+    ///////////////////////////////////////////////// SINCOSF_INTERLEAVED //////////////////////////////////////////////////////////////////////
+    printf("SINCOSF_INTERLEAVED\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
-    eulerf_C(inout, (complex32_t *) inout_ref, len);
+    sincosf_C_interleaved(inout, (complex32_t *) inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("eulerf_C %d %lf\n", len, elapsed);
+    printf("sincosf_C_interleaved %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        eulerf_C(inout, (complex32_t *) inout_ref, len);
+        sincosf_C_interleaved(inout, (complex32_t *) inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("eulerf_C %d %lf\n", len, elapsed);
+    printf("sincosf_C_interleaved %d %lf\n", len, elapsed);
 
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
-    euler128f(inout, (complex32_t *) inout2, len);
+    sincos128f_interleaved(inout, (complex32_t *) inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("euler128f %d %lf\n", len, elapsed);
+    printf("sincos128f_interleaved %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        euler128f(inout, (complex32_t *) inout2, len);
+        sincos128f_interleaved(inout, (complex32_t *) inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("euler128f %d %lf\n", len, elapsed);
+    printf("sincos128f_interleaved %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, 2 * len);
 #endif
 
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
-    euler256f(inout, (complex32_t *) inout2, len);
+    sincos256f_interleaved(inout, (complex32_t *) inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("euler256f %d %lf\n", len, elapsed);
+    printf("sincos256f_interleaved %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        euler256f(inout, (complex32_t *) inout2, len);
+        sincos256f_interleaved(inout, (complex32_t *) inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("euler256f %d %lf\n", len, elapsed);
+    printf("sincos256f_interleaved %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, 2 * len);
 #endif
 
 #ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
-    euler512f(inout, (complex32_t *) inout2, len);
+    sincos512f_interleaved(inout, (complex32_t *) inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("euler512f %d %lf\n", len, elapsed);
+    printf("sincos512f_interleaved %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        euler512f(inout, (complex32_t *) inout2, len);
+        sincos512f_interleaved(inout, (complex32_t *) inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("euler512f %d %lf\n", len, elapsed);
+    printf("sincos512f_interleaved %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, 2 * len);
 #endif
 

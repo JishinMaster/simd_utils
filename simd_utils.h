@@ -1193,7 +1193,7 @@ static inline void sincosd_C(double *src, double *dst_sin, double *dst_cos, int 
 }
 
 // e^ix = cos(x) + i*sin(x)
-static inline void eulerf_C(float *src, complex32_t *dst, int len)
+static inline void sincosf_C_interleaved(float *src, complex32_t *dst, int len)
 {
 #ifdef OMP
 #pragma omp simd

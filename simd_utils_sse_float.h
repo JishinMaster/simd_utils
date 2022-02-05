@@ -310,6 +310,7 @@ static inline void exp_128f_(float *src, float *dst, int len)
 
 /////////////// CBRT
 // Test, seems okay, see sse_mathfun
+#if 0
 static inline void frexpf128f(float *src, float *dst, int len)
 {
     int stop_len = len / (SSE_LEN_FLOAT);
@@ -327,20 +328,6 @@ static inline void frexpf128f(float *src, float *dst, int len)
             emm0 = _mm_sub_epi32(emm0, *(v4si *) _pi32_0x7f);
             v4sf e = _mm_cvtepi32_ps(emm0);
             e = _mm_add_ps(e, *(v4sf *) _ps_1);
-
-            /*v4si emm0 = _mm_srli_epi32( _mm_castps_si128(x), 23);
-            v4sf invalid_mask = _mm_castsi128_ps ( _mm_cmpeq_epi32( _mm_and_si128(_mm_castps_si128(x), vneg), vneg));
-            v4sf zero_mask    = _mm_castsi128_ps ( _mm_cmpeq_epi32(emm0, _mm_setzero_si128()));
-            v4sf inf_mask     = _mm_castsi128_ps ( _mm_cmpeq_epi32( _mm_and_si128(_mm_castps_si128(x), vexp), vexp));
-            v4sf x_frac   = _mm_and_ps(x, _mm_castsi128_ps(_mm_set1_epi32(~0x7f800000)));
-            x_frac  = _mm_or_ps (x_frac, *(v4sf*)_ps_0p5);
-            emm0 = _mm_sub_epi32(emm0, _mm_set1_epi32(126));
-            v4sf e  = _mm_cvtepi32_ps(emm0);*/
-            print4(x);
-            print4(x_frac);
-            print4i(emm0);
-            print4(e);
-            printf("\n");
             fr[0] = frexpf(src[i], &ep[0]);
             fr[1] = frexpf(src[i + 1], &ep[1]);
             fr[2] = frexpf(src[i + 2], &ep[2]);
@@ -376,6 +363,7 @@ static inline void ldexp128f(float *src, int ex, float *dst, int len)
         }
     }
 }
+#endif 
 
 // from https://stackoverflow.com/questions/57454416/sse-integer-2n-powers-of-2-for-32-bit-integers-without-avx2
 static inline v4sf power_of_twof(v4si b)
@@ -2140,7 +2128,7 @@ static inline void sincos128f(float *src, float *dst_sin, float *dst_cos, int le
 }
 
 // e^ix = cos(x) + i*sin(x)
-static inline void euler128f(float *src, complex32_t *dst, int len)
+static inline void sincos128f_interleaved(float *src, complex32_t *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;

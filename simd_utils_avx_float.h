@@ -2063,7 +2063,7 @@ static inline void sincos256f(float *src, float *dst_sin, float *dst_cos, int le
 }
 
 // e^ix = cos(x) + i*sin(x)
-static inline void euler256f(float *src, complex32_t *dst, int len)
+static inline void sincos256f_interleaved(float *src, complex32_t *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;

@@ -1914,7 +1914,7 @@ static inline void sincos512f(float *src, float *dst_sin, float *dst_cos, int le
 }
 
 // e^ix = cos(x) + i*sin(x)
-static inline void euler512f(float *src, complex32_t *dst, int len)
+static inline void sincos512f_interleaved(float *src, complex32_t *dst, int len)
 {
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
