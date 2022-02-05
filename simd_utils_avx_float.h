@@ -3538,3 +3538,81 @@ static inline void softmax256f(float *src, float *dst, int len)
         dst[i] /= acc;
     }
 }
+
+static inline void pol2cart2D256f(float *r, float *theta, float *x, float *y, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (r), (uintptr_t) (theta), AVX_LEN_BYTES) &&
+        areAligned2((uintptr_t) (x), (uintptr_t) (y), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf r_tmp = _mm256_load_ps(r + i);
+            v8sf theta_tmp = _mm256_load_ps(theta + i);
+            v8sf sin_tmp;
+            v8sf cos_tmp;
+            sincos256_ps(theta_tmp, &sin_tmp, &cos_tmp);
+            v8sf x_tmp = _mm256_mul_ps(r_tmp, cos_tmp);
+            v8sf y_tmp = _mm256_mul_ps(r_tmp, sin_tmp);
+            _mm256_store_ps(x + i, x_tmp);
+            _mm256_store_ps(y + i, y_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf r_tmp = _mm256_loadu_ps(r + i);
+            v8sf theta_tmp = _mm256_loadu_ps(theta + i);
+            v8sf sin_tmp;
+            v8sf cos_tmp;
+            sincos256_ps(theta_tmp, &sin_tmp, &cos_tmp);
+            v8sf x_tmp = _mm256_mul_ps(r_tmp, cos_tmp);
+            v8sf y_tmp = _mm256_mul_ps(r_tmp, sin_tmp);
+            _mm256_storeu_ps(x + i, x_tmp);
+            _mm256_storeu_ps(y + i, y_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        float sin_tmp, cos_tmp;
+        mysincosf(theta[i], &sin_tmp, &cos_tmp);
+        x[i] = r[i] * cos_tmp;
+        y[i] = r[i] * sin_tmp;
+    }
+}
+
+static inline void cart2pol2D256f(float *x, float *y, float *r, float *theta, int len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (r), (uintptr_t) (theta), AVX_LEN_BYTES) &&
+        areAligned2((uintptr_t) (x), (uintptr_t) (y), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf x_tmp = _mm256_load_ps(x + i);
+            v8sf y_tmp = _mm256_load_ps(y + i);
+            v8sf y_square = _mm256_mul_ps(y_tmp, y_tmp);
+            v8sf r_tmp = _mm256_fmadd_ps_custom(x_tmp, x_tmp, y_square);
+            r_tmp = _mm256_sqrt_ps(r_tmp);
+            v8sf ydivx = _mm256_div_ps(y_tmp, x_tmp);
+            v8sf theta_tmp = atan256f_ps(ydivx);
+            _mm256_store_ps(r + i, r_tmp);
+            _mm256_store_ps(theta + i, theta_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf x_tmp = _mm256_loadu_ps(x + i);
+            v8sf y_tmp = _mm256_loadu_ps(y + i);
+            v8sf y_square = _mm256_mul_ps(y_tmp, y_tmp);
+            v8sf r_tmp = _mm256_fmadd_ps_custom(x_tmp, x_tmp, y_square);
+            r_tmp = _mm256_sqrt_ps(r_tmp);
+            v8sf ydivx = _mm256_div_ps(y_tmp, x_tmp);
+            v8sf theta_tmp = atan256f_ps(ydivx);
+            _mm256_storeu_ps(r + i, r_tmp);
+            _mm256_storeu_ps(theta + i, theta_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        r[i] = sqrtf(x[i] * x[i] + (y[i] * y[i]));
+        theta[i] = atanf(y[i] / x[i]);
+    }
+}

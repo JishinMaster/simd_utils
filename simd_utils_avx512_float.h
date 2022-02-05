@@ -3365,3 +3365,81 @@ static inline void softmax512f(float *src, float *dst, int len)
         dst[i] /= acc;
     }
 }
+
+static inline void pol2cart2D512f(float *r, float *theta, float *x, float *y, int len)
+{
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (r), (uintptr_t) (theta), AVX512_LEN_BYTES) &&
+        areAligned2((uintptr_t) (x), (uintptr_t) (y), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf r_tmp = _mm512_load_ps(r + i);
+            v16sf theta_tmp = _mm512_load_ps(theta + i);
+            v16sf sin_tmp;
+            v16sf cos_tmp;
+            sincos512_ps(theta_tmp, &sin_tmp, &cos_tmp);
+            v16sf x_tmp = _mm512_mul_ps(r_tmp, cos_tmp);
+            v16sf y_tmp = _mm512_mul_ps(r_tmp, sin_tmp);
+            _mm512_store_ps(x + i, x_tmp);
+            _mm512_store_ps(y + i, y_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf r_tmp = _mm512_loadu_ps(r + i);
+            v16sf theta_tmp = _mm512_loadu_ps(theta + i);
+            v16sf sin_tmp;
+            v16sf cos_tmp;
+            sincos512_ps(theta_tmp, &sin_tmp, &cos_tmp);
+            v16sf x_tmp = _mm512_mul_ps(r_tmp, cos_tmp);
+            v16sf y_tmp = _mm512_mul_ps(r_tmp, sin_tmp);
+            _mm512_storeu_ps(x + i, x_tmp);
+            _mm512_storeu_ps(y + i, y_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        float sin_tmp, cos_tmp;
+        mysincosf(theta[i], &sin_tmp, &cos_tmp);
+        x[i] = r[i] * cos_tmp;
+        y[i] = r[i] * sin_tmp;
+    }
+}
+
+static inline void cart2pol2D512f(float *x, float *y, float *r, float *theta, int len)
+{
+    int stop_len = len / AVX512_LEN_FLOAT;
+    stop_len *= AVX512_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (r), (uintptr_t) (theta), AVX512_LEN_BYTES) &&
+        areAligned2((uintptr_t) (x), (uintptr_t) (y), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf x_tmp = _mm512_load_ps(x + i);
+            v16sf y_tmp = _mm512_load_ps(y + i);
+            v16sf y_square = _mm512_mul_ps(y_tmp, y_tmp);
+            v16sf r_tmp = _mm512_fmadd_ps_custom(x_tmp, x_tmp, y_square);
+            r_tmp = _mm512_sqrt_ps(r_tmp);
+            v16sf ydivx = _mm512_div_ps(y_tmp, x_tmp);
+            v16sf theta_tmp = atan512f_ps(ydivx);
+            _mm512_store_ps(r + i, r_tmp);
+            _mm512_store_ps(theta + i, theta_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+            v16sf x_tmp = _mm512_loadu_ps(x + i);
+            v16sf y_tmp = _mm512_loadu_ps(y + i);
+            v16sf y_square = _mm512_mul_ps(y_tmp, y_tmp);
+            v16sf r_tmp = _mm512_fmadd_ps_custom(x_tmp, x_tmp, y_square);
+            r_tmp = _mm512_sqrt_ps(r_tmp);
+            v16sf ydivx = _mm512_div_ps(y_tmp, x_tmp);
+            v16sf theta_tmp = atan512f_ps(ydivx);
+            _mm512_storeu_ps(r + i, r_tmp);
+            _mm512_storeu_ps(theta + i, theta_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        r[i] = sqrtf(x[i] * x[i] + (y[i] * y[i]));
+        theta[i] = atanf(y[i] / x[i]);
+    }
+}

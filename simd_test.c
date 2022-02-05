@@ -8535,7 +8535,6 @@ for (int i = 0; i < len; i++){
 #endif
 
     printf("\n");
-
     /////////////////////////////////////////////////////////// CBTRF //////////////////////////////////////////////////////////////////////////////
     printf("CBTRF\n");
 
@@ -8611,6 +8610,158 @@ for (int i = 0; i < len; i++){
     printf("cbrt512f %d %lf\n", len, elapsed);
 
     l2_err(inout2, inout_ref, len);
+#endif
+
+    printf("\n");
+    ////////////////////////////////////////////////// POL2CART2DF ////////////////////////////////////////////////////////////////////
+    printf("POL2CART2DF\n");
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) i;
+        inout2[i] = 1.0f / ((float) i + 0.000000001f) + sqrtf((float) i);
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    pol2cart2Df_C(inout, inout2, inout_ref, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("pol2cart2Df_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        pol2cart2Df_C(inout, inout2, inout_ref, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("pol2cart2Df_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    pol2cart2D128f(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("pol2cart2D128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        pol2cart2D128f(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("pol2cart2D128f %d %lf\n", len, elapsed);
+
+    l2_err(inout3, inout_ref, len);
+    l2_err(inout4, inout2_ref, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    pol2cart2D256f(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("pol2cart2D256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        pol2cart2D256f(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("pol2cart2D256f %d %lf\n", len, elapsed);
+
+    l2_err(inout3, inout_ref, len);
+    l2_err(inout4, inout2_ref, len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    pol2cart2D512f(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("pol2cart2D512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        pol2cart2D512f(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("pol2cart2D512f %d %lf\n", len, elapsed);
+
+    l2_err(inout3, inout_ref, len);
+    l2_err(inout4, inout2_ref, len);
+#endif
+
+    printf("\n");
+    ////////////////////////////////////////////////// CART2POL2DF ////////////////////////////////////////////////////////////////////
+    printf("CART2POL2DF\n");
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) i + 1E-38f;
+        inout2[i] = 1.0f / ((float) i + 0.000000001f) + sqrtf((float) i);
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    cart2pol2Df_C(inout, inout2, inout_ref, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cart2pol2Df_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cart2pol2Df_C(inout, inout2, inout_ref, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cart2pol2Df_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    cart2pol2D128f(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cart2pol2D128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cart2pol2D128f(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cart2pol2D128f %d %lf\n", len, elapsed);
+
+    l2_err(inout3, inout_ref, len);
+    l2_err(inout4, inout2_ref, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    cart2pol2D256f(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cart2pol2D256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cart2pol2D256f(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cart2pol2D256f %d %lf\n", len, elapsed);
+
+    l2_err(inout3, inout_ref, len);
+    l2_err(inout4, inout2_ref, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    cart2pol2D512f(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cart2pol2D512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cart2pol2D512f(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cart2pol2D512f %d %lf\n", len, elapsed);
+
+    l2_err(inout3, inout_ref, len);
+    l2_err(inout4, inout2_ref, len);
 #endif
 
     free(inout);

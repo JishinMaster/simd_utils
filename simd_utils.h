@@ -1790,6 +1790,54 @@ static inline void powerspect16s_c_interleaved(complex16s_t *src, int32_t *dst, 
     }
 }
 
+/*
+    x = r × cos( θ )
+    y = r × sin( θ )
+*/
+static inline void pol2cart2Df_C(float *r, float *theta, float *x, float *y, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        float sin_tmp, cos_tmp;
+        mysincosf(theta[i], &sin_tmp, &cos_tmp);
+        x[i] = r[i] * cos_tmp;
+        y[i] = r[i] * sin_tmp;
+    }
+}
+
+static inline void cart2pol2Df_C(float *x, float *y, float *r, float *theta, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        r[i] = sqrtf(x[i] * x[i] + (y[i] * y[i]));
+        theta[i] = atanf(y[i] / x[i]);
+    }
+}
+
+/*
+theta angle to X axis, alpha angle to Z axis
+x = r * sin(theta) * cos(alpha)
+y = r * sin(theta) * sin(alpha)
+z = r * cos(theta)
+*/
+static inline void pol2cart3Df_C(float *r, float *theta, float *alpha, float *x, float *y, float *z, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        float sin_tmp_a, cos_tmp_a, sin_tmp_t, cos_tmp_t;
+        mysincosf(theta[i], &sin_tmp_a, &cos_tmp_a);
+        mysincosf(theta[i], &sin_tmp_t, &cos_tmp_t);
+        x[i] = r[i] * sin_tmp_t * cos_tmp_a;
+        y[i] = r[i] * sin_tmp_t * sin_tmp_a;
+        z[i] = r[i] * cos_tmp_t;
+    }
+}
 #ifdef __cplusplus
 }
 #endif

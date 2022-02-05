@@ -363,7 +363,7 @@ static inline void ldexp128f(float *src, int ex, float *dst, int len)
         }
     }
 }
-#endif 
+#endif
 
 // from https://stackoverflow.com/questions/57454416/sse-integer-2n-powers-of-2-for-32-bit-integers-without-avx2
 static inline v4sf power_of_twof(v4si b)
@@ -4257,5 +4257,83 @@ static inline void softmax128f_dualacc(float *src, float *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] /= acc;
+    }
+}
+
+static inline void pol2cart2D128f(float *r, float *theta, float *x, float *y, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (r), (uintptr_t) (theta), SSE_LEN_BYTES) &&
+        areAligned2((uintptr_t) (x), (uintptr_t) (y), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf r_tmp = _mm_load_ps(r + i);
+            v4sf theta_tmp = _mm_load_ps(theta + i);
+            v4sf sin_tmp;
+            v4sf cos_tmp;
+            sincos_ps(theta_tmp, &sin_tmp, &cos_tmp);
+            v4sf x_tmp = _mm_mul_ps(r_tmp, cos_tmp);
+            v4sf y_tmp = _mm_mul_ps(r_tmp, sin_tmp);
+            _mm_store_ps(x + i, x_tmp);
+            _mm_store_ps(y + i, y_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf r_tmp = _mm_loadu_ps(r + i);
+            v4sf theta_tmp = _mm_loadu_ps(theta + i);
+            v4sf sin_tmp;
+            v4sf cos_tmp;
+            sincos_ps(theta_tmp, &sin_tmp, &cos_tmp);
+            v4sf x_tmp = _mm_mul_ps(r_tmp, cos_tmp);
+            v4sf y_tmp = _mm_mul_ps(r_tmp, sin_tmp);
+            _mm_storeu_ps(x + i, x_tmp);
+            _mm_storeu_ps(y + i, y_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        float sin_tmp, cos_tmp;
+        mysincosf(theta[i], &sin_tmp, &cos_tmp);
+        x[i] = r[i] * cos_tmp;
+        y[i] = r[i] * sin_tmp;
+    }
+}
+
+static inline void cart2pol2D128f(float *x, float *y, float *r, float *theta, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (r), (uintptr_t) (theta), SSE_LEN_BYTES) &&
+        areAligned2((uintptr_t) (x), (uintptr_t) (y), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf x_tmp = _mm_load_ps(x + i);
+            v4sf y_tmp = _mm_load_ps(y + i);
+            v4sf y_square = _mm_mul_ps(y_tmp, y_tmp);
+            v4sf r_tmp = _mm_fmadd_ps_custom(x_tmp, x_tmp, y_square);
+            r_tmp = _mm_sqrt_ps(r_tmp);
+            v4sf ydivx = _mm_div_ps(y_tmp, x_tmp);
+            v4sf theta_tmp = atanf_ps(ydivx);
+            _mm_store_ps(r + i, r_tmp);
+            _mm_store_ps(theta + i, theta_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf x_tmp = _mm_loadu_ps(x + i);
+            v4sf y_tmp = _mm_loadu_ps(y + i);
+            v4sf y_square = _mm_mul_ps(y_tmp, y_tmp);
+            v4sf r_tmp = _mm_fmadd_ps_custom(x_tmp, x_tmp, y_square);
+            r_tmp = _mm_sqrt_ps(r_tmp);
+            v4sf ydivx = _mm_div_ps(y_tmp, x_tmp);
+            v4sf theta_tmp = atanf_ps(ydivx);
+            _mm_storeu_ps(r + i, r_tmp);
+            _mm_storeu_ps(theta + i, theta_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        r[i] = sqrtf(x[i] * x[i] + (y[i] * y[i]));
+        theta[i] = atanf(y[i] / x[i]);
     }
 }

@@ -185,6 +185,8 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | sigmoid128f                | sigmoid256f                | sigmoid512f                | sigmoidf_C                | X                            | X                           | X                    |
 | PRelu128f                  | PRelu256f                  | PRelu512f                  | PReluf_C                  | X                            | X                           | PRelu128f            |
 | softmax128f                | softmax256f                | softmax512f                | softmaxf_C                | X                            | X                           | X                    |
+| pol2cart2D128f             | pol2cart2D256f             | pol2cart2D512f             | pol2cart2Df_C             | X                            | X                           | X                    |
+| cart2pol2D128f             | cart2pol2D256f             | cart2pol2D512f             | cart2pol2Df_C             | X                            | X                           | X                    |
 
 ## Licence
 
