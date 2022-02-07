@@ -3419,8 +3419,7 @@ static inline void cart2pol2D512f(float *x, float *y, float *r, float *theta, in
             v16sf y_square = _mm512_mul_ps(y_tmp, y_tmp);
             v16sf r_tmp = _mm512_fmadd_ps_custom(x_tmp, x_tmp, y_square);
             r_tmp = _mm512_sqrt_ps(r_tmp);
-            v16sf ydivx = _mm512_div_ps(y_tmp, x_tmp);
-            v16sf theta_tmp = atan512f_ps(ydivx);
+            v16sf theta_tmp = atan2512f_ps(y_tmp, x_tmp);
             _mm512_store_ps(r + i, r_tmp);
             _mm512_store_ps(theta + i, theta_tmp);
         }
@@ -3432,7 +3431,7 @@ static inline void cart2pol2D512f(float *x, float *y, float *r, float *theta, in
             v16sf r_tmp = _mm512_fmadd_ps_custom(x_tmp, x_tmp, y_square);
             r_tmp = _mm512_sqrt_ps(r_tmp);
             v16sf ydivx = _mm512_div_ps(y_tmp, x_tmp);
-            v16sf theta_tmp = atan512f_ps(ydivx);
+            v16sf theta_tmp = atan2512f_ps(y_tmp, x_tmp);
             _mm512_storeu_ps(r + i, r_tmp);
             _mm512_storeu_ps(theta + i, theta_tmp);
         }
@@ -3440,6 +3439,6 @@ static inline void cart2pol2D512f(float *x, float *y, float *r, float *theta, in
 
     for (int i = stop_len; i < len; i++) {
         r[i] = sqrtf(x[i] * x[i] + (y[i] * y[i]));
-        theta[i] = atanf(y[i] / x[i]);
+        theta[i] = atan2f(y[i], x[i]);
     }
 }

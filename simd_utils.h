@@ -1807,37 +1807,65 @@ static inline void pol2cart2Df_C(float *r, float *theta, float *x, float *y, int
     }
 }
 
+//https://fr.mathworks.com/help/matlab/ref/cart2pol.html
 static inline void cart2pol2Df_C(float *x, float *y, float *r, float *theta, int len)
 {
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        r[i] = sqrtf(x[i] * x[i] + (y[i] * y[i]));
-        theta[i] = atanf(y[i] / x[i]);
+        float y_square = y[i] * y[i];
+        r[i] = sqrtf(x[i] * x[i] + y_square);
+        //theta[i] = atanf(y[i] / x[i]);
+        theta[i] = atan2f(y[i], x[i]);
     }
 }
 
+#if 0
 /*
-theta angle to X axis, alpha angle to Z axis
-x = r * sin(theta) * cos(alpha)
-y = r * sin(theta) * sin(alpha)
+theta angle to X axis, rho angle to Z axis
+x = r * sin(theta) * cos(rho)
+y = r * sin(theta) * sin(rho)
 z = r * cos(theta)
 */
-static inline void pol2cart3Df_C(float *r, float *theta, float *alpha, float *x, float *y, float *z, int len)
+static inline void pol2cart3Df_C(float *r, float *theta, float *rho, float *x, float *y, float *z, int len)
 {
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        float sin_tmp_a, cos_tmp_a, sin_tmp_t, cos_tmp_t;
-        mysincosf(theta[i], &sin_tmp_a, &cos_tmp_a);
+        float sin_tmp_rho, cos_tmp_rho, sin_tmp_t, cos_tmp_t;
+        mysincosf(theta[i], &sin_tmp_rho, &cos_tmp_rho);
         mysincosf(theta[i], &sin_tmp_t, &cos_tmp_t);
-        x[i] = r[i] * sin_tmp_t * cos_tmp_a;
-        y[i] = r[i] * sin_tmp_t * sin_tmp_a;
+        x[i] = r[i] * sin_tmp_t * cos_tmp_rho;
+        y[i] = r[i] * sin_tmp_t * sin_tmp_rho;
         z[i] = r[i] * cos_tmp_t;
     }
 }
+
+/* 
+r = sqrtf(x * x + y * y + z * z)
+rho = acosf(x / sqrtf(x * x + y * y)) * (y < 0 ? -1 : 1)
+theta = acosf(z / r)
+*/
+static inline void cart2pol3Df_C(float *x, float *y, float *z, float *r, float *theta, float *rho, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        float x_square = x[i]*x[i];
+        float xy_square_sum = y[i]*y[i] + x_square;
+        float r_tmp = sqrtf(xy_square_sum + z[i]*z[i]);
+        r[i] = r_tmp;
+        float tmp = sqrtf(xy_square_sum);
+        tmp = acosf(x[i]/tmp);
+        rho[i] = (y < 0)? -tmp:tmp;
+        theta[i] = acosf(z[i]/r_tmp);
+    }
+}
+#endif
+
 #ifdef __cplusplus
 }
 #endif

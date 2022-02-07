@@ -3592,8 +3592,7 @@ static inline void cart2pol2D256f(float *x, float *y, float *r, float *theta, in
             v8sf y_square = _mm256_mul_ps(y_tmp, y_tmp);
             v8sf r_tmp = _mm256_fmadd_ps_custom(x_tmp, x_tmp, y_square);
             r_tmp = _mm256_sqrt_ps(r_tmp);
-            v8sf ydivx = _mm256_div_ps(y_tmp, x_tmp);
-            v8sf theta_tmp = atan256f_ps(ydivx);
+            v8sf theta_tmp = atan2256f_ps(y_tmp, x_tmp);
             _mm256_store_ps(r + i, r_tmp);
             _mm256_store_ps(theta + i, theta_tmp);
         }
@@ -3604,8 +3603,7 @@ static inline void cart2pol2D256f(float *x, float *y, float *r, float *theta, in
             v8sf y_square = _mm256_mul_ps(y_tmp, y_tmp);
             v8sf r_tmp = _mm256_fmadd_ps_custom(x_tmp, x_tmp, y_square);
             r_tmp = _mm256_sqrt_ps(r_tmp);
-            v8sf ydivx = _mm256_div_ps(y_tmp, x_tmp);
-            v8sf theta_tmp = atan256f_ps(ydivx);
+            v8sf theta_tmp = atan2256f_ps(y_tmp, x_tmp);
             _mm256_storeu_ps(r + i, r_tmp);
             _mm256_storeu_ps(theta + i, theta_tmp);
         }
@@ -3613,6 +3611,6 @@ static inline void cart2pol2D256f(float *x, float *y, float *r, float *theta, in
 
     for (int i = stop_len; i < len; i++) {
         r[i] = sqrtf(x[i] * x[i] + (y[i] * y[i]));
-        theta[i] = atanf(y[i] / x[i]);
+        theta[i] = atan2f(y[i], x[i]);
     }
 }
