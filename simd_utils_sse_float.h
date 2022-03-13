@@ -2977,10 +2977,10 @@ static inline void magnitude128f_interleaved(complex32_t *src, float *dst, int l
         }
     } else {
         for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
-            v4sfx2 src_split = _mm_load2u_ps((float *) (src + j));  // a0a1a2a3, b0b1b2b3
-            v4sfx2 src_split2 = _mm_load2u_ps((float *) (src + j + 2 * SSE_LEN_FLOAT));
-            v4sfx2 src_split3 = _mm_load2u_ps((float *) (src + j + 4 * SSE_LEN_FLOAT));
-            v4sfx2 src_split4 = _mm_load2u_ps((float *) (src + j + 6 * SSE_LEN_FLOAT));
+            v4sfx2 src_split = _mm_load2u_ps((float *) (src) + j);  // a0a1a2a3, b0b1b2b3
+            v4sfx2 src_split2 = _mm_load2u_ps((float *) (src) + j + 2 * SSE_LEN_FLOAT);
+            v4sfx2 src_split3 = _mm_load2u_ps((float *) (src) + j + 4 * SSE_LEN_FLOAT);
+            v4sfx2 src_split4 = _mm_load2u_ps((float *) (src) + j + 6 * SSE_LEN_FLOAT);
             v4sf split_square0 = _mm_mul_ps(src_split.val[0], src_split.val[0]);
             v4sf split2_square0 = _mm_mul_ps(src_split2.val[0], src_split2.val[0]);
             v4sf split3_square0 = _mm_mul_ps(src_split3.val[0], src_split3.val[0]);
@@ -2997,10 +2997,10 @@ static inline void magnitude128f_interleaved(complex32_t *src, float *dst, int l
             dst_split2.val[0] = _mm_sqrt_ps(dst_split2.val[0]);
             dst_split2.val[1] = _mm_sqrt_ps(dst_split2.val[1]);
 
-            _mm_storeu_ps(dst + i, dst_split.val[0]);
-            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_split.val[1]);
-            _mm_storeu_ps(dst + i + 2 * SSE_LEN_FLOAT, dst_split2.val[0]);
-            _mm_storeu_ps(dst + i + 3 * SSE_LEN_FLOAT, dst_split2.val[1]);
+            _mm_storeu_ps((float *) (dst) + i, dst_split.val[0]);
+            _mm_storeu_ps((float *) (dst) + i + SSE_LEN_FLOAT, dst_split.val[1]);
+            _mm_storeu_ps((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2.val[0]);
+            _mm_storeu_ps((float *) (dst) + i + 3 * SSE_LEN_FLOAT, dst_split2.val[1]);
             j += 8 * SSE_LEN_FLOAT;
         }
     }

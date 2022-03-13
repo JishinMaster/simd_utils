@@ -1201,7 +1201,7 @@ static inline void realtocplx512f(float *srcRe, float *srcIm, complex32_t *dst, 
         }
     }
 
-    for (int i = j; i < len; i++) {
+    for (int i = stop_len; i < len; i++) {
         dst[i].re = srcRe[i];
         dst[i].im = srcIm[i];
     }

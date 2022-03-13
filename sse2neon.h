@@ -91,6 +91,13 @@
 #define _sse2neon_unlikely(x) (x)
 #endif
 
+/* C language does not allow initializing a variable with a function call. */
+#ifdef __cplusplus
+#define _sse2neon_const static const
+#else
+#define _sse2neon_const const
+#endif
+
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -1436,7 +1443,7 @@ FORCE_INLINE __m128 _mm_cvtpi32_ps(__m128 a, __m64 b)
 
 // Convert packed signed 32-bit integers in a to packed single-precision
 // (32-bit) floating-point elements, store the results in the lower 2 elements
-// of dst, then covert the packed signed 32-bit integers in b to
+// of dst, then convert the packed signed 32-bit integers in b to
 // single-precision (32-bit) floating-point element, and store the results in
 // the upper 2 elements of dst.
 //
@@ -1763,11 +1770,9 @@ FORCE_INLINE unsigned int _sse2neon_mm_get_flush_zero_mode()
     } r;
 
 #if defined(__aarch64__)
-    asm volatile("mrs %0, FPCR"
-                 : "=r"(r.value)); /* read */
+    __asm__ __volatile__("mrs %0, FPCR" : "=r"(r.value)); /* read */
 #else
-    asm volatile("vmrs %0, FPSCR"
-                 : "=r"(r.value)); /* read */
+    __asm__ __volatile__("vmrs %0, FPSCR" : "=r"(r.value)); /* read */
 #endif
 
     return r.field.bit24 ? _MM_FLUSH_ZERO_ON : _MM_FLUSH_ZERO_OFF;
@@ -1789,11 +1794,9 @@ FORCE_INLINE unsigned int _MM_GET_ROUNDING_MODE()
     } r;
 
 #if defined(__aarch64__)
-    asm volatile("mrs %0, FPCR"
-                 : "=r"(r.value)); /* read */
+    __asm__ __volatile__("mrs %0, FPCR" : "=r"(r.value)); /* read */
 #else
-    asm volatile("vmrs %0, FPSCR"
-                 : "=r"(r.value)); /* read */
+    __asm__ __volatile__("vmrs %0, FPSCR" : "=r"(r.value)); /* read */
 #endif
 
     if (r.field.bit22) {
@@ -2369,19 +2372,17 @@ FORCE_INLINE void _sse2neon_mm_set_flush_zero_mode(unsigned int flag)
     } r;
 
 #if defined(__aarch64__)
-    asm volatile("mrs %0, FPCR"
-                 : "=r"(r.value)); /* read */
+    __asm__ __volatile__("mrs %0, FPCR" : "=r"(r.value)); /* read */
 #else
-    asm volatile("vmrs %0, FPSCR"
-                 : "=r"(r.value));           /* read */
+    __asm__ __volatile__("vmrs %0, FPSCR" : "=r"(r.value)); /* read */
 #endif
 
     r.field.bit24 = (flag & _MM_FLUSH_ZERO_MASK) == _MM_FLUSH_ZERO_ON;
 
 #if defined(__aarch64__)
-    asm volatile("msr FPCR, %0" ::"r"(r)); /* write */
+    __asm__ __volatile__("msr FPCR, %0" ::"r"(r)); /* write */
 #else
-    asm volatile("vmsr FPSCR, %0" ::"r"(r)); /* write */
+    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r));        /* write */
 #endif
 }
 
@@ -2417,11 +2418,9 @@ FORCE_INLINE void _MM_SET_ROUNDING_MODE(int rounding)
     } r;
 
 #if defined(__aarch64__)
-    asm volatile("mrs %0, FPCR"
-                 : "=r"(r.value)); /* read */
+    __asm__ __volatile__("mrs %0, FPCR" : "=r"(r.value)); /* read */
 #else
-    asm volatile("vmrs %0, FPSCR"
-                 : "=r"(r.value));           /* read */
+    __asm__ __volatile__("vmrs %0, FPSCR" : "=r"(r.value)); /* read */
 #endif
 
     switch (rounding) {
@@ -2443,9 +2442,9 @@ FORCE_INLINE void _MM_SET_ROUNDING_MODE(int rounding)
     }
 
 #if defined(__aarch64__)
-    asm volatile("msr FPCR, %0" ::"r"(r)); /* write */
+    __asm__ __volatile__("msr FPCR, %0" ::"r"(r)); /* write */
 #else
-    asm volatile("vmsr FPSCR, %0" ::"r"(r)); /* write */
+    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r));        /* write */
 #endif
 }
 
@@ -5039,7 +5038,7 @@ FORCE_INLINE __m128i _mm_packus_epi16(const __m128i a, const __m128i b)
 
 // Pause the processor. This is typically used in spin-wait loops and depending
 // on the x86 processor typical values are in the 40-100 cycle range. The
-// 'yield' instruction isn't a good fit beacuse it's effectively a nop on most
+// 'yield' instruction isn't a good fit because it's effectively a nop on most
 // Arm cores. Experience with several databases has shown has shown an 'isb' is
 // a reasonable approximation.
 FORCE_INLINE void _mm_pause()
@@ -5118,9 +5117,9 @@ FORCE_INLINE __m128i _mm_set_epi8(signed char b15,
                                   signed char b0)
 {
     int8_t ALIGN_STRUCT(16)
-        data[16] = {(int8_t) b0, (int8_t) b1, (int8_t) b2, (int8_t) b3,
-                    (int8_t) b4, (int8_t) b5, (int8_t) b6, (int8_t) b7,
-                    (int8_t) b8, (int8_t) b9, (int8_t) b10, (int8_t) b11,
+        data[16] = {(int8_t) b0,  (int8_t) b1,  (int8_t) b2,  (int8_t) b3,
+                    (int8_t) b4,  (int8_t) b5,  (int8_t) b6,  (int8_t) b7,
+                    (int8_t) b8,  (int8_t) b9,  (int8_t) b10, (int8_t) b11,
                     (int8_t) b12, (int8_t) b13, (int8_t) b14, (int8_t) b15};
     return (__m128i) vld1q_s8(data);
 }
@@ -5271,9 +5270,9 @@ FORCE_INLINE __m128i _mm_setr_epi8(signed char b0,
                                    signed char b15)
 {
     int8_t ALIGN_STRUCT(16)
-        data[16] = {(int8_t) b0, (int8_t) b1, (int8_t) b2, (int8_t) b3,
-                    (int8_t) b4, (int8_t) b5, (int8_t) b6, (int8_t) b7,
-                    (int8_t) b8, (int8_t) b9, (int8_t) b10, (int8_t) b11,
+        data[16] = {(int8_t) b0,  (int8_t) b1,  (int8_t) b2,  (int8_t) b3,
+                    (int8_t) b4,  (int8_t) b5,  (int8_t) b6,  (int8_t) b7,
+                    (int8_t) b8,  (int8_t) b9,  (int8_t) b10, (int8_t) b11,
                     (int8_t) b12, (int8_t) b13, (int8_t) b14, (int8_t) b15};
     return (__m128i) vld1q_s8(data);
 }
@@ -5927,9 +5926,7 @@ FORCE_INLINE void _mm_storeh_pd(double *mem_addr, __m128d a)
 // https://msdn.microsoft.com/en-us/library/hhwf428f%28v=vs.90%29.aspx
 FORCE_INLINE void _mm_storel_epi64(__m128i *a, __m128i b)
 {
-    uint64x1_t hi = vget_high_u64(vreinterpretq_u64_m128i(*a));
-    uint64x1_t lo = vget_low_u64(vreinterpretq_u64_m128i(b));
-    *a = vreinterpretq_m128i_u64(vcombine_u64(lo, hi));
+    vst1_u64((uint64_t *) a, vget_low_u64(vreinterpretq_u64_m128i(b)));
 }
 
 // Store the lower double-precision (64-bit) floating-point element from a into
@@ -6444,14 +6441,13 @@ FORCE_INLINE __m128i _mm_xor_si128(__m128i a, __m128i b)
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_addsub_pd
 FORCE_INLINE __m128d _mm_addsub_pd(__m128d a, __m128d b)
 {
-    // static const __m128d mask = _mm_set_pd(1.0f, -1.0f);
-    static const double mask[2] __attribute__((aligned(16))) = {-1.0, 1.0};
+    _sse2neon_const __m128d mask = _mm_set_pd(1.0f, -1.0f);
 #if defined(__aarch64__)
     return vreinterpretq_m128d_f64(vfmaq_f64(vreinterpretq_f64_m128d(a),
                                              vreinterpretq_f64_m128d(b),
-                                             vreinterpretq_f64_m128d(*(__m128d *) mask)));
+                                             vreinterpretq_f64_m128d(mask)));
 #else
-    return _mm_add_pd(_mm_mul_pd(b, *(__m128d *) mask), a);
+    return _mm_add_pd(_mm_mul_pd(b, mask), a);
 #endif
 }
 
@@ -6461,14 +6457,13 @@ FORCE_INLINE __m128d _mm_addsub_pd(__m128d a, __m128d b)
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=addsub_ps
 FORCE_INLINE __m128 _mm_addsub_ps(__m128 a, __m128 b)
 {
-    static const float mask[4] __attribute__((aligned(16))) = {-1.0f, 1.0f, -1.0f, 1.0f};
-    // const __m128 mask = _mm_setr_ps(-1.0f, 1.0f, -1.0f, 1.0f);
+    _sse2neon_const __m128 mask = _mm_setr_ps(-1.0f, 1.0f, -1.0f, 1.0f);
 #if defined(__aarch64__) || defined(__ARM_FEATURE_FMA) /* VFPv4+ */
     return vreinterpretq_m128_f32(vfmaq_f32(vreinterpretq_f32_m128(a),
-                                            vreinterpretq_f32_m128(*(__m128 *) mask),
+                                            vreinterpretq_f32_m128(mask),
                                             vreinterpretq_f32_m128(b)));
 #else
-    return _mm_add_ps(_mm_mul_ps(b, *(__m128 *) mask), a);
+    return _mm_add_ps(_mm_mul_ps(b, mask), a);
 #endif
 }
 
@@ -6524,7 +6519,7 @@ FORCE_INLINE __m128d _mm_hsub_pd(__m128d _a, __m128d _b)
 #endif
 }
 
-// Horizontally substract adjacent pairs of single-precision (32-bit)
+// Horizontally subtract adjacent pairs of single-precision (32-bit)
 // floating-point elements in a and b, and pack the results in dst.
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_hsub_ps
 FORCE_INLINE __m128 _mm_hsub_ps(__m128 _a, __m128 _b)
@@ -7187,7 +7182,7 @@ FORCE_INLINE __m128i _mm_sign_epi8(__m128i _a, __m128i _b)
     int8x16_t zeroMask = vreinterpretq_s8_u8(vceqq_s8(b, vdupq_n_s8(0)));
 #endif
 
-    // bitwise select either a or nagative 'a' (vnegq_s8(a) return nagative 'a')
+    // bitwise select either a or negative 'a' (vnegq_s8(a) return negative 'a')
     // based on ltMask
     int8x16_t masked = vbslq_s8(ltMask, vnegq_s8(a), a);
     // res = masked & (~zeroMask)
@@ -7228,7 +7223,7 @@ FORCE_INLINE __m64 _mm_sign_pi16(__m64 _a, __m64 _b)
     int16x4_t zeroMask = vreinterpret_s16_u16(vceq_s16(b, vdup_n_s16(0)));
 #endif
 
-    // bitwise select either a or nagative 'a' (vneg_s16(a) return nagative 'a')
+    // bitwise select either a or negative 'a' (vneg_s16(a) return negative 'a')
     // based on ltMask
     int16x4_t masked = vbsl_s16(ltMask, vneg_s16(a), a);
     // res = masked & (~zeroMask)
@@ -7269,7 +7264,7 @@ FORCE_INLINE __m64 _mm_sign_pi32(__m64 _a, __m64 _b)
     int32x2_t zeroMask = vreinterpret_s32_u32(vceq_s32(b, vdup_n_s32(0)));
 #endif
 
-    // bitwise select either a or nagative 'a' (vneg_s32(a) return nagative 'a')
+    // bitwise select either a or negative 'a' (vneg_s32(a) return negative 'a')
     // based on ltMask
     int32x2_t masked = vbsl_s32(ltMask, vneg_s32(a), a);
     // res = masked & (~zeroMask)
@@ -7310,7 +7305,7 @@ FORCE_INLINE __m64 _mm_sign_pi8(__m64 _a, __m64 _b)
     int8x8_t zeroMask = vreinterpret_s8_u8(vceq_s8(b, vdup_n_s8(0)));
 #endif
 
-    // bitwise select either a or nagative 'a' (vneg_s8(a) return nagative 'a')
+    // bitwise select either a or negative 'a' (vneg_s8(a) return negative 'a')
     // based on ltMask
     int8x8_t masked = vbsl_s8(ltMask, vneg_s8(a), a);
     // res = masked & (~zeroMask)
@@ -7394,11 +7389,11 @@ FORCE_INLINE __m128 _mm_blend_ps(__m128 _a, __m128 _b, const char imm8)
 FORCE_INLINE __m128i _mm_blendv_epi8(__m128i _a, __m128i _b, __m128i _mask)
 {
     // Use a signed shift right to create a mask with the sign bit
-    /*uint8x16_t mask =
-        vreinterpretq_u8_s8(vshrq_n_s8(vreinterpretq_s8_m128i(_mask), 7));*/
+    uint8x16_t mask =
+        vreinterpretq_u8_s8(vshrq_n_s8(vreinterpretq_s8_m128i(_mask), 7));
     uint8x16_t a = vreinterpretq_u8_m128i(_a);
     uint8x16_t b = vreinterpretq_u8_m128i(_b);
-    return vreinterpretq_m128i_u8(vbslq_u8(vreinterpretq_s8_m128i(_mask), b, a));
+    return vreinterpretq_m128i_u8(vbslq_u8(mask, b, a));
 }
 
 // Blend packed double-precision (64-bit) floating-point elements from a and b
@@ -7406,16 +7401,16 @@ FORCE_INLINE __m128i _mm_blendv_epi8(__m128i _a, __m128i _b, __m128i _mask)
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_blendv_pd
 FORCE_INLINE __m128d _mm_blendv_pd(__m128d _a, __m128d _b, __m128d _mask)
 {
-    /*uint64x2_t mask =
-        vreinterpretq_u64_s64(vshrq_n_s64(vreinterpretq_s64_m128d(_mask), 63));*/
+    uint64x2_t mask =
+        vreinterpretq_u64_s64(vshrq_n_s64(vreinterpretq_s64_m128d(_mask), 63));
 #if defined(__aarch64__)
     float64x2_t a = vreinterpretq_f64_m128d(_a);
     float64x2_t b = vreinterpretq_f64_m128d(_b);
-    return vreinterpretq_m128d_f64(vbslq_f64(vreinterpretq_s64_m128d(_mask), b, a));
+    return vreinterpretq_m128d_f64(vbslq_f64(mask, b, a));
 #else
     uint64x2_t a = vreinterpretq_u64_m128d(_a);
     uint64x2_t b = vreinterpretq_u64_m128d(_b);
-    return vreinterpretq_m128d_u64(vbslq_u64(vreinterpretq_s64_m128d(_mask), b, a));
+    return vreinterpretq_m128d_u64(vbslq_u64(mask, b, a));
 #endif
 }
 
@@ -7425,12 +7420,11 @@ FORCE_INLINE __m128d _mm_blendv_pd(__m128d _a, __m128d _b, __m128d _mask)
 FORCE_INLINE __m128 _mm_blendv_ps(__m128 _a, __m128 _b, __m128 _mask)
 {
     // Use a signed shift right to create a mask with the sign bit
-    /*uint32x4_t mask =
-        vreinterpretq_u32_s32(vshrq_n_s32(vreinterpretq_s32_m128(_mask), 31));*/
+    uint32x4_t mask =
+        vreinterpretq_u32_s32(vshrq_n_s32(vreinterpretq_s32_m128(_mask), 31));
     float32x4_t a = vreinterpretq_f32_m128(_a);
     float32x4_t b = vreinterpretq_f32_m128(_b);
-    return vreinterpretq_m128_f32(vbslq_f32(vreinterpretq_s32_m128(_mask), b, a));
-    // return vreinterpretq_m128_f32(vbslq_f32(mask, b, a));
+    return vreinterpretq_m128_f32(vbslq_f32(mask, b, a));
 }
 
 // Round the packed double-precision (64-bit) floating-point elements in a up
@@ -8511,9 +8505,9 @@ FORCE_INLINE __m128i _mm_aesenc_si128(__m128i EncBlock, __m128i RoundKey)
     return vreinterpretq_m128i_u8(w) ^ RoundKey;
 
 #else /* ARMv7-A NEON implementation */
-#define SSE2NEON_AES_B2W(b0, b1, b2, b3)                                          \
-    (((uint32_t) (b3) << 24) | ((uint32_t) (b2) << 16) | ((uint32_t) (b1) << 8) | \
-     (b0))
+#define SSE2NEON_AES_B2W(b0, b1, b2, b3)                 \
+    (((uint32_t) (b3) << 24) | ((uint32_t) (b2) << 16) | \
+     ((uint32_t) (b1) << 8) | (uint32_t) (b0))
 #define SSE2NEON_AES_F2(x) ((x << 1) ^ (((x >> 7) & 1) * 0x011b /* WPOLY */))
 #define SSE2NEON_AES_F3(x) (SSE2NEON_AES_F2(x) ^ x)
 #define SSE2NEON_AES_U0(p) \
@@ -8684,11 +8678,9 @@ FORCE_INLINE unsigned int _sse2neon_mm_get_denormals_zero_mode()
     } r;
 
 #if defined(__aarch64__)
-    asm volatile("mrs %0, FPCR"
-                 : "=r"(r.value)); /* read */
+    __asm__ __volatile__("mrs %0, FPCR" : "=r"(r.value)); /* read */
 #else
-    asm volatile("vmrs %0, FPSCR"
-                 : "=r"(r.value)); /* read */
+    __asm__ __volatile__("vmrs %0, FPSCR" : "=r"(r.value)); /* read */
 #endif
 
     return r.field.bit24 ? _MM_DENORMALS_ZERO_ON : _MM_DENORMALS_ZERO_OFF;
@@ -8763,19 +8755,17 @@ FORCE_INLINE void _sse2neon_mm_set_denormals_zero_mode(unsigned int flag)
     } r;
 
 #if defined(__aarch64__)
-    asm volatile("mrs %0, FPCR"
-                 : "=r"(r.value)); /* read */
+    __asm__ __volatile__("mrs %0, FPCR" : "=r"(r.value)); /* read */
 #else
-    asm volatile("vmrs %0, FPSCR"
-                 : "=r"(r.value));           /* read */
+    __asm__ __volatile__("vmrs %0, FPSCR" : "=r"(r.value)); /* read */
 #endif
 
     r.field.bit24 = (flag & _MM_DENORMALS_ZERO_MASK) == _MM_DENORMALS_ZERO_ON;
 
 #if defined(__aarch64__)
-    asm volatile("msr FPCR, %0" ::"r"(r)); /* write */
+    __asm__ __volatile__("msr FPCR, %0" ::"r"(r)); /* write */
 #else
-    asm volatile("vmsr FPSCR, %0" ::"r"(r)); /* write */
+    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r));        /* write */
 #endif
 }
 
@@ -8789,3 +8779,4 @@ FORCE_INLINE void _sse2neon_mm_set_denormals_zero_mode(unsigned int flag)
 #endif
 
 #endif
+
