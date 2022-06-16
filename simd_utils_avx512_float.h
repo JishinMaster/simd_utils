@@ -1137,7 +1137,7 @@ static inline void cplxtoreal512f(complex32_t *src, float *dstRe, float *dstIm, 
 
     int j = 0;
 
-    if (areAligned3((uintptr_t) (src), (uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX512_LEN_FLOAT)) {
+    if (areAligned3((uintptr_t) (src), (uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
             v16sfx2 tmp = _mm512_load2_ps((float const *) (src) + i);
             v16sfx2 tmp2 = _mm512_load2_ps((float const *) (src) + i + 2 * AVX512_LEN_FLOAT);
@@ -1175,7 +1175,7 @@ static inline void realtocplx512f(float *srcRe, float *srcIm, complex32_t *dst, 
 
     int j = 0;
 
-    if (areAligned3((uintptr_t) (srcRe), (uintptr_t) (srcIm), (uintptr_t) (dst), AVX512_LEN_FLOAT)) {
+    if (areAligned3((uintptr_t) (srcRe), (uintptr_t) (srcIm), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sfx2 vec1, vec2;
             vec1.val[0] = _mm512_load_ps(srcRe + i);
