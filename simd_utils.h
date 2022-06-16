@@ -1821,6 +1821,29 @@ static inline void cart2pol2Df_C(float *x, float *y, float *r, float *theta, int
     }
 }
 
+//Do we need a special function for float or can we cast?
+static inline void gatheri_C(int32_t *src, int32_t *dst, int stride, int offset, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src[i*stride + offset];
+    }
+}
+
+
+//Do we need a special function for float or can we cast?
+static inline void scatteri_C(int32_t *src, int32_t *dst, int stride, int offset, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i*stride + offset] = src[i];
+    }
+}
+
 #if 0
 /*
 theta angle to X axis, rho angle to Z axis

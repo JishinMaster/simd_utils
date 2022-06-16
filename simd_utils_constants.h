@@ -518,6 +518,7 @@ _PD_CONST(min1, -1.0);
     static const ALIGN32_BEG Type _pd256_##Name[4] ALIGN32_END = {Val, Val, Val, Val}
 
 static const float _ps256_conj_mask[8] __attribute__((aligned(32))) = {1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f};
+//static int32_t vindex256_arr[8] __attribute__((aligned[32])) = {0,1,2,3,4,5,6,7};
 
 typedef __m256 v8sf;    // vector of 8 float (avx)
 typedef __m256i v8si;   // vector of 8 int   (avx)
