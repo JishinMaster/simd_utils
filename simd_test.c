@@ -2488,6 +2488,22 @@ printf("\n");
     l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
+#if defined(AVX512)
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxvecdiv512f((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxvecdiv512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cplxvecdiv512f((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cplxvecdiv512f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout_ref, inout2_ref, 2 * len);
+#endif
     printf("\n");
     /////////////////////////////////////////////////////////// CPLXVECMUL //////////////////////////////////////////////////////////////////////////////
     printf("CPLXVECMUL\n");
