@@ -149,7 +149,8 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | cplxconjvecmul128f         | cplxconjvecmul256f         | cplxconjvecmul512f         | cplxconjvecmul_C          | ippsMulByConj_32fc_A24       | X                           | X                    |
 | cplxconjvecmul128f_split   | cplxconjvecmul256f_split   | cplxconjvecmul512f_split   | cplxconjvecmul_C_split    | X                            | X                           | X                    |
 | cplxconj128f               | cplxconj256f               | cplxconj512f               | cplxconj_C                | ippsConj_32fc_A24            | X                           | X                    |
-| cplxvecdiv12               | cplxvecdiv256f             | cplxvecdiv512f             | cplxvecdiv_C              | X                            | X                           | X                    |
+| cplxvecdiv128f             | cplxvecdiv256f             | cplxvecdiv512f             | cplxvecdiv_C              | X                            | X                           | X                    |
+| cplxvecdiv128f_split       | cplxvecdiv256f_split       | cplxvecdiv512f_split       | cplxvecdiv_C_split        | X                            | X                           | X                    |
 | set128d                    | set256d                    | set512d                    | setd_C                    | ippsSet_64f                  | X                           | X                    |
 | zero128d                   | zero256d                   | zero512d                   | zerod_C                   | ippsZero_64f                 | X                           | X                    |
 | copy128d                   | copy256d                   | copy512d                   | copyd_C                   | ippsCopy_64f                 | X                           | X                    |
@@ -187,6 +188,7 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | softmax128f                | softmax256f                | softmax512f                | softmaxf_C                | X                            | X                           | X                    |
 | pol2cart2D128f             | pol2cart2D256f             | pol2cart2D512f             | pol2cart2Df_C             | X                            | X                           | X                    |
 | cart2pol2D128f             | cart2pol2D256f             | cart2pol2D512f             | cart2pol2Df_C             | X                            | X                           | X                    |
+| X                          | gatheri_256s               | gatheri_512s               | gatheri_C                 | X                            | X                           | X                    |
 
 ## Licence
 

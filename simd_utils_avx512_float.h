@@ -3048,6 +3048,92 @@ static inline void cplxvecdiv512f(complex32_t *src1, complex32_t *src2, complex3
     }
 }
 
+static inline void cplxvecdiv512f_split(float *src1Re, float* src1Im, float* src2Re, float* src2Im,\
+                                        float* dstRe, float* dstIm, int len)
+{
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= 2 * AVX512_LEN_FLOAT;
+
+    if (areAligned3((uintptr_t) (src1Re), (uintptr_t) (src2Re), (uintptr_t) (src2Re), AVX512_LEN_BYTES) &&\
+        areAligned3((uintptr_t) (src1Im), (uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf src1Re_tmp =  _mm512_load_ps((float *) (src1Re) + i);
+            v16sf src1Re_tmp2 =  _mm512_load_ps((float *) (src1Re) + i + AVX512_LEN_FLOAT);
+            v16sf src1Im_tmp =  _mm512_load_ps((float *) (src1Im) + i);
+            v16sf src1Im_tmp2 =  _mm512_load_ps((float *) (src1Im) + i + AVX512_LEN_FLOAT);
+            v16sf src2Re_tmp =  _mm512_load_ps((float *) (src2Re) + i);
+            v16sf src2Re_tmp2 =  _mm512_load_ps((float *) (src2Re) + i + AVX512_LEN_FLOAT);
+            v16sf src2Im_tmp =  _mm512_load_ps((float *) (src2Im) + i);
+            v16sf src2Im_tmp2 =  _mm512_load_ps((float *) (src2Im) + i + AVX512_LEN_FLOAT);
+            
+            v16sf c2 = _mm512_mul_ps(src2Re_tmp, src2Re_tmp);
+            v16sf c2d2 = _mm512_fmadd_ps_custom(src2Im_tmp, src2Im_tmp, c2);
+            v16sf c2_ = _mm512_mul_ps(src2Re_tmp2, src2Re_tmp2);
+            v16sf c2d2_ = _mm512_fmadd_ps_custom(src2Im_tmp2, src2Im_tmp2, c2_);
+            v16sf ac = _mm512_mul_ps(src1Re_tmp, src2Re_tmp);     // ac
+            v16sf bc = _mm512_mul_ps(src1Im_tmp, src2Re_tmp);     // bc
+            v16sf ac2 = _mm512_mul_ps(src1Re_tmp2, src2Re_tmp2);     // ac
+            v16sf bc2 = _mm512_mul_ps(src1Im_tmp2, src2Re_tmp2);     // bc
+
+            v16sf dstRe_tmp = _mm512_fmadd_ps_custom(src1Im_tmp, src2Im_tmp, ac);
+            v16sf dstRe_tmp2 = _mm512_fmadd_ps_custom(src1Im_tmp2, src2Im_tmp2, ac2);
+            v16sf dstIm_tmp = _mm512_fnmadd_ps_custom(src1Re_tmp, src2Im_tmp, bc);
+            v16sf dstIm_tmp2 = _mm512_fnmadd_ps_custom(src1Re_tmp2, src2Im_tmp2, bc2);
+            
+            dstRe_tmp = _mm512_div_ps(dstRe_tmp, c2d2);
+            dstIm_tmp = _mm512_div_ps(dstIm_tmp, c2d2);
+            dstRe_tmp2 = _mm512_div_ps(dstRe_tmp2, c2d2_);
+            dstIm_tmp2 = _mm512_div_ps(dstIm_tmp2, c2d2_);
+
+            _mm512_store_ps((float *) (dstRe) + i, dstRe_tmp);
+            _mm512_store_ps((float *) (dstIm) + i, dstIm_tmp);
+            _mm512_store_ps((float *) (dstRe) + i + AVX512_LEN_FLOAT, dstRe_tmp2);
+            _mm512_store_ps((float *) (dstIm) + i + AVX512_LEN_FLOAT, dstIm_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf src1Re_tmp =  _mm512_loadu_ps((float *) (src1Re) + i);
+            v16sf src1Re_tmp2 =  _mm512_loadu_ps((float *) (src1Re) + i + AVX512_LEN_FLOAT);
+            v16sf src1Im_tmp =  _mm512_loadu_ps((float *) (src1Im) + i);
+            v16sf src1Im_tmp2 =  _mm512_loadu_ps((float *) (src1Im) + i + AVX512_LEN_FLOAT);
+            v16sf src2Re_tmp =  _mm512_loadu_ps((float *) (src2Re) + i);
+            v16sf src2Re_tmp2 =  _mm512_loadu_ps((float *) (src2Re) + i + AVX512_LEN_FLOAT);
+            v16sf src2Im_tmp =  _mm512_loadu_ps((float *) (src2Im) + i);
+            v16sf src2Im_tmp2 =  _mm512_loadu_ps((float *) (src2Im) + i + AVX512_LEN_FLOAT);
+            
+            v16sf c2 = _mm512_mul_ps(src2Re_tmp, src2Re_tmp);
+            v16sf c2d2 = _mm512_fmadd_ps_custom(src2Im_tmp, src2Im_tmp, c2);
+            v16sf c2_ = _mm512_mul_ps(src2Re_tmp2, src2Re_tmp2);
+            v16sf c2d2_ = _mm512_fmadd_ps_custom(src2Im_tmp2, src2Im_tmp2, c2_);
+            v16sf ac = _mm512_mul_ps(src1Re_tmp, src2Re_tmp);     // ac
+            v16sf bc = _mm512_mul_ps(src1Im_tmp, src2Re_tmp);     // bc
+            v16sf ac2 = _mm512_mul_ps(src1Re_tmp2, src2Re_tmp2);     // ac
+            v16sf bc2 = _mm512_mul_ps(src1Im_tmp2, src2Re_tmp2);     // bc
+
+            v16sf dstRe_tmp = _mm512_fmadd_ps_custom(src1Im_tmp, src2Im_tmp, ac);
+            v16sf dstRe_tmp2 = _mm512_fmadd_ps_custom(src1Im_tmp2, src2Im_tmp2, ac2);
+            v16sf dstIm_tmp = _mm512_fnmadd_ps_custom(src1Re_tmp, src2Im_tmp, bc);
+            v16sf dstIm_tmp2 = _mm512_fnmadd_ps_custom(src1Re_tmp2, src2Im_tmp2, bc2);
+            
+            dstRe_tmp = _mm512_div_ps(dstRe_tmp, c2d2);
+            dstIm_tmp = _mm512_div_ps(dstIm_tmp, c2d2);
+            dstRe_tmp2 = _mm512_div_ps(dstRe_tmp2, c2d2_);
+            dstIm_tmp2 = _mm512_div_ps(dstIm_tmp2, c2d2_);
+
+            _mm512_storeu_ps((float *) (dstRe) + i, dstRe_tmp);
+            _mm512_storeu_ps((float *) (dstIm) + i, dstIm_tmp);
+            _mm512_storeu_ps((float *) (dstRe) + i + AVX512_LEN_FLOAT, dstRe_tmp2);
+            _mm512_storeu_ps((float *) (dstIm) + i + AVX512_LEN_FLOAT, dstIm_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        float c2d2 = src2Re[i] * src2Re[i] + src2Im[i] * src2Im[i];
+        dstRe[i] = (src1Re[i] * src2Re[i] + (src1Im[i] * src2Im[i])) / c2d2;
+        dstIm[i] = (-src1Re[i] * src2Im[i] + (src2Re[i] * src1Im[i])) / c2d2;
+    }
+}
+
 static inline void cplxvecmul512f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
     int stop_len = len / (AVX512_LEN_FLOAT);  //(len << 1) >> 2;

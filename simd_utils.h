@@ -1306,6 +1306,18 @@ static inline void cplxvecdiv_C(complex32_t *src1, complex32_t *src2, complex32_
 }
 
 
+static inline void cplxvecdiv_C_split(float *src1Re, float* src1Im, float* src2Re, float* src2Im, float* dstRe, float* dstIm, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        float c2d2 = src2Re[i] * src2Re[i] + src2Im[i] * src2Im[i];
+        dstRe[i] = (src1Re[i] * src2Re[i] + (src1Im[i] * src2Im[i])) / c2d2;
+        dstIm[i] = (-src1Re[i] * src2Im[i] + (src2Re[i] * src1Im[i])) / c2d2;
+    }
+}
+
 static inline void cplxvecmul_C(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
 #ifdef OMP
