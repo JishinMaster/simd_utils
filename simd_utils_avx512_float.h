@@ -3002,23 +3002,22 @@ static inline void trunc512f(float *src, float *dst, int len)
 static inline void cplxvecdiv512f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 
 {
-
     int stop_len = len / (AVX512_LEN_FLOAT);  //(len << 1) >> 2;
-    stop_len = stop_len * AVX512_LEN_FLOAT;   //stop_len << 2;
+    stop_len = stop_len * AVX512_LEN_FLOAT;   // stop_len << 2;
 
     int i;
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
-            v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);                        // src1 = b1,a1,b0,a0 (little endian)
-            v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);                        // src2 = d1,c1,d0,c0
+            v16sf src1_tmp = _mm512_load_ps((float *) (src1) + i);  // src1 = b1,a1,b0,a0 (little endian)
+            v16sf src2_tmp = _mm512_load_ps((float *) (src2) + i);  // src2 = d1,c1,d0,c0
             v16sf c2d2 = _mm512_mul_ps(src2_tmp, src2_tmp);
-            v16sf c2d2_shuf = _mm512_shuffle_ps(c2d2,c2d2,  _MM_SHUFFLE(2, 3, 0, 1));
-            c2d2 = _mm512_add_ps(c2d2_shuf,c2d2);
-            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                    //a1,a1,a0,a0
-            tmp1 = _mm512_mul_ps(*(v16sf*)_ps512_conj_mask,tmp1);
-            v16sf tmp2 = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
-            v16sf tmp3 = _mm512_movehdup_ps(src1_tmp);                                    //b1,b1,b0,b0
+            v16sf c2d2_shuf = _mm512_shuffle_ps(c2d2, c2d2, _MM_SHUFFLE(2, 3, 0, 1));
+            c2d2 = _mm512_add_ps(c2d2_shuf, c2d2);
+            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);  // a1,a1,a0,a0
+            tmp1 = _mm512_mul_ps(*(v16sf *) _ps512_conj_mask, tmp1);
+            v16sf tmp2 = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  // c1,d1,c0,d0
+            v16sf tmp3 = _mm512_movehdup_ps(src1_tmp);                                    // b1,b1,b0,b0
             v16sf out = _mm512_mul_ps(tmp2, tmp3);                                        // c1b1, b1d1, c0b0, d0b0
             out = _mm512_fmadd_ps_custom(tmp1, src2_tmp, out);
             out = _mm512_div_ps(out, c2d2);
@@ -3026,15 +3025,15 @@ static inline void cplxvecdiv512f(complex32_t *src1, complex32_t *src2, complex3
         }
     } else {
         for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
-            v16sf src1_tmp = _mm512_loadu_ps((float *) (src1) + i);                        // src1 = b1,a1,b0,a0 (little endian)
-            v16sf src2_tmp = _mm512_loadu_ps((float *) (src2) + i);                        // src2 = d1,c1,d0,c0
+            v16sf src1_tmp = _mm512_loadu_ps((float *) (src1) + i);  // src1 = b1,a1,b0,a0 (little endian)
+            v16sf src2_tmp = _mm512_loadu_ps((float *) (src2) + i);  // src2 = d1,c1,d0,c0
             v16sf c2d2 = _mm512_mul_ps(src2_tmp, src2_tmp);
-            v16sf c2d2_shuf = _mm512_shuffle_ps(c2d2,c2d2,  _MM_SHUFFLE(2, 3, 0, 1));
-            c2d2 = _mm512_add_ps(c2d2_shuf,c2d2);
-            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);                                    //a1,a1,a0,a0
-            tmp1 = _mm512_mul_ps(*(v16sf*)_ps512_conj_mask,tmp1);
-            v16sf tmp2 = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  //c1,d1,c0,d0
-            v16sf tmp3 = _mm512_movehdup_ps(src1_tmp);                                    //b1,b1,b0,b0
+            v16sf c2d2_shuf = _mm512_shuffle_ps(c2d2, c2d2, _MM_SHUFFLE(2, 3, 0, 1));
+            c2d2 = _mm512_add_ps(c2d2_shuf, c2d2);
+            v16sf tmp1 = _mm512_moveldup_ps(src1_tmp);  // a1,a1,a0,a0
+            tmp1 = _mm512_mul_ps(*(v16sf *) _ps512_conj_mask, tmp1);
+            v16sf tmp2 = _mm512_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  // c1,d1,c0,d0
+            v16sf tmp3 = _mm512_movehdup_ps(src1_tmp);                                    // b1,b1,b0,b0
             v16sf out = _mm512_mul_ps(tmp2, tmp3);                                        // c1b1, b1d1, c0b0, d0b0
             out = _mm512_fmadd_ps_custom(tmp1, src2_tmp, out);
             out = _mm512_div_ps(out, c2d2);
@@ -3042,44 +3041,43 @@ static inline void cplxvecdiv512f(complex32_t *src1, complex32_t *src2, complex3
         }
     }
     for (int i = stop_len; i < len; i++) {
-        float c2d2 = src2[i].re*src2[i].re + src2[i].im*src2[i].im;
-        dst[i].re = ((src1[i].re * src2[i].re) + (src1[i].im * src2[i].im))/c2d2;
-        dst[i].im = ( -(src1[i].re * src2[i].im) + (src2[i].re * src1[i].im))/c2d2;
+        float c2d2 = src2[i].re * src2[i].re + src2[i].im * src2[i].im;
+        dst[i].re = ((src1[i].re * src2[i].re) + (src1[i].im * src2[i].im)) / c2d2;
+        dst[i].im = (-(src1[i].re * src2[i].im) + (src2[i].re * src1[i].im)) / c2d2;
     }
 }
 
-static inline void cplxvecdiv512f_split(float *src1Re, float* src1Im, float* src2Re, float* src2Im,\
-                                        float* dstRe, float* dstIm, int len)
+static inline void cplxvecdiv512f_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
 {
     int stop_len = len / (2 * AVX512_LEN_FLOAT);
     stop_len *= 2 * AVX512_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t) (src1Re), (uintptr_t) (src2Re), (uintptr_t) (src2Re), AVX512_LEN_BYTES) &&\
+    if (areAligned3((uintptr_t) (src1Re), (uintptr_t) (src2Re), (uintptr_t) (src2Re), AVX512_LEN_BYTES) &&
         areAligned3((uintptr_t) (src1Im), (uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-            v16sf src1Re_tmp =  _mm512_load_ps((float *) (src1Re) + i);
-            v16sf src1Re_tmp2 =  _mm512_load_ps((float *) (src1Re) + i + AVX512_LEN_FLOAT);
-            v16sf src1Im_tmp =  _mm512_load_ps((float *) (src1Im) + i);
-            v16sf src1Im_tmp2 =  _mm512_load_ps((float *) (src1Im) + i + AVX512_LEN_FLOAT);
-            v16sf src2Re_tmp =  _mm512_load_ps((float *) (src2Re) + i);
-            v16sf src2Re_tmp2 =  _mm512_load_ps((float *) (src2Re) + i + AVX512_LEN_FLOAT);
-            v16sf src2Im_tmp =  _mm512_load_ps((float *) (src2Im) + i);
-            v16sf src2Im_tmp2 =  _mm512_load_ps((float *) (src2Im) + i + AVX512_LEN_FLOAT);
-            
+            v16sf src1Re_tmp = _mm512_load_ps((float *) (src1Re) + i);
+            v16sf src1Re_tmp2 = _mm512_load_ps((float *) (src1Re) + i + AVX512_LEN_FLOAT);
+            v16sf src1Im_tmp = _mm512_load_ps((float *) (src1Im) + i);
+            v16sf src1Im_tmp2 = _mm512_load_ps((float *) (src1Im) + i + AVX512_LEN_FLOAT);
+            v16sf src2Re_tmp = _mm512_load_ps((float *) (src2Re) + i);
+            v16sf src2Re_tmp2 = _mm512_load_ps((float *) (src2Re) + i + AVX512_LEN_FLOAT);
+            v16sf src2Im_tmp = _mm512_load_ps((float *) (src2Im) + i);
+            v16sf src2Im_tmp2 = _mm512_load_ps((float *) (src2Im) + i + AVX512_LEN_FLOAT);
+
             v16sf c2 = _mm512_mul_ps(src2Re_tmp, src2Re_tmp);
             v16sf c2d2 = _mm512_fmadd_ps_custom(src2Im_tmp, src2Im_tmp, c2);
             v16sf c2_ = _mm512_mul_ps(src2Re_tmp2, src2Re_tmp2);
             v16sf c2d2_ = _mm512_fmadd_ps_custom(src2Im_tmp2, src2Im_tmp2, c2_);
             v16sf ac = _mm512_mul_ps(src1Re_tmp, src2Re_tmp);     // ac
             v16sf bc = _mm512_mul_ps(src1Im_tmp, src2Re_tmp);     // bc
-            v16sf ac2 = _mm512_mul_ps(src1Re_tmp2, src2Re_tmp2);     // ac
-            v16sf bc2 = _mm512_mul_ps(src1Im_tmp2, src2Re_tmp2);     // bc
+            v16sf ac2 = _mm512_mul_ps(src1Re_tmp2, src2Re_tmp2);  // ac
+            v16sf bc2 = _mm512_mul_ps(src1Im_tmp2, src2Re_tmp2);  // bc
 
             v16sf dstRe_tmp = _mm512_fmadd_ps_custom(src1Im_tmp, src2Im_tmp, ac);
             v16sf dstRe_tmp2 = _mm512_fmadd_ps_custom(src1Im_tmp2, src2Im_tmp2, ac2);
             v16sf dstIm_tmp = _mm512_fnmadd_ps_custom(src1Re_tmp, src2Im_tmp, bc);
             v16sf dstIm_tmp2 = _mm512_fnmadd_ps_custom(src1Re_tmp2, src2Im_tmp2, bc2);
-            
+
             dstRe_tmp = _mm512_div_ps(dstRe_tmp, c2d2);
             dstIm_tmp = _mm512_div_ps(dstIm_tmp, c2d2);
             dstRe_tmp2 = _mm512_div_ps(dstRe_tmp2, c2d2_);
@@ -3092,29 +3090,29 @@ static inline void cplxvecdiv512f_split(float *src1Re, float* src1Im, float* src
         }
     } else {
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-            v16sf src1Re_tmp =  _mm512_loadu_ps((float *) (src1Re) + i);
-            v16sf src1Re_tmp2 =  _mm512_loadu_ps((float *) (src1Re) + i + AVX512_LEN_FLOAT);
-            v16sf src1Im_tmp =  _mm512_loadu_ps((float *) (src1Im) + i);
-            v16sf src1Im_tmp2 =  _mm512_loadu_ps((float *) (src1Im) + i + AVX512_LEN_FLOAT);
-            v16sf src2Re_tmp =  _mm512_loadu_ps((float *) (src2Re) + i);
-            v16sf src2Re_tmp2 =  _mm512_loadu_ps((float *) (src2Re) + i + AVX512_LEN_FLOAT);
-            v16sf src2Im_tmp =  _mm512_loadu_ps((float *) (src2Im) + i);
-            v16sf src2Im_tmp2 =  _mm512_loadu_ps((float *) (src2Im) + i + AVX512_LEN_FLOAT);
-            
+            v16sf src1Re_tmp = _mm512_loadu_ps((float *) (src1Re) + i);
+            v16sf src1Re_tmp2 = _mm512_loadu_ps((float *) (src1Re) + i + AVX512_LEN_FLOAT);
+            v16sf src1Im_tmp = _mm512_loadu_ps((float *) (src1Im) + i);
+            v16sf src1Im_tmp2 = _mm512_loadu_ps((float *) (src1Im) + i + AVX512_LEN_FLOAT);
+            v16sf src2Re_tmp = _mm512_loadu_ps((float *) (src2Re) + i);
+            v16sf src2Re_tmp2 = _mm512_loadu_ps((float *) (src2Re) + i + AVX512_LEN_FLOAT);
+            v16sf src2Im_tmp = _mm512_loadu_ps((float *) (src2Im) + i);
+            v16sf src2Im_tmp2 = _mm512_loadu_ps((float *) (src2Im) + i + AVX512_LEN_FLOAT);
+
             v16sf c2 = _mm512_mul_ps(src2Re_tmp, src2Re_tmp);
             v16sf c2d2 = _mm512_fmadd_ps_custom(src2Im_tmp, src2Im_tmp, c2);
             v16sf c2_ = _mm512_mul_ps(src2Re_tmp2, src2Re_tmp2);
             v16sf c2d2_ = _mm512_fmadd_ps_custom(src2Im_tmp2, src2Im_tmp2, c2_);
             v16sf ac = _mm512_mul_ps(src1Re_tmp, src2Re_tmp);     // ac
             v16sf bc = _mm512_mul_ps(src1Im_tmp, src2Re_tmp);     // bc
-            v16sf ac2 = _mm512_mul_ps(src1Re_tmp2, src2Re_tmp2);     // ac
-            v16sf bc2 = _mm512_mul_ps(src1Im_tmp2, src2Re_tmp2);     // bc
+            v16sf ac2 = _mm512_mul_ps(src1Re_tmp2, src2Re_tmp2);  // ac
+            v16sf bc2 = _mm512_mul_ps(src1Im_tmp2, src2Re_tmp2);  // bc
 
             v16sf dstRe_tmp = _mm512_fmadd_ps_custom(src1Im_tmp, src2Im_tmp, ac);
             v16sf dstRe_tmp2 = _mm512_fmadd_ps_custom(src1Im_tmp2, src2Im_tmp2, ac2);
             v16sf dstIm_tmp = _mm512_fnmadd_ps_custom(src1Re_tmp, src2Im_tmp, bc);
             v16sf dstIm_tmp2 = _mm512_fnmadd_ps_custom(src1Re_tmp2, src2Im_tmp2, bc2);
-            
+
             dstRe_tmp = _mm512_div_ps(dstRe_tmp, c2d2);
             dstIm_tmp = _mm512_div_ps(dstIm_tmp, c2d2);
             dstRe_tmp2 = _mm512_div_ps(dstRe_tmp2, c2d2_);

@@ -361,58 +361,58 @@ static inline void powerspect16s_512s_interleaved(complex16s_t *src, int32_t *ds
 }
 
 
-//is it useful to unroll?
+// is it useful to unroll?
 static inline void gatheri_512s(int32_t *src, int32_t *dst, int stride, int offset, int len)
 {
     int stop_len = len / (AVX512_LEN_INT32);
     stop_len *= (AVX512_LEN_INT32);
 
-    v16si vindex = _mm512_setr_epi32(offset,stride+offset,2*stride+offset,3*stride+offset,\
-                  4*stride+offset,5*stride+offset,6*stride+offset,7*stride+offset,\
-                  8*stride+offset,9*stride+offset,10*stride+offset,11*stride+offset,\
-                  12*stride+offset,13*stride+offset,14*stride+offset,15*stride+offset);
+    v16si vindex = _mm512_setr_epi32(offset, stride + offset, 2 * stride + offset, 3 * stride + offset,
+                                     4 * stride + offset, 5 * stride + offset, 6 * stride + offset, 7 * stride + offset,
+                                     8 * stride + offset, 9 * stride + offset, 10 * stride + offset, 11 * stride + offset,
+                                     12 * stride + offset, 13 * stride + offset, 14 * stride + offset, 15 * stride + offset);
 
     if (isAligned((uintptr_t) (dst), AVX512_LEN_BYTES)) {
-      for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
-          v16si tmp = _mm512_i32gather_epi32(vindex, (const int*) (src + i*AVX512_LEN_INT32),1);
-          _mm512_store_si512((v16si*)(dst+ i*AVX512_LEN_INT32),tmp);
-      }
+        for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
+            v16si tmp = _mm512_i32gather_epi32(vindex, (const int *) (src + i * AVX512_LEN_INT32), 1);
+            _mm512_store_si512((v16si *) (dst + i * AVX512_LEN_INT32), tmp);
+        }
     } else {
-      for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
-          v16si tmp = _mm512_i32gather_epi32(vindex, (const int*) (src + i*AVX512_LEN_INT32),1);
-          _mm512_storeu_si512((v16si*)(dst+ i*AVX512_LEN_INT32),tmp);
-      }
+        for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
+            v16si tmp = _mm512_i32gather_epi32(vindex, (const int *) (src + i * AVX512_LEN_INT32), 1);
+            _mm512_storeu_si512((v16si *) (dst + i * AVX512_LEN_INT32), tmp);
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i] = src[i*stride + offset];
+        dst[i] = src[i * stride + offset];
     }
 }
 
-//is it useful to unroll?
+// is it useful to unroll?
 static inline void scatteri_512s(int32_t *src, int32_t *dst, int stride, int offset, int len)
 {
     int stop_len = len / (AVX512_LEN_INT32);
     stop_len *= (AVX512_LEN_INT32);
 
-    v16si vindex = _mm512_setr_epi32(offset,stride+offset,2*stride+offset,3*stride+offset,\
-                  4*stride+offset,5*stride+offset,6*stride+offset,7*stride+offset,\
-                  8*stride+offset,9*stride+offset,10*stride+offset,11*stride+offset,\
-                  12*stride+offset,13*stride+offset,14*stride+offset,15*stride+offset);
+    v16si vindex = _mm512_setr_epi32(offset, stride + offset, 2 * stride + offset, 3 * stride + offset,
+                                     4 * stride + offset, 5 * stride + offset, 6 * stride + offset, 7 * stride + offset,
+                                     8 * stride + offset, 9 * stride + offset, 10 * stride + offset, 11 * stride + offset,
+                                     12 * stride + offset, 13 * stride + offset, 14 * stride + offset, 15 * stride + offset);
 
     if (isAligned((uintptr_t) (src), AVX512_LEN_BYTES)) {
-      for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
-          v16si tmp = _mm512_load_si512((const int*) (src + i*AVX512_LEN_INT32));
-          _mm512_i32scatter_epi32( (const int*) (dst + i*AVX512_LEN_INT32), vindex,tmp,1);
-      }
+        for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
+            v16si tmp = _mm512_load_si512((const int *) (src + i * AVX512_LEN_INT32));
+            _mm512_i32scatter_epi32((const int *) (dst + i * AVX512_LEN_INT32), vindex, tmp, 1);
+        }
     } else {
-      for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
-          v16si tmp = _mm512_loadu_si512((const int*) (src + i*AVX512_LEN_INT32));
-          _mm512_i32scatter_epi32( (const int*) (dst + i*AVX512_LEN_INT32), vindex,tmp,1);
-      }
+        for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
+            v16si tmp = _mm512_loadu_si512((const int *) (src + i * AVX512_LEN_INT32));
+            _mm512_i32scatter_epi32((const int *) (dst + i * AVX512_LEN_INT32), vindex, tmp, 1);
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i] = src[i*stride + offset];
+        dst[i] = src[i * stride + offset];
     }
 }

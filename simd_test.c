@@ -2504,9 +2504,26 @@ printf("\n");
 
     l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
+
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxvecdiv_vec((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxvecdiv_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cplxvecdiv_vec((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cplxvecdiv_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout_ref, inout2_ref, 2 * len);
+#endif
     printf("\n");
-    
-    
+
+
     printf("\n");
     /////////////////////////////////////////////////////////// CPLXVECDIV_SPLIT //////////////////////////////////////////////////////////////////////////////
     printf("CPLXVECDIV_SPLIT\n");
@@ -2514,8 +2531,8 @@ printf("\n");
     for (int i = 0; i < len; i++) {
         inout[i] = (float) i / 300.0f;  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
         inout2[i] = (float) i / (-127.577f);
-        inout3[i] = (float) i / 1024.0f + 1.575494*1e-22f;  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
-        inout4[i] = (float) i / (-11112.577f) + 1.575494*1e-22f;
+        inout3[i] = (float) i / 1024.0f + 1.575494 * 1e-22f;  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+        inout4[i] = (float) i / (-11112.577f) + 1.575494 * 1e-22f;
     }
 
     clock_gettime(CLOCK_REALTIME, &start);
@@ -2584,12 +2601,30 @@ printf("\n");
     l2_err(inout_ref, inout5, len);
     l2_err(inout2_ref, inout6, len);
 #endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxvecdiv_vec_split(inout, inout2, inout3, inout4, inout5, inout6, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxvecdiv_vec_split %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cplxvecdiv_vec_split(inout, inout2, inout3, inout4, inout5, inout6, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cplxvecdiv_vec_split %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout_ref, inout5, len);
+    l2_err(inout2_ref, inout6, len);
+#endif
     /*for(int i = 0; i < len; i++){
         printf("%f %f // %f %f // %f %f || %f %f\n",inout[i],inout2[i],inout3[i],inout4[i],inout5[i],inout_ref[i], inout6[i], inout2_ref[i]);
      }*/
 
     printf("\n");
-    
+
     /////////////////////////////////////////////////////////// CPLXVECMUL //////////////////////////////////////////////////////////////////////////////
     printf("CPLXVECMUL\n");
 
@@ -2715,6 +2750,23 @@ printf("\n");
     l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxvecmul_vec((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxvecmul_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cplxvecmul_vec((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cplxvecmul_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout_ref, inout2_ref, 2 * len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// CPLXVECMUL_SPLIT //////////////////////////////////////////////////////////////////////////////
     printf("CPLXVECMUL_SPLIT\n");
@@ -2788,6 +2840,24 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxvecmul512f_split %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout_ref, inout5, len);
+    l2_err(inout2_ref, inout6, len);
+#endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxvecmul_vec_split(inout, inout2, inout3, inout4, inout5, inout6, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxvecmul_vec_split %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cplxvecmul_vec_split(inout, inout2, inout3, inout4, inout5, inout6, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cplxvecmul_vec_split %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     l2_err(inout_ref, inout5, len);
     l2_err(inout2_ref, inout6, len);
@@ -4707,6 +4777,27 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#endif
+
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    log10_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("log10_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        log10_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("log10_vec %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+
+    /*for(int i = 0; i < len; i++)
+          printf("%f %f %f\n",inout[i],inout2_ref[i], inout2[i]);
+        printf("\n\n");*/
 #endif
 
     printf("\n");

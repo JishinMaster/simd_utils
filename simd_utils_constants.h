@@ -65,7 +65,7 @@ static const float coscof[] = {2.443315711809948E-5f, -1.388731625493765E-3f,
 #define SIGN_MASK 0x80000000
 static const int32_t sign_mask = SIGN_MASK;
 static const int32_t inv_sign_mask = ~SIGN_MASK;
-
+#define min_norm_pos 0x00800000
 #define INVLN10 0.4342944819032518f  // 0.4342944819f
 #define INVLN2 1.4426950408889634f   // 1.44269504089f
 #define LN2 0.6931471805599453094172321214581765680755001343602552541206800094f
@@ -114,31 +114,8 @@ typedef enum {
 } FloatRoundingMode;
 
 
-#ifdef SSE
-
-#define SSE_LEN_BYTES 16  // Size of SSE lane
-#define SSE_LEN_INT16 8   // number of int16 with an SSE lane
-#define SSE_LEN_INT32 4   // number of int32 with an SSE lane
-#define SSE_LEN_FLOAT 4   // number of float with an SSE lane
-#define SSE_LEN_DOUBLE 2  // number of double with an SSE lane
-
-#if defined(ARM)
-
-typedef float32x4_t v4sf;      // vector of 4 float
-typedef float32x4x2_t v4sfx2;  // vector of 4 float
-typedef uint32x4_t v4su;       // vector of 4 uint32
-typedef int32x4_t v4si;        // vector of 4 uint32
-typedef float32x4x2_t v4sfx2;
-
-#define _PS_CONST(Name, Val) \
-    static const ALIGN16_BEG float _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
-#define _PI32_CONST(Name, Val) \
-    static const ALIGN16_BEG int _pi32_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
-#define _PS_CONST_TYPE(Name, Type, Val) \
-    static const ALIGN16_BEG Type _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
-
 #define c_inv_mant_mask ~0x7f800000u
-#define c_cephes_SQRTHF 0.707106781186547524
+#define c_cephes_SQRTHF 0.707106781186547524f
 #define c_cephes_log_p0 7.0376836292E-2
 #define c_cephes_log_p1 -1.1514610310E-1
 #define c_cephes_log_p2 1.1676998740E-1
@@ -150,6 +127,12 @@ typedef float32x4x2_t v4sfx2;
 #define c_cephes_log_p8 +3.3333331174E-1
 #define c_cephes_log_q1 -2.12194440e-4
 #define c_cephes_log_q2 0.693359375
+
+#define c_cephes_L102A 3.0078125E-1f
+#define c_cephes_L102B 2.48745663981195213739E-4f
+#define c_cephes_L10EA 4.3359375E-1f
+#define c_cephes_L10EB 7.00731903251827651129E-4f
+
 
 #define c_exp_hi 88.3762626647949f
 #define c_exp_lo -88.3762626647949f
@@ -175,6 +158,30 @@ typedef float32x4x2_t v4sfx2;
 #define c_coscof_p1 -1.388731625493765E-003
 #define c_coscof_p2 4.166664568298827E-002
 #define c_cephes_FOPI 1.27323954473516  // 4 / M_PI
+
+
+#ifdef SSE
+
+#define SSE_LEN_BYTES 16  // Size of SSE lane
+#define SSE_LEN_INT16 8   // number of int16 with an SSE lane
+#define SSE_LEN_INT32 4   // number of int32 with an SSE lane
+#define SSE_LEN_FLOAT 4   // number of float with an SSE lane
+#define SSE_LEN_DOUBLE 2  // number of double with an SSE lane
+
+#if defined(ARM)
+
+typedef float32x4_t v4sf;      // vector of 4 float
+typedef float32x4x2_t v4sfx2;  // vector of 4 float
+typedef uint32x4_t v4su;       // vector of 4 uint32
+typedef int32x4_t v4si;        // vector of 4 uint32
+typedef float32x4x2_t v4sfx2;
+
+#define _PS_CONST(Name, Val) \
+    static const ALIGN16_BEG float _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
+#define _PI32_CONST(Name, Val) \
+    static const ALIGN16_BEG int _pi32_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
+#define _PS_CONST_TYPE(Name, Type, Val) \
+    static const ALIGN16_BEG Type _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
 
 #else
 
@@ -518,7 +525,7 @@ _PD_CONST(min1, -1.0);
     static const ALIGN32_BEG Type _pd256_##Name[4] ALIGN32_END = {Val, Val, Val, Val}
 
 static const float _ps256_conj_mask[8] __attribute__((aligned(32))) = {1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f};
-//static int32_t vindex256_arr[8] __attribute__((aligned[32])) = {0,1,2,3,4,5,6,7};
+// static int32_t vindex256_arr[8] __attribute__((aligned[32])) = {0,1,2,3,4,5,6,7};
 
 typedef __m256 v8sf;    // vector of 8 float (avx)
 typedef __m256i v8si;   // vector of 8 int   (avx)
@@ -1172,6 +1179,7 @@ typedef __vector char v16s8;
 
 /// PRINT FUNCTIONS */
 
+#ifdef SSE
 /*
 static inline void print4(__m128 v)
 {
@@ -1180,6 +1188,7 @@ static inline void print4(__m128 v)
     _mm_empty();
 #endif
     printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
+    //printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
 }
 
 static inline void print4i(__m128i v)
@@ -1189,7 +1198,9 @@ static inline void print4i(__m128i v)
     _mm_empty();
 #endif
     printf("[%d, %d, %d, %d]", p[0], p[1], p[2], p[3]);
-}*/
+}
+*/
+#endif
 /*
 static inline void print4short(__m64 v)
 {

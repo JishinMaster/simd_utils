@@ -1306,7 +1306,7 @@ static inline void cplxvecdiv_C(complex32_t *src1, complex32_t *src2, complex32_
 }
 
 
-static inline void cplxvecdiv_C_split(float *src1Re, float* src1Im, float* src2Re, float* src2Im, float* dstRe, float* dstIm, int len)
+static inline void cplxvecdiv_C_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
 {
 #ifdef OMP
 #pragma omp simd
@@ -1819,7 +1819,7 @@ static inline void pol2cart2Df_C(float *r, float *theta, float *x, float *y, int
     }
 }
 
-//https://fr.mathworks.com/help/matlab/ref/cart2pol.html
+// https://fr.mathworks.com/help/matlab/ref/cart2pol.html
 static inline void cart2pol2Df_C(float *x, float *y, float *r, float *theta, int len)
 {
 #ifdef OMP
@@ -1828,31 +1828,31 @@ static inline void cart2pol2Df_C(float *x, float *y, float *r, float *theta, int
     for (int i = 0; i < len; i++) {
         float y_square = y[i] * y[i];
         r[i] = sqrtf(x[i] * x[i] + y_square);
-        //theta[i] = atanf(y[i] / x[i]);
+        // theta[i] = atanf(y[i] / x[i]);
         theta[i] = atan2f(y[i], x[i]);
     }
 }
 
-//Do we need a special function for float or can we cast?
+// Do we need a special function for float or can we cast?
 static inline void gatheri_C(int32_t *src, int32_t *dst, int stride, int offset, int len)
 {
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = src[i*stride + offset];
+        dst[i] = src[i * stride + offset];
     }
 }
 
 
-//Do we need a special function for float or can we cast?
+// Do we need a special function for float or can we cast?
 static inline void scatteri_C(int32_t *src, int32_t *dst, int stride, int offset, int len)
 {
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i*stride + offset] = src[i];
+        dst[i * stride + offset] = src[i];
     }
 }
 

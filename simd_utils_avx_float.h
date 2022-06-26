@@ -3194,8 +3194,8 @@ static inline void cplxvecdiv256f(complex32_t *src1, complex32_t *src2, complex3
             v8sf src1_tmp = _mm256_load_ps((float *) (src1) + i);  // src1 = b1,a1,b0,a0 (little endian)
             v8sf src2_tmp = _mm256_load_ps((float *) (src2) + i);  // src2 = d1,c1,d0,c0
             v8sf c2d2 = _mm256_mul_ps(src2_tmp, src2_tmp);
-            v8sf c2d2_shuf = _mm256_shuffle_ps(c2d2,c2d2,  _MM_SHUFFLE(2, 3, 0, 1));
-            c2d2 = _mm256_add_ps(c2d2_shuf,c2d2);
+            v8sf c2d2_shuf = _mm256_shuffle_ps(c2d2, c2d2, _MM_SHUFFLE(2, 3, 0, 1));
+            c2d2 = _mm256_add_ps(c2d2_shuf, c2d2);
             v8sf tmp1 = _mm256_moveldup_ps(src1_tmp);  // a1,a1,a0,a0
             tmp1 = _mm256_mul_ps(*(v8sf *) _ps256_conj_mask, tmp1);
             v8sf tmp2 = _mm256_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  // c1,d1,c0,d0
@@ -3210,8 +3210,8 @@ static inline void cplxvecdiv256f(complex32_t *src1, complex32_t *src2, complex3
             v8sf src1_tmp = _mm256_loadu_ps((float *) (src1) + i);  // src1 = b1,a1,b0,a0 (little endian)
             v8sf src2_tmp = _mm256_loadu_ps((float *) (src2) + i);  // src2 = d1,c1,d0,c0
             v8sf c2d2 = _mm256_mul_ps(src2_tmp, src2_tmp);
-            v8sf c2d2_shuf = _mm256_shuffle_ps(c2d2,c2d2,  _MM_SHUFFLE(2, 3, 0, 1));
-            c2d2 = _mm256_add_ps(c2d2_shuf,c2d2);
+            v8sf c2d2_shuf = _mm256_shuffle_ps(c2d2, c2d2, _MM_SHUFFLE(2, 3, 0, 1));
+            c2d2 = _mm256_add_ps(c2d2_shuf, c2d2);
             v8sf tmp1 = _mm256_moveldup_ps(src1_tmp);  // a1,a1,a0,a0
             tmp1 = _mm256_mul_ps(*(v8sf *) _ps256_conj_mask, tmp1);
             v8sf tmp2 = _mm256_shuffle_ps(src2_tmp, src2_tmp, _MM_SHUFFLE(2, 3, 0, 1));  // c1,d1,c0,d0
@@ -3229,38 +3229,37 @@ static inline void cplxvecdiv256f(complex32_t *src1, complex32_t *src2, complex3
     }
 }
 
-static inline void cplxvecdiv256f_split(float *src1Re, float* src1Im, float* src2Re, float* src2Im,\
-                                        float* dstRe, float* dstIm, int len)
+static inline void cplxvecdiv256f_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
 {
     int stop_len = len / (2 * AVX_LEN_FLOAT);
     stop_len *= 2 * AVX_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t) (src1Re), (uintptr_t) (src2Re), (uintptr_t) (src2Re), AVX_LEN_BYTES) &&\
+    if (areAligned3((uintptr_t) (src1Re), (uintptr_t) (src2Re), (uintptr_t) (src2Re), AVX_LEN_BYTES) &&
         areAligned3((uintptr_t) (src1Im), (uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
-            v8sf src1Re_tmp =  _mm256_load_ps((float *) (src1Re) + i);
-            v8sf src1Re_tmp2 =  _mm256_load_ps((float *) (src1Re) + i + AVX_LEN_FLOAT);
-            v8sf src1Im_tmp =  _mm256_load_ps((float *) (src1Im) + i);
-            v8sf src1Im_tmp2 =  _mm256_load_ps((float *) (src1Im) + i + AVX_LEN_FLOAT);
-            v8sf src2Re_tmp =  _mm256_load_ps((float *) (src2Re) + i);
-            v8sf src2Re_tmp2 =  _mm256_load_ps((float *) (src2Re) + i + AVX_LEN_FLOAT);
-            v8sf src2Im_tmp =  _mm256_load_ps((float *) (src2Im) + i);
-            v8sf src2Im_tmp2 =  _mm256_load_ps((float *) (src2Im) + i + AVX_LEN_FLOAT);
-            
+            v8sf src1Re_tmp = _mm256_load_ps((float *) (src1Re) + i);
+            v8sf src1Re_tmp2 = _mm256_load_ps((float *) (src1Re) + i + AVX_LEN_FLOAT);
+            v8sf src1Im_tmp = _mm256_load_ps((float *) (src1Im) + i);
+            v8sf src1Im_tmp2 = _mm256_load_ps((float *) (src1Im) + i + AVX_LEN_FLOAT);
+            v8sf src2Re_tmp = _mm256_load_ps((float *) (src2Re) + i);
+            v8sf src2Re_tmp2 = _mm256_load_ps((float *) (src2Re) + i + AVX_LEN_FLOAT);
+            v8sf src2Im_tmp = _mm256_load_ps((float *) (src2Im) + i);
+            v8sf src2Im_tmp2 = _mm256_load_ps((float *) (src2Im) + i + AVX_LEN_FLOAT);
+
             v8sf c2 = _mm256_mul_ps(src2Re_tmp, src2Re_tmp);
             v8sf c2d2 = _mm256_fmadd_ps_custom(src2Im_tmp, src2Im_tmp, c2);
             v8sf c2_ = _mm256_mul_ps(src2Re_tmp2, src2Re_tmp2);
             v8sf c2d2_ = _mm256_fmadd_ps_custom(src2Im_tmp2, src2Im_tmp2, c2_);
             v8sf ac = _mm256_mul_ps(src1Re_tmp, src2Re_tmp);     // ac
             v8sf bc = _mm256_mul_ps(src1Im_tmp, src2Re_tmp);     // bc
-            v8sf ac2 = _mm256_mul_ps(src1Re_tmp2, src2Re_tmp2);     // ac
-            v8sf bc2 = _mm256_mul_ps(src1Im_tmp2, src2Re_tmp2);     // bc
+            v8sf ac2 = _mm256_mul_ps(src1Re_tmp2, src2Re_tmp2);  // ac
+            v8sf bc2 = _mm256_mul_ps(src1Im_tmp2, src2Re_tmp2);  // bc
 
             v8sf dstRe_tmp = _mm256_fmadd_ps_custom(src1Im_tmp, src2Im_tmp, ac);
             v8sf dstRe_tmp2 = _mm256_fmadd_ps_custom(src1Im_tmp2, src2Im_tmp2, ac2);
             v8sf dstIm_tmp = _mm256_fnmadd_ps_custom(src1Re_tmp, src2Im_tmp, bc);
             v8sf dstIm_tmp2 = _mm256_fnmadd_ps_custom(src1Re_tmp2, src2Im_tmp2, bc2);
-            
+
             dstRe_tmp = _mm256_div_ps(dstRe_tmp, c2d2);
             dstIm_tmp = _mm256_div_ps(dstIm_tmp, c2d2);
             dstRe_tmp2 = _mm256_div_ps(dstRe_tmp2, c2d2_);
@@ -3273,29 +3272,29 @@ static inline void cplxvecdiv256f_split(float *src1Re, float* src1Im, float* src
         }
     } else {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
-            v8sf src1Re_tmp =  _mm256_loadu_ps((float *) (src1Re) + i);
-            v8sf src1Re_tmp2 =  _mm256_loadu_ps((float *) (src1Re) + i + AVX_LEN_FLOAT);
-            v8sf src1Im_tmp =  _mm256_loadu_ps((float *) (src1Im) + i);
-            v8sf src1Im_tmp2 =  _mm256_loadu_ps((float *) (src1Im) + i + AVX_LEN_FLOAT);
-            v8sf src2Re_tmp =  _mm256_loadu_ps((float *) (src2Re) + i);
-            v8sf src2Re_tmp2 =  _mm256_loadu_ps((float *) (src2Re) + i + AVX_LEN_FLOAT);
-            v8sf src2Im_tmp =  _mm256_loadu_ps((float *) (src2Im) + i);
-            v8sf src2Im_tmp2 =  _mm256_loadu_ps((float *) (src2Im) + i + AVX_LEN_FLOAT);
-            
+            v8sf src1Re_tmp = _mm256_loadu_ps((float *) (src1Re) + i);
+            v8sf src1Re_tmp2 = _mm256_loadu_ps((float *) (src1Re) + i + AVX_LEN_FLOAT);
+            v8sf src1Im_tmp = _mm256_loadu_ps((float *) (src1Im) + i);
+            v8sf src1Im_tmp2 = _mm256_loadu_ps((float *) (src1Im) + i + AVX_LEN_FLOAT);
+            v8sf src2Re_tmp = _mm256_loadu_ps((float *) (src2Re) + i);
+            v8sf src2Re_tmp2 = _mm256_loadu_ps((float *) (src2Re) + i + AVX_LEN_FLOAT);
+            v8sf src2Im_tmp = _mm256_loadu_ps((float *) (src2Im) + i);
+            v8sf src2Im_tmp2 = _mm256_loadu_ps((float *) (src2Im) + i + AVX_LEN_FLOAT);
+
             v8sf c2 = _mm256_mul_ps(src2Re_tmp, src2Re_tmp);
             v8sf c2d2 = _mm256_fmadd_ps_custom(src2Im_tmp, src2Im_tmp, c2);
             v8sf c2_ = _mm256_mul_ps(src2Re_tmp2, src2Re_tmp2);
             v8sf c2d2_ = _mm256_fmadd_ps_custom(src2Im_tmp2, src2Im_tmp2, c2_);
             v8sf ac = _mm256_mul_ps(src1Re_tmp, src2Re_tmp);     // ac
             v8sf bc = _mm256_mul_ps(src1Im_tmp, src2Re_tmp);     // bc
-            v8sf ac2 = _mm256_mul_ps(src1Re_tmp2, src2Re_tmp2);     // ac
-            v8sf bc2 = _mm256_mul_ps(src1Im_tmp2, src2Re_tmp2);     // bc
+            v8sf ac2 = _mm256_mul_ps(src1Re_tmp2, src2Re_tmp2);  // ac
+            v8sf bc2 = _mm256_mul_ps(src1Im_tmp2, src2Re_tmp2);  // bc
 
             v8sf dstRe_tmp = _mm256_fmadd_ps_custom(src1Im_tmp, src2Im_tmp, ac);
             v8sf dstRe_tmp2 = _mm256_fmadd_ps_custom(src1Im_tmp2, src2Im_tmp2, ac2);
             v8sf dstIm_tmp = _mm256_fnmadd_ps_custom(src1Re_tmp, src2Im_tmp, bc);
             v8sf dstIm_tmp2 = _mm256_fnmadd_ps_custom(src1Re_tmp2, src2Im_tmp2, bc2);
-            
+
             dstRe_tmp = _mm256_div_ps(dstRe_tmp, c2d2);
             dstIm_tmp = _mm256_div_ps(dstIm_tmp, c2d2);
             dstRe_tmp2 = _mm256_div_ps(dstRe_tmp2, c2d2_);

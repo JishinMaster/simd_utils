@@ -5,12 +5,13 @@
  * Licence : BSD-2
  */
 
+// TODO : look at scatter/gather/compress/decompress opcodes
+#include <fenv.h>
 #include <math.h>
 #include <riscv_vector.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
 
 /* Get current value of CLOCK and store it in TP.  */
 int clock_gettime(clockid_t clock_id, struct timespec *tp)
@@ -33,6 +34,10 @@ int clock_gettime(clockid_t clock_id, struct timespec *tp)
     VLMAX = LMUL*VLEN/SEW
     Vector Tail Agnostic and Vector Mask Agnostic vta and vma allow to mask operations on vector such as only part of a vector is modified
     Vector Fixed-Point Rounding Mode Register vxrm for rounding mode : round-to-nearest-up rnu, round-to-nearest-even rne, round-down rdn, round-to-odd rod
+
+Need a real CPU with CPI/latency to have better choice of instructions..
+fmadd vs fmacc, load stride vs segment, etc
+
 */
 // load vector float32, 8
 #define VSETVL vsetvl_e32m8
@@ -40,8 +45,11 @@ int clock_gettime(clockid_t clock_id, struct timespec *tp)
 #define VLEV_FLOAT vle32_v_f32m8
 #define VSEV_FLOAT vse32_v_f32m8
 #define VADD_FLOAT vfadd_vv_f32m8
+#define VSUB_FLOAT vfsub_vv_f32m8
 #define VMUL_FLOAT vfmul_vv_f32m8
-#define VFMA_FLOAT vfmacc_vv_f32m8
+#define VDIV_FLOAT vfdiv_vv_f32m8
+#define VFMA_FLOAT vfmacc_vv_f32m8    // d = a + b*c
+#define VFMSUB_FLOAT vfmsub_vv_f32m8  // d = a*b - c
 #define V_ELT vfloat32m8_t
 
 #define VLEV_INT vle32_v_i32m8
@@ -67,6 +75,17 @@ static inline void print_vec_int(V_ELT_INT vec)
         printf("%x ", observ[i]);
     printf("\n");
 }
+
+/*
+static inline void print_bool4(vbool4_t vec)
+{
+    char observ[32];
+    VSEV_INT(observ, vec, 32);
+    for (int i = 0; i < 32; i++)
+        printf("%x ", observ[i]);
+    printf("\n");
+}
+*/
 
 static inline void print_vec_uint(vuint32m8_t vec)
 {
@@ -189,7 +208,7 @@ static inline void sinf_vec(float *src, float *dst, int len)
     }
 }
 
-// Work in progress
+// Work in progress; could use fma?
 static inline void sincosf_vec(float *src, float *s, float *c, int len)
 {
     size_t i;
@@ -319,6 +338,140 @@ static inline void meanf_vec(float *src, float *dst, int len)
     *dst *= coeff;
 }
 
+// Work in progress
+// We work on m4 instead of m8 in order to use load/store interleaved
+static inline void cplxvecmul_vec(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+{
+    size_t i;
+    float *src1_tmp = (float *) src1;
+    float *src2_tmp = (float *) src2;
+    float *dst_tmp = (float *) dst;
+    int cplx_len = 2 * len;
+
+    for (; (i = VSETVL(cplx_len)) > 0; cplx_len -= i) {
+        vfloat32m4_t src1Re_vec;
+        vfloat32m4_t src1Im_vec;
+        vfloat32m4_t src2Re_vec;
+        vfloat32m4_t src2Im_vec;
+        vlseg2e32_v_f32m4(&src1Re_vec, &src1Im_vec, src1_tmp, i);
+        vlseg2e32_v_f32m4(&src2Re_vec, &src2Im_vec, src2_tmp, i);
+        vfloat32m4_t tmp1 = vfmul_vv_f32m4(src1Im_vec, src2Im_vec, i);
+        vfloat32m4_t dstRe_vec = vfmsub_vv_f32m4(src1Re_vec, src2Re_vec, tmp1, i);
+        vfloat32m4_t tmp2 = vfmul_vv_f32m4(src1Re_vec, src2Im_vec, i);
+        vfloat32m4_t dstIm_vec = vfmacc_vv_f32m4(tmp2, src2Re_vec, src1Im_vec, i);
+
+        vsseg2e32_v_f32m4(dst_tmp, dstRe_vec, dstIm_vec, i);
+        src1_tmp += i;
+        src2_tmp += i;
+        dst_tmp += i;
+    }
+}
+
+static inline void cplxvecmul_vec_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+{
+    size_t i;
+    float *src1Re_tmp = src1Re;
+    float *src1Im_tmp = src1Im;
+    float *src2Re_tmp = src2Re;
+    float *src2Im_tmp = src2Im;
+    float *dstRe_tmp = dstRe;
+    float *dstIm_tmp = dstIm;
+
+    for (; (i = VSETVL(len)) > 0; len -= i) {
+        V_ELT src1Re_vec = VLEV_FLOAT(src1Re_tmp, i);
+        V_ELT src1Im_vec = VLEV_FLOAT(src1Im_tmp, i);
+        V_ELT src2Re_vec = VLEV_FLOAT(src2Re_tmp, i);
+        V_ELT src2Im_vec = VLEV_FLOAT(src2Im_tmp, i);
+
+        V_ELT tmp1 = VMUL_FLOAT(src1Im_vec, src2Im_vec, i);
+        V_ELT dstRe_vec = VFMSUB_FLOAT(src1Re_vec, src2Re_vec, tmp1, i);
+        V_ELT tmp2 = VMUL_FLOAT(src1Re_vec, src2Im_vec, i);
+        V_ELT dstIm_vec = VFMA_FLOAT(tmp2, src2Re_vec, src1Im_vec, i);
+        VSEV_FLOAT(dstRe_tmp, dstRe_vec, i);
+        VSEV_FLOAT(dstIm_tmp, dstIm_vec, i);
+
+        src1Re_tmp += i;
+        src1Im_tmp += i;
+        src2Re_tmp += i;
+        src2Im_tmp += i;
+        dstRe_tmp += i;
+        dstIm_tmp += i;
+    }
+}
+
+
+static inline void cplxvecdiv_vec(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+{
+    size_t i;
+    float *src1_tmp = (float *) src1;
+    float *src2_tmp = (float *) src2;
+    float *dst_tmp = (float *) dst;
+    int cplx_len = 2 * len;
+
+    for (; (i = VSETVL(cplx_len)) > 0; cplx_len -= i) {
+        vfloat32m4_t src1Re_vec;
+        vfloat32m4_t src1Im_vec;
+        vfloat32m4_t src2Re_vec;
+        vfloat32m4_t src2Im_vec;
+        vlseg2e32_v_f32m4(&src1Re_vec, &src1Im_vec, src1_tmp, i);
+        vlseg2e32_v_f32m4(&src2Re_vec, &src2Im_vec, src2_tmp, i);
+
+        vfloat32m4_t tmp1 = vfmul_vv_f32m4(src2Re_vec, src2Re_vec, i);
+        vfloat32m4_t c2d2 = vfmacc_vv_f32m4(tmp1, src2Im_vec, src2Im_vec, i);
+
+        vfloat32m4_t tmp2 = vfmul_vv_f32m4(src1Re_vec, src2Re_vec, i);
+        vfloat32m4_t dstRe_vec = vfmacc_vv_f32m4(tmp2, src1Im_vec, src2Im_vec, i);
+        dstRe_vec = vfdiv_vv_f32m4(dstRe_vec, c2d2, i);
+
+        vfloat32m4_t tmp3 = vfmul_vv_f32m4(src1Re_vec, src2Im_vec, i);
+        vfloat32m4_t dstIm_vec = vfmsub_vv_f32m4(src2Re_vec, src1Im_vec, tmp3, i);
+        dstIm_vec = vfdiv_vv_f32m4(dstIm_vec, c2d2, i);
+
+        vsseg2e32_v_f32m4(dst_tmp, dstRe_vec, dstIm_vec, i);
+        src1_tmp += i;
+        src2_tmp += i;
+        dst_tmp += i;
+    }
+}
+
+static inline void cplxvecdiv_vec_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+{
+    size_t i;
+    float *src1Re_tmp = src1Re;
+    float *src1Im_tmp = src1Im;
+    float *src2Re_tmp = src2Re;
+    float *src2Im_tmp = src2Im;
+    float *dstRe_tmp = dstRe;
+    float *dstIm_tmp = dstIm;
+
+    for (; (i = VSETVL(len)) > 0; len -= i) {
+        V_ELT src1Re_vec = VLEV_FLOAT(src1Re_tmp, i);
+        V_ELT src1Im_vec = VLEV_FLOAT(src1Im_tmp, i);
+        V_ELT src2Re_vec = VLEV_FLOAT(src2Re_tmp, i);
+        V_ELT src2Im_vec = VLEV_FLOAT(src2Im_tmp, i);
+
+        V_ELT tmp1 = VMUL_FLOAT(src2Re_vec, src2Re_vec, i);
+        V_ELT c2d2 = VFMA_FLOAT(tmp1, src2Im_vec, src2Im_vec, i);
+
+        V_ELT tmp2 = VMUL_FLOAT(src1Re_vec, src2Re_vec, i);
+        V_ELT dstRe_vec = VFMA_FLOAT(tmp2, src1Im_vec, src2Im_vec, i);
+        dstRe_vec = VDIV_FLOAT(dstRe_vec, c2d2, i);
+
+        V_ELT tmp3 = VMUL_FLOAT(src1Re_vec, src2Im_vec, i);
+        V_ELT dstIm_vec = VFMSUB_FLOAT(src2Re_vec, src1Im_vec, tmp3, i);
+        dstIm_vec = VDIV_FLOAT(dstIm_vec, c2d2, i);
+        VSEV_FLOAT(dstRe_tmp, dstRe_vec, i);
+        VSEV_FLOAT(dstIm_tmp, dstIm_vec, i);
+
+        src1Re_tmp += i;
+        src1Im_tmp += i;
+        src2Re_tmp += i;
+        src2Im_tmp += i;
+        dstRe_tmp += i;
+        dstIm_tmp += i;
+    }
+}
+
 static inline void magnitudef_split_vec(float *srcRe, float *srcIm, float *dst, int len)
 {
     size_t i;
@@ -361,6 +514,7 @@ static inline void powerspectf_split_vec(float *srcRe, float *srcIm, float *dst,
     }
 }
 
+// should we use vlseg2e32_v_f32m4?
 static inline void powerspectf_interleaved_vec(complex32_t *src, float *dst, int len)
 {
     size_t i;
@@ -483,7 +637,7 @@ static inline void threshold_gtabs_f_vec(float *src, float *dst, int len, float 
 
     for (; (i = VSETVL(len)) > 0; len -= i) {
         V_ELT va = VLEV_FLOAT(src_tmp, i);
-        V_ELT va_abs = (V_ELT) vand_vx_i32m8((vint32m8_t) va, inv_sign_mask, i);
+        V_ELT va_abs = vreinterpret_v_i32m8_f32m8(vand_vx_i32m8(vreinterpret_v_f32m8_i32m8(va), inv_sign_mask, i));
         vbool4_t eqmask = vmfeq_vv_f32m8_b4(va, va_abs, i);
         vbool4_t gtmask = vmfgt_vf_f32m8_b4(va_abs, value, i);
 
@@ -518,6 +672,94 @@ static inline void threshold_ltval_gtval_f_vec(float *src, float *dst, int len, 
         dst_tmp += i;
     }
 }
+
+static inline void log10_vec(float *src, float *dst, int len)
+{
+    size_t i;
+    float *src_tmp = src;
+    float *dst_tmp = dst;
+
+    // This could be improved..
+    float zero[32];
+    float one[32];
+    for (int l = 0; l < 31; l++) {
+        zero[l] = 0.0f;
+        one[l] = 1.0f;
+    }
+
+    i = VSETVL(len);
+    V_ELT zero_vec = VLEV_FLOAT(zero, i);
+    V_ELT one_vec = VLEV_FLOAT(one, i);
+
+    for (; (i = VSETVL(len)) > 0; len -= i) {
+        V_ELT x = VLEV_FLOAT(src_tmp, i);
+        V_ELT_INT imm0;
+
+        vbool4_t invalid_mask = vmfle_vf_f32m8_b4(x, 0.0f, i);
+        x = vfmax_vf_f32m8(x, 1.17549e-38f, i); /* cut off denormalized stuff */
+        imm0 = vsra_vx_i32m8(vreinterpret_v_f32m8_i32m8(x), 23, i);
+
+        /* keep only the fractional part */
+        x = vreinterpret_v_i32m8_f32m8(vand_vx_i32m8(vreinterpret_v_f32m8_i32m8(x), c_inv_mant_mask, i));
+        // 0x3f000000 is the hex representation of 0.5f
+        x = vreinterpret_v_i32m8_f32m8(vor_vx_i32m8(vreinterpret_v_f32m8_i32m8(x), 0x3f000000, i));
+        imm0 = vsub_vx_i32m8(imm0, 0x7f, i);
+        V_ELT e = vfcvt_f_x_v_f32m8(imm0, i);
+        e = vfadd_vf_f32m8(e, 1.0f, i);
+
+        // could lead to errors since we take the inverted mask after?
+        vbool4_t mask = vmflt_vf_f32m8_b4(x, c_cephes_SQRTHF, i);
+
+        V_ELT tmp = vfmerge_vfm_f32m8(vmnot_m_b4(mask, i), x, 0.0f, i);
+        x = vfsub_vf_f32m8(x, 1.0f, i);  // x ok
+
+        // substract 1.0f if mask is true (x < SQRTHF). To be optimised
+        e = vfsub_vv_f32m8(e, vfmerge_vfm_f32m8(mask, zero_vec, 1.0f, i), i);
+        x = vfadd_vv_f32m8(x, tmp, i);
+
+        V_ELT z = vfmul_vv_f32m8(x, x, i);
+        V_ELT y = vfmul_vf_f32m8(x, c_cephes_log_p0, i);
+        y = vfadd_vf_f32m8(y, c_cephes_log_p1, i);
+        y = vfmul_vv_f32m8(y, x, i);
+        y = vfadd_vf_f32m8(y, c_cephes_log_p2, i);
+        y = vfmul_vv_f32m8(y, x, i);
+        y = vfadd_vf_f32m8(y, c_cephes_log_p3, i);
+        y = vfmul_vv_f32m8(y, x, i);
+        y = vfadd_vf_f32m8(y, c_cephes_log_p4, i);
+        y = vfmul_vv_f32m8(y, x, i);
+        y = vfadd_vf_f32m8(y, c_cephes_log_p5, i);
+        y = vfmul_vv_f32m8(y, x, i);
+        y = vfadd_vf_f32m8(y, c_cephes_log_p6, i);
+        y = vfmul_vv_f32m8(y, x, i);
+        y = vfadd_vf_f32m8(y, c_cephes_log_p7, i);
+        y = vfmul_vv_f32m8(y, x, i);
+        y = vfadd_vf_f32m8(y, c_cephes_log_p8, i);
+        y = vfmul_vv_f32m8(y, x, i);
+        y = vfmul_vv_f32m8(y, z, i);
+        y = vfmadd_vf_f32m8(z, -0.5f, y, i);  // y = y -0.5*z
+
+        tmp = vfadd_vv_f32m8(x, y, i);
+        z = vfmul_vf_f32m8(tmp, c_cephes_L10EB, i);
+        V_ELT tmp2 = vfmul_vf_f32m8(y, c_cephes_L10EA, i);
+        z = vfadd_vv_f32m8(z, tmp2, i);
+        tmp2 = vfmul_vf_f32m8(x, c_cephes_L10EA, i);
+        z = vfadd_vv_f32m8(z, tmp2, i);
+        tmp2 = vfmul_vf_f32m8(e, c_cephes_L102B, i);
+        z = vfadd_vv_f32m8(z, tmp2, i);
+        tmp2 = vfmul_vf_f32m8(e, c_cephes_L102A, i);
+        x = vfadd_vv_f32m8(z, tmp2, i);
+        // print_vec(x);printf("\n");
+        // could we use merge function? vmerge_vvm_f32m8? create a nan vec?
+        x = vfmerge_vfm_f32m8(invalid_mask, x, 0xFFFFFFFF, i);
+        // x = _mm512_or_ps(x, invalid_mask);  // negative arg will be NAN
+
+        VSEV_FLOAT(dst_tmp, x, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+}
+
+
 
 static inline void subs_vec(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {

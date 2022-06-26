@@ -25,7 +25,7 @@ Supported targets are :
 - AVX (AVX and AVX2)
 - AVX512 (experimental, most of float32 functions)
 - ARM Neon (through sse2neon plus some optimized functions).
-- RISC-V Vector extension (experimental)
+- RISC-V Vector extension 1.0 (experimental)
 - PowerPC Alitivec (experimental)
 
 128 bit functions (SSE and NEON) are name function128type, such as asin128f, which computes the arcsinus function on an float32 array. Float64 functions have the "d" suffix.
@@ -39,8 +39,7 @@ The project has been tested on :
 - Intel Skylake Core-i7
 - Intel Cannonlake Core-i7
 - Intel SDE (emulator) for AVX-512
-- Spike (emulator) for RISCV Vector
-- Qemu 5.X (emulator) )for arm/aarch64, and ppc
+- Qemu 5.X (emulator) )for arm/aarch64, ppc and riscv
 - Cortex-a53 (Raspberry Pi 3B)
 - Cortex-a9 (ZYBO)
 
@@ -55,6 +54,7 @@ Simply include simd_utils.h in your C/C++ file, and compile with :
 - AVX512 support : gcc -DSSE -DAVX -DAVX512 -march=skylake-avx512 -mprefer-vector-width=512 -c file.c -I .
 - ARM V7 NEON support : arm-none-linux-gnueabihf-gcc -march=armv7-a -mfpu=neon -DARM -DSSE -flax-vector-conversions -c file.c -I .
 - ARM V8 NEON support : aarch64-linux-gnu-gcc -DARM -DFMA -DSSE -flax-vector-conversions -c file.c -I .
+- RISCV support : riscv64-unknown-elf-gcc -DUSE_MALLOC -DRISCV -march=rv64gcv -c file.c-I .
 - ALTIVEC support : powerpc64-linux-gnu-gcc -DALTIVEC -DFMA -maltivec -flax-vector-conversions -c file.c -I .
 
 For FMA support you need to add -DFMA and -mfma to x86 targets, and -DFMA to Armv8 targets.
@@ -80,7 +80,7 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | SSE/NEON                   | AVX/AVX2                   | AVX512                     | C_REF                     | IPP_REF                      | RISCV                       | ALTIVEC              |
 |----------------------------|----------------------------|----------------------------|---------------------------|------------------------------|-----------------------------|----------------------|
 |                            |                            |                            |                           |                              |                             |                      |
-| log10_128f/precise         | log10_256f/precise         | log10_512f/precise         | log10f_C                  | ippsLog10_32f_A24            | X                           | log10_128f           |
+| log10_128f/precise         | log10_256f/precise         | log10_512f/precise         | log10f_C                  | ippsLog10_32f_A24            | log10_vec                   | log10_128f           |
 | log2_128f/precise          | log2_256f/precise          | log2_512f/precise          | log2f_C                   |                              | X                           | log2_128f            |
 | ln_128f                    | ln_256f                    | ln_512f                    | lnf_C                     | ippsLn_32f_A24               | X                           | ln_128f              |
 | exp_128f                   | exp_256f                   | exp_512f                   | expf_C                    | ippsExp_32f_A24              | X                           | X                    |
@@ -144,13 +144,13 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | ceil128f                   | ceil256f                   | ceil512f                   | ceilf_C                   | ippsCeil_32f                 | X                           | X                    |
 | floor128f                  | floor256f                  | floor512f                  | floorf_C                  | ippsFloor_32f                | X                           | X                    |
 | trunc128f                  | trunc256f                  | trunc512f                  | truncf_C                  | ippsTrunc_32f                | X                           | X                    |
-| cplxvecmul128f             | cplxvecmul256f             | cplxvecmul512f             | cplxvecmul_C              | ippsMul_32fc_A24             | X                           | X                    |
-| cplxvecmul128f_split       | cplxvecmul256f_split       | cplxvecmul512f_split       | cplxvecmul_C_split        | X                            | X                           | X                    |
+| cplxvecmul128f             | cplxvecmul256f             | cplxvecmul512f             | cplxvecmul_C              | ippsMul_32fc_A24             | cplxvecmul_vec              | X                    |
+| cplxvecmul128f_split       | cplxvecmul256f_split       | cplxvecmul512f_split       | cplxvecmul_C_split        | X                            | cplxvecmul_vec_split        | X                    |
 | cplxconjvecmul128f         | cplxconjvecmul256f         | cplxconjvecmul512f         | cplxconjvecmul_C          | ippsMulByConj_32fc_A24       | X                           | X                    |
 | cplxconjvecmul128f_split   | cplxconjvecmul256f_split   | cplxconjvecmul512f_split   | cplxconjvecmul_C_split    | X                            | X                           | X                    |
 | cplxconj128f               | cplxconj256f               | cplxconj512f               | cplxconj_C                | ippsConj_32fc_A24            | X                           | X                    |
-| cplxvecdiv128f             | cplxvecdiv256f             | cplxvecdiv512f             | cplxvecdiv_C              | X                            | X                           | X                    |
-| cplxvecdiv128f_split       | cplxvecdiv256f_split       | cplxvecdiv512f_split       | cplxvecdiv_C_split        | X                            | X                           | X                    |
+| cplxvecdiv128f             | cplxvecdiv256f             | cplxvecdiv512f             | cplxvecdiv_C              | X                            | cplxvecdiv_vec              | X                    |
+| cplxvecdiv128f_split       | cplxvecdiv256f_split       | cplxvecdiv512f_split       | cplxvecdiv_C_split        | X                            | cplxvecdiv_vec_split        | X                    |
 | set128d                    | set256d                    | set512d                    | setd_C                    | ippsSet_64f                  | X                           | X                    |
 | zero128d                   | zero256d                   | zero512d                   | zerod_C                   | ippsZero_64f                 | X                           | X                    |
 | copy128d                   | copy256d                   | copy512d                   | copyd_C                   | ippsCopy_64f                 | X                           | X                    |
