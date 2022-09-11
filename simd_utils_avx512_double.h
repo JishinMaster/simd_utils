@@ -17,7 +17,7 @@ static inline void set512d(double *dst, double value, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (isAligned((uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (isAligned((uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             _mm512_store_pd(dst + i, tmp);
         }
@@ -39,7 +39,7 @@ static inline void zero512d(double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (isAligned((uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (isAligned((uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             _mm512_store_pd(dst + i, tmp);
         }
@@ -59,7 +59,7 @@ static inline void copy512d(double *src, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             _mm512_store_pd(dst + i, _mm512_load_pd(src + i));
         }
@@ -79,7 +79,7 @@ static inline void sqrt512d(double *src, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             _mm512_store_pd(dst + i, _mm512_sqrt_pd(_mm512_load_pd(src + i)));
         }
@@ -99,7 +99,7 @@ static inline void add512d(double *src1, double *src2, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             _mm512_store_pd(dst + i, _mm512_add_pd(_mm512_load_pd(src1 + i), _mm512_load_pd(src2 + i)));
         }
@@ -119,7 +119,7 @@ static inline void mul512d(double *src1, double *src2, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             _mm512_store_pd(dst + i, _mm512_mul_pd(_mm512_load_pd(src1 + i), _mm512_load_pd(src2 + i)));
         }
@@ -139,7 +139,7 @@ static inline void sub512d(double *src1, double *src2, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             _mm512_store_pd(dst + i, _mm512_sub_pd(_mm512_load_pd(src1 + i), _mm512_load_pd(src2 + i)));
         }
@@ -159,7 +159,7 @@ static inline void div512d(double *src1, double *src2, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             _mm512_store_pd(dst + i, _mm512_div_pd(_mm512_load_pd(src1 + i), _mm512_load_pd(src2 + i)));
         }
@@ -182,7 +182,7 @@ static inline void addc512d(double *src, double value, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             _mm512_store_pd(dst + i, _mm512_add_pd(tmp, _mm512_load_pd(src + i)));
         }
@@ -204,7 +204,7 @@ static inline void mulc512d(double *src, double value, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             _mm512_store_pd(dst + i, _mm512_mul_pd(tmp, _mm512_load_pd(src + i)));
         }
@@ -224,8 +224,8 @@ static inline void muladd512d(double *_a, double *_b, double *_c, double *dst, i
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (_a), (uintptr_t) (_b), AVX512_LEN_BYTES) &&
-        areAligned2((uintptr_t) (_c), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), AVX512_LEN_BYTES) &&
+        areAligned2((uintptr_t)(_c), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd a = _mm512_load_pd(_a + i);
             v8sd b = _mm512_load_pd(_b + i);
@@ -253,7 +253,7 @@ static inline void mulcadd512d(double *_a, double _b, double *_c, double *dst, i
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (_a), (uintptr_t) (_c), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd a = _mm512_load_pd(_a + i);
             v8sd c = _mm512_load_pd(_c + i);
@@ -280,7 +280,7 @@ static inline void mulcaddc512d(double *_a, double _b, double _c, double *dst, i
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (_a), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd a = _mm512_loadu_pd(_a + i);
             _mm512_store_pd(dst + i, _mm512_fmadd_pd_custom(a, b, c));
@@ -304,7 +304,7 @@ static inline void muladdc512d(double *_a, double *_b, double _c, double *dst, i
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (_a), (uintptr_t) (_b), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd a = _mm512_load_pd(_a + i);
             v8sd b = _mm512_load_pd(_b + i);
@@ -328,7 +328,7 @@ static inline void round512d(double *src, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd src_tmp = _mm512_load_pd(src + i);
             _mm512_store_pd(dst + i, _mm512_roundscale_pd(src_tmp, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
@@ -350,7 +350,7 @@ static inline void ceil512d(double *src, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd src_tmp = _mm512_load_pd(src + i);
             _mm512_store_pd(dst + i, _mm512_roundscale_pd(src_tmp, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC));
@@ -372,7 +372,7 @@ static inline void floor512d(double *src, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd src_tmp = _mm512_load_pd(src + i);
             _mm512_store_pd(dst + i, _mm512_roundscale_pd(src_tmp, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC));
@@ -394,7 +394,7 @@ static inline void trunc512d(double *src, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd src_tmp = _mm512_load_pd(src + i);
             _mm512_store_pd(dst + i, _mm512_roundscale_pd(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
@@ -421,7 +421,7 @@ static inline void vectorSlope512d(double *dst, int len, double offset, double s
     int stop_len = len / (2 * AVX512_LEN_DOUBLE);
     stop_len *= (2 * AVX512_LEN_DOUBLE);
 
-    if (isAligned((uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (isAligned((uintptr_t)(dst), AVX512_LEN_BYTES)) {
         _mm512_store_pd(dst + 0, curVal);
         _mm512_store_pd(dst + AVX512_LEN_DOUBLE, curVal2);
     } else {
@@ -429,7 +429,7 @@ static inline void vectorSlope512d(double *dst, int len, double offset, double s
         _mm512_storeu_pd(dst + AVX512_LEN_DOUBLE, curVal2);
     }
 
-    if (isAligned((uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (isAligned((uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 2 * AVX512_LEN_DOUBLE; i < stop_len; i += 2 * AVX512_LEN_DOUBLE) {
             curVal = _mm512_add_pd(curVal, slope16_vec);
             _mm512_store_pd(dst + i, curVal);
@@ -529,7 +529,7 @@ static inline void asin512d(double *src, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd src_tmp = _mm512_load_pd(src + i);
             _mm512_store_pd(dst + i, asin512_pd(src_tmp));
@@ -607,7 +607,7 @@ static inline void atan512d(double *src, double *dst, int len)
     int stop_len = len / AVX512_LEN_DOUBLE;
     stop_len *= AVX512_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
             v8sd src_tmp = _mm512_load_pd(src + i);
             _mm512_store_pd(dst + i, atan512_pd(src_tmp));

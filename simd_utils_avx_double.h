@@ -17,7 +17,7 @@ static inline void set256d(double *dst, double value, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (isAligned((uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (isAligned((uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             _mm256_store_pd(dst + i, tmp);
         }
@@ -39,7 +39,7 @@ static inline void zero256d(double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (isAligned((uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (isAligned((uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             _mm256_store_pd(dst + i, tmp);
         }
@@ -59,7 +59,7 @@ static inline void copy256d(double *src, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             _mm256_store_pd(dst + i, _mm256_load_pd(src + i));
         }
@@ -79,7 +79,7 @@ static inline void sqrt256d(double *src, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             _mm256_store_pd(dst + i, _mm256_sqrt_pd(_mm256_load_pd(src + i)));
         }
@@ -99,7 +99,7 @@ static inline void add256d(double *src1, double *src2, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             _mm256_store_pd(dst + i, _mm256_add_pd(_mm256_load_pd(src1 + i), _mm256_load_pd(src2 + i)));
         }
@@ -119,7 +119,7 @@ static inline void mul256d(double *src1, double *src2, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             _mm256_store_pd(dst + i, _mm256_mul_pd(_mm256_load_pd(src1 + i), _mm256_load_pd(src2 + i)));
         }
@@ -139,7 +139,7 @@ static inline void sub256d(double *src1, double *src2, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             _mm256_store_pd(dst + i, _mm256_sub_pd(_mm256_load_pd(src1 + i), _mm256_load_pd(src2 + i)));
         }
@@ -159,7 +159,7 @@ static inline void div256d(double *src1, double *src2, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             _mm256_store_pd(dst + i, _mm256_div_pd(_mm256_load_pd(src1 + i), _mm256_load_pd(src2 + i)));
         }
@@ -182,7 +182,7 @@ static inline void addc256d(double *src, double value, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             _mm256_store_pd(dst + i, _mm256_add_pd(tmp, _mm256_load_pd(src + i)));
         }
@@ -204,7 +204,7 @@ static inline void mulc256d(double *src, double value, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             _mm256_store_pd(dst + i, _mm256_mul_pd(tmp, _mm256_load_pd(src + i)));
         }
@@ -224,8 +224,8 @@ static inline void muladd256d(double *_a, double *_b, double *_c, double *dst, i
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (_a), (uintptr_t) (_b), AVX_LEN_BYTES) &&
-        areAligned2((uintptr_t) (_c), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(_b), AVX_LEN_BYTES) &&
+        areAligned2((uintptr_t)(_c), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd a = _mm256_load_pd(_a + i);
             v4sd b = _mm256_load_pd(_b + i);
@@ -253,7 +253,7 @@ static inline void mulcadd256d(double *_a, double _b, double *_c, double *dst, i
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (_a), (uintptr_t) (_c), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_c), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd a = _mm256_load_pd(_a + i);
             v4sd c = _mm256_load_pd(_c + i);
@@ -280,7 +280,7 @@ static inline void mulcaddc256d(double *_a, double _b, double _c, double *dst, i
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (_a), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(_a), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd a = _mm256_loadu_pd(_a + i);
             _mm256_store_pd(dst + i, _mm256_fmadd_pd_custom(a, b, c));
@@ -304,7 +304,7 @@ static inline void muladdc256d(double *_a, double *_b, double _c, double *dst, i
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (_a), (uintptr_t) (_b), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(_a), (uintptr_t)(_b), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd a = _mm256_load_pd(_a + i);
             v4sd b = _mm256_load_pd(_b + i);
@@ -328,7 +328,7 @@ static inline void round256d(double *src, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd src_tmp = _mm256_load_pd(src + i);
             _mm256_store_pd(dst + i, _mm256_round_pd(src_tmp, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
@@ -350,7 +350,7 @@ static inline void ceil256d(double *src, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd src_tmp = _mm256_load_pd(src + i);
             _mm256_store_pd(dst + i, _mm256_round_pd(src_tmp, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC));
@@ -372,7 +372,7 @@ static inline void floor256d(double *src, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd src_tmp = _mm256_load_pd(src + i);
             _mm256_store_pd(dst + i, _mm256_round_pd(src_tmp, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC));
@@ -394,7 +394,7 @@ static inline void trunc256d(double *src, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd src_tmp = _mm256_load_pd(src + i);
             _mm256_store_pd(dst + i, _mm256_round_pd(src_tmp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
@@ -423,7 +423,7 @@ static inline void vectorSlope256d(double *dst, int len, double offset, double s
     curVal2 = _mm256_add_pd(curVal2, _mm256_set1_pd(4.0 * slope));
 
 
-    if (isAligned((uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (isAligned((uintptr_t)(dst), AVX_LEN_BYTES)) {
         _mm256_store_pd(dst + 0, curVal);
         _mm256_store_pd(dst + AVX_LEN_DOUBLE, curVal2);
     } else {
@@ -431,7 +431,7 @@ static inline void vectorSlope256d(double *dst, int len, double offset, double s
         _mm256_storeu_pd(dst + AVX_LEN_DOUBLE, curVal2);
     }
 
-    if (isAligned((uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (isAligned((uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 2 * AVX_LEN_DOUBLE; i < stop_len; i += 2 * AVX_LEN_DOUBLE) {
             curVal = _mm256_add_pd(curVal, slope8_vec);
             _mm256_store_pd(dst + i, curVal);
@@ -530,7 +530,7 @@ static inline void asin256d(double *src, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd src_tmp = _mm256_load_pd(src + i);
             _mm256_store_pd(dst + i, asin256_pd(src_tmp));
@@ -610,7 +610,7 @@ static inline void atan256d(double *src, double *dst, int len)
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd src_tmp = _mm256_load_pd(src + i);
             _mm256_store_pd(dst + i, atan256_pd(src_tmp));
@@ -735,7 +735,7 @@ static inline void sincos256d(double *src, double *dst_sin, double *dst_cos, int
     int stop_len = len / AVX_LEN_DOUBLE;
     stop_len *= AVX_LEN_DOUBLE;
 
-    if (areAligned3((uintptr_t) (src), (uintptr_t) (dst_sin), (uintptr_t) (dst_cos), AVX_LEN_BYTES)) {
+    if (areAligned3((uintptr_t)(src), (uintptr_t)(dst_sin), (uintptr_t)(dst_cos), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd src_tmp = _mm256_load_pd(src + i);
             v4sd dst_sin_tmp;

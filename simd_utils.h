@@ -35,7 +35,7 @@ static inline int isAligned(uintptr_t ptr, size_t alignment)
 #ifndef ALWAYS_ALIGNED
 
 #ifndef ARM  // ARM manages disalignment in hardware
-    if (((uintptr_t) (ptr) % alignment) == 0)
+    if (((uintptr_t)(ptr) % alignment) == 0)
         return 1;
     return 0;
 #else
@@ -52,8 +52,8 @@ static inline int areAligned2(uintptr_t ptr1, uintptr_t ptr2, size_t alignment)
 #ifndef ALWAYS_ALIGNED
 
 #ifndef ARM  // ARM manages disalignment in hardware
-    if (((uintptr_t) (ptr1) % alignment) == 0)
-        if (((uintptr_t) (ptr2) % alignment) == 0)
+    if (((uintptr_t)(ptr1) % alignment) == 0)
+        if (((uintptr_t)(ptr2) % alignment) == 0)
             return 1;
     return 0;
 #else
@@ -70,9 +70,9 @@ static inline int areAligned3(uintptr_t ptr1, uintptr_t ptr2, uintptr_t ptr3, si
 #ifndef ALWAYS_ALIGNED
 
 #ifndef ARM  // ARM manages disalignment in hardware
-    if (((uintptr_t) (ptr1) % alignment) == 0)
-        if (((uintptr_t) (ptr2) % alignment) == 0)
-            if (((uintptr_t) (ptr3) % alignment) == 0)
+    if (((uintptr_t)(ptr1) % alignment) == 0)
+        if (((uintptr_t)(ptr2) % alignment) == 0)
+            if (((uintptr_t)(ptr3) % alignment) == 0)
                 return 1;
     return 0;
 #else
@@ -496,7 +496,7 @@ static inline int posix_memalign(void **pointer, size_t len, int alignement)
     void *p, *p0 = malloc(len + alignement);
     if (!p0)
         return (void *) NULL;
-    p = (void *) (((size_t) p0 + alignement) & (~((size_t) (alignement - 1))));
+    p = (void *) (((size_t) p0 + alignement) & (~((size_t)(alignement - 1))));
     *((void **) p - 1) = p0;
 
     *pointer = p;
@@ -508,7 +508,7 @@ static inline void *aligned_malloc(size_t len, int alignement)
     void *p, *p0 = malloc(len + alignement);
     if (!p0)
         return (void *) NULL;
-    p = (void *) (((size_t) p0 + alignement) & (~((size_t) (alignement - 1))));
+    p = (void *) (((size_t) p0 + alignement) & (~((size_t)(alignement - 1))));
     *((void **) p - 1) = p0;
     return p;
 }
@@ -763,7 +763,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = floorf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
         }
     } else if (rounding_mode == RndNear) {
 #ifdef OMP
@@ -771,7 +771,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
         }
     } else if (rounding_mode == RndFinancial) {
 #ifdef OMP
@@ -779,7 +779,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
-            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
         }
     } else {
 #ifdef OMP
@@ -787,7 +787,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = src[i] * scale_fact_mult;
-            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t)(tmp > 255.0f ? 255.0f : tmp);
         }
     }
 }
@@ -804,7 +804,7 @@ static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int 
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
-            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
+            dst[i] = (int16_t)(tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
         }
     } else {
         if (rounding_mode == RndZero) {
@@ -819,7 +819,7 @@ static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int 
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = nearbyintf(src[i] * scale_fact_mult);
-            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
+            dst[i] = (int16_t)(tmp > 32767.0f ? 32767.0f : tmp);
         }
     }
 }
@@ -835,7 +835,7 @@ static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
-            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
+            dst[i] = (uint16_t)(tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
         }
     } else {
         if (rounding_mode == RndZero) {
@@ -850,7 +850,7 @@ static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = nearbyintf(src[i] * scale_fact_mult);
-            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);
+            dst[i] = (uint16_t)(tmp > 65535.0f ? 65535.0f : tmp);
         }
     }
 }
