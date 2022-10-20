@@ -110,8 +110,8 @@ static inline void vectorSlope256s(int *dst, int len, int offset, int slope)
     stop_len *= (2 * AVX_LEN_INT32);
 
     if (((uintptr_t)(const void *) (dst) % AVX_LEN_BYTES) == 0) {
-        _mm256_store_epi32((__m256i *) (dst + 0), curVal);
-        _mm256_store_epi32((__m256i *) (dst + AVX_LEN_INT32), curVal2);
+        _mm256_storeu_si256((__m256i *) (dst + 0), curVal);
+        _mm256_storeu_si256((__m256i *) (dst + AVX_LEN_INT32), curVal2);
     } else {
         _mm256_storeu_si256((__m256i *) (dst + 0), curVal);
         _mm256_storeu_si256((__m256i *) (dst + AVX_LEN_INT32), curVal2);
