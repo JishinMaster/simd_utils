@@ -1,13 +1,13 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.2
+ * Version : 0.2.3
  * Author  : JishinMaster
  * Licence : BSD-2
  */
 
 #pragma once
 
-// JishinMaster : DTCollab sse2neon.h commit : 385b5d6458978da6785969cef10a518146914b2d
+// JishinMaster : DTCollab sse2neon.h commit : c0a1262d4d797d3fd19177a7c7149f4507c44aa3
 #include "sse2neon.h"
 
 
