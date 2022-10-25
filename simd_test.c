@@ -3142,17 +3142,17 @@ printf("\n");
 
 
     clock_gettime(CLOCK_REALTIME, &start);
-    cplxconjvecmul128f_precise((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
+    cplxconjvecmul128f_kahan((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("cplxconjvecmul128f_precise %d %lf\n", len, elapsed);
+    printf("cplxconjvecmul128f_kahan %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        cplxconjvecmul128f_precise((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
+        cplxconjvecmul128f_kahan((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("cplxconjvecmul128f_precise %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+    printf("cplxconjvecmul128f_kahan %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     l2_err(inout_ref, inout2_ref, 2 * len);
 
