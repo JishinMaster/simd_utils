@@ -144,8 +144,8 @@ The following table is a work in progress, "X" means there is not yet an impleme
 | ceil128f                   | ceil256f                   | ceil512f                   | ceilf_C                   | ippsCeil_32f                 | X                           | X                    |
 | floor128f                  | floor256f                  | floor512f                  | floorf_C                  | ippsFloor_32f                | X                           | X                    |
 | trunc128f                  | trunc256f                  | trunc512f                  | truncf_C                  | ippsTrunc_32f                | X                           | X                    |
-| cplxvecmul128f             | cplxvecmul256f             | cplxvecmul512f             | cplxvecmul_C              | ippsMul_32fc_A24             | cplxvecmul_vec              | X                    |
-| cplxvecmul128f_split       | cplxvecmul256f_split       | cplxvecmul512f_split       | cplxvecmul_C_split        | X                            | cplxvecmul_vec_split        | X                    |
+| cplxvecmul128f             | cplxvecmul256f             | cplxvecmul512f             | cplxvecmul_C/precise      | ippsMul_32fc_A11/24          | cplxvecmul_vec              | X                    |
+| cplxvecmul128f_split       | cplxvecmul256f_split       | cplxvecmul512f_split       | cplxvecmul_C_split/precise| X                            | cplxvecmul_vec_split        | X                    |
 | cplxconjvecmul128f         | cplxconjvecmul256f         | cplxconjvecmul512f         | cplxconjvecmul_C          | ippsMulByConj_32fc_A24       | X                           | X                    |
 | cplxconjvecmul128f_split   | cplxconjvecmul256f_split   | cplxconjvecmul512f_split   | cplxconjvecmul_C_split    | X                            | X                           | X                    |
 | cplxconj128f               | cplxconj256f               | cplxconj512f               | cplxconj_C                | ippsConj_32fc_A24            | X                           | X                    |

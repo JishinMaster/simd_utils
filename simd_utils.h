@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.2
+ * Version : 0.2.3
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -932,7 +932,19 @@ static inline void magnitudef_C_interleaved(complex32_t *src, float *dst, int le
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = sqrtf(src[i].re * src[i].re + (src[i].im * src[i].im));
+        dst[i] = sqrtf((src[i].re * src[i].re) + src[i].im * src[i].im);
+    }
+}
+
+static inline void magnitudef_C_interleaved_precise(complex32_t *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        double srcRe_64 = (double) src[i].re;
+        double srcIm_64 = (double) src[i].im;
+        dst[i] = (float) (sqrt((srcRe_64 * srcRe_64) + srcIm_64 * srcIm_64));
     }
 }
 
@@ -942,10 +954,21 @@ static inline void magnitudef_C_split(float *srcRe, float *srcIm, float *dst, in
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = sqrtf(srcRe[i] * srcRe[i] + (srcIm[i] * srcIm[i]));
+        dst[i] = sqrtf((srcRe[i] * srcRe[i]) + srcIm[i] * srcIm[i]);
     }
 }
 
+static inline void magnitudef_C_split_precise(float *srcRe, float *srcIm, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        double srcRe_64 = (double) srcRe[i];
+        double srcIm_64 = (double) srcIm[i];
+        dst[i] = (float) (sqrt((srcRe_64 * srcRe_64) + srcIm_64 * srcIm_64));
+    }
+}
 
 static inline void powerspectf_C_split(float *srcRe, float *srcIm, float *dst, int len)
 {
@@ -953,7 +976,19 @@ static inline void powerspectf_C_split(float *srcRe, float *srcIm, float *dst, i
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = srcRe[i] * srcRe[i] + (srcIm[i] * srcIm[i]);
+        dst[i] = (srcRe[i] * srcRe[i]) + srcIm[i] * srcIm[i];
+    }
+}
+
+static inline void powerspectf_C_split_precise(float *srcRe, float *srcIm, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        double srcRe_64 = (double) srcRe[i];
+        double srcIm_64 = (double) srcIm[i];
+        dst[i] = (float) ((srcRe_64 * srcRe_64) + srcIm_64 * srcIm_64);
     }
 }
 
@@ -963,7 +998,19 @@ static inline void powerspectf_C_interleaved(complex32_t *src, float *dst, int l
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = src[i].re * src[i].re + (src[i].im * src[i].im);
+        dst[i] = (src[i].re * src[i].re) + src[i].im * src[i].im;
+    }
+}
+
+static inline void powerspectf_C_interleaved_precise(complex32_t *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        double srcRe_64 = (double) src[i].re;
+        double srcIm_64 = (double) src[i].im;
+        dst[i] = (float) ((srcRe_64 * srcRe_64) + srcIm_64 * srcIm_64);
     }
 }
 
@@ -1305,6 +1352,22 @@ static inline void cplxvecdiv_C(complex32_t *src1, complex32_t *src2, complex32_
     }
 }
 
+static inline void cplxvecdiv_C_precise(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        double src1Re_64 = (double) src1[i].re;
+        double src1Im_64 = (double) src1[i].im;
+        double src2Re_64 = (double) src2[i].re;
+        double src2Im_64 = (double) src2[i].im;
+        double c2d2 = src2Re_64 * src2Re_64 + src2Im_64 * src2Im_64;
+        dst[i].re = (float) ((src1Re_64 * src2Re_64 + (src1Im_64 * src2Im_64)) / c2d2);
+        dst[i].im = (float) ((-src1Re_64 * src2Im_64 + (src2Re_64 * src1Im_64)) / c2d2);
+    }
+}
+
 
 static inline void cplxvecdiv_C_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
 {
@@ -1318,6 +1381,22 @@ static inline void cplxvecdiv_C_split(float *src1Re, float *src1Im, float *src2R
     }
 }
 
+static inline void cplxvecdiv_C_split_precise(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        double src1Re_64 = (double) src1Re[i];
+        double src1Im_64 = (double) src1Im[i];
+        double src2Re_64 = (double) src2Re[i];
+        double src2Im_64 = (double) src2Im[i];
+        double c2d2 = src2Re_64 * src2Re_64 + src2Im_64 * src2Im_64;
+        dstRe[i] = (float) ((src1Re_64 * src2Re_64 + (src1Im_64 * src2Im_64)) / c2d2);
+        dstIm[i] = (float) ((-src1Re_64 * src2Im_64 + (src2Re_64 * src1Im_64)) / c2d2);
+    }
+}
+
 static inline void cplxvecmul_C(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
 #ifdef OMP
@@ -1326,6 +1405,21 @@ static inline void cplxvecmul_C(complex32_t *src1, complex32_t *src2, complex32_
     for (int i = 0; i < len; i++) {
         dst[i].re = (src1[i].re * src2[i].re) - src1[i].im * src2[i].im;
         dst[i].im = src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
+    }
+}
+
+static inline void cplxvecmul_C_precise(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        double src1Re_64 = (double) src1[i].re;
+        double src1Im_64 = (double) src1[i].im;
+        double src2Re_64 = (double) src2[i].re;
+        double src2Im_64 = (double) src2[i].im;
+        dst[i].re = (float) ((src1Re_64 * src2Re_64) - src1Im_64 * src2Im_64);
+        dst[i].im = (float) (src1Re_64 * src2Im_64 + (src2Re_64 * src1Im_64));
     }
 }
 
@@ -1361,17 +1455,6 @@ static inline void cplxvecmul_C_unrolled8(complex32_t *src1, complex32_t *src2, 
     }
 }
 
-static inline void cplxvecmul_C2(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
-{
-#ifdef OMP
-#pragma omp simd
-#endif
-    for (int i = 0; i < len; i++) {
-        dst[i].re = (float) ((double) src1[i].re * (double) src2[i].re - (double) src1[i].im * (double) src2[i].im);
-        dst[i].im = (float) ((double) src1[i].re * (double) src2[i].im + (double) src2[i].re * (double) src1[i].im);
-    }
-}
-
 static inline void cplxvecmul_C_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
 {
 #ifdef OMP
@@ -1383,6 +1466,20 @@ static inline void cplxvecmul_C_split(float *src1Re, float *src1Im, float *src2R
     }
 }
 
+static inline void cplxvecmul_C_split_precise(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        double src1Re_64 = (double) src1Re[i];
+        double src1Im_64 = (double) src1Im[i];
+        double src2Re_64 = (double) src2Re[i];
+        double src2Im_64 = (double) src2Im[i];
+        dstRe[i] = (float) ((src1Re_64 * src2Re_64) - src1Im_64 * src2Im_64);
+        dstIm[i] = (float) (src1Re_64 * src2Im_64 + (src2Re_64 * src1Im_64));
+    }
+}
 
 static inline void cplxconjvecmul_C(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
@@ -1395,7 +1492,7 @@ static inline void cplxconjvecmul_C(complex32_t *src1, complex32_t *src2, comple
     }
 }
 
-static inline void cplxconjvecmul_C2(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+static inline void cplxconjvecmul_C_precise(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
 #ifdef OMP
 #pragma omp simd
@@ -1417,7 +1514,7 @@ static inline void cplxconjvecmul_C_split(float *src1Re, float *src1Im, float *s
     }
 }
 
-static inline void cplxconjvecmul_C_split2(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+static inline void cplxconjvecmul_C_split_precise(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
 {
 #ifdef OMP
 #pragma omp simd
