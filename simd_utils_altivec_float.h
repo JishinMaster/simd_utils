@@ -107,14 +107,14 @@ static inline void set128f(float *dst, float value, int len)
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
 
-    if (isAligned((uintptr_t)(dst), ALTIVEC_LEN_BYTES)) {
+    if (isAligned((uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             vec_st(tmp, 0, dst + i);
         }
     } else {
-        int unaligned_float = (uintptr_t)(dst) % ALTIVEC_LEN_FLOAT;  // could this happen though?
-        if (unaligned_float == 0) {                                  // dst is not aligned on 16bytes boundary but is at least aligned on float
-            int unaligned_elts = ((uintptr_t)(dst) % ALTIVEC_LEN_BYTES) / sizeof(float);
+        int unaligned_float = (uintptr_t) (dst) % ALTIVEC_LEN_FLOAT;  // could this happen though?
+        if (unaligned_float == 0) {                                   // dst is not aligned on 16bytes boundary but is at least aligned on float
+            int unaligned_elts = ((uintptr_t) (dst) % ALTIVEC_LEN_BYTES) / sizeof(float);
             for (int i = 0; i < unaligned_elts; i++) {
                 dst[i] = value;
             }
@@ -141,16 +141,16 @@ static inline void mul128f(float *src1, float *src2, float *dst, int len)
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), ALTIVEC_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf a = vec_ld(0, src1 + i);
             v4sf b = vec_ld(0, src2 + i);
             vec_st(vec_mul(a, b), 0, dst + i);
         }
     } else {
-        int unalign_src1 = (uintptr_t)(src1) % ALTIVEC_LEN_BYTES;
-        int unalign_src2 = (uintptr_t)(src2) % ALTIVEC_LEN_BYTES;
-        int unalign_dst = (uintptr_t)(dst) % ALTIVEC_LEN_BYTES;
+        int unalign_src1 = (uintptr_t) (src1) % ALTIVEC_LEN_BYTES;
+        int unalign_src2 = (uintptr_t) (src2) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
 
         /*To be improved : we constantly use unaligned load or store of those data
         There exist better unaligned stream load or store which could improve performance
@@ -188,16 +188,16 @@ static inline void minevery128f(float *src1, float *src2, float *dst, int len)
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), ALTIVEC_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf a = vec_ld(0, src1 + i);
             v4sf b = vec_ld(0, src2 + i);
             vec_st(vec_min(a, b), 0, dst + i);
         }
     } else {
-        int unalign_src1 = (uintptr_t)(src1) % ALTIVEC_LEN_BYTES;
-        int unalign_src2 = (uintptr_t)(src2) % ALTIVEC_LEN_BYTES;
-        int unalign_dst = (uintptr_t)(dst) % ALTIVEC_LEN_BYTES;
+        int unalign_src1 = (uintptr_t) (src1) % ALTIVEC_LEN_BYTES;
+        int unalign_src2 = (uintptr_t) (src2) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
 
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf a, b;
@@ -236,7 +236,7 @@ static inline void cplxtoreal128f(float *src, float *dstRe, float *dstIm, int le
     const v16u8 re_mask = {0, 1, 2, 3, 8, 9, 10, 11, 16, 17, 18, 19, 24, 25, 26, 27};
     const v16u8 im_mask = {4, 5, 6, 7, 12, 13, 14, 15, 20, 21, 22, 23, 28, 29, 30, 31};
 
-    if (areAligned3((uintptr_t)(src), (uintptr_t)(dstRe), (uintptr_t)(dstIm), ALTIVEC_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (src), (uintptr_t) (dstRe), (uintptr_t) (dstIm), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
             v4sf vec1 = vec_ld(0, src + i);
             v4sf vec2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
@@ -247,9 +247,9 @@ static inline void cplxtoreal128f(float *src, float *dstRe, float *dstIm, int le
             j += ALTIVEC_LEN_FLOAT;
         }
     } else {
-        int unalign_src = (uintptr_t)(src) % ALTIVEC_LEN_BYTES;
-        int unalign_dstRe = (uintptr_t)(dstRe) % ALTIVEC_LEN_BYTES;
-        int unalign_dstIm = (uintptr_t)(dstIm) % ALTIVEC_LEN_BYTES;
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dstRe = (uintptr_t) (dstRe) % ALTIVEC_LEN_BYTES;
+        int unalign_dstIm = (uintptr_t) (dstIm) % ALTIVEC_LEN_BYTES;
 
         for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
             v4sf vec1, vec2;
@@ -292,14 +292,14 @@ static inline void log2_128f(float *src, float *dst, int len)
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), ALTIVEC_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf a = vec_ld(0, src + i);
             vec_st(vec_loge(a), 0, dst + i);
         }
     } else {
-        int unalign_src = (uintptr_t)(src) % ALTIVEC_LEN_BYTES;
-        int unalign_dst = (uintptr_t)(dst) % ALTIVEC_LEN_BYTES;
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
 
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf a;
@@ -330,14 +330,14 @@ static inline void ln_128f(float *src, float *dst, int len)
 
     const v4sf ln2_vec = {LN2, LN2, LN2, LN2};
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), ALTIVEC_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf a = vec_ld(0, src + i);
             vec_st(vec_mul(vec_loge(a), ln2_vec), 0, dst + i);
         }
     } else {
-        int unalign_src = (uintptr_t)(src) % ALTIVEC_LEN_BYTES;
-        int unalign_dst = (uintptr_t)(dst) % ALTIVEC_LEN_BYTES;
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
 
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf a;
@@ -368,14 +368,14 @@ static inline void log10_128f(float *src, float *dst, int len)
 
     const v4sf ln2_ln10_vec = {LN2_DIV_LN10, LN2_DIV_LN10, LN2_DIV_LN10, LN2_DIV_LN10};
 
-    if (areAligned2((uintptr_t)(src), (uintptr_t)(dst), ALTIVEC_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf a = vec_ld(0, src + i);
             vec_st(vec_mul(vec_loge(a), ln2_ln10_vec), 0, dst + i);
         }
     } else {
-        int unalign_src = (uintptr_t)(src) % ALTIVEC_LEN_BYTES;
-        int unalign_dst = (uintptr_t)(dst) % ALTIVEC_LEN_BYTES;
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
 
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf a;
@@ -404,7 +404,7 @@ static inline void magnitude128f_split(float *srcRe, float *srcIm, float *dst, i
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t)(srcRe), (uintptr_t)(srcIm), (uintptr_t)(dst), ALTIVEC_LEN_BYTES)) {
+    if (areAligned3((uintptr_t) (srcRe), (uintptr_t) (srcIm), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf re_tmp = vec_ld(0, srcRe + i);
             v4sf re2 = vec_mul(re_tmp, re_tmp);
@@ -413,9 +413,9 @@ static inline void magnitude128f_split(float *srcRe, float *srcIm, float *dst, i
             vec_st(vec_sqrt(vec_add(re2, im2)), 0, dst + i);
         }
     } else {
-        int unalign_srcRe = (uintptr_t)(srcRe) % ALTIVEC_LEN_BYTES;
-        int unalign_srcIm = (uintptr_t)(srcRe) % ALTIVEC_LEN_BYTES;
-        int unalign_dst = (uintptr_t)(dst) % ALTIVEC_LEN_BYTES;
+        int unalign_srcRe = (uintptr_t) (srcRe) % ALTIVEC_LEN_BYTES;
+        int unalign_srcIm = (uintptr_t) (srcRe) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
 
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf re_tmp, re2, im_tmp, im2, res;
