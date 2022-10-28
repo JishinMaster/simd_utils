@@ -743,6 +743,39 @@ static inline v2sd atan_pd(v2sd xx)
     return (y);
 }
 
+static inline v2sd atan2_pd(v2sd y, v2sd x)
+{
+    v2sd z, w;
+    v2sd xinfzero, yinfzero, xeqzero, yeqzero;
+    v2sd xeqzeroandyinfzero, yeqzeroandxinfzero;
+    v2sd specialcase;
+
+    xinfzero = _mm_cmplt_pd(x, _mm_setzero_pd());  // code =2
+    yinfzero = _mm_cmplt_pd(y, _mm_setzero_pd());  // code = code |1;
+
+    xeqzero = _mm_cmpeq_pd(x, _mm_setzero_pd());
+    yeqzero = _mm_cmpeq_pd(y, _mm_setzero_pd());
+
+    z = *(v2sd *) _pd_PIO2F;
+
+    xeqzeroandyinfzero = _mm_and_pd(xeqzero, yinfzero);
+    z = _mm_blendv_pd(z, *(v2sd *) _pd_mPIO2F, xeqzeroandyinfzero);
+    z = _mm_blendv_pd(z, _mm_setzero_pd(), yeqzero);
+
+    yeqzeroandxinfzero = _mm_and_pd(yeqzero, xinfzero);
+    z = _mm_blendv_pd(z, *(v2sd *) _pd_PIF, yeqzeroandxinfzero);
+
+    specialcase = _mm_or_pd(xeqzero, yeqzero);
+
+    w = _mm_setzero_pd();
+    w = _mm_blendv_pd(w, *(v2sd *) _pd_PIF, _mm_andnot_pd(yinfzero, xinfzero));  // y >= 0 && x<0
+    w = _mm_blendv_pd(w, *(v2sd *) _pd_mPIF, _mm_and_pd(yinfzero, xinfzero));    // y < 0 && x<0
+
+    z = _mm_blendv_pd(_mm_add_pd(w, atan_pd(_mm_div_pd(y, x))), z, specialcase);  // atanf(y/x) if not in special case
+
+    return (z);
+}
+
 static inline void atan128d(double *src, double *dst, int len)
 {
     int stop_len = len / SSE_LEN_DOUBLE;
@@ -813,6 +846,128 @@ static inline void asin128d_(double *src, double *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = asin(src[i]);
+    }
+}
+
+static inline void pol2cart2D128f_precise(float *r, float *theta, float *x, float *y, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (r), (uintptr_t) (theta), SSE_LEN_BYTES) &&
+        areAligned2((uintptr_t) (x), (uintptr_t) (y), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf r_tmpf = _mm_load_ps(r + i);
+            v4sf theta_tmpf = _mm_load_ps(theta + i);
+            v2sd r_tmp0 = _mm_cvtps_pd(r_tmpf);
+            v2sd r_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(r_tmpf,r_tmpf));
+            v2sd theta_tmp0 = _mm_cvtps_pd(theta_tmpf);
+            v2sd theta_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(theta_tmpf,theta_tmpf));
+            v2sd sin_tmp0,sin_tmp1;
+            v2sd cos_tmp0,cos_tmp1;
+            sincos_pd(theta_tmp0, &sin_tmp0, &cos_tmp0);
+            sincos_pd(theta_tmp1, &sin_tmp1, &cos_tmp1);
+            v2sd x_tmpd0 = _mm_mul_pd(r_tmp0, cos_tmp0);
+            v2sd y_tmpd0 = _mm_mul_pd(r_tmp0, sin_tmp0);
+            v2sd x_tmpd1 = _mm_mul_pd(r_tmp1, cos_tmp1);
+            v2sd y_tmpd1 = _mm_mul_pd(r_tmp1, sin_tmp1);
+            
+            v4sf x_tmp = _mm_movelh_ps(_mm_cvtpd_ps(x_tmpd0), _mm_cvtpd_ps(x_tmpd1));
+            v4sf y_tmp = _mm_movelh_ps(_mm_cvtpd_ps(y_tmpd0), _mm_cvtpd_ps(y_tmpd1));
+            _mm_store_ps(x + i, x_tmp);
+            _mm_store_ps(y + i, y_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf r_tmpf = _mm_loadu_ps(r + i);
+            v4sf theta_tmpf = _mm_loadu_ps(theta + i);
+            v2sd r_tmp0 = _mm_cvtps_pd(r_tmpf);
+            v2sd r_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(r_tmpf,r_tmpf));
+            v2sd theta_tmp0 = _mm_cvtps_pd(theta_tmpf);
+            v2sd theta_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(theta_tmpf,theta_tmpf));
+            v2sd sin_tmp0,sin_tmp1;
+            v2sd cos_tmp0,cos_tmp1;
+            sincos_pd(theta_tmp0, &sin_tmp0, &cos_tmp0);
+            sincos_pd(theta_tmp1, &sin_tmp1, &cos_tmp1);
+            v2sd x_tmpd0 = _mm_mul_pd(r_tmp0, cos_tmp0);
+            v2sd y_tmpd0 = _mm_mul_pd(r_tmp0, sin_tmp0);
+            v2sd x_tmpd1 = _mm_mul_pd(r_tmp1, cos_tmp1);
+            v2sd y_tmpd1 = _mm_mul_pd(r_tmp1, sin_tmp1);
+            
+            v4sf x_tmp = _mm_movelh_ps(_mm_cvtpd_ps(x_tmpd0), _mm_cvtpd_ps(x_tmpd1));
+            v4sf y_tmp = _mm_movelh_ps(_mm_cvtpd_ps(y_tmpd0), _mm_cvtpd_ps(y_tmpd1));
+            _mm_storeu_ps(x + i, x_tmp);
+            _mm_storeu_ps(y + i, y_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        double sin_tmp, cos_tmp;
+        double theta_double = (double) theta[i];
+        double r_double = (double) r[i];
+        sin_tmp = sin(theta_double);
+        cos_tmp = cos(theta_double);
+        x[i] = (float) (r_double * cos_tmp);
+        y[i] = (float) (r_double * sin_tmp);
+    }
+}
+
+static inline void cart2pol2D128f_precise(float *x, float *y, float *r, float *theta, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (r), (uintptr_t) (theta), SSE_LEN_BYTES) &&
+        areAligned2((uintptr_t) (x), (uintptr_t) (y), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf x_tmpf = _mm_load_ps(x + i);
+            v4sf y_tmpf = _mm_load_ps(y + i);
+            v2sd x_tmp0 = _mm_cvtps_pd(x_tmpf);
+            v2sd x_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(x_tmpf,x_tmpf));
+            v2sd y_tmp0 = _mm_cvtps_pd(y_tmpf);
+            v2sd y_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(y_tmpf,y_tmpf));
+            v2sd y_square0 = _mm_mul_pd(y_tmp0, y_tmp0);
+            v2sd y_square1 = _mm_mul_pd(y_tmp1, y_tmp1);
+            v2sd r_tmpd0 = _mm_fmadd_pd_custom(x_tmp0, x_tmp0, y_square0);
+            v2sd r_tmpd1 = _mm_fmadd_pd_custom(x_tmp1, x_tmp1, y_square1);
+            r_tmpd0 = _mm_sqrt_pd(r_tmpd0);
+            r_tmpd1 = _mm_sqrt_pd(r_tmpd1);
+            v2sd theta_tmpd0 = atan2_pd(y_tmp0, x_tmp0);
+            v2sd theta_tmpd1 = atan2_pd(y_tmp1, x_tmp1);
+            v4sf r_tmp = _mm_movelh_ps(_mm_cvtpd_ps(r_tmpd0), _mm_cvtpd_ps(r_tmpd1));
+            v4sf theta_tmp = _mm_movelh_ps(_mm_cvtpd_ps(theta_tmpd0), _mm_cvtpd_ps(theta_tmpd1));
+            _mm_store_ps(r + i, r_tmp);
+            _mm_store_ps(theta + i, theta_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf x_tmpf = _mm_loadu_ps(x + i);
+            v4sf y_tmpf = _mm_loadu_ps(y + i);
+            v2sd x_tmp0 = _mm_cvtps_pd(x_tmpf);
+            v2sd x_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(x_tmpf,x_tmpf));
+            v2sd y_tmp0 = _mm_cvtps_pd(y_tmpf);
+            v2sd y_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(y_tmpf,y_tmpf));
+            v2sd y_square0 = _mm_mul_pd(y_tmp0, y_tmp0);
+            v2sd y_square1 = _mm_mul_pd(y_tmp1, y_tmp1);
+            v2sd r_tmpd0 = _mm_fmadd_pd_custom(x_tmp0, x_tmp0, y_square0);
+            v2sd r_tmpd1 = _mm_fmadd_pd_custom(x_tmp1, x_tmp1, y_square1);
+            r_tmpd0 = _mm_sqrt_pd(r_tmpd0);
+            r_tmpd1 = _mm_sqrt_pd(r_tmpd1);
+            v2sd theta_tmpd0 = atan2_pd(y_tmp0, x_tmp0);
+            v2sd theta_tmpd1 = atan2_pd(y_tmp1, x_tmp1);
+            v4sf r_tmp = _mm_movelh_ps(_mm_cvtpd_ps(r_tmpd0), _mm_cvtpd_ps(r_tmpd1));
+            v4sf theta_tmp = _mm_movelh_ps(_mm_cvtpd_ps(theta_tmpd0), _mm_cvtpd_ps(theta_tmpd1));
+            _mm_storeu_ps(r + i, r_tmp);
+            _mm_storeu_ps(theta + i, theta_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        double y_double = (double) y[i];
+        double x_double = (double) x[i];
+        double y_square = y_double * y_double;
+        r[i] = (float) sqrt(x_double * x_double + y_square);
+        theta[i] = (float) atan2(y_double, x_double);
     }
 }
 

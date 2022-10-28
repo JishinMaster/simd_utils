@@ -210,6 +210,10 @@ typedef struct {
 typedef __m128d v2sd;  // vector of 2 double (sse)
 typedef __m128i v2si;  // vector of 2 int 64 (sse)
 
+typedef struct {
+    v2sd val[2];
+} v2sdx2;
+
 // Warning, declared in reverse order since it's little endian :
 //  const v4sf conj_mask = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
 static const float _ps_conj_mask[4] __attribute__((aligned(16))) = {1.0f, -1.0f, 1.0f, -1.0f};

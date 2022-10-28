@@ -9288,6 +9288,22 @@ for (int i = 0; i < len; i++){
 
     l2_err(inout3, inout_ref, len);
     l2_err(inout4, inout2_ref, len);
+    
+    clock_gettime(CLOCK_REALTIME, &start);
+    pol2cart2D128f_precise(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("pol2cart2D128f_precise %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        pol2cart2D128f_precise(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("pol2cart2D128f_precise %d %lf\n", len, elapsed);
+
+    l2_err(inout3, inout_ref, len);
+    l2_err(inout4, inout2_ref, len);
 #endif
 
 #ifdef AVX
@@ -9428,6 +9444,25 @@ for (int i = 0; i < len; i++){
 
     l2_err(inout3, inout_ref, len);
     l2_err(inout4, inout2_ref, len);
+    
+    clock_gettime(CLOCK_REALTIME, &start);
+    cart2pol2D128f_precise(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cart2pol2D128f_precise %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cart2pol2D128f_precise(inout, inout2, inout3, inout4, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cart2pol2D128f_precise %d %lf\n", len, elapsed);
+
+    l2_err(inout3, inout_ref, len);
+    l2_err(inout4, inout2_ref, len);
+    
+    /*for(int i = 0; i < len; i++)
+         printf("%0.7f %0.7f %0.7f %0.7f %0.7f %0.7f\n",inout[i], inout2[i],inout3[i],inout_ref[i], inout4[i],inout2_ref[i]);*/
 #endif
 
 #ifdef AVX
@@ -9462,8 +9497,6 @@ for (int i = 0; i < len; i++){
 
     l2_err(inout3, inout_ref, len);
     l2_err(inout4, inout2_ref, len);
-    /* for(int i = 0; i < len; i++)
-         printf("%0.7f %0.7f %0.7f %0.7f %0.7f %0.7f\n",inout[i], inout2[i],inout3[i],inout_ref[i], inout4[i],inout2_ref[i]);*/
 #endif
 
 
