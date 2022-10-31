@@ -1096,6 +1096,16 @@ static inline void tanf_C(float *src, float *dst, int len)
     }
 }
 
+static inline void tan_C(double *src, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = tan(src[i]);
+    }
+}
+
 static inline void tanhf_C(float *src, float *dst, int len)
 {
 #ifdef OMP

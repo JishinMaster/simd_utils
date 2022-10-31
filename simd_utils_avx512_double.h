@@ -456,7 +456,8 @@ static inline void vectorSlope512d(double *dst, int len, double offset, double s
 static inline v8sd asin512_pd(v8sd x)
 {
     v8sd a, z;
-    __mmask8 sign;
+    //__mmask8 sign;
+    v8sd sign;
     __mmask8 ainfem8, asup0p625;
 
     // first branch, a > 0.625
@@ -470,8 +471,9 @@ static inline v8sd asin512_pd(v8sd x)
     v8sd z_second_branch;
     v8sd tmp_second_branch;
 
-    a = _mm512_and_pd(*(v8sd *) _pd512_positive_mask, x);           // fabs(x)
-    sign = _mm512_cmp_pd_mask(x, _mm512_setzero_pd(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0
+    a = _mm512_and_pd(*(v8sd *) _pd512_positive_mask, x);  // fabs(x)
+    // sign = _mm512_cmp_pd_mask(x, _mm512_setzero_pd(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0
+    sign = _mm512_and_pd(x, *(v8sd *) _pd512_sign_mask);
 
     ainfem8 = _mm512_cmp_pd_mask(a, _mm512_set1_pd(1.0e-8), _CMP_LT_OS);  // if( a < 1.0e-8)
     asup0p625 = _mm512_cmp_pd_mask(a, _mm512_set1_pd(0.625), _CMP_GT_OS);
@@ -517,7 +519,8 @@ static inline v8sd asin512_pd(v8sd x)
 
 
     z = _mm512_mask_blend_pd(asup0p625, z_second_branch, z_first_branch);
-    z = _mm512_mask_blend_pd(sign, z, _mm512_xor_pd(*(v8sd *) _pd512_negative_mask, z));
+    // z = _mm512_mask_blend_pd(sign, z, _mm512_xor_pd(*(v8sd *) _pd512_negative_mask, z));
+    z = _mm512_xor_pd(z, sign);
     z = _mm512_mask_blend_pd(ainfem8, z, x);
 
     // if (x > 1.0) then return 0.0
@@ -552,14 +555,16 @@ static inline void asin512d(double *src, double *dst, int len)
 static inline v8sd atan512_pd(v8sd xx)
 {
     v8sd x, y, z;
-    __mmask8 sign;
+    //__mmask8 sign;
+    v8sd sign;
     __mmask8 suptan3pi8, inftan3pi8inf0p66;  // > T3PI8 or (< T3PI8 and > 0.66)
     v8sd tmp, tmp2;
     v8sd zerop66 = _mm512_set1_pd(0.66);
     v8sd flag = _mm512_setzero_pd();  // flag = 0
 
-    x = _mm512_and_pd(*(v8sd *) _pd512_positive_mask, xx);           // x = fabs(xx)
-    sign = _mm512_cmp_pd_mask(xx, _mm512_setzero_pd(), _CMP_LT_OS);  // 0xFFFFFFFFFFFFFFFF if x < 0.0, sign = -1
+    x = _mm512_and_pd(*(v8sd *) _pd512_positive_mask, xx);  // x = fabs(xx)
+    // sign = _mm512_cmp_pd_mask(xx, _mm512_setzero_pd(), _CMP_LT_OS);  // 0xFFFFFFFFFFFFFFFF if x < 0.0, sign = -1
+    sign = _mm512_and_pd(xx, *(v8sd *) _pd512_sign_mask);
 
     /* range reduction */
 
@@ -598,7 +603,8 @@ static inline v8sd atan512_pd(v8sd xx)
     z = _mm512_mask_blend_pd(_mm512_cmp_pd_mask(flag, *(v8sd *) _pd512_1, _CMP_EQ_OS), z, _mm512_add_pd(z, *(v8sd *) _pd512_MOREBITS));                                 // if (flag == 1) then z +=  MOREBITS
 
     y = _mm512_add_pd(y, z);
-    y = _mm512_mask_blend_pd(sign, y, _mm512_xor_pd(*(v8sd *) _pd512_negative_mask, y));
+    // y = _mm512_mask_blend_pd(sign, y, _mm512_xor_pd(*(v8sd *) _pd512_negative_mask, y));
+    y = _mm512_xor_pd(y, sign);
 
     y = _mm512_mask_blend_pd(_mm512_cmp_pd_mask(x, _mm512_setzero_pd(), _CMP_EQ_OS), y, xx);  // if (xx == 0) then return xx (x is fabs(xx))
     return (y);
@@ -659,22 +665,19 @@ static inline void atan512d(double *src, double *dst, int len)
     }
 }
 
-// Work in progress
-#if 1
-
 //_mm512_cvttpd_epi64 gives wrong result??
 static inline v8sid _mm512_cvttpd_epi64_custom(v8sd x)
 {
-    x = _mm512_add_pd(x, _mm512_set1_pd(0x0010000000000000));
+    x = _mm512_add_pd(x, *(v8sd *) _pd512_PDEPI64U);
     return _mm512_xor_si512(
         _mm512_castpd_si512(x),
-        _mm512_castpd_si512(_mm512_set1_pd(0x0010000000000000)));
+        _mm512_castpd_si512(*(v8sd *) _pd512_PDEPI64U));
 }
 
 static inline v8sd _mm512_cvtepi64_pd_custom(v8sid x)
 {
-    x = _mm512_or_si512(x, _mm512_castpd_si512(_mm512_set1_pd(0x0010000000000000)));
-    return _mm512_sub_pd(_mm512_castsi512_pd(x), _mm512_set1_pd(0x0010000000000000));
+    x = _mm512_or_si512(x, _mm512_castpd_si512(*(v8sd *) _pd512_PDEPI64U));
+    return _mm512_sub_pd(_mm512_castsi512_pd(x), *(v8sd *) _pd512_PDEPI64U);
 }
 
 static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
@@ -796,8 +799,6 @@ static inline void sincos512d(double *src, double *dst_sin, double *dst_cos, int
     }
 }
 
-#endif
-
 
 static inline void pol2cart2D512f_precise(float *r, float *theta, float *x, float *y, int len)
 {
@@ -896,5 +897,94 @@ static inline void cart2pol2D512f_precise(float *x, float *y, float *r, float *t
         double y_square = y_double * y_double;
         r[i] = (float) sqrt(x_double * x_double + y_square);
         theta[i] = (float) atan2(y_double, x_double);
+    }
+}
+
+static inline v8sd tan512_pd(v8sd xx)
+{
+    __mmask8 xxeqzero, xsuplossth, zzsup1m14;
+    v8sd ysup1m14;
+    v8sd tmp, tmp2;
+
+    xxeqzero = _mm512_cmp_pd_mask(xx, _mm512_setzero_pd(), _CMP_EQ_OS);
+
+    v8sd x, y, z, zz;
+    v8sid j;
+    __mmask8 jandone, jandtwo;
+    v8sd sign;
+
+    /* make argument positive but save the sign */
+    x = xx;
+    x = _mm512_and_pd(x, *(v8sd *) _pd512_inv_sign_mask);
+    sign = _mm512_and_pd(xx, *(v8sd *) _pd512_sign_mask);
+#ifdef LOSSTH
+    xsuplossth = _mm512_cmp_pd_mask(x, *(v8sd *) _pd512_tanlossth, _CMP_GT_OS);
+#endif
+
+    /* compute x mod PIO4 */
+    y = _mm512_mul_pd(x, *(v8sd *) _pd512_cephes_FOPI);
+    // useful?
+    y = _mm512_roundscale_pd(y, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+
+    /* strip high bits of integer part */
+    z = _mm512_mul_pd(y, *(v8sd *) _pd512_0p125);
+    // useful?
+    z = _mm512_roundscale_pd(z, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+    z = _mm512_fmadd_pd_custom(z, *(v8sd *) _pd512_min8, y);
+
+    /* integer and fractional part modulo one octant */
+    j = _mm512_cvttpd_epi64_custom(z);
+
+    /* map zeros and singularities to origin */
+    jandone = _mm512_cmpgt_epi64_mask(_mm512_and_si512(j, *(v8sid *) _pi512_64_1), _mm512_setzero_si512());
+    j = _mm512_mask_blend_epi64(jandone, j, _mm512_add_epi64(j, *(v8sid *) _pi512_64_1));
+    y = _mm512_mask_blend_pd(jandone, y, _mm512_add_pd(y, *(v8sd *) _pd512_1));
+    jandtwo = _mm512_cmpgt_epi64_mask(_mm512_and_si512(j, *(v8sid *) _pi512_64_2), _mm512_setzero_si512());
+
+    z = _mm512_fmadd_pd_custom(y, *(v8sd *) _pd512_TAN_mDP1, x);
+    z = _mm512_fmadd_pd_custom(y, *(v8sd *) _pd512_TAN_mDP2, z);
+    z = _mm512_fmadd_pd_custom(y, *(v8sd *) _pd512_TAN_mDP3, z);
+    zz = _mm512_mul_pd(z, z);
+
+    zzsup1m14 = _mm512_cmp_pd_mask(zz, *(v8sd *) _pd512_1m14, _CMP_GT_OS);
+    tmp = _mm512_fmadd_pd_custom(zz, *(v8sd *) _pd512_TAN_P0, *(v8sd *) _pd512_TAN_P1);
+    tmp = _mm512_fmadd_pd_custom(zz, tmp, *(v8sd *) _pd512_TAN_P2);
+    tmp2 = _mm512_fmadd_pd_custom(zz, *(v8sd *) _pd512_TAN_Q0, *(v8sd *) _pd512_TAN_Q1);
+    tmp2 = _mm512_fmadd_pd_custom(zz, tmp2, *(v8sd *) _pd512_TAN_Q2);
+    tmp2 = _mm512_fmadd_pd_custom(zz, tmp2, *(v8sd *) _pd512_TAN_Q3);
+    tmp2 = _mm512_div_pd(tmp, tmp2);
+    tmp2 = _mm512_mul_pd(zz, tmp2);
+    ysup1m14 = _mm512_fmadd_pd_custom(z, tmp2, z);
+    y = _mm512_mask_blend_pd(zzsup1m14, z, ysup1m14);
+
+    y = _mm512_mask_blend_pd(jandtwo, y, _mm512_div_pd(*(v8sd *) _pd512_min1, y));
+    y = _mm512_xor_pd(y, sign);
+
+#ifdef LOSSTH
+    y = _mm512_mask_blend_pd(xsuplossth, y, _mm512_setzero_pd());
+#endif
+    y = _mm512_mask_blend_pd(xxeqzero, y, xx);
+    return y;
+}
+
+static inline void tan512d(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_DOUBLE;
+    stop_len *= AVX512_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_load_pd(src + i);
+            _mm512_store_pd(dst + i, tan512_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_loadu_pd(src + i);
+            _mm512_storeu_pd(dst + i, tan512_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = tan(src[i]);
     }
 }

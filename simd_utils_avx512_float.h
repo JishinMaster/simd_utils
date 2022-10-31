@@ -258,11 +258,14 @@ static inline v16sf power_of_two512f(v16si b)
 static inline v16sf cbrt512f_ps(v16sf xx)
 {
     v16sf e, rem;
-    __mmask16 sign;
+    //__mmask16 sign;
     v16sf x, z;
+    v16sf sign;
 
     x = xx;
-    sign = _mm512_cmp_ps_mask(x, _mm512_setzero_ps(), _CMP_GT_OS);
+    // sign = _mm512_cmp_ps_mask(x, _mm512_setzero_ps(), _CMP_GT_OS);
+    sign = _mm512_and_ps(xx, *(v16sf *) _ps512_sign_mask);
+
     x = _mm512_and_ps(x, *(v16sf *) _ps512_pos_sign_mask);
 
     z = x;
@@ -323,7 +326,9 @@ static inline v16sf cbrt512f_ps(v16sf xx)
     tmp2 = _mm512_mul_ps(tmp2, *(v16sf *) _ps512_0p3);
     x = _mm512_sub_ps(x, tmp2);
 
-    x = _mm512_mask_blend_ps(sign, _mm512_mul_ps(x, *(v16sf *) _ps512_min1), x);
+    // x = _mm512_mask_blend_ps(sign, _mm512_mul_ps(x, *(v16sf *) _ps512_min1), x);
+    x = _mm512_xor_ps(x, sign);
+
     return x;
 }
 
@@ -2215,12 +2220,15 @@ static inline void sinh512f(float *src, float *dst, int len)
 static inline v16sf atan512f_ps(v16sf xx)
 {
     v16sf x, y, z;
-    __mmask16 sign2;
+    //__mmask16 sign2;
     __mmask16 suptan3pi8, inftan3pi8suppi8;
     v16sf tmp;
+    v16sf sign;
 
     x = _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, xx);
-    sign2 = _mm512_cmp_ps_mask(xx, _mm512_setzero_ps(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0, sign = -1
+    // sign2 = _mm512_cmp_ps_mask(xx, _mm512_setzero_ps(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0, sign = -1
+    sign = _mm512_and_ps(xx, *(v16sf *) _ps512_sign_mask);
+
     /* range reduction */
 
     y = _mm512_setzero_ps();
@@ -2242,8 +2250,8 @@ static inline v16sf atan512f_ps(v16sf xx)
 
     y = _mm512_add_ps(y, tmp);
 
-    y = _mm512_mask_blend_ps(sign2, y, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, y));
-
+    // y = _mm512_mask_blend_ps(sign2, y, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, y));
+    y = _mm512_xor_ps(y, sign);
     return (y);
 }
 
@@ -2354,12 +2362,14 @@ static inline void atan2512f_interleaved(complex32_t *src, float *dst, int len)
 static inline v16sf asin512f_ps(v16sf xx)
 {
     v16sf a, x, z, z_tmp;
-    __mmask16 sign;
+    //__mmask16 sign;
     __mmask16 ainfem4, asup0p5;
-    v16sf tmp;
+    v16sf tmp, sign;
+
     x = xx;
-    a = _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, x);          // fabs(x)
-    sign = _mm512_cmp_ps_mask(x, _mm512_setzero_ps(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0
+    a = _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, x);  // fabs(x)
+    // sign = _mm512_cmp_ps_mask(x, _mm512_setzero_ps(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0
+    sign = _mm512_and_ps(xx, *(v16sf *) _ps512_sign_mask);
 
     // TODO : vectorize this
     /*if( a > 1.0f )
@@ -2391,7 +2401,8 @@ static inline v16sf asin512f_ps(v16sf xx)
 
     // done:
     z = _mm512_mask_blend_ps(ainfem4, z, a);
-    z = _mm512_mask_blend_ps(sign, z, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, z));
+    // z = _mm512_mask_blend_ps(sign, z, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, z));
+    z = _mm512_xor_ps(z, sign);
 
     return (z);
 }

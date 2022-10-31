@@ -5975,6 +5975,98 @@ printf("\n");
 
 #endif
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// TAN //////////////////////////////////////////////////////////////////////////////
+    printf("TAN\n");
+
+    for (int i = 0; i < len; i++) {
+        inoutd[i] = (double) (rand() % 8000) / 1000.0;
+        if (i % 2 == 0)
+            inoutd[i] = -inoutd[i];
+    }
+
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    tan_C(inoutd, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("tan_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        tan_C(inoutd, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("tan_C %d %lf\n", len, elapsed);
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsTan_64f_A53(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsTan_64f_A53 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsTan_64f_A53(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsTan_64f_A53 %d %lf\n", len, elapsed);
+
+    l2_errd(inoutd_ref, inoutd2, len);
+#endif
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    tan128d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("tan128d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        tan128d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("tan128d %d %lf\n", len, elapsed);
+
+    l2_errd(inoutd_ref, inoutd2, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    tan256d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("tan256d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        tan256d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("tan256d %d %lf\n", len, elapsed);
+
+    l2_errd(inoutd_ref, inoutd2, len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    tan512d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("tan512d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        tan256d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("tan512d %d %lf\n", len, elapsed);
+
+    l2_errd(inoutd_ref, inoutd2, len);
+    // for(int i = 0;  i < len; i++) printf("%lf %lf %lf \n",inoutd[i],inoutd_ref[i],inoutd2[i]);
+#endif
 
     printf("\n");
     /////////////////////////////////////////////////////////// TANH //////////////////////////////////////////////////////////////////////////////
@@ -6800,7 +6892,7 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsAcosh_32f_A24 %d %lf\n", len, elapsed);
-    l2_err(inout2_ref, inout2, len);
+    l2_err(inout_ref, inout2, len);
 #endif
 
 #ifdef MKL
@@ -9288,7 +9380,7 @@ for (int i = 0; i < len; i++){
 
     l2_err(inout3, inout_ref, len);
     l2_err(inout4, inout2_ref, len);
-    
+
     clock_gettime(CLOCK_REALTIME, &start);
     pol2cart2D128f_precise(inout, inout2, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -9444,7 +9536,7 @@ for (int i = 0; i < len; i++){
 
     l2_err(inout3, inout_ref, len);
     l2_err(inout4, inout2_ref, len);
-    
+
     clock_gettime(CLOCK_REALTIME, &start);
     cart2pol2D128f_precise(inout, inout2, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -9460,7 +9552,7 @@ for (int i = 0; i < len; i++){
 
     l2_err(inout3, inout_ref, len);
     l2_err(inout4, inout2_ref, len);
-    
+
     /*for(int i = 0; i < len; i++)
          printf("%0.7f %0.7f %0.7f %0.7f %0.7f %0.7f\n",inout[i], inout2[i],inout3[i],inout_ref[i], inout4[i],inout2_ref[i]);*/
 #endif

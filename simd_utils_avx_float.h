@@ -350,7 +350,8 @@ static inline v8sf cbrt256f_ps(v8sf xx)
     v8sf x, z;
 
     x = xx;
-    sign = _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_GT_OS);
+    // sign = _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_GT_OS);
+    sign = _mm256_and_ps(xx, *(v8sf *) _ps256_sign_mask);
     x = _mm256_and_ps(x, *(v8sf *) _ps256_pos_sign_mask);
 
     z = x;
@@ -414,7 +415,8 @@ static inline v8sf cbrt256f_ps(v8sf xx)
     tmp2 = _mm256_mul_ps(tmp2, *(v8sf *) _ps256_0p3);
     x = _mm256_sub_ps(x, tmp2);
 
-    x = _mm256_blendv_ps(_mm256_mul_ps(x, *(v8sf *) _ps256_min1), x, sign);
+    // x = _mm256_blendv_ps(_mm256_mul_ps(x, *(v8sf *) _ps256_min1), x, sign);
+    x = _mm256_xor_ps(x, sign);
     return x;
 }
 
@@ -891,6 +893,8 @@ static inline void vectorSlope256f(float *dst, int len, float offset, float slop
 }
 
 #ifdef __AVX2__
+
+#if 0
 static inline void convertInt16ToFloat32_256(int16_t *src, float *dst, int len, int scale_factor)
 {
     int stop_len = len / (2 * AVX_LEN_FLOAT);
@@ -939,6 +943,83 @@ static inline void convertInt16ToFloat32_256(int16_t *src, float *dst, int len, 
         dst[i] = (float) src[i] * scale_fact_mult;
     }
 }
+#else
+
+static inline void convertInt16ToFloat32_256(int16_t *src, float *dst, int len, int scale_factor)
+{
+    int stop_len = len / (4 * AVX_LEN_FLOAT);
+    stop_len *= (4 * AVX_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+            v8si vec = _mm256_load_si256((__m256i *) (src + i));                         // loads 1 2 3 4 5 6 7 8 8 9 10 11 12 13 14 15 16
+            v8si low_unordered = _mm256_unpacklo_epi16(vec, vec);                        // low 1 1 2 2 3 3 4 4  9 9 10 10 11 11 12 12
+            v8si high_unordered = _mm256_unpackhi_epi16(vec, vec);                       // high 5 5 6 6 7 7 8 8 13 13 14 14 15 15 16 16
+            v8si low = _mm256_permute2f128_si256(low_unordered, high_unordered, 0x20);   // low 1 1 2 2 3 3 4 45 5 6 6 7 7 8 8
+            v8si high = _mm256_permute2f128_si256(low_unordered, high_unordered, 0x31);  // high 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16
+            low = _mm256_srai_epi32(low, 0x10);                                          // make low 1 -1 2 -1 3 -1 4 -4
+            high = _mm256_srai_epi32(high, 0x10);                                        // make high 5 -1 6 -1 7 -1 8 -1
+            v8sf floatlo = _mm256_cvtepi32_ps(low);                                      // convert the vector to float and scale it
+            floatlo = _mm256_mul_ps(floatlo, scale_fact_vec);
+            v8sf floathi = _mm256_cvtepi32_ps(high);
+            floathi = _mm256_mul_ps(floathi, scale_fact_vec);
+            _mm256_store_ps(dst + i, floatlo);
+            _mm256_store_ps(dst + i + AVX_LEN_FLOAT, floathi);
+
+            v8si vec2 = _mm256_load_si256((__m256i *) (src + i + 2 * AVX_LEN_FLOAT));
+            v8si low_unordered2 = _mm256_unpacklo_epi16(vec2, vec2);
+            v8si high_unordered2 = _mm256_unpackhi_epi16(vec2, vec2);
+            v8si low2 = _mm256_permute2f128_si256(low_unordered2, high_unordered2, 0x20);
+            v8si high2 = _mm256_permute2f128_si256(low_unordered2, high_unordered2, 0x31);
+            low2 = _mm256_srai_epi32(low2, 0x10);
+            high2 = _mm256_srai_epi32(high2, 0x10);
+            v8sf floatlo2 = _mm256_cvtepi32_ps(low2);
+            floatlo2 = _mm256_mul_ps(floatlo2, scale_fact_vec);
+            v8sf floathi2 = _mm256_cvtepi32_ps(high2);
+            floathi2 = _mm256_mul_ps(floathi2, scale_fact_vec);
+            _mm256_store_ps(dst + i + 2 * AVX_LEN_FLOAT, floatlo2);
+            _mm256_store_ps(dst + i + 3 * AVX_LEN_FLOAT, floathi2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+            v8si vec = _mm256_loadu_si256((__m256i *) (src + i));                        // loads 1 2 3 4 5 6 7 8 8 9 10 11 12 13 14 15 16
+            v8si low_unordered = _mm256_unpacklo_epi16(vec, vec);                        // low 1 1 2 2 3 3 4 4  9 9 10 10 11 11 12 12
+            v8si high_unordered = _mm256_unpackhi_epi16(vec, vec);                       // high 5 5 6 6 7 7 8 8 13 13 14 14 15 15 16 16
+            v8si low = _mm256_permute2f128_si256(low_unordered, high_unordered, 0x20);   // low 1 1 2 2 3 3 4 45 5 6 6 7 7 8 8
+            v8si high = _mm256_permute2f128_si256(low_unordered, high_unordered, 0x31);  // high 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16
+            low = _mm256_srai_epi32(low, 0x10);                                          // make low 1 -1 2 -1 3 -1 4 -4
+            high = _mm256_srai_epi32(high, 0x10);                                        // make high 5 -1 6 -1 7 -1 8 -1
+            v8sf floatlo = _mm256_cvtepi32_ps(low);                                      // convert the vector to float and scale it
+            floatlo = _mm256_mul_ps(floatlo, scale_fact_vec);
+            v8sf floathi = _mm256_cvtepi32_ps(high);
+            floathi = _mm256_mul_ps(floathi, scale_fact_vec);
+            _mm256_storeu_ps(dst + i, floatlo);
+            _mm256_storeu_ps(dst + i + AVX_LEN_FLOAT, floathi);
+
+            v8si vec2 = _mm256_loadu_si256((__m256i *) (src + i + 2 * AVX_LEN_FLOAT));
+            v8si low_unordered2 = _mm256_unpacklo_epi16(vec2, vec2);
+            v8si high_unordered2 = _mm256_unpackhi_epi16(vec2, vec2);
+            v8si low2 = _mm256_permute2f128_si256(low_unordered2, high_unordered2, 0x20);
+            v8si high2 = _mm256_permute2f128_si256(low_unordered2, high_unordered2, 0x31);
+            low2 = _mm256_srai_epi32(low2, 0x10);
+            high2 = _mm256_srai_epi32(high2, 0x10);
+            v8sf floatlo2 = _mm256_cvtepi32_ps(low2);
+            floatlo2 = _mm256_mul_ps(floatlo2, scale_fact_vec);
+            v8sf floathi2 = _mm256_cvtepi32_ps(high2);
+            floathi2 = _mm256_mul_ps(floathi2, scale_fact_vec);
+            _mm256_storeu_ps(dst + i + 2 * AVX_LEN_FLOAT, floatlo2);
+            _mm256_storeu_ps(dst + i + 3 * AVX_LEN_FLOAT, floathi2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = (float) src[i] * scale_fact_mult;
+    }
+}
+#endif
 
 static inline void convertFloat32ToU8_256(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
 {
@@ -2097,6 +2178,7 @@ static inline void sincos256f_interleaved(float *src, complex32_t *dst, int len)
     }
 }
 
+#ifndef NO_OOB
 static inline v8sf acosh256f_ps(v8sf x)
 {
     v8sf z, z_first_branch, z_second_branch;
@@ -2126,6 +2208,32 @@ static inline v8sf acosh256f_ps(v8sf x)
 
     return z;
 }
+#else
+static inline v8sf acosh256f_ps(v8sf x)
+{
+    v8sf z, z_first_branch, z_second_branch;
+    v8sf xsup1500, zinf0p5, xinf1;
+
+    z = _mm256_sub_ps(x, *(v8sf *) _ps256_1);
+
+    zinf0p5 = _mm256_cmp_ps(z, *(v8sf *) _ps256_0p5, _CMP_LT_OS);  // first and second branch
+
+    // First Branch (z < 0.5)
+    z_first_branch = _mm256_fmadd_ps_custom(*(v8sf *) _ps256_ACOSH_P0, z, *(v8sf *) _ps256_ACOSH_P1);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, z, *(v8sf *) _ps256_ACOSH_P2);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, z, *(v8sf *) _ps256_ACOSH_P3);
+    z_first_branch = _mm256_fmadd_ps_custom(z_first_branch, z, *(v8sf *) _ps256_ACOSH_P4);
+    z_first_branch = _mm256_mul_ps(z_first_branch, _mm256_sqrt_ps(z));
+
+    // Second Branch
+    z_second_branch = _mm256_sqrt_ps(_mm256_fmadd_ps_custom(z, x, z));
+    z_second_branch = log256_ps(_mm256_add_ps(x, z_second_branch));
+
+    z = _mm256_blendv_ps(z_second_branch, z_first_branch, zinf0p5);
+
+    return z;
+}
+#endif
 
 static inline void acosh256f(float *src, float *dst, int len)
 {
@@ -2364,12 +2472,13 @@ AVX2_INTOP_USING_SSE2(cmpgt_epi32)
 static inline v8sf atan256f_ps(v8sf xx)
 {
     v8sf x, y, z;
-    v8sf sign2;
+    v8sf sign;
     v8sf suptan3pi8, inftan3pi8suppi8;
     v8sf tmp;
 
     x = _mm256_and_ps(*(v8sf *) _ps256_pos_sign_mask, xx);
-    sign2 = _mm256_cmp_ps(xx, _mm256_setzero_ps(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0, sign = -1
+    // sign = _mm256_cmp_ps(xx, _mm256_setzero_ps(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0, sign = -1
+    sign = _mm256_and_ps(xx, *(v8sf *) _ps256_sign_mask);
     /* range reduction */
 
     y = _mm256_setzero_ps();
@@ -2391,7 +2500,8 @@ static inline v8sf atan256f_ps(v8sf xx)
 
     y = _mm256_add_ps(y, tmp);
 
-    y = _mm256_blendv_ps(y, _mm256_xor_ps(*(v8sf *) _ps256_neg_sign_mask, y), sign2);
+    // y = _mm256_blendv_ps(y, _mm256_xor_ps(*(v8sf *) _ps256_neg_sign_mask, y), sign);
+    y = _mm256_xor_ps(y, sign);
 
     return (y);
 }
@@ -2508,8 +2618,9 @@ static inline v8sf asin256f_ps(v8sf xx)
     v8sf ainfem4, asup0p5;
     v8sf tmp;
     x = xx;
-    a = _mm256_and_ps(*(v8sf *) _ps256_pos_sign_mask, x);      // fabs(x)
-    sign = _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0
+    a = _mm256_and_ps(*(v8sf *) _ps256_pos_sign_mask, x);  // fabs(x)
+    // sign = _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0
+    sign = _mm256_and_ps(xx, *(v8sf *) _ps256_sign_mask);
 
     // TODO : vectorize this
     /*if( a > 1.0f )
@@ -2543,7 +2654,8 @@ static inline v8sf asin256f_ps(v8sf xx)
 
     // done:
     z = _mm256_blendv_ps(z, a, ainfem4);
-    z = _mm256_blendv_ps(z, _mm256_xor_ps(*(v8sf *) _ps256_neg_sign_mask, z), sign);
+    // z = _mm256_blendv_ps(z, _mm256_xor_ps(*(v8sf *) _ps256_neg_sign_mask, z), sign);
+    z = _mm256_xor_ps(z, sign);
 
     return (z);
 }

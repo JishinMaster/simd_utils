@@ -469,8 +469,9 @@ static inline v4sd asin256_pd(v4sd x)
     v4sd z_second_branch;
     v4sd tmp_second_branch;
 
-    a = _mm256_and_pd(*(v4sd *) _pd256_positive_mask, x);      // fabs(x)
-    sign = _mm256_cmp_pd(x, _mm256_setzero_pd(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0
+    a = _mm256_and_pd(*(v4sd *) _pd256_positive_mask, x);  // fabs(x)
+    // sign = _mm256_cmp_pd(x, _mm256_setzero_pd(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0
+    sign = _mm256_and_pd(x, *(v4sd *) _pd256_sign_mask);
 
     ainfem8 = _mm256_cmp_pd(a, _mm256_set1_pd(1.0e-8), _CMP_LT_OS);  // if( a < 1.0e-8)
     asup0p625 = _mm256_cmp_pd(a, _mm256_set1_pd(0.625), _CMP_GT_OS);
@@ -516,7 +517,8 @@ static inline v4sd asin256_pd(v4sd x)
 
 
     z = _mm256_blendv_pd(z_second_branch, z_first_branch, asup0p625);
-    z = _mm256_blendv_pd(z, _mm256_xor_pd(*(v4sd *) _pd256_negative_mask, z), sign);
+    // z = _mm256_blendv_pd(z, _mm256_xor_pd(*(v4sd *) _pd256_negative_mask, z), sign);
+    z = _mm256_xor_pd(z, sign);
     z = _mm256_blendv_pd(z, x, ainfem8);
 
     // if (x > 1.0) then return 0.0
@@ -557,8 +559,9 @@ static inline v4sd atan256_pd(v4sd xx)
     v4sd zerop66 = _mm256_set1_pd(0.66);
     v4sd flag = _mm256_setzero_pd();  // flag = 0
 
-    x = _mm256_and_pd(*(v4sd *) _pd256_positive_mask, xx);      // x = fabs(xx)
-    sign = _mm256_cmp_pd(xx, _mm256_setzero_pd(), _CMP_LT_OS);  // 0xFFFFFFFFFFFFFFFF if x < 0.0, sign = -1
+    x = _mm256_and_pd(*(v4sd *) _pd256_positive_mask, xx);  // x = fabs(xx)
+    // sign = _mm256_cmp_pd(xx, _mm256_setzero_pd(), _CMP_LT_OS);  // 0xFFFFFFFFFFFFFFFF if x < 0.0, sign = -1
+    sign = _mm256_and_pd(xx, *(v4sd *) _pd256_sign_mask);
 
     /* range reduction */
 
@@ -599,7 +602,8 @@ static inline v4sd atan256_pd(v4sd xx)
                          _mm256_cmp_pd(flag, *(v4sd *) _pd256_1, _CMP_EQ_OS));  // if (flag == 1) then z +=  MOREBITS
 
     y = _mm256_add_pd(y, z);
-    y = _mm256_blendv_pd(y, _mm256_xor_pd(*(v4sd *) _pd256_negative_mask, y), sign);
+    // y = _mm256_blendv_pd(y, _mm256_xor_pd(*(v4sd *) _pd256_negative_mask, y), sign);
+    y = _mm256_xor_pd(y, sign);
 
     y = _mm256_blendv_pd(y, xx, _mm256_cmp_pd(x, _mm256_setzero_pd(), _CMP_EQ_OS));  // if (xx == 0) then return xx (x is fabs(xx))
     return (y);
@@ -665,16 +669,16 @@ static inline void atan256d(double *src, double *dst, int len)
 
 static inline v4sid _mm256_cvttpd_epi64_custom(v4sd x)
 {
-    x = _mm256_add_pd(x, _mm256_set1_pd(0x0010000000000000));
+    x = _mm256_add_pd(x, *(v4sd *) _pd256_PDEPI64U);
     return _mm256_xor_si256(
         _mm256_castpd_si256(x),
-        _mm256_castpd_si256(_mm256_set1_pd(0x0010000000000000)));
+        _mm256_castpd_si256(*(v4sd *) _pd256_PDEPI64U));
 }
 
 static inline v4sd _mm256_cvtepi64_pd_custom(v4sid x)
 {
-    x = _mm256_or_si256(x, _mm256_castpd_si256(_mm256_set1_pd(0x0010000000000000)));
-    return _mm256_sub_pd(_mm256_castsi256_pd(x), _mm256_set1_pd(0x0010000000000000));
+    x = _mm256_or_si256(x, _mm256_castpd_si256(*(v4sd *) _pd256_PDEPI64U));
+    return _mm256_sub_pd(_mm256_castsi256_pd(x), *(v4sd *) _pd256_PDEPI64U);
 }
 
 static inline void sincos256_pd(v4sd x, v4sd *s, v4sd *c)
@@ -888,6 +892,93 @@ static inline void cart2pol2D256f_precise(float *x, float *y, float *r, float *t
         double y_square = y_double * y_double;
         r[i] = (float) sqrt(x_double * x_double + y_square);
         theta[i] = (float) atan2(y_double, x_double);
+    }
+}
+
+static inline v4sd tan256_pd(v4sd xx)
+{
+    v4sd xxeqzero, xsuplossth, zzsup1m14, ysup1m14;
+    v4sd tmp, tmp2;
+
+    xxeqzero = _mm256_cmp_pd(xx, _mm256_setzero_pd(), _CMP_EQ_OS);
+
+    v4sd x, y, z, zz;
+    v4sid j, jandone, jandtwo;
+    v4sd sign;
+
+    /* make argument positive but save the sign */
+    x = xx;
+    x = _mm256_and_pd(x, *(v4sd *) _pd256_inv_sign_mask);
+    sign = _mm256_and_pd(xx, *(v4sd *) _pd256_sign_mask);
+#ifdef LOSSTH
+    xsuplossth = _mm256_cmp_pd(x, *(v4sd *) _pd256_tanlossth, _CMP_GT_OS);
+#endif
+
+    /* compute x mod PIO4 */
+    y = _mm256_mul_pd(x, *(v4sd *) _pd256_cephes_FOPI);
+    // useful?
+    y = _mm256_round_pd(y, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+
+    /* strip high bits of integer part */
+    z = _mm256_mul_pd(y, *(v4sd *) _pd256_0p125);
+    // useful?
+    z = _mm256_round_pd(z, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+    z = _mm256_fmadd_pd_custom(z, *(v4sd *) _pd256_min8, y);
+
+    /* integer and fractional part modulo one octant */
+    j = _mm256_cvttpd_epi64_custom(z);
+
+    /* map zeros and singularities to origin */
+    jandone = _mm256_cmpgt_epi64(_mm256_and_si256(j, *(v4sid *) _pi256_64_1), _mm256_setzero_si256());
+    j = _mm256_blendv_epi8(j, _mm256_add_epi64(j, *(v4sid *) _pi256_64_1), jandone);
+    y = _mm256_blendv_pd(y, _mm256_add_pd(y, *(v4sd *) _pd256_1), (v4sd) jandone);
+    jandtwo = _mm256_cmpgt_epi64(_mm256_and_si256(j, *(v4sid *) _pi256_64_2), _mm256_setzero_si256());
+
+    z = _mm256_fmadd_pd_custom(y, *(v4sd *) _pd256_TAN_mDP1, x);
+    z = _mm256_fmadd_pd_custom(y, *(v4sd *) _pd256_TAN_mDP2, z);
+    z = _mm256_fmadd_pd_custom(y, *(v4sd *) _pd256_TAN_mDP3, z);
+    zz = _mm256_mul_pd(z, z);
+
+    zzsup1m14 = _mm256_cmp_pd(zz, *(v4sd *) _pd256_1m14, _CMP_GT_OS);
+    tmp = _mm256_fmadd_pd_custom(zz, *(v4sd *) _pd256_TAN_P0, *(v4sd *) _pd256_TAN_P1);
+    tmp = _mm256_fmadd_pd_custom(zz, tmp, *(v4sd *) _pd256_TAN_P2);
+    tmp2 = _mm256_fmadd_pd_custom(zz, *(v4sd *) _pd256_TAN_Q0, *(v4sd *) _pd256_TAN_Q1);
+    tmp2 = _mm256_fmadd_pd_custom(zz, tmp2, *(v4sd *) _pd256_TAN_Q2);
+    tmp2 = _mm256_fmadd_pd_custom(zz, tmp2, *(v4sd *) _pd256_TAN_Q3);
+    tmp2 = _mm256_div_pd(tmp, tmp2);
+    tmp2 = _mm256_mul_pd(zz, tmp2);
+    ysup1m14 = _mm256_fmadd_pd_custom(z, tmp2, z);
+    y = _mm256_blendv_pd(z, ysup1m14, zzsup1m14);
+
+    y = _mm256_blendv_pd(y, _mm256_div_pd(*(v4sd *) _pd256_min1, y), (v4sd) jandtwo);
+    y = _mm256_xor_pd(y, sign);
+
+#ifdef LOSSTH
+    y = _mm256_blendv_pd(y, _mm256_setzero_pd(), xsuplossth);
+#endif
+    y = _mm256_blendv_pd(y, xx, xxeqzero);
+    return y;
+}
+
+static inline void tan256d(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX_LEN_DOUBLE;
+    stop_len *= AVX_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_load_pd(src + i);
+            _mm256_store_pd(dst + i, tan256_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_loadu_pd(src + i);
+            _mm256_storeu_pd(dst + i, tan256_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = tan(src[i]);
     }
 }
 #endif

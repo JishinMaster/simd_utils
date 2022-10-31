@@ -379,7 +379,8 @@ static inline v4sf cbrtf_ps(v4sf xx)
     v4sf x, z;
 
     x = xx;
-    sign = _mm_cmpgt_ps(x, _mm_setzero_ps());
+    // sign = _mm_cmpgt_ps(x, _mm_setzero_ps());
+    sign = _mm_and_ps(xx, *(v4sf *) _ps_sign_mask);
     x = _mm_and_ps(x, *(v4sf *) _ps_pos_sign_mask);
 
     z = x;
@@ -442,7 +443,8 @@ static inline v4sf cbrtf_ps(v4sf xx)
     tmp2 = _mm_mul_ps(tmp2, *(v4sf *) _ps_0p3);
     x = _mm_sub_ps(x, tmp2);
 
-    x = _mm_blendv_ps(_mm_mul_ps(x, *(v4sf *) _ps_min1), x, sign);
+    // x = _mm_blendv_ps(_mm_mul_ps(x, *(v4sf *) _ps_min1), x, sign);
+    x = _mm_xor_ps(x, sign);
     return x;
 }
 
@@ -2323,7 +2325,8 @@ static inline v4sf asinhf_ps(v4sf xx)
     xsup1500 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1500);
     xinf0p5 = _mm_cmplt_ps(x, *(v4sf *) _ps_0p5);
 
-    xxinf0 = _mm_cmplt_ps(xx, _mm_setzero_ps());
+    // xxinf0 = _mm_cmplt_ps(xx, _mm_setzero_ps());
+    xxinf0 = _mm_and_ps(xx, *(v4sf *) _ps_sign_mask);
 
     tmp = _mm_mul_ps(x, x);
     // First Branch (x < 0.5)
@@ -2339,8 +2342,8 @@ static inline v4sf asinhf_ps(v4sf xx)
 
     z = _mm_blendv_ps(z_second_branch, z_first_branch, xinf0p5);
     z = _mm_blendv_ps(z, _mm_add_ps(log_ps(x), *(v4sf *) _ps_LOGE2F), xsup1500);
-    z = _mm_blendv_ps(z, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, z), xxinf0);
-
+    // z = _mm_blendv_ps(z, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, z), xxinf0);
+    z = _mm_xor_ps(z, xxinf0);
     return z;
 }
 
@@ -2433,7 +2436,8 @@ static inline v4sf atanf_ps(v4sf xx)
     v4sf tmp;
 
     x = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, xx);
-    sign = _mm_cmplt_ps(xx, _mm_setzero_ps());  // 0xFFFFFFFF if x < 0.0, sign = -1
+    // sign = _mm_cmplt_ps(xx, _mm_setzero_ps());  // 0xFFFFFFFF if x < 0.0, sign = -1
+    sign = _mm_and_ps(xx, *(v4sf *) _ps_sign_mask);
 
     /* range reduction */
 
@@ -2459,8 +2463,8 @@ static inline v4sf atanf_ps(v4sf xx)
 
     y = _mm_add_ps(y, tmp);
 
-    y = _mm_blendv_ps(y, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, y), sign);
-
+    // y = _mm_blendv_ps(y, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, y), sign);
+    y = _mm_xor_ps(y, sign);
     return (y);
 }
 
@@ -2571,8 +2575,8 @@ static inline v4sf asinf_ps(v4sf xx)
     v4sf tmp;
     x = xx;
     a = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, x);  // fabs(x)
-    sign = _mm_cmplt_ps(x, _mm_setzero_ps());        // 0xFFFFFFFF if x < 0.0
-
+    // sign = _mm_cmplt_ps(x, _mm_setzero_ps());        // 0xFFFFFFFF if x < 0.0
+    sign = _mm_and_ps(xx, *(v4sf *) _ps_sign_mask);
 
     ainfem4 = _mm_cmplt_ps(a, _mm_set1_ps(1.0e-4));  // if( a < 1.0e-4f )
 
@@ -2597,7 +2601,8 @@ static inline v4sf asinf_ps(v4sf xx)
 
     // done:
     z = _mm_blendv_ps(z, a, ainfem4);
-    z = _mm_blendv_ps(z, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, z), sign);
+    // z = _mm_blendv_ps(z, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, z), sign);
+    z = _mm_xor_ps(z, sign);
 
     // if (x > 1.0) then return 0.0
     z = _mm_blendv_ps(z, _mm_setzero_ps(), _mm_cmpgt_ps(x, *(v4sf *) _ps_1));
@@ -2696,6 +2701,7 @@ static inline v4sf tanf_ps(v4sf xx)
     v4si jandone, jandtwo;
 
     x = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, xx);  // fabs(xx) //OK
+    sign = _mm_and_ps(xx, *(v4sf *) _ps_sign_mask);
 
     /* compute x mod PIO4 */
 
@@ -2709,15 +2715,6 @@ static inline v4sf tanf_ps(v4sf xx)
     y = _mm_blendv_ps(y, _mm_add_ps(y, *(v4sf *) _ps_1), (v4sf) jandone);
 
     j = _mm_cvttps_epi32(y);  // no need to round again
-
-#if 1
-    // z = ((x - y * DP1) - y * DP2) - y * DP3;
-    /*tmp = _mm_mul_ps(y, *(v4sf*)_ps_DP1);
-    z   = _mm_add_ps(x, tmp);
-    tmp = _mm_mul_ps(y, *(v4sf*)_ps_DP2);
-    z   = _mm_add_ps(z, tmp);
-    tmp = _mm_mul_ps(y, *(v4sf*)_ps_DP3);
-    z   = _mm_add_ps(z, tmp);*/
 
     z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP1, x);
     z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP2, z);
@@ -2734,17 +2731,15 @@ static inline v4sf tanf_ps(v4sf xx)
     tmp = _mm_fmadd_ps_custom(tmp, zz, *(v4sf *) _ps_TAN_P5);
     tmp = _mm_mul_ps(zz, tmp);
     tmp = _mm_fmadd_ps_custom(tmp, z, z);
-#endif
 
-    xsupem4 = _mm_cmpgt_ps(x, _mm_set1_ps(1.0e-4));  // if( x > 1.0e-4 )
+    xsupem4 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1em4);  // if( x > 1.0e-4 )
     y = _mm_blendv_ps(z, tmp, xsupem4);
 
     jandtwo = _mm_cmpgt_epi32(_mm_and_si128(j, *(v4si *) _pi32_2), _mm_setzero_si128());
 
-    y = _mm_blendv_ps(y, _mm_div_ps(_mm_set1_ps(-1.0f), y), (v4sf) (jandtwo));
-
-    sign = _mm_cmplt_ps(xx, _mm_setzero_ps());  // 0xFFFFFFFF if xx < 0.0
-    y = _mm_blendv_ps(y, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, y), sign);
+    // xor(rcp(y)) gives not good enough result
+    y = _mm_blendv_ps(y, _mm_div_ps(*(v4sf *) _ps_min1, y), (v4sf) (jandtwo));
+    y = _mm_xor_ps(y, sign);
 
     return (y);
 }
