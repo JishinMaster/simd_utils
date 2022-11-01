@@ -20,6 +20,11 @@
 
 static inline v4sf log10_ps(v4sf x)
 {
+#ifdef LLVMMCA
+    __asm volatile("# LLVM-MCA-BEGIN log10_ps" ::
+                       : "memory");
+#endif
+
     v4si emm0;
     v4sf one = *(v4sf *) _ps_1;
     v4sf invalid_mask = _mm_cmple_ps(x, _mm_setzero_ps());
@@ -62,6 +67,10 @@ static inline v4sf log10_ps(v4sf x)
     x = _mm_fmadd_ps_custom(e, *(v4sf *) _ps_cephes_L102A, z);
 
     x = _mm_or_ps(x, invalid_mask);  // negative arg will be NAN
+#ifdef LLVMMCA
+    __asm volatile("# LLVM-MCA-END log10_ps" ::
+                       : "memory");
+#endif
     return x;
 }
 
@@ -2694,6 +2703,10 @@ static inline void tanh128f(float *src, float *dst, int len)
 
 static inline v4sf tanf_ps(v4sf xx)
 {
+#ifdef LLVMMCA
+    __asm volatile("# LLVM-MCA-BEGIN tanf_ps" ::
+                       : "memory");
+#endif
     v4sf x, y, z, zz;
     v4si j;  // long?
     v4sf sign, xsupem4;
@@ -2740,7 +2753,10 @@ static inline v4sf tanf_ps(v4sf xx)
     // xor(rcp(y)) gives not good enough result
     y = _mm_blendv_ps(y, _mm_div_ps(*(v4sf *) _ps_min1, y), (v4sf) (jandtwo));
     y = _mm_xor_ps(y, sign);
-
+#ifdef LLVMMCA
+    __asm volatile("# LLVM-MCA-END tanf_ps" ::
+                       : "memory");
+#endif
     return (y);
 }
 

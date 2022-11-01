@@ -47,6 +47,10 @@ _CMP_TRUE_US  0x1f /* True (unordered, signaling)  */
 
 static inline v8sf log10256_ps(v8sf x)
 {
+#ifdef LLVMMCA
+    __asm volatile("# LLVM-MCA-BEGIN log10256_ps" ::
+                       : "memory");
+#endif
     v8si imm0;
     v8sf one = *(v8sf *) _ps256_1;
 
@@ -97,6 +101,10 @@ static inline v8sf log10256_ps(v8sf x)
     x = _mm256_fmadd_ps_custom(e, *(v8sf *) _ps256_cephes_L102A, z);
 
     x = _mm256_or_ps(x, invalid_mask);  // negative arg will be NAN
+#ifdef LLVMMCA
+    __asm volatile("# LLVM-MCA-END log10256_ps" ::
+                       : "memory");
+#endif
     return x;
 }
 
@@ -2745,6 +2753,10 @@ static inline void tanh256f(float *src, float *dst, int len)
 #if 1
 static inline v8sf tan256f_ps(v8sf xx)
 {
+#ifdef LLVMMCA
+    __asm volatile("# LLVM-MCA-BEGIN tan256f_ps" ::
+                       : "memory");
+#endif
     v8sf x, y, z, zz;
     v8si j;  // long?
     v8sf sign, xsupem4;
@@ -2821,7 +2833,10 @@ static inline v8sf tan256f_ps(v8sf xx)
 
     sign = _mm256_cmp_ps(xx, _mm256_setzero_ps(), _CMP_LT_OS);  // 0xFFFFFFFF if xx < 0.0
     y = _mm256_blendv_ps(y, _mm256_xor_ps(*(v8sf *) _ps256_neg_sign_mask, y), sign);
-
+#ifdef LLVMMCA
+    __asm volatile("# LLVM-MCA-END tan256f_ps" ::
+                       : "memory");
+#endif
     return (y);
 }
 

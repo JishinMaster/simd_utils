@@ -460,7 +460,7 @@ static inline void vectorSlope128d(double *dst, int len, double offset, double s
 // in SSE, missing _mm_cvtepi64_pd, _mm_cvttpd_epi64
 // See : https://stackoverflow.com/questions/41144668/how-to-efficiently-perform-double-int64-conversions-with-sse-avx
 
-static inline v2sd _mm_cvtepi64_pd_custom(v2si x)
+static inline v2sd _mm_cvtepi64_pd_custom(v2sid x)
 {
 #if 0
     //Signed
@@ -473,7 +473,7 @@ static inline v2sd _mm_cvtepi64_pd_custom(v2si x)
 #endif
 }
 
-static inline v2si _mm_cvttpd_epi64_custom(v2sd x)
+static inline v2sid _mm_cvttpd_epi64_custom(v2sd x)
 {
     // Signed
 #if 0
@@ -495,7 +495,7 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
 {
     v2sd xmm1, xmm2, xmm3 = _mm_setzero_pd(), sign_bit_sin, y;
 
-    v2si emm0, emm2, emm4;
+    v2sid emm0, emm2, emm4;
 
     sign_bit_sin = x;
     /* take the absolute value */
@@ -510,21 +510,21 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     /* store the integer part of y in emm2 */
     emm2 = _mm_cvttpd_epi64_custom(y);
     /* j=(j+1) & (~1) (see the cephes sources) */
-    emm2 = _mm_add_epi64(emm2, *(v2si *) _pi64_1);
+    emm2 = _mm_add_epi64(emm2, *(v2sid *) _pi64_1);
 
-    emm2 = _mm_and_si128(emm2, *(v2si *) _pi64_inv1);
+    emm2 = _mm_and_si128(emm2, *(v2sid *) _pi64_inv1);
     y = _mm_cvtepi64_pd_custom(emm2);
     emm4 = emm2;
 
     /* get the swap sign flag for the sine */
-    emm0 = _mm_and_si128(emm2, *(v2si *) _pi64_4);
+    emm0 = _mm_and_si128(emm2, *(v2sid *) _pi64_4);
     // print2i(emm0);
     emm0 = _mm_slli_epi64(emm0, 61);
     // print2i(emm0);
     v2sd swap_sign_bit_sin = _mm_castsi128_pd(emm0);
 
     /* get the polynom selection mask for the sine*/
-    emm2 = _mm_and_si128(emm2, *(v2si *) _pi64_2);
+    emm2 = _mm_and_si128(emm2, *(v2sid *) _pi64_2);
     // SSE3
     emm2 = _mm_cmpeq_epi64(emm2, _mm_setzero_si128());
     v2sd poly_mask = _mm_castsi128_pd(emm2);
@@ -535,8 +535,8 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     x = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP2, x);
     x = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP3, x);
 
-    emm4 = _mm_sub_epi64(emm4, *(v2si *) _pi64_2);
-    emm4 = _mm_andnot_si128(emm4, *(v2si *) _pi64_4);
+    emm4 = _mm_sub_epi64(emm4, *(v2sid *) _pi64_2);
+    emm4 = _mm_andnot_si128(emm4, *(v2sid *) _pi64_4);
     emm4 = _mm_slli_epi64(emm4, 61);
     v2sd sign_bit_cos = _mm_castsi128_pd(emm4);
 
@@ -977,7 +977,7 @@ static inline v2sd exp_pd(v2sd x)
 {
     v2sd tmp = _mm_setzero_pd(), fx;
 
-    v2si emm0;
+    v2sid emm0;
 
     v2sd one = *(v2sd *) _pd_1;
     v2sd two = *(v2sd *) _pd_2;
@@ -1015,7 +1015,7 @@ static inline v2sd exp_pd(v2sd x)
 
     /* build 2^n */
     emm0 = _mm_cvttpd_epi64_custom(fx);
-    emm0 = _mm_add_epi64(emm0, *(v2si *) _pi64_0x7f);
+    emm0 = _mm_add_epi64(emm0, *(v2sid *) _pi64_0x7f);
     emm0 = _mm_slli_epi64(emm0, 52);
     v2sd pow2n = _mm_castsi128_pd(emm0);
 
@@ -1025,7 +1025,7 @@ static inline v2sd exp_pd(v2sd x)
 
 static inline v2sd log_pd(v2sd x)
 {
-    v2si emm0;
+    v2sid emm0;
     v2sd one = *(v2sd *) _pd_1;
 
     v2sd invalid_mask = _mm_cmple_pd(x, _mm_setzero_pd());

@@ -2493,6 +2493,10 @@ static inline void tanh512f(float *src, float *dst, int len)
 #if 1
 static inline v16sf tan512f_ps(v16sf xx)
 {
+#ifdef LLVMMCA
+    __asm volatile("# LLVM-MCA-BEGIN tan512f_ps" ::
+                       : "memory");
+#endif
     v16sf x, y, z, zz;
     v16si j;  // long?
     __mmask16 sign, xsupem4;
@@ -2537,7 +2541,10 @@ static inline v16sf tan512f_ps(v16sf xx)
 
     sign = _mm512_cmp_ps_mask(xx, _mm512_setzero_ps(), _CMP_LT_OS);  // 0xFFFFFFFF if xx < 0.0
     y = _mm512_mask_blend_ps(sign, y, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, y));
-
+#ifdef LLVMMCA
+    __asm volatile("# LLVM-MCA-END tan512f_ps" ::
+                       : "memory");
+#endif
     return (y);
 }
 

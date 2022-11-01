@@ -185,9 +185,8 @@ typedef float32x4x2_t v4sfx2;
 
 #else
 
-typedef __m128 v4sf;    // vector of 4 float (sse1)
-typedef __m128i v4si;   // vector of 4 int (sse2)
-typedef __m128i v2sid;  // vector of 2 int64 (sse2)
+typedef __m128 v4sf;   // vector of 4 float (sse1)
+typedef __m128i v4si;  // vector of 4 int (sse2)
 typedef struct {
     v4sf val[2];
 } v4sfx2;
@@ -207,8 +206,8 @@ typedef struct {
 #define ROUNDTOCEIL (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)
 #define ROUNDTOZERO (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC)
 
-typedef __m128d v2sd;  // vector of 2 double (sse)
-typedef __m128i v2si;  // vector of 2 int 64 (sse)
+typedef __m128d v2sd;   // vector of 2 double (sse)
+typedef __m128i v2sid;  // vector of 2 int64 (sse2)
 
 typedef struct {
     v2sd val[2];
@@ -1257,7 +1256,7 @@ typedef __vector char v16s8;
 #endif
 
 /// PRINT FUNCTIONS */
-#if 1
+#if 0
 
 #ifdef SSE
 /*

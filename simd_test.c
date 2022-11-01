@@ -6059,13 +6059,13 @@ printf("\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        tan256d(inoutd, inoutd2, len);
+        tan512d(inoutd, inoutd2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("tan512d %d %lf\n", len, elapsed);
 
     l2_errd(inoutd_ref, inoutd2, len);
-    // for(int i = 0;  i < len; i++) printf("%lf %lf %lf \n",inoutd[i],inoutd_ref[i],inoutd2[i]);
+    // for(int i = 0;  i < 512len; i++) printf("%lf %lf %lf \n",inoutd[i],inoutd_ref[i],inoutd2[i]);
 #endif
 
     printf("\n");
