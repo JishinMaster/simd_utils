@@ -323,6 +323,28 @@ static inline void tan128f_svml(float *src, float *dst, int len)
     }
 }
 
+static inline void tan128d_svml(double *src, double *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_load_pd(src + i);
+            _mm_store_pd(dst + i, _mm_tan_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_loadu_pd(src + i);
+            _mm_storeu_pd(dst + i, _mm_tan_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = tan(src[i]);
+    }
+}
+
 static inline void atanh128f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
@@ -774,6 +796,28 @@ static inline void tan256f_svml(float *src, float *dst, int len)
     }
 }
 
+static inline void tan256d_svml(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX_LEN_DOUBLE;
+    stop_len *= AVX_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_load_pd(src + i);
+            _mm256_store_pd(dst + i, _mm256_tan_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_loadu_pd(src + i);
+            _mm256_storeu_pd(dst + i, _mm256_tan_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = tan(src[i]);
+    }
+}
+
 static inline void atanh256f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
@@ -1222,6 +1266,28 @@ static inline void tan512f_svml(float *src, float *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = tanf(src[i]);
+    }
+}
+
+static inline void tan512d_svml(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_DOUBLE;
+    stop_len *= AVX512_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_load_pd(src + i);
+            _mm512_store_pd(dst + i, _mm512_tan_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_loadu_pd(src + i);
+            _mm512_storeu_pd(dst + i, _mm512_tan_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = tan(src[i]);
     }
 }
 

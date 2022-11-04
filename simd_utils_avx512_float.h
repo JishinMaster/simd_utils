@@ -864,109 +864,73 @@ static inline void convertFloat32ToU8_512(float *src, uint8_t *dst, int len, int
 
     v16si idx = _mm512_set_epi32(15, 11, 7, 3, 14, 10, 6, 2, 13, 9, 5, 1, 12, 8, 4, 0);
 
-    // Default bankers rounding => round to nearest even
-    if (rounding_mode == RndFinancial) {
-        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
-            for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
-                v16sf src_tmp1 = _mm512_load_ps(src + i);
-                v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
-                v16sf src_tmp3 = _mm512_load_ps(src + i + 2 * AVX512_LEN_FLOAT);
-                v16sf src_tmp4 = _mm512_load_ps(src + i + 3 * AVX512_LEN_FLOAT);
-                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
-                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
-                v16sf tmp3 = _mm512_mul_ps(src_tmp3, scale_fact_vec);
-                v16sf tmp4 = _mm512_mul_ps(src_tmp4, scale_fact_vec);
-                v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
-                v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
-                v16si tmp3_int = _mm512_cvtps_epi32(tmp3);
-                v16si tmp4_int = _mm512_cvtps_epi32(tmp4);
-                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
-                v16si tmp6 = _mm512_packs_epi32(tmp3_int, tmp4_int);
-                v16si tmp7 = _mm512_packus_epi16(tmp5, tmp6);
-                tmp7 = _mm512_permutexvar_epi32(idx, tmp7);
-                _mm512_store_si512((__m512i *) (dst + i), tmp7);
-            }
-        } else {
-            for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
-                v16sf src_tmp1 = _mm512_loadu_ps(src + i);
-                v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
-                v16sf src_tmp3 = _mm512_loadu_ps(src + i + 2 * AVX512_LEN_FLOAT);
-                v16sf src_tmp4 = _mm512_loadu_ps(src + i + 3 * AVX512_LEN_FLOAT);
-                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
-                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
-                v16sf tmp3 = _mm512_mul_ps(src_tmp3, scale_fact_vec);
-                v16sf tmp4 = _mm512_mul_ps(src_tmp4, scale_fact_vec);
-                v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
-                v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
-                v16si tmp3_int = _mm512_cvtps_epi32(tmp3);
-                v16si tmp4_int = _mm512_cvtps_epi32(tmp4);
-                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
-                v16si tmp6 = _mm512_packs_epi32(tmp3_int, tmp4_int);
-                v16si tmp7 = _mm512_packus_epi16(tmp5, tmp6);
-                tmp7 = _mm512_permutexvar_epi32(idx, tmp7);
-                _mm512_storeu_si512((__m512i *) (dst + i), tmp7);
-            }
+    int _mm_rounding_ori = _MM_GET_ROUNDING_MODE();  // save rounding mode
+    int rounding_ori = fegetround();
+
+    if (rounding_mode == RndZero) {
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+        fesetround(FE_TOWARDZERO);
+    } else if (rounding_mode == RndFinancial) {  // nothing to do, Default bankers rounding => round to nearest even
+    } else {
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
+        fesetround(FE_TONEAREST);
+    }
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
+            v16sf src_tmp1 = _mm512_load_ps(src + i);
+            v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf src_tmp3 = _mm512_load_ps(src + i + 2 * AVX512_LEN_FLOAT);
+            v16sf src_tmp4 = _mm512_load_ps(src + i + 3 * AVX512_LEN_FLOAT);
+            v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+            v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+            v16sf tmp3 = _mm512_mul_ps(src_tmp3, scale_fact_vec);
+            v16sf tmp4 = _mm512_mul_ps(src_tmp4, scale_fact_vec);
+            v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
+            v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
+            v16si tmp3_int = _mm512_cvtps_epi32(tmp3);
+            v16si tmp4_int = _mm512_cvtps_epi32(tmp4);
+            v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
+            v16si tmp6 = _mm512_packs_epi32(tmp3_int, tmp4_int);
+            v16si tmp7 = _mm512_packus_epi16(tmp5, tmp6);
+            tmp7 = _mm512_permutexvar_epi32(idx, tmp7);
+            _mm512_store_si512((__m512i *) (dst + i), tmp7);
         }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
+            v16sf src_tmp1 = _mm512_loadu_ps(src + i);
+            v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf src_tmp3 = _mm512_loadu_ps(src + i + 2 * AVX512_LEN_FLOAT);
+            v16sf src_tmp4 = _mm512_loadu_ps(src + i + 3 * AVX512_LEN_FLOAT);
+            v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+            v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+            v16sf tmp3 = _mm512_mul_ps(src_tmp3, scale_fact_vec);
+            v16sf tmp4 = _mm512_mul_ps(src_tmp4, scale_fact_vec);
+            v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
+            v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
+            v16si tmp3_int = _mm512_cvtps_epi32(tmp3);
+            v16si tmp4_int = _mm512_cvtps_epi32(tmp4);
+            v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
+            v16si tmp6 = _mm512_packs_epi32(tmp3_int, tmp4_int);
+            v16si tmp7 = _mm512_packus_epi16(tmp5, tmp6);
+            tmp7 = _mm512_permutexvar_epi32(idx, tmp7);
+            _mm512_storeu_si512((__m512i *) (dst + i), tmp7);
+        }
+    }
+
+    if (rounding_mode == RndFinancial) {
         for (int i = stop_len; i < len; i++) {
             float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
             dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);  // round to nearest even with round(x/2)*2
         }
     } else {
-        if (rounding_mode == RndZero) {
-            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
-            fesetround(FE_TOWARDZERO);
-        } else {
-            _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
-            fesetround(FE_TONEAREST);
-        }
-
-        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
-            for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
-                v16sf src_tmp1 = _mm512_load_ps(src + i);
-                v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
-                v16sf src_tmp3 = _mm512_load_ps(src + i + 2 * AVX512_LEN_FLOAT);
-                v16sf src_tmp4 = _mm512_load_ps(src + i + 3 * AVX512_LEN_FLOAT);
-                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
-                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
-                v16sf tmp3 = _mm512_mul_ps(src_tmp3, scale_fact_vec);
-                v16sf tmp4 = _mm512_mul_ps(src_tmp4, scale_fact_vec);
-                v16si tmp1_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp2_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp3_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp3, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp4_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp4, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
-                v16si tmp6 = _mm512_packs_epi32(tmp3_int, tmp4_int);
-                v16si tmp7 = _mm512_packus_epi16(tmp5, tmp6);
-                tmp7 = _mm512_permutexvar_epi32(idx, tmp7);
-                _mm512_store_si512((__m512i *) (dst + i), tmp7);
-            }
-        } else {
-            for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_FLOAT) {
-                v16sf src_tmp1 = _mm512_loadu_ps(src + i);
-                v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
-                v16sf src_tmp3 = _mm512_loadu_ps(src + i + 2 * AVX512_LEN_FLOAT);
-                v16sf src_tmp4 = _mm512_loadu_ps(src + i + 3 * AVX512_LEN_FLOAT);
-                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
-                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
-                v16sf tmp3 = _mm512_mul_ps(src_tmp3, scale_fact_vec);
-                v16sf tmp4 = _mm512_mul_ps(src_tmp4, scale_fact_vec);
-                v16si tmp1_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp2_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp3_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp3, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp4_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp4, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
-                v16si tmp6 = _mm512_packs_epi32(tmp3_int, tmp4_int);
-                v16si tmp7 = _mm512_packus_epi16(tmp5, tmp6);
-                tmp7 = _mm512_permutexvar_epi32(idx, tmp7);
-                _mm512_storeu_si512((__m512i *) (dst + i), tmp7);
-            }
-        }
-
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
             float tmp = nearbyintf(src[i] * scale_fact_mult);
             dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
         }
+        _MM_SET_ROUNDING_MODE(_mm_rounding_ori);  // restore previous rounding mode
+        fesetround(rounding_ori);
     }
 }
 
@@ -980,79 +944,59 @@ static inline void convertFloat32ToU16_512(float *src, uint16_t *dst, int len, i
 
     v16si idx = _mm512_set_epi64(7, 5, 3, 1, 6, 4, 2, 0);
 
-    //  Default bankers rounding => round to nearest even
-    if (rounding_mode == RndFinancial) {
-        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
-            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-                v16sf src_tmp1 = _mm512_load_ps(src + i);
-                v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
-                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
-                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
-                v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
-                v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
-                v16si tmp5 = _mm512_packus_epi32(tmp1_int, tmp2_int);
-                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
-                _mm512_store_si512((__m512i *) (dst + i), tmp5);
-            }
-        } else {
-            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-                v16sf src_tmp1 = _mm512_loadu_ps(src + i);
-                v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
-                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
-                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
-                v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
-                v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
-                v16si tmp5 = _mm512_packus_epi32(tmp1_int, tmp2_int);
-                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
-                _mm512_storeu_si512((__m512i *) (dst + i), tmp5);
-            }
-        }
+    int _mm_rounding_ori = _MM_GET_ROUNDING_MODE();  // save rounding mode
+    int rounding_ori = fegetround();
 
-        for (int i = stop_len; i < len; i++) {
-            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
-            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
+    if (rounding_mode == RndZero) {
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+        fesetround(FE_TOWARDZERO);
+    } else if (rounding_mode == RndFinancial) {  // nothing to do, Default bankers rounding => round to nearest even
+    } else {
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
+        fesetround(FE_TONEAREST);
+    }
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf src_tmp1 = _mm512_load_ps(src + i);
+            v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+            v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+            v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
+            v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
+            v16si tmp5 = _mm512_packus_epi32(tmp1_int, tmp2_int);
+            tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
+            _mm512_store_si512((__m512i *) (dst + i), tmp5);
         }
     } else {
-        if (rounding_mode == RndZero) {
-            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
-            fesetround(FE_TOWARDZERO);
-        } else {
-            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTONEAREST;
-            fesetround(FE_TONEAREST);
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf src_tmp1 = _mm512_loadu_ps(src + i);
+            v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+            v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+            v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
+            v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
+            v16si tmp5 = _mm512_packus_epi32(tmp1_int, tmp2_int);
+            tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
+            _mm512_storeu_si512((__m512i *) (dst + i), tmp5);
         }
-        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
-            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-                v16sf src_tmp1 = _mm512_load_ps(src + i);
-                v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
-                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
-                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
-                v16si tmp1_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp2_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp5 = _mm512_packus_epi32(tmp1_int, tmp2_int);
-                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
-                _mm512_store_si512((__m512i *) (dst + i), tmp5);
-            }
-        } else {
-            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-                v16sf src_tmp1 = _mm512_loadu_ps(src + i);
-                v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
-                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
-                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
-                v16si tmp1_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp2_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp5 = _mm512_packus_epi32(tmp1_int, tmp2_int);
-                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
-                _mm512_storeu_si512((__m512i *) (dst + i), tmp5);
-            }
+    }
+
+    if (rounding_mode == RndFinancial) {
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
         }
+    } else {
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
             float tmp = nearbyintf(src[i] * scale_fact_mult);
-            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
         }
+        _MM_SET_ROUNDING_MODE(_mm_rounding_ori);  // restore previous rounding mode
+        fesetround(rounding_ori);
     }
 }
-
 
 static inline void convertFloat32ToI16_512(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
 {
@@ -1064,76 +1008,57 @@ static inline void convertFloat32ToI16_512(float *src, int16_t *dst, int len, in
 
     v16si idx = _mm512_set_epi64(7, 5, 3, 1, 6, 4, 2, 0);
 
-    //  Default bankers rounding => round to nearest even
-    if (rounding_mode == RndFinancial) {
-        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
-            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-                v16sf src_tmp1 = _mm512_load_ps(src + i);
-                v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
-                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
-                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
-                v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
-                v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
-                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
-                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
-                _mm512_store_si512((__m512i *) (dst + i), tmp5);
-            }
-        } else {
-            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-                v16sf src_tmp1 = _mm512_loadu_ps(src + i);
-                v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
-                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
-                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
-                v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
-                v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
-                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
-                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
-                _mm512_storeu_si512((__m512i *) (dst + i), tmp5);
-            }
-        }
+    int _mm_rounding_ori = _MM_GET_ROUNDING_MODE();  // save rounding mode
+    int rounding_ori = fegetround();
 
-        for (int i = stop_len; i < len; i++) {
-            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
-            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
+    if (rounding_mode == RndZero) {
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+        fesetround(FE_TOWARDZERO);
+    } else if (rounding_mode == RndFinancial) {  // nothing to do, Default bankers rounding => round to nearest even
+    } else {
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
+        fesetround(FE_TONEAREST);
+    }
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf src_tmp1 = _mm512_load_ps(src + i);
+            v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+            v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+            v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
+            v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
+            v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
+            tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
+            _mm512_store_si512((__m512i *) (dst + i), tmp5);
         }
     } else {
-        if (rounding_mode == RndZero) {
-            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
-            fesetround(FE_TOWARDZERO);
-        } else {
-            _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTONEAREST;
-            fesetround(FE_TONEAREST);
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf src_tmp1 = _mm512_loadu_ps(src + i);
+            v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
+            v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
+            v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
+            v16si tmp1_int = _mm512_cvtps_epi32(tmp1);
+            v16si tmp2_int = _mm512_cvtps_epi32(tmp2);
+            v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
+            tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
+            _mm512_storeu_si512((__m512i *) (dst + i), tmp5);
         }
-        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
-            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-                v16sf src_tmp1 = _mm512_load_ps(src + i);
-                v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
-                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
-                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
-                v16si tmp1_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp2_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
-                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
-                _mm512_store_si512((__m512i *) (dst + i), tmp5);
-            }
-        } else {
-            for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-                v16sf src_tmp1 = _mm512_loadu_ps(src + i);
-                v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
-                v16sf tmp1 = _mm512_mul_ps(src_tmp1, scale_fact_vec);
-                v16sf tmp2 = _mm512_mul_ps(src_tmp2, scale_fact_vec);
-                v16si tmp1_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp1, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp2_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(tmp2, _MM_FROUND_CUR_DIRECTION));
-                v16si tmp5 = _mm512_packs_epi32(tmp1_int, tmp2_int);
-                tmp5 = _mm512_permutexvar_epi64(idx, tmp5);
-                _mm512_storeu_si512((__m512i *) (dst + i), tmp5);
-            }
+    }
+
+    if (rounding_mode == RndFinancial) {
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
         }
+    } else {
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
             float tmp = nearbyintf(src[i] * scale_fact_mult);
-            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
+            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
         }
+        _MM_SET_ROUNDING_MODE(_mm_rounding_ori);  // restore previous rounding mode
+        fesetround(rounding_ori);
     }
 }
 
@@ -1566,16 +1491,14 @@ static inline void threshold512_gtabs_f(float *src, float *dst, int len, float v
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
-            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
+            v16sf src_sign = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_sign_mask);  // extract sign
+            v16sf src_sign2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_sign_mask);
+            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);  // take absolute value
             v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
-            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
-            __mmask16 eqmask2 = _mm512_cmp_ps_mask(src_abs2, src_tmp2, _CMP_EQ_OS);
-            v16sf max = _mm512_max_ps(src_tmp, mval);
-            v16sf max2 = _mm512_max_ps(src_tmp2, mval);
-            v16sf min = _mm512_min_ps(src_tmp, pval);
-            v16sf min2 = _mm512_min_ps(src_tmp2, pval);
-            v16sf dst_tmp = _mm512_mask_blend_ps(eqmask, max, min);  // either A or sval (+- value)
-            v16sf dst_tmp2 = _mm512_mask_blend_ps(eqmask2, max2, min2);
+            v16sf dst_tmp = _mm512_min_ps(src_abs, pval);
+            v16sf dst_tmp2 = _mm512_min_ps(src_abs2, pval);
+            dst_tmp = _mm512_xor_ps(dst_tmp, src_sign);
+            dst_tmp2 = _mm512_xor_ps(dst_tmp2, src_sign2);
             _mm512_store_ps(dst + i, dst_tmp);
             _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
@@ -1583,16 +1506,14 @@ static inline void threshold512_gtabs_f(float *src, float *dst, int len, float v
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps(src + i);
             v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
-            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
+            v16sf src_sign = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_sign_mask);  // extract sign
+            v16sf src_sign2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_sign_mask);
+            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);  // take absolute value
             v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
-            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
-            __mmask16 eqmask2 = _mm512_cmp_ps_mask(src_abs2, src_tmp2, _CMP_EQ_OS);
-            v16sf max = _mm512_max_ps(src_tmp, mval);
-            v16sf max2 = _mm512_max_ps(src_tmp2, mval);
-            v16sf min = _mm512_min_ps(src_tmp, pval);
-            v16sf min2 = _mm512_min_ps(src_tmp2, pval);
-            v16sf dst_tmp = _mm512_mask_blend_ps(eqmask, max, min);  // either A or sval (+- value)
-            v16sf dst_tmp2 = _mm512_mask_blend_ps(eqmask2, max2, min2);
+            v16sf dst_tmp = _mm512_min_ps(src_abs, pval);
+            v16sf dst_tmp2 = _mm512_min_ps(src_abs2, pval);
+            dst_tmp = _mm512_xor_ps(dst_tmp, src_sign);
+            dst_tmp2 = _mm512_xor_ps(dst_tmp2, src_sign2);
             _mm512_storeu_ps(dst + i, dst_tmp);
             _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
@@ -1706,16 +1627,14 @@ static inline void threshold512_ltabs_f(float *src, float *dst, int len, float v
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
-            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
+            v16sf src_sign = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_sign_mask);  // extract sign
+            v16sf src_sign2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_sign_mask);
+            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);  // take absolute value
             v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
-            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
-            __mmask16 eqmask2 = _mm512_cmp_ps_mask(src_abs2, src_tmp2, _CMP_EQ_OS);
-            v16sf max = _mm512_max_ps(src_tmp, pval);
-            v16sf max2 = _mm512_max_ps(src_tmp2, pval);
-            v16sf min = _mm512_min_ps(src_tmp, mval);
-            v16sf min2 = _mm512_min_ps(src_tmp2, mval);
-            v16sf dst_tmp = _mm512_mask_blend_ps(eqmask, min, max);  // either A or sval (+- value)
-            v16sf dst_tmp2 = _mm512_mask_blend_ps(eqmask2, min2, max2);
+            v16sf dst_tmp = _mm512_max_ps(src_abs, pval);
+            v16sf dst_tmp2 = _mm512_max_ps(src_abs2, pval);
+            dst_tmp = _mm512_xor_ps(dst_tmp, src_sign);
+            dst_tmp2 = _mm512_xor_ps(dst_tmp2, src_sign2);
             _mm512_store_ps(dst + i, dst_tmp);
             _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
@@ -1723,16 +1642,14 @@ static inline void threshold512_ltabs_f(float *src, float *dst, int len, float v
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps(src + i);
             v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
-            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
+            v16sf src_sign = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_sign_mask);  // extract sign
+            v16sf src_sign2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_sign_mask);
+            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);  // take absolute value
             v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
-            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
-            __mmask16 eqmask2 = _mm512_cmp_ps_mask(src_abs2, src_tmp2, _CMP_EQ_OS);
-            v16sf max = _mm512_max_ps(src_tmp, pval);
-            v16sf max2 = _mm512_max_ps(src_tmp2, pval);
-            v16sf min = _mm512_min_ps(src_tmp, mval);
-            v16sf min2 = _mm512_min_ps(src_tmp2, mval);
-            v16sf dst_tmp = _mm512_mask_blend_ps(eqmask, min, max);  // either A or sval (+- value)
-            v16sf dst_tmp2 = _mm512_mask_blend_ps(eqmask2, min2, max2);
+            v16sf dst_tmp = _mm512_max_ps(src_abs, pval);
+            v16sf dst_tmp2 = _mm512_max_ps(src_abs2, pval);
+            dst_tmp = _mm512_xor_ps(dst_tmp, src_sign);
+            dst_tmp2 = _mm512_xor_ps(dst_tmp2, src_sign2);
             _mm512_storeu_ps(dst + i, dst_tmp);
             _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }

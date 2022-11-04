@@ -5,9 +5,11 @@
  * Licence : BSD-2
  */
 
+#include <fenv.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 #include <time.h>
 #include "simd_utils.h"
@@ -6031,6 +6033,24 @@ printf("\n");
     printf("tan128d %d %lf\n", len, elapsed);
 
     l2_errd(inoutd_ref, inoutd2, len);
+
+#ifdef ICC
+    clock_gettime(CLOCK_REALTIME, &start);
+    tan128d_svml(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("tan128d_svml %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        tan128d_svml(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("tan128d_svml %d %lf\n", len, elapsed);
+
+    l2_errd(inoutd_ref, inoutd2, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -6048,6 +6068,24 @@ printf("\n");
     printf("tan256d %d %lf\n", len, elapsed);
 
     l2_errd(inoutd_ref, inoutd2, len);
+
+#ifdef ICC
+    clock_gettime(CLOCK_REALTIME, &start);
+    tan256d_svml(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("tan256d_svml %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        tan256d_svml(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("tan256d_svml %d %lf\n", len, elapsed);
+
+    l2_errd(inoutd_ref, inoutd2, len);
+#endif
+
 #endif
 
 #ifdef AVX512
@@ -6066,6 +6104,24 @@ printf("\n");
 
     l2_errd(inoutd_ref, inoutd2, len);
     // for(int i = 0;  i < 512len; i++) printf("%lf %lf %lf \n",inoutd[i],inoutd_ref[i],inoutd2[i]);
+
+#ifdef ICC
+    clock_gettime(CLOCK_REALTIME, &start);
+    tan512d_svml(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("tan512d_svml %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        tan512d_svml(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("tan512d_svml %d %lf\n", len, elapsed);
+
+    l2_errd(inoutd_ref, inoutd2, len);
+#endif
+
 #endif
 
     printf("\n");
@@ -8118,21 +8174,6 @@ for (int i = 0; i < len; i++){
     printf("convertFloat32ToU8_128 %d %lf\n", len, elapsed);
 
     l2_err_u8(inout_u1, inout_u2, len);
-
-    clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToU8_128_(inout, inout_u1, len, RndZero, 4);
-    clock_gettime(CLOCK_REALTIME, &stop);
-    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("convertFloat32ToU8_128_ %d %lf\n", len, elapsed);
-
-    clock_gettime(CLOCK_REALTIME, &start);
-    for (l = 0; l < loop; l++)
-        convertFloat32ToU8_128_(inout, inout_u1, len, RndZero, 4);
-    clock_gettime(CLOCK_REALTIME, &stop);
-    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("convertFloat32ToU8_128_ %d %lf\n", len, elapsed);
-
-    l2_err_u8(inout_u1, inout_u2, len);
 #endif
 
     /*for(int i = 0; i < len; i++)
@@ -8226,24 +8267,6 @@ for (int i = 0; i < len; i++){
     printf("convertFloat32ToI16_128 %d %lf\n", len, elapsed);
 
     l2_err_i16(inout_s1, inout_s2, len);
-
-
-    clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToI16_128_(inout, inout_s2, len, RndZero, 4);
-    clock_gettime(CLOCK_REALTIME, &stop);
-    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("convertFloat32ToI16_128_ %d %lf\n", len, elapsed);
-
-    clock_gettime(CLOCK_REALTIME, &start);
-    for (l = 0; l < loop; l++)
-        convertFloat32ToI16_128_(inout, inout_s2, len, RndZero, 4);
-    clock_gettime(CLOCK_REALTIME, &stop);
-    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("convertFloat32ToI16_128_ %d %lf\n", len, elapsed);
-
-    l2_err_i16(inout_s1, inout_s2, len);
-    /*for(int i=0; i < len; i++)
-      printf("%f %u %u\n",inout[i], (uint16_t)inout_s1[i], (uint16_t)inout_s2[i]);*/
 #endif
 
 #ifdef AVX

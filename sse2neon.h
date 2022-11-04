@@ -1853,9 +1853,11 @@ FORCE_INLINE unsigned int _sse2neon_mm_get_flush_zero_mode()
     } r;
 
 #if defined(__aarch64__)
-    __asm__ __volatile__("mrs %0, FPCR" : "=r"(r.value)); /* read */
+    __asm__ __volatile__("mrs %0, FPCR"
+                         : "=r"(r.value)); /* read */
 #else
-    __asm__ __volatile__("vmrs %0, FPSCR" : "=r"(r.value)); /* read */
+    __asm__ __volatile__("vmrs %0, FPSCR"
+                         : "=r"(r.value)); /* read */
 #endif
 
     return r.field.bit24 ? _MM_FLUSH_ZERO_ON : _MM_FLUSH_ZERO_OFF;
@@ -1877,9 +1879,11 @@ FORCE_INLINE unsigned int _MM_GET_ROUNDING_MODE()
     } r;
 
 #if defined(__aarch64__)
-    __asm__ __volatile__("mrs %0, FPCR" : "=r"(r.value)); /* read */
+    __asm__ __volatile__("mrs %0, FPCR"
+                         : "=r"(r.value)); /* read */
 #else
-    __asm__ __volatile__("vmrs %0, FPSCR" : "=r"(r.value)); /* read */
+    __asm__ __volatile__("vmrs %0, FPSCR"
+                         : "=r"(r.value)); /* read */
 #endif
 
     if (r.field.bit22) {
@@ -2470,9 +2474,11 @@ FORCE_INLINE void _sse2neon_mm_set_flush_zero_mode(unsigned int flag)
     } r;
 
 #if defined(__aarch64__)
-    __asm__ __volatile__("mrs %0, FPCR" : "=r"(r.value)); /* read */
+    __asm__ __volatile__("mrs %0, FPCR"
+                         : "=r"(r.value)); /* read */
 #else
-    __asm__ __volatile__("vmrs %0, FPSCR" : "=r"(r.value)); /* read */
+    __asm__ __volatile__("vmrs %0, FPSCR"
+                         : "=r"(r.value));           /* read */
 #endif
 
     r.field.bit24 = (flag & _MM_FLUSH_ZERO_MASK) == _MM_FLUSH_ZERO_ON;
@@ -2480,7 +2486,7 @@ FORCE_INLINE void _sse2neon_mm_set_flush_zero_mode(unsigned int flag)
 #if defined(__aarch64__)
     __asm__ __volatile__("msr FPCR, %0" ::"r"(r)); /* write */
 #else
-    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r));        /* write */
+    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r)); /* write */
 #endif
 }
 
@@ -2516,9 +2522,11 @@ FORCE_INLINE void _MM_SET_ROUNDING_MODE(int rounding)
     } r;
 
 #if defined(__aarch64__)
-    __asm__ __volatile__("mrs %0, FPCR" : "=r"(r.value)); /* read */
+    __asm__ __volatile__("mrs %0, FPCR"
+                         : "=r"(r.value)); /* read */
 #else
-    __asm__ __volatile__("vmrs %0, FPSCR" : "=r"(r.value)); /* read */
+    __asm__ __volatile__("vmrs %0, FPSCR"
+                         : "=r"(r.value));           /* read */
 #endif
 
     switch (rounding) {
@@ -2542,7 +2550,7 @@ FORCE_INLINE void _MM_SET_ROUNDING_MODE(int rounding)
 #if defined(__aarch64__)
     __asm__ __volatile__("msr FPCR, %0" ::"r"(r)); /* write */
 #else
-    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r));        /* write */
+    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r)); /* write */
 #endif
 }
 
@@ -5231,9 +5239,9 @@ FORCE_INLINE __m128i _mm_set_epi8(signed char b15,
                                   signed char b0)
 {
     int8_t ALIGN_STRUCT(16)
-        data[16] = {(int8_t) b0,  (int8_t) b1,  (int8_t) b2,  (int8_t) b3,
-                    (int8_t) b4,  (int8_t) b5,  (int8_t) b6,  (int8_t) b7,
-                    (int8_t) b8,  (int8_t) b9,  (int8_t) b10, (int8_t) b11,
+        data[16] = {(int8_t) b0, (int8_t) b1, (int8_t) b2, (int8_t) b3,
+                    (int8_t) b4, (int8_t) b5, (int8_t) b6, (int8_t) b7,
+                    (int8_t) b8, (int8_t) b9, (int8_t) b10, (int8_t) b11,
                     (int8_t) b12, (int8_t) b13, (int8_t) b14, (int8_t) b15};
     return (__m128i) vld1q_s8(data);
 }
@@ -5388,9 +5396,9 @@ FORCE_INLINE __m128i _mm_setr_epi8(signed char b0,
                                    signed char b15)
 {
     int8_t ALIGN_STRUCT(16)
-        data[16] = {(int8_t) b0,  (int8_t) b1,  (int8_t) b2,  (int8_t) b3,
-                    (int8_t) b4,  (int8_t) b5,  (int8_t) b6,  (int8_t) b7,
-                    (int8_t) b8,  (int8_t) b9,  (int8_t) b10, (int8_t) b11,
+        data[16] = {(int8_t) b0, (int8_t) b1, (int8_t) b2, (int8_t) b3,
+                    (int8_t) b4, (int8_t) b5, (int8_t) b6, (int8_t) b7,
+                    (int8_t) b8, (int8_t) b9, (int8_t) b10, (int8_t) b11,
                     (int8_t) b12, (int8_t) b13, (int8_t) b14, (int8_t) b15};
     return (__m128i) vld1q_s8(data);
 }
@@ -8474,11 +8482,32 @@ FORCE_INLINE int _mm_testz_si128(__m128i a, __m128i b)
 /* SSE4.2 */
 
 const static uint16_t _sse2neon_cmpestr_mask16b[8] ALIGN_STRUCT(16) = {
-    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
+    0x01,
+    0x02,
+    0x04,
+    0x08,
+    0x10,
+    0x20,
+    0x40,
+    0x80,
 };
 const static uint8_t _sse2neon_cmpestr_mask8b[16] ALIGN_STRUCT(16) = {
-    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
-    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
+    0x01,
+    0x02,
+    0x04,
+    0x08,
+    0x10,
+    0x20,
+    0x40,
+    0x80,
+    0x01,
+    0x02,
+    0x04,
+    0x08,
+    0x10,
+    0x20,
+    0x40,
+    0x80,
 };
 
 /* specify the source data format */
@@ -9348,9 +9377,11 @@ FORCE_INLINE unsigned int _sse2neon_mm_get_denormals_zero_mode()
     } r;
 
 #if defined(__aarch64__)
-    __asm__ __volatile__("mrs %0, FPCR" : "=r"(r.value)); /* read */
+    __asm__ __volatile__("mrs %0, FPCR"
+                         : "=r"(r.value)); /* read */
 #else
-    __asm__ __volatile__("vmrs %0, FPSCR" : "=r"(r.value)); /* read */
+    __asm__ __volatile__("vmrs %0, FPSCR"
+                         : "=r"(r.value)); /* read */
 #endif
 
     return r.field.bit24 ? _MM_DENORMALS_ZERO_ON : _MM_DENORMALS_ZERO_OFF;
@@ -9425,9 +9456,11 @@ FORCE_INLINE void _sse2neon_mm_set_denormals_zero_mode(unsigned int flag)
     } r;
 
 #if defined(__aarch64__)
-    __asm__ __volatile__("mrs %0, FPCR" : "=r"(r.value)); /* read */
+    __asm__ __volatile__("mrs %0, FPCR"
+                         : "=r"(r.value)); /* read */
 #else
-    __asm__ __volatile__("vmrs %0, FPSCR" : "=r"(r.value)); /* read */
+    __asm__ __volatile__("vmrs %0, FPSCR"
+                         : "=r"(r.value));           /* read */
 #endif
 
     r.field.bit24 = (flag & _MM_DENORMALS_ZERO_MASK) == _MM_DENORMALS_ZERO_ON;
@@ -9435,7 +9468,7 @@ FORCE_INLINE void _sse2neon_mm_set_denormals_zero_mode(unsigned int flag)
 #if defined(__aarch64__)
     __asm__ __volatile__("msr FPCR, %0" ::"r"(r)); /* write */
 #else
-    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r));        /* write */
+    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r)); /* write */
 #endif
 }
 
@@ -9453,18 +9486,22 @@ FORCE_INLINE uint64_t _rdtsc(void)
      * bits wide and it is attributed with the flag 'cap_user_time_short'
      * is true.
      */
-    __asm__ __volatile__("mrs %0, cntvct_el0" : "=r"(val));
+    __asm__ __volatile__("mrs %0, cntvct_el0"
+                         : "=r"(val));
 
     return val;
 #else
     uint32_t pmccntr, pmuseren, pmcntenset;
     // Read the user mode Performance Monitoring Unit (PMU)
     // User Enable Register (PMUSERENR) access permissions.
-    __asm__ __volatile__("mrc p15, 0, %0, c9, c14, 0" : "=r"(pmuseren));
+    __asm__ __volatile__("mrc p15, 0, %0, c9, c14, 0"
+                         : "=r"(pmuseren));
     if (pmuseren & 1) {  // Allows reading PMUSERENR for user mode code.
-        __asm__ __volatile__("mrc p15, 0, %0, c9, c12, 1" : "=r"(pmcntenset));
+        __asm__ __volatile__("mrc p15, 0, %0, c9, c12, 1"
+                             : "=r"(pmcntenset));
         if (pmcntenset & 0x80000000UL) {  // Is it counting?
-            __asm__ __volatile__("mrc p15, 0, %0, c9, c13, 0" : "=r"(pmccntr));
+            __asm__ __volatile__("mrc p15, 0, %0, c9, c13, 0"
+                                 : "=r"(pmccntr));
             // The counter is set up to count every 64th cycle
             return (uint64_t) (pmccntr) << 6;
         }
@@ -9487,4 +9524,3 @@ FORCE_INLINE uint64_t _rdtsc(void)
 #endif
 
 #endif
-
