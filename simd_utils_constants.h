@@ -424,6 +424,7 @@ _PD_CONST(min8, -8.0);
 _PD_CONST(0p5, 0.5);
 _PD_CONST(0p125, 0.125);
 _PD_CONST(0p625, 0.625);
+_PD_CONST(0p66, 0.66);
 _PD_CONST(1em8, 1E-8);
 
 _PD_CONST(cephes_SQRTHF, 0.70710678118654752440);
@@ -495,6 +496,7 @@ _PD_CONST(PIO4, 7.85398163397448309616E-1); /* pi/4 */
 
 _PD_CONST(minMOREBITS, -6.123233995736765886130E-17);
 _PD_CONST(MOREBITS, 6.123233995736765886130E-17);
+_PD_CONST(0p5xMOREBITS, 3.061616997868382943065e-17);
 
 _PD_CONST(ATAN_P0, -8.750608600031904122785E-1);
 _PD_CONST(ATAN_P1, -1.615753718733365076637E1);
@@ -1259,7 +1261,7 @@ typedef __vector char v16s8;
 #if 0
 
 #ifdef SSE
-/*
+
 static inline void print4(__m128 v)
 {
     float *p = (float *) &v;
@@ -1278,7 +1280,7 @@ static inline void print4i(__m128i v)
 #endif
     printf("[%d, %d, %d, %d]", p[0], p[1], p[2], p[3]);
 }
-*/
+
 #endif
 
 static inline void print4short(__m64 v)

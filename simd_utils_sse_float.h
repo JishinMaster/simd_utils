@@ -292,8 +292,12 @@ static inline v4sf exp_ps_alternate(v4sf x)
     z_tmp = _mm_fmadd_ps_custom(z_tmp, pow2n, pow2n);
 
     z = _mm_blendv_ps(z_tmp, *(v4sf *) _ps_MAXNUMF, xsupmaxlogf);
+    
+#if 1
+    z = _mm_andnot_ps(xinfminglogf, z);
+#else
     z = _mm_blendv_ps(z, _mm_setzero_ps(), xinfminglogf);
-
+#endif
     return z;
 }
 
@@ -386,7 +390,8 @@ static inline v4sf cbrtf_ps(v4sf xx)
 {
     v4sf e, rem, sign;
     v4sf x, z;
-
+    v4sf tmp, tmp2;
+    
     x = xx;
     // sign = _mm_cmpgt_ps(x, _mm_setzero_ps());
     sign = _mm_and_ps(xx, *(v4sf *) _ps_sign_mask);
@@ -407,7 +412,6 @@ static inline v4sf cbrtf_ps(v4sf xx)
     /* Approximate cube root of number between .5 and 1,
      * peak relative error = 9.2e-6
      */
-    v4sf tmp;
     tmp = _mm_fmadd_ps_custom(*(v4sf *) _ps_CBRTF_P0, x, *(v4sf *) _ps_CBRTF_P1);
     tmp = _mm_fmadd_ps_custom(x, tmp, *(v4sf *) _ps_CBRTF_P2);
     tmp = _mm_fmadd_ps_custom(x, tmp, *(v4sf *) _ps_CBRTF_P3);
@@ -429,8 +433,8 @@ static inline v4sf cbrtf_ps(v4sf xx)
     mul2 = _mm_mul_ps(x, mul_cst2);
 
     v4si remi = _mm_cvtps_epi32(rem);  // rem integer
-    v4si rem1 = _mm_cmpeq_epi32(remi, _mm_set1_epi32(1));
-    v4si rem2 = _mm_cmpeq_epi32(remi, _mm_set1_epi32(2));
+    v4si rem1 = _mm_cmpeq_epi32(remi, *(v4si*)_pi32_1);
+    v4si rem2 = _mm_cmpeq_epi32(remi, *(v4si*)_pi32_2);
 
     x = _mm_blendv_ps(x, mul1, _mm_castsi128_ps(rem1));  // rem==1
     x = _mm_blendv_ps(x, mul2, _mm_castsi128_ps(rem2));  // rem==2
@@ -442,11 +446,13 @@ static inline v4sf cbrtf_ps(v4sf xx)
     // AVX2 : _mm256_srlv_epi32 pour shift
     v4sf cst = power_of_twof(_mm_cvtps_epi32(e));
     // blend sign of e
-    x = _mm_blendv_ps(_mm_div_ps(x, cst), _mm_mul_ps(x, cst), e_sign);
+    tmp = _mm_mul_ps(x, cst);
+    tmp2 = _mm_div_ps(x, cst);
+    x = _mm_blendv_ps(tmp2, tmp, e_sign);
 
     /* Newton iteration */
     // x -= (x - (z / (x * x))) * 0.333333333333;
-    v4sf tmp2 = _mm_mul_ps(x, x);
+    tmp2 = _mm_mul_ps(x, x);
     tmp2 = _mm_div_ps(z, tmp2);
     tmp2 = _mm_sub_ps(x, tmp2);
     tmp2 = _mm_mul_ps(tmp2, *(v4sf *) _ps_0p3);
@@ -2210,20 +2216,26 @@ static inline v4sf sinhf_ps(v4sf x)
 {
     v4sf z, z_first_branch, z_second_branch, tmp;
     v4sf xsupmaxlogf, zsup1, xinf0;
-
+    v4sf sign;
+    
     // x = xx; if x < 0, z = -x, else x
     z = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, x);
-
+    sign = _mm_and_ps(x, *(v4sf *) _ps_sign_mask);
+    
     xsupmaxlogf = _mm_cmpgt_ps(z, *(v4sf *) _ps_MAXLOGF);
 
     // First branch
     zsup1 = _mm_cmpgt_ps(z, *(v4sf *) _ps_1);
-    xinf0 = _mm_cmplt_ps(x, _mm_setzero_ps());
     z_first_branch = exp_ps_alternate(z);
     tmp = _mm_div_ps(*(v4sf *) _ps_min0p5, z_first_branch);
     z_first_branch = _mm_fmadd_ps_custom(*(v4sf *) _ps_0p5, z_first_branch, tmp);
 
+#if 1
+    z_first_branch = _mm_xor_ps(z_first_branch, sign);
+#else
+    xinf0 = _mm_cmplt_ps(x, _mm_setzero_ps());
     z_first_branch = _mm_blendv_ps(z_first_branch, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, z_first_branch), xinf0);
+#endif
 
     // Second branch
     tmp = _mm_mul_ps(x, x);
@@ -2237,8 +2249,8 @@ static inline v4sf sinhf_ps(v4sf x)
 
     // Set value to MAXNUMF if abs(x) > MAGLOGF
     // Set value to -MAXNUMF if abs(x) > MAGLOGF and x < 0
-    z = _mm_blendv_ps(z, *(v4sf *) _ps_MAXNUMF, xsupmaxlogf);
-    z = _mm_blendv_ps(z, *(v4sf *) _ps_minMAXNUMF, _mm_and_ps(xinf0, xsupmaxlogf));
+    tmp = _mm_xor_ps(*(v4sf *) _ps_MAXNUMF, sign);
+    z = _mm_blendv_ps(z, tmp, xsupmaxlogf);
 
     return (z);
 }
@@ -2269,7 +2281,7 @@ static inline v4sf acoshf_ps(v4sf x)
 {
     v4sf z, z_first_branch, z_second_branch;
     v4sf xsup1500, zinf0p5, xinf1;
-
+    v4sf tmp;
     xsup1500 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1500);  // return  (logf(x) + LOGE2F)
     xinf1 = _mm_cmplt_ps(x, *(v4sf *) _ps_1);        // return 0
 
@@ -2285,12 +2297,21 @@ static inline v4sf acoshf_ps(v4sf x)
     z_first_branch = _mm_mul_ps(z_first_branch, _mm_sqrt_ps(z));
 
     // Second Branch
-    z_second_branch = _mm_sqrt_ps(_mm_fmadd_ps_custom(z, x, z));
-    z_second_branch = log_ps(_mm_add_ps(x, z_second_branch));
+    z_second_branch = _mm_fmadd_ps_custom(z, x, z);
+    z_second_branch = _mm_sqrt_ps(z_second_branch);
+    z_second_branch = _mm_add_ps(x, z_second_branch);
+    z_second_branch = log_ps(z_second_branch);
 
     z = _mm_blendv_ps(z_second_branch, z_first_branch, zinf0p5);
-    z = _mm_blendv_ps(z, _mm_add_ps(log_ps(x), *(v4sf *) _ps_LOGE2F), xsup1500);
+    tmp = log_ps(x);
+    tmp = _mm_add_ps(tmp, *(v4sf *) _ps_LOGE2F);
+    z = _mm_blendv_ps(z, tmp, xsup1500);
+    
+#if 1
+    z = _mm_andnot_ps(xinf1,z);
+#else
     z = _mm_blendv_ps(z, _mm_setzero_ps(), xinf1);
+#endif
 
     return z;
 }
@@ -2321,7 +2342,7 @@ static inline v4sf asinhf_ps(v4sf xx)
 {
     v4sf x, tmp, z, z_first_branch, z_second_branch;
     v4sf xxinf0, xsup1500, xinf0p5;
-
+    
     x = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, xx);
     xsup1500 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1500);
     xinf0p5 = _mm_cmplt_ps(x, *(v4sf *) _ps_0p5);
@@ -2342,7 +2363,9 @@ static inline v4sf asinhf_ps(v4sf xx)
     z_second_branch = log_ps(_mm_add_ps(z_second_branch, x));
 
     z = _mm_blendv_ps(z_second_branch, z_first_branch, xinf0p5);
-    z = _mm_blendv_ps(z, _mm_add_ps(log_ps(x), *(v4sf *) _ps_LOGE2F), xsup1500);
+    tmp = log_ps(x);
+    tmp = _mm_add_ps(tmp, *(v4sf *) _ps_LOGE2F);
+    z = _mm_blendv_ps(z, tmp, xsup1500);
     // z = _mm_blendv_ps(z, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, z), xxinf0);
     z = _mm_xor_ps(z, xxinf0);
     return z;
@@ -2401,6 +2424,7 @@ static inline v4sf atanhf_ps(v4sf x)
 
     z = _mm_blendv_ps(z_second_branch, z_first_branch, zinf0p5);
     z = _mm_blendv_ps(z, x, zinf1emin4);
+  
     z = _mm_blendv_ps(z, *(v4sf *) _ps_MAXNUMF, xsup1);
     z = _mm_blendv_ps(z, *(v4sf *) _ps_minMAXNUMF, xinfmin1);
 
@@ -2497,6 +2521,7 @@ static inline v4sf atan2f_ps(v4sf y, v4sf x)
     v4sf xinfzero, yinfzero, xeqzero, yeqzero;
     v4sf xeqzeroandyinfzero, yeqzeroandxinfzero;
     v4sf specialcase;
+    v4sf tmp, tmp2;
 
     xinfzero = _mm_cmplt_ps(x, _mm_setzero_ps());  // code =2
     yinfzero = _mm_cmplt_ps(y, _mm_setzero_ps());  // code = code |1;
@@ -2504,17 +2529,35 @@ static inline v4sf atan2f_ps(v4sf y, v4sf x)
     xeqzero = _mm_cmpeq_ps(x, _mm_setzero_ps());
     yeqzero = _mm_cmpeq_ps(y, _mm_setzero_ps());
 
-    z = *(v4sf *) _ps_PIO2F;
     xeqzeroandyinfzero = _mm_and_ps(xeqzero, yinfzero);
+    yeqzeroandxinfzero = _mm_and_ps(yeqzero, xinfzero);
+
+#if 1
+    xeqzeroandyinfzero =  _mm_and_ps(xeqzeroandyinfzero, *(v4sf *) _ps_sign_mask);
+    tmp = _mm_xor_ps(*(v4sf *) _ps_PIO2F,xeqzeroandyinfzero); // either PI or -PI
+    z = _mm_andnot_ps(yeqzero,tmp); // not(yeqzero) and tmp => 0, PI/2, -PI/2
+#else
+    z = *(v4sf *) _ps_PIO2F;
     z = _mm_blendv_ps(z, *(v4sf *) _ps_mPIO2F, xeqzeroandyinfzero);
     z = _mm_blendv_ps(z, _mm_setzero_ps(), yeqzero);
-    yeqzeroandxinfzero = _mm_and_ps(yeqzero, xinfzero);
+#endif
     z = _mm_blendv_ps(z, *(v4sf *) _ps_PIF, yeqzeroandxinfzero);
     specialcase = _mm_or_ps(xeqzero, yeqzero);
+    
+#if 1
+    tmp = _mm_and_ps(*(v4sf *) _ps_PIF, _mm_andnot_ps(yinfzero, xinfzero));
+    tmp2 = _mm_and_ps(*(v4sf *) _ps_mPIF, _mm_and_ps(yinfzero, xinfzero));
+    w = _mm_add_ps(tmp,tmp2);
+#else
     w = _mm_setzero_ps();
     w = _mm_blendv_ps(w, *(v4sf *) _ps_PIF, _mm_andnot_ps(yinfzero, xinfzero));    // y >= 0 && x<0
     w = _mm_blendv_ps(w, *(v4sf *) _ps_mPIF, _mm_and_ps(yinfzero, xinfzero));      // y < 0 && x<0
-    z = _mm_blendv_ps(_mm_add_ps(w, atanf_ps(_mm_div_ps(y, x))), z, specialcase);  // atanf(y/x) if not in special case
+#endif
+
+    tmp = _mm_div_ps(y, x);
+    tmp = atanf_ps(tmp);
+    tmp = _mm_add_ps(w, tmp);
+    z = _mm_blendv_ps(tmp, z, specialcase); // atanf(y/x) if not in special case
     return (z);
 }
 
@@ -2692,7 +2735,6 @@ static inline void tanh128f(float *src, float *dst, int len)
     }
 }
 
-
 static inline v4sf tanf_ps(v4sf xx)
 {
 #ifdef LLVMMCA
@@ -2702,24 +2744,27 @@ static inline v4sf tanf_ps(v4sf xx)
     v4sf x, y, z, zz;
     v4si j;  // long?
     v4sf sign, xsupem4;
-    v4sf tmp;
+    v4sf tmp,tmp2;
+    v4si tmpi;
     v4si jandone, jandtwo;
 
     x = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, xx);  // fabs(xx) //OK
     sign = _mm_and_ps(xx, *(v4sf *) _ps_sign_mask);
 
     /* compute x mod PIO4 */
-
-    // TODO : on neg values should be ceil and not floor
-    // j = _mm_cvtps_epi32( _mm_round_ps(_mm_mul_ps(*(v4sf*)_ps_FOPI,x), _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC )); /* integer part of x/(PI/4), using floor */
-    j = _mm_cvttps_epi32(_mm_mul_ps(*(v4sf *) _ps_FOPI, x));
+    tmp = _mm_mul_ps(*(v4sf *) _ps_FOPI, x);
+    j = _mm_cvttps_epi32(tmp);
+#if 1 // convert is faster than round on some targets
     y = _mm_cvtepi32_ps(j);
+#else
+    y = _mm_round_ps(tmp, ROUNDTOZERO);
+#endif
 
     jandone = _mm_cmpgt_epi32(_mm_and_si128(j, *(v4si *) _pi32_1), _mm_setzero_si128());  // Ok?
-
-    y = _mm_blendv_ps(y, _mm_add_ps(y, *(v4sf *) _ps_1), (v4sf) jandone);
-
-    j = _mm_cvttps_epi32(y);  // no need to round again
+    tmp = _mm_and_ps(*(v4sf *) _ps_1, _mm_castsi128_ps(jandone));
+    y = _mm_add_ps(y, tmp);
+    tmpi = _mm_and_si128(*(v4si *) _pi32_1,jandone);
+    j = _mm_add_epi32(j, tmpi);
 
     z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP1, x);
     z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP2, z);
@@ -2735,16 +2780,26 @@ static inline v4sf tanf_ps(v4sf xx)
     tmp = _mm_fmadd_ps_custom(tmp, zz, *(v4sf *) _ps_TAN_P4);
     tmp = _mm_fmadd_ps_custom(tmp, zz, *(v4sf *) _ps_TAN_P5);
     tmp = _mm_mul_ps(zz, tmp);
-    tmp = _mm_fmadd_ps_custom(tmp, z, z);
 
+#if 1 // _mm_fmadd_ps_custom(tmp, z, z) has to been optimised to tmp*z and the + z is merged after
+// some targets, with no FMA or slow blendv should see improvements 
+    tmp = _mm_mul_ps(tmp, z);
+    xsupem4 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1em4);  // if( x > 1.0e-4 )
+    tmp = _mm_and_ps(tmp,xsupem4);
+    y = _mm_add_ps(z, tmp);
+#else
+    tmp = _mm_fmadd_ps_custom(tmp, z, z);
     xsupem4 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1em4);  // if( x > 1.0e-4 )
     y = _mm_blendv_ps(z, tmp, xsupem4);
+#endif
 
     jandtwo = _mm_cmpgt_epi32(_mm_and_si128(j, *(v4si *) _pi32_2), _mm_setzero_si128());
 
     // xor(rcp(y)) gives not good enough result
-    y = _mm_blendv_ps(y, _mm_div_ps(*(v4sf *) _ps_min1, y), (v4sf) (jandtwo));
+    tmp = _mm_div_ps(*(v4sf *) _ps_min1, y);
+    y = _mm_blendv_ps(y, tmp, _mm_castsi128_ps(jandtwo));
     y = _mm_xor_ps(y, sign);
+
 #ifdef LLVMMCA
     __asm volatile("# LLVM-MCA-END tanf_ps" ::
                        : "memory");

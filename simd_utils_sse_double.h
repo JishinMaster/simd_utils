@@ -626,7 +626,8 @@ static inline v2sd asin_pd(v2sd x)
     v2sd zz_second_branch;
     v2sd z_second_branch;
     v2sd tmp_second_branch;
-
+    v2sd tmp;
+    
     a = _mm_and_pd(*(v2sd *) _pd_positive_mask, x);  // fabs(x)
     // sign = _mm_cmplt_pd(x, _mm_setzero_pd());        // 0xFFFFFFFF if x < 0.0
     sign = _mm_and_pd(x, *(v2sd *) _pd_sign_mask);
@@ -680,8 +681,12 @@ static inline v2sd asin_pd(v2sd x)
     z = _mm_blendv_pd(z, x, ainfem8);
 
     // if (x > 1.0) then return 0.0
-    z = _mm_blendv_pd(z, _mm_setzero_pd(), _mm_cmpgt_pd(x, *(v2sd *) _pd_1));
-
+    tmp = _mm_cmpgt_pd(x, *(v2sd *) _pd_1);
+#if 1
+    z = _mm_andnot_pd(tmp,z);
+#else
+    z = _mm_blendv_pd(z, _mm_setzero_pd(), tmp);
+#endif
     return (z);
 }
 
@@ -690,26 +695,41 @@ static inline v2sd atan_pd(v2sd xx)
     v2sd x, y, z;
     v2sd sign;
     v2sd suptan3pi8, inftan3pi8inf0p66;  // > T3PI8 or (< T3PI8 and > 0.66)
+    v2sd xeqzero;
     v2sd tmp, tmp2;
-    v2sd zerop66 = _mm_set1_pd(0.66);
-    v2sd flag = _mm_setzero_pd();  // flag = 0
+    v2sd flag;  // flag = 0
 
     x = _mm_and_pd(*(v2sd *) _pd_positive_mask, xx);  // x = fabs(xx)
     // sign = _mm_cmplt_pd(xx, _mm_setzero_pd());        // 0xFFFFFFFFFFFFFFFF if x < 0.0, sign = -1
     sign = _mm_and_pd(xx, *(v2sd *) _pd_sign_mask);
 
     /* range reduction */
-
-    y = _mm_setzero_pd();
     suptan3pi8 = _mm_cmpgt_pd(x, *(v2sd *) _pd_TAN3PI8);                  // if( x > tan 3pi/8 )
-    x = _mm_blendv_pd(x, _mm_div_pd(*(v2sd *) _pd_min1, x), suptan3pi8);  // if( x > tan 3pi/8 ) then x = -1.0/x
-    y = _mm_blendv_pd(y, *(v2sd *) _pd_PIO2, suptan3pi8);                 // if( x > tan 3pi/8 ) then y = PI/2
-    flag = _mm_blendv_pd(flag, *(v2sd *) _pd_1, suptan3pi8);              // if( x > tan 3pi/8 ) then flag = 1
+    tmp = _mm_div_pd(*(v2sd *) _pd_min1, x);
+    x = _mm_blendv_pd(x, tmp, suptan3pi8);  // if( x > tan 3pi/8 ) then x = -1.0/x
+    tmp = _mm_cmple_pd(x, *(v2sd *) _pd_TAN3PI8);
+    tmp2 = _mm_cmple_pd(x, *(v2sd*)_pd_0p66);
+    inftan3pi8inf0p66 = _mm_and_pd(tmp, tmp2);  // if( x <= tan 3pi/8 ) && (x <= 0.66)
+    
+#if 1
+    y = _mm_and_pd(suptan3pi8, *(v2sd *) _pd_PIO2);  // if( x > tan 3pi/8 ) then y = PI/2, else 0.0
+    flag = _mm_and_pd(suptan3pi8, *(v2sd *) _pd_1); // if( x > tan 3pi/8 ) then flag = 1 else 0
+#else
+    y = _mm_blendv_pd(_mm_setzero_pd(), *(v2sd *) _pd_PIO2, suptan3pi8); // if( x > tan 3pi/8 ) then y = PI/2
+    flag = _mm_blendv_pd(_mm_setzero_pd(), *(v2sd *) _pd_1, suptan3pi8);// if( x > tan 3pi/8 ) then flag = 1
+#endif
+    // one _mm_blendv_pd vs 2 _mm_and_pd and 1 _mm_add_pd?
+    y = _mm_blendv_pd(*(v2sd *) _pd_PIO4, y, inftan3pi8inf0p66);
+    
+    tmp  = _mm_sub_pd(x, *(v2sd *) _pd_1);
+    tmp2 = _mm_add_pd(x, *(v2sd *) _pd_1);
+    tmp = _mm_div_pd(tmp,tmp2);
+    x = _mm_blendv_pd(tmp, x, inftan3pi8inf0p66);
+    xeqzero = _mm_cmpeq_pd(x, _mm_setzero_pd());
 
-    inftan3pi8inf0p66 = _mm_and_pd(_mm_cmple_pd(x, *(v2sd *) _pd_TAN3PI8), _mm_cmple_pd(x, zerop66));  // if( x <= tan 3pi/8 ) && (x <= 0.66)
-    y = _mm_blendv_pd(*(v2sd *) _pd_PIO4, y, inftan3pi8inf0p66);                                       // y = 0 or PIO4
-    x = _mm_blendv_pd(_mm_div_pd(_mm_sub_pd(x, *(v2sd *) _pd_1), _mm_add_pd(x, *(v2sd *) _pd_1)), x, inftan3pi8inf0p66);
-    flag = _mm_blendv_pd(flag, *(v2sd *) _pd_2, _mm_cmpeq_pd(*(v2sd *) _pd_PIO4, y));  // if y = PIO4 then flag = 2
+    tmp2 = _mm_cmpeq_pd(*(v2sd *) _pd_PIO4, y);
+    flag = _mm_blendv_pd(flag, *(v2sd *) _pd_2, tmp2);  // if y = PIO4 then flag = 2
+
 
     z = _mm_mul_pd(x, x);  // z = x*x
 
@@ -731,15 +751,23 @@ static inline v2sd atan_pd(v2sd xx)
     // z = x * z + x
     z = _mm_fmadd_pd_custom(x, z, x);
 
-    z = _mm_blendv_pd(z, _mm_fmadd_pd_custom(*(v2sd *) _pd_0p5, *(v2sd *) _pd_MOREBITS, z),
-                      _mm_cmpeq_pd(flag, *(v2sd *) _pd_2));  // if (flag == 2) then z += 0.5 * MOREBITS
-    z = _mm_blendv_pd(z, _mm_add_pd(z, *(v2sd *) _pd_MOREBITS),
-                      _mm_cmpeq_pd(flag, *(v2sd *) _pd_1));  // if (flag == 1) then z +=  MOREBITS
+    tmp  = _mm_cmpeq_pd(flag, *(v2sd *) _pd_2);
+    tmp2 = _mm_cmpeq_pd(flag, *(v2sd *) _pd_1);
+
+#if 1
+    tmp = _mm_and_pd(tmp, *(v2sd *) _pd_0p5xMOREBITS);
+    tmp2 = _mm_and_pd(tmp2, *(v2sd *) _pd_MOREBITS);
+    z = _mm_add_pd(z,tmp);
+    z = _mm_add_pd(z,tmp2);
+#else
+    z = _mm_blendv_pd(z, _mm_add_pd(z, *(v2sd *) _pd_0p5xMOREBITS), tmp);  // if (flag == 2) then z += 0.5 * MOREBITS
+    z = _mm_blendv_pd(z, _mm_add_pd(z, *(v2sd *) _pd_MOREBITS), tmp2);  // if (flag == 1) then z +=  MOREBITS
+#endif
 
     y = _mm_add_pd(y, z);
     // y = _mm_blendv_pd(y, _mm_xor_pd(*(v2sd *) _pd_negative_mask, y), sign);
     y = _mm_xor_pd(y, sign);
-    y = _mm_blendv_pd(y, xx, _mm_cmpeq_pd(x, _mm_setzero_pd()));  // if (xx == 0) then return xx (x is fabs(xx))
+    y = _mm_blendv_pd(y, xx, xeqzero);  // if (xx == 0) then return xx (x is fabs(xx))
     return (y);
 }
 
@@ -749,29 +777,43 @@ static inline v2sd atan2_pd(v2sd y, v2sd x)
     v2sd xinfzero, yinfzero, xeqzero, yeqzero;
     v2sd xeqzeroandyinfzero, yeqzeroandxinfzero;
     v2sd specialcase;
-
+    v2sd tmp,tmp2;
+    
     xinfzero = _mm_cmplt_pd(x, _mm_setzero_pd());  // code =2
     yinfzero = _mm_cmplt_pd(y, _mm_setzero_pd());  // code = code |1;
 
     xeqzero = _mm_cmpeq_pd(x, _mm_setzero_pd());
     yeqzero = _mm_cmpeq_pd(y, _mm_setzero_pd());
 
-    z = *(v2sd *) _pd_PIO2F;
-
     xeqzeroandyinfzero = _mm_and_pd(xeqzero, yinfzero);
-    z = _mm_blendv_pd(z, *(v2sd *) _pd_mPIO2F, xeqzeroandyinfzero);
-    z = _mm_blendv_pd(z, _mm_setzero_pd(), yeqzero);
-
     yeqzeroandxinfzero = _mm_and_pd(yeqzero, xinfzero);
+#if 1
+    xeqzeroandyinfzero =  _mm_and_pd(xeqzeroandyinfzero, *(v2sd *) _pd_sign_mask);
+    tmp = _mm_xor_pd(*(v2sd *) _pd_PIO2F,xeqzeroandyinfzero); // either PI or -PI
+    z = _mm_andnot_pd(yeqzero,tmp); // not(yeqzero) and tmp => 0, PI/2, -PI/2
+#else
+    z = *(v2sd *) _pd_PIO2F;
+    z = _mm_blendv_pd(z, *(v2sd *) _pd_mPIO2F, xeqzeroandyinfzero);
+    z = _mm_blendv_pd(z, _mm_setzero_pd(), yeqzero); 
+#endif
     z = _mm_blendv_pd(z, *(v2sd *) _pd_PIF, yeqzeroandxinfzero);
-
+    
     specialcase = _mm_or_pd(xeqzero, yeqzero);
 
+#if 1
+    tmp = _mm_and_pd(*(v2sd *) _pd_PIF, _mm_andnot_pd(yinfzero, xinfzero));
+    tmp2 = _mm_and_pd(*(v2sd *) _pd_mPIF, _mm_and_pd(yinfzero, xinfzero));
+    w = _mm_add_pd(tmp,tmp2);
+#else
     w = _mm_setzero_pd();
     w = _mm_blendv_pd(w, *(v2sd *) _pd_PIF, _mm_andnot_pd(yinfzero, xinfzero));  // y >= 0 && x<0
     w = _mm_blendv_pd(w, *(v2sd *) _pd_mPIF, _mm_and_pd(yinfzero, xinfzero));    // y < 0 && x<0
+#endif
 
-    z = _mm_blendv_pd(_mm_add_pd(w, atan_pd(_mm_div_pd(y, x))), z, specialcase);  // atanf(y/x) if not in special case
+    tmp = _mm_div_pd(y, x);
+    tmp = atan_pd(tmp);
+    tmp = _mm_add_pd(w, tmp);
+    z = _mm_blendv_pd(tmp, z, specialcase);  // atanf(y/x) if not in special case
 
     return (z);
 }
@@ -795,6 +837,26 @@ static inline void atan128d(double *src, double *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = atan(src[i]);
+    }
+}
+
+static inline void atan2128d(double *src1, double *src2, double *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            _mm_store_pd(dst + i, atan2_pd(_mm_load_pd(src1 + i), _mm_load_pd(src2 + i)));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            _mm_storeu_pd(dst + i, atan2_pd(_mm_loadu_pd(src1 + i), _mm_loadu_pd(src2 + i)));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atan2(src1[i], src2[i]);
     }
 }
 
@@ -1080,73 +1142,6 @@ static inline v2sd log_pd(v2sd x)
 }
 #endif
 
-#if 0
-static inline v2sd tan_pd( v2sd xx)
-{
-  v2sd xxeqzero, xsuplossth, zzsup1m14, ysup1m14;
-  v2sd tmp, tmp2;
-  
-  xxeqzero = _mm_cmpeq_pd(xx, _mm_setzero_pd());
-	
-  v2sd x, y, z, zz;
-  v2sid j, jandone, jandtwo;
-  v2sd sign;
-  
-  /* make argument positive but save the sign */
-  x = xx;
-  x = _mm_and_pd(x, *(v2sd *) _pd_inv_sign_mask);
-  sign = _mm_cmplt_pd(xx, _mm_setzero_pd());
-
-  xsuplossth = _mm_cmpgt_pd(x, *(v2sd *) _pd_tanlossth);
-
-  /* compute x mod PIO4 */
-  y = _mm_mul_pd(x,*(v2sd *) _pd_cephes_FOPI);
-  y = _mm_round_pd(y, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
- 	 
-  /* strip high bits of integer part */
-  z = _mm_mul_pd(y,  *(v2sd *) _pd_0p125);
-  z = _mm_round_pd(z, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
-  z = _mm_fmadd_pd_custom(z,*(v2sd *) _pd_min8, y);
-   	
-  /* integer and fractional part modulo one octant */
-  j = _mm_cvttpd_epi64_custom(z);
-
-  /* map zeros and singularities to origin */
-  jandone = _mm_cmpgt_epi64(_mm_and_si128(j, *(v2sid *) _pi64_1), _mm_setzero_si128());
-  j = _mm_blendv_epi8(j,_mm_add_epi64(j,*(v2sid *) _pi64_1), jandone);
-  y = _mm_blendv_pd(y,_mm_add_pd(y,*(v2sd *) _pd_1), (v2sd)jandone);
-  jandtwo = _mm_cmpgt_epi64(_mm_and_si128(j, *(v2sid *) _pi64_2), _mm_setzero_si128());
-   
-  z = _mm_fmadd_pd_custom(y,*(v2sd *) _pd_TAN_mDP1, x);
-  z = _mm_fmadd_pd_custom(y,*(v2sd *) _pd_TAN_mDP2, z);
-  z = _mm_fmadd_pd_custom(y,*(v2sd *) _pd_TAN_mDP3, z);
-  zz = _mm_mul_pd(z,z);
-
-  zzsup1m14 = _mm_cmpgt_pd(zz, *(v2sd *) _pd_1m14);
-  tmp = _mm_fmadd_pd_custom(zz, *(v2sd *) _pd_TAN_P0, *(v2sd *) _pd_TAN_P1);
-  tmp = _mm_fmadd_pd_custom(zz, tmp, *(v2sd *) _pd_TAN_P2);
-  tmp2 = _mm_fmadd_pd_custom(zz, *(v2sd *) _pd_TAN_Q0, *(v2sd *) _pd_TAN_Q1);
-  tmp2 = _mm_fmadd_pd_custom(zz, tmp2, *(v2sd *) _pd_TAN_Q2);
-  tmp2 = _mm_fmadd_pd_custom(zz, tmp2, *(v2sd *) _pd_TAN_Q3);
-  tmp2 = _mm_div_pd(tmp,tmp2);
-  tmp2 = _mm_mul_pd(zz,tmp2);
-  ysup1m14 = _mm_fmadd_pd_custom(z,tmp2,z);
-	y = _mm_blendv_pd(z, ysup1m14, zzsup1m14);
-
-	//TODO : mul -1 * 1/y faster?  
-  y = _mm_blendv_pd(y, _mm_div_pd(*(v2sd *) _pd_min1, y), (v2sd)jandtwo);
-  
-  //TODO swap sign?
-  y = _mm_blendv_pd(y,_mm_mul_pd(y,*(v2sd *) _pd_min1), sign);
-  //y = _mm_xor_pd(y,sign);
-  
-  y = _mm_blendv_pd(y, _mm_setzero_pd(), xsuplossth);
-  y = _mm_blendv_pd(y, xx, xxeqzero);
-  return y;
-}
-
-#else
-
 static inline v2sd tan_pd(v2sd xx)
 {
     v2sd xxeqzero, xsuplossth, zzsup1m14, ysup1m14;
@@ -1155,7 +1150,7 @@ static inline v2sd tan_pd(v2sd xx)
     xxeqzero = _mm_cmpeq_pd(xx, _mm_setzero_pd());
 
     v2sd x, y, z, zz;
-    v2sid j, jandone, jandtwo;
+    v2sid j, jandone, jandtwo,tmpi;
     v2sd sign;
 
     /* make argument positive but save the sign */
@@ -1183,8 +1178,17 @@ static inline v2sd tan_pd(v2sd xx)
 
     /* map zeros and singularities to origin */
     jandone = _mm_cmpgt_epi64(_mm_and_si128(j, *(v2sid *) _pi64_1), _mm_setzero_si128());
+    
+#if 1
+    tmp = _mm_and_pd(*(v2sd *) _pd_1,_mm_castsi128_pd(jandone));
+    tmpi = _mm_and_si128(*(v2sid *) _pi64_1,jandone);
+    j = _mm_add_epi64(j,tmpi);
+    y = _mm_add_pd(y,tmp);
+#else    
     j = _mm_blendv_epi8(j, _mm_add_epi64(j, *(v2sid *) _pi64_1), jandone);
     y = _mm_blendv_pd(y, _mm_add_pd(y, *(v2sd *) _pd_1), (v2sd) jandone);
+#endif
+
     jandtwo = _mm_cmpgt_epi64(_mm_and_si128(j, *(v2sid *) _pi64_2), _mm_setzero_si128());
 
     z = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_TAN_mDP1, x);
@@ -1200,12 +1204,19 @@ static inline v2sd tan_pd(v2sd xx)
     tmp2 = _mm_fmadd_pd_custom(zz, tmp2, *(v2sd *) _pd_TAN_Q3);
     tmp2 = _mm_div_pd(tmp, tmp2);
     tmp2 = _mm_mul_pd(zz, tmp2);
+    
+#if 1
+    ysup1m14 = _mm_mul_pd(z, tmp2);
+    ysup1m14 = _mm_and_pd(ysup1m14, zzsup1m14);
+    y = _mm_add_pd(z, ysup1m14);
+#else
     ysup1m14 = _mm_fmadd_pd_custom(z, tmp2, z);
     y = _mm_blendv_pd(z, ysup1m14, zzsup1m14);
+#endif
 
-    y = _mm_blendv_pd(y, _mm_div_pd(*(v2sd *) _pd_min1, y), (v2sd) jandtwo);
+    tmp = _mm_div_pd(*(v2sd *) _pd_min1, y);
+    y = _mm_blendv_pd(y, tmp, _mm_castsi128_pd(jandtwo));
 
-    // TODO swap sign?
     // y = _mm_blendv_pd(y,_mm_mul_pd(y,*(v2sd *) _pd_min1), sign);
     y = _mm_xor_pd(y, sign);
 
@@ -1215,7 +1226,6 @@ static inline v2sd tan_pd(v2sd xx)
     y = _mm_blendv_pd(y, xx, xxeqzero);
     return y;
 }
-#endif
 
 static inline void tan128d(double *src, double *dst, int len)
 {

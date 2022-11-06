@@ -1206,7 +1206,15 @@ static inline void atan2f_interleaved_C(complex32_t *src, float *dst, int len)
     }
 }
 
-
+static inline void atan2_C(double *src1, double *src2, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = atan2(src1[i], src2[i]);
+    }
+}
 
 static inline void sinf_C(float *src, float *dst, int len)
 {

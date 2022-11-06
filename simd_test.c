@@ -7927,6 +7927,61 @@ for (int i = 0; i < len; i++){
 #endif
 
     printf("\n");
+    /////////////////////////////////////////////////////////// ATANF2 //////////////////////////////////////////////////////////////////////////////
+    printf("ATAN2\n");
+
+    for (int i = 0; i < len; i++) {
+        inoutd[i] = (double)(-1.0 * i + 0.15) / 2.5 / (double)(5 * len);
+        inoutd_ref[i] = 50.0;
+        inoutd2_ref[i] = 50.0;
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2_C(inoutd, inoutd2, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atan2_C(inoutd, inoutd2, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atan2_C %d %lf\n", len, elapsed);
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsAtan2_64f_A53(inoutd, inoutd2, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsAtan2_64f_A53 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsAtan2_64f_A53(inoutd, inoutd2, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsAtan2_64f_A53 %d %lf\n", len, elapsed);
+    l2_errd(inoutd2_ref, inoutd_ref, len);
+#endif
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2128d(inoutd, inoutd2, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2128d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atan2128d(inoutd, inoutd2, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atan2128d %d %lf\n", len, elapsed);
+    l2_errd(inoutd2_ref, inoutd_ref, len);
+#endif
+
+    printf("\n");
     /////////////////////////////////////////////////////////// CPLX2REAL //////////////////////////////////////////////////////////////////////////////
     printf("CPLX2REAL\n");
 
