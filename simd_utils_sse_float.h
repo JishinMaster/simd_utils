@@ -2215,7 +2215,7 @@ static inline void cosh128f(float *src, float *dst, int len)
 static inline v4sf sinhf_ps(v4sf x)
 {
     v4sf z, z_first_branch, z_second_branch, tmp;
-    v4sf xsupmaxlogf, zsup1, xinf0;
+    v4sf xsupmaxlogf, zsup1;
     v4sf sign;
     
     // x = xx; if x < 0, z = -x, else x
@@ -2233,7 +2233,7 @@ static inline v4sf sinhf_ps(v4sf x)
 #if 1
     z_first_branch = _mm_xor_ps(z_first_branch, sign);
 #else
-    xinf0 = _mm_cmplt_ps(x, _mm_setzero_ps());
+    v4sf xinf0 = _mm_cmplt_ps(x, _mm_setzero_ps());
     z_first_branch = _mm_blendv_ps(z_first_branch, _mm_xor_ps(*(v4sf *) _ps_neg_sign_mask, z_first_branch), xinf0);
 #endif
 
@@ -2744,7 +2744,7 @@ static inline v4sf tanf_ps(v4sf xx)
     v4sf x, y, z, zz;
     v4si j;  // long?
     v4sf sign, xsupem4;
-    v4sf tmp,tmp2;
+    v4sf tmp;
     v4si tmpi;
     v4si jandone, jandtwo;
 

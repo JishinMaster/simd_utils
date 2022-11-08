@@ -1144,7 +1144,7 @@ static inline v2sd log_pd(v2sd x)
 
 static inline v2sd tan_pd(v2sd xx)
 {
-    v2sd xxeqzero, xsuplossth, zzsup1m14, ysup1m14;
+    v2sd xxeqzero, zzsup1m14, ysup1m14;
     v2sd tmp, tmp2;
 
     xxeqzero = _mm_cmpeq_pd(xx, _mm_setzero_pd());
@@ -1159,7 +1159,7 @@ static inline v2sd tan_pd(v2sd xx)
     // sign = _mm_cmplt_pd(xx, _mm_setzero_pd());
     sign = _mm_and_pd(xx, *(v2sd *) _pd_sign_mask);
 #ifdef LOSSTH
-    xsuplossth = _mm_cmpgt_pd(x, *(v2sd *) _pd_tanlossth);
+    v2sd xsuplossth = _mm_cmpgt_pd(x, *(v2sd *) _pd_tanlossth);
 #endif
 
     /* compute x mod PIO4 */

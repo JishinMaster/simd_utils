@@ -897,7 +897,7 @@ static inline void cart2pol2D256f_precise(float *x, float *y, float *r, float *t
 
 static inline v4sd tan256_pd(v4sd xx)
 {
-    v4sd xxeqzero, xsuplossth, zzsup1m14, ysup1m14;
+    v4sd xxeqzero, zzsup1m14, ysup1m14;
     v4sd tmp, tmp2;
 
     xxeqzero = _mm256_cmp_pd(xx, _mm256_setzero_pd(), _CMP_EQ_OS);
@@ -911,7 +911,7 @@ static inline v4sd tan256_pd(v4sd xx)
     x = _mm256_and_pd(x, *(v4sd *) _pd256_inv_sign_mask);
     sign = _mm256_and_pd(xx, *(v4sd *) _pd256_sign_mask);
 #ifdef LOSSTH
-    xsuplossth = _mm256_cmp_pd(x, *(v4sd *) _pd256_tanlossth, _CMP_GT_OS);
+    v4sd xsuplossth = _mm256_cmp_pd(x, *(v4sd *) _pd256_tanlossth, _CMP_GT_OS);
 #endif
 
     /* compute x mod PIO4 */

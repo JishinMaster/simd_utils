@@ -902,7 +902,7 @@ static inline void cart2pol2D512f_precise(float *x, float *y, float *r, float *t
 
 static inline v8sd tan512_pd(v8sd xx)
 {
-    __mmask8 xxeqzero, xsuplossth, zzsup1m14;
+    __mmask8 xxeqzero, zzsup1m14;
     v8sd ysup1m14;
     v8sd tmp, tmp2;
 
@@ -918,7 +918,7 @@ static inline v8sd tan512_pd(v8sd xx)
     x = _mm512_and_pd(x, *(v8sd *) _pd512_inv_sign_mask);
     sign = _mm512_and_pd(xx, *(v8sd *) _pd512_sign_mask);
 #ifdef LOSSTH
-    xsuplossth = _mm512_cmp_pd_mask(x, *(v8sd *) _pd512_tanlossth, _CMP_GT_OS);
+    __mmask8 xsuplossth = _mm512_cmp_pd_mask(x, *(v8sd *) _pd512_tanlossth, _CMP_GT_OS);
 #endif
 
     /* compute x mod PIO4 */

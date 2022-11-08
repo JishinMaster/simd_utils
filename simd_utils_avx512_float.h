@@ -1482,7 +1482,6 @@ static inline void threshold512_gt_f(float *src, float *dst, int len, float valu
 static inline void threshold512_gtabs_f(float *src, float *dst, int len, float value)
 {
     const v16sf pval = _mm512_set1_ps(value);
-    const v16sf mval = _mm512_set1_ps(-value);
 
     int stop_len = len / (2 * AVX512_LEN_FLOAT);
     stop_len *= (2 * AVX512_LEN_FLOAT);
@@ -1618,7 +1617,6 @@ static inline void threshold512_lt_f(float *src, float *dst, int len, float valu
 static inline void threshold512_ltabs_f(float *src, float *dst, int len, float value)
 {
     const v16sf pval = _mm512_set1_ps(value);
-    const v16sf mval = _mm512_set1_ps(-value);
 
     int stop_len = len / (2 * AVX512_LEN_FLOAT);
     stop_len *= (2 * AVX512_LEN_FLOAT);
