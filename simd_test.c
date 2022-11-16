@@ -833,7 +833,7 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     threshold128_lt_f(inout, inout2, len, 0.07f);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -950,7 +950,7 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     threshold128_gt_f(inout, inout2, len, 0.07f);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1049,7 +1049,7 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     threshold128_gtabs_f(inout, inout2, len, 0.07f);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1168,7 +1168,7 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     threshold128_ltabs_f(inout, inout2, len, 0.07f);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1259,7 +1259,7 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     threshold128_ltval_gtval_f(inout, inout2, len, 0.5f, 0.35f, 0.7f, 0.77f);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1373,7 +1373,7 @@ int main(int argc, char **argv)
     l2_err(inout3, inout_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     maxevery128f(inout, inout2, inout3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1609,7 +1609,7 @@ int main(int argc, char **argv)
 #endif
 
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     minmax128f(inout, len, &min, &max);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1915,7 +1915,7 @@ printf("\n");
     printf("mean %f ref %f\n", mean, mean_ref);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     mean128f(inout, &mean, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2959,7 +2959,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxvecmul_C_split_precise %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxvecmul128f_split(inout, inout2, inout3, inout4, inout5, inout6, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -4149,7 +4149,7 @@ printf("\n");
     l2_err(inout2_ref, inout3, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     sincos128f(inout, inout2, inout3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -5102,7 +5102,7 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     exp_128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -5117,6 +5117,7 @@ printf("\n");
     printf("exp_128f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
+#ifndef ALTIVEC
     clock_gettime(CLOCK_REALTIME, &start);
     exp_128f_(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -5130,6 +5131,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("exp_128f_ %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
+#endif
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
@@ -5352,7 +5354,7 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     flip128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -5458,7 +5460,7 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     floor128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -5558,7 +5560,7 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     ceil128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -5658,7 +5660,7 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     round128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -5758,7 +5760,7 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     trunc128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -5862,7 +5864,7 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     tan128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -7931,7 +7933,7 @@ for (int i = 0; i < len; i++){
     printf("ATAN2\n");
 
     for (int i = 0; i < len; i++) {
-        inoutd[i] = (double)(-1.0 * i + 0.15) / 2.5 / (double)(5 * len);
+        inoutd[i] = (double) (-1.0 * i + 0.15) / 2.5 / (double) (5 * len);
         inoutd_ref[i] = 50.0;
         inoutd2_ref[i] = 50.0;
     }
@@ -8111,12 +8113,16 @@ for (int i = 0; i < len; i++){
     l2_err(inout2, inout_ref, 2 * len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     realtocplx128f(inout3, inout4, (complex32_t *) inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("realtocplx128f %d %lf\n", len, elapsed);
+
+    /*for(int i = 0; i < 2*len; i++)
+          printf("%f %f\n",inout[i],inout_ref[i]);
+        printf("\n\n");*/
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
@@ -8126,9 +8132,7 @@ for (int i = 0; i < len; i++){
     printf("realtocplx128f %d %lf\n", len, elapsed);
     l2_err(inout, inout_ref, 2 * len);
 
-    /*for(int i = 0; i < 2*len; i++)
-          printf("%f %f\n",inout[i],inout_ref[i]);
-        printf("\n\n");*/
+
 #endif
 
 #ifdef AVX

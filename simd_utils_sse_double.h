@@ -627,7 +627,7 @@ static inline v2sd asin_pd(v2sd x)
     v2sd z_second_branch;
     v2sd tmp_second_branch;
     v2sd tmp;
-    
+
     a = _mm_and_pd(*(v2sd *) _pd_positive_mask, x);  // fabs(x)
     // sign = _mm_cmplt_pd(x, _mm_setzero_pd());        // 0xFFFFFFFF if x < 0.0
     sign = _mm_and_pd(x, *(v2sd *) _pd_sign_mask);
@@ -683,7 +683,7 @@ static inline v2sd asin_pd(v2sd x)
     // if (x > 1.0) then return 0.0
     tmp = _mm_cmpgt_pd(x, *(v2sd *) _pd_1);
 #if 1
-    z = _mm_andnot_pd(tmp,z);
+    z = _mm_andnot_pd(tmp, z);
 #else
     z = _mm_blendv_pd(z, _mm_setzero_pd(), tmp);
 #endif
@@ -704,26 +704,26 @@ static inline v2sd atan_pd(v2sd xx)
     sign = _mm_and_pd(xx, *(v2sd *) _pd_sign_mask);
 
     /* range reduction */
-    suptan3pi8 = _mm_cmpgt_pd(x, *(v2sd *) _pd_TAN3PI8);                  // if( x > tan 3pi/8 )
+    suptan3pi8 = _mm_cmpgt_pd(x, *(v2sd *) _pd_TAN3PI8);  // if( x > tan 3pi/8 )
     tmp = _mm_div_pd(*(v2sd *) _pd_min1, x);
     x = _mm_blendv_pd(x, tmp, suptan3pi8);  // if( x > tan 3pi/8 ) then x = -1.0/x
     tmp = _mm_cmple_pd(x, *(v2sd *) _pd_TAN3PI8);
-    tmp2 = _mm_cmple_pd(x, *(v2sd*)_pd_0p66);
+    tmp2 = _mm_cmple_pd(x, *(v2sd *) _pd_0p66);
     inftan3pi8inf0p66 = _mm_and_pd(tmp, tmp2);  // if( x <= tan 3pi/8 ) && (x <= 0.66)
-    
+
 #if 1
     y = _mm_and_pd(suptan3pi8, *(v2sd *) _pd_PIO2);  // if( x > tan 3pi/8 ) then y = PI/2, else 0.0
-    flag = _mm_and_pd(suptan3pi8, *(v2sd *) _pd_1); // if( x > tan 3pi/8 ) then flag = 1 else 0
+    flag = _mm_and_pd(suptan3pi8, *(v2sd *) _pd_1);  // if( x > tan 3pi/8 ) then flag = 1 else 0
 #else
-    y = _mm_blendv_pd(_mm_setzero_pd(), *(v2sd *) _pd_PIO2, suptan3pi8); // if( x > tan 3pi/8 ) then y = PI/2
-    flag = _mm_blendv_pd(_mm_setzero_pd(), *(v2sd *) _pd_1, suptan3pi8);// if( x > tan 3pi/8 ) then flag = 1
+    y = _mm_blendv_pd(_mm_setzero_pd(), *(v2sd *) _pd_PIO2, suptan3pi8);   // if( x > tan 3pi/8 ) then y = PI/2
+    flag = _mm_blendv_pd(_mm_setzero_pd(), *(v2sd *) _pd_1, suptan3pi8);   // if( x > tan 3pi/8 ) then flag = 1
 #endif
     // one _mm_blendv_pd vs 2 _mm_and_pd and 1 _mm_add_pd?
     y = _mm_blendv_pd(*(v2sd *) _pd_PIO4, y, inftan3pi8inf0p66);
-    
-    tmp  = _mm_sub_pd(x, *(v2sd *) _pd_1);
+
+    tmp = _mm_sub_pd(x, *(v2sd *) _pd_1);
     tmp2 = _mm_add_pd(x, *(v2sd *) _pd_1);
-    tmp = _mm_div_pd(tmp,tmp2);
+    tmp = _mm_div_pd(tmp, tmp2);
     x = _mm_blendv_pd(tmp, x, inftan3pi8inf0p66);
     xeqzero = _mm_cmpeq_pd(x, _mm_setzero_pd());
 
@@ -751,17 +751,17 @@ static inline v2sd atan_pd(v2sd xx)
     // z = x * z + x
     z = _mm_fmadd_pd_custom(x, z, x);
 
-    tmp  = _mm_cmpeq_pd(flag, *(v2sd *) _pd_2);
+    tmp = _mm_cmpeq_pd(flag, *(v2sd *) _pd_2);
     tmp2 = _mm_cmpeq_pd(flag, *(v2sd *) _pd_1);
 
 #if 1
     tmp = _mm_and_pd(tmp, *(v2sd *) _pd_0p5xMOREBITS);
     tmp2 = _mm_and_pd(tmp2, *(v2sd *) _pd_MOREBITS);
-    z = _mm_add_pd(z,tmp);
-    z = _mm_add_pd(z,tmp2);
+    z = _mm_add_pd(z, tmp);
+    z = _mm_add_pd(z, tmp2);
 #else
     z = _mm_blendv_pd(z, _mm_add_pd(z, *(v2sd *) _pd_0p5xMOREBITS), tmp);  // if (flag == 2) then z += 0.5 * MOREBITS
-    z = _mm_blendv_pd(z, _mm_add_pd(z, *(v2sd *) _pd_MOREBITS), tmp2);  // if (flag == 1) then z +=  MOREBITS
+    z = _mm_blendv_pd(z, _mm_add_pd(z, *(v2sd *) _pd_MOREBITS), tmp2);     // if (flag == 1) then z +=  MOREBITS
 #endif
 
     y = _mm_add_pd(y, z);
@@ -777,8 +777,8 @@ static inline v2sd atan2_pd(v2sd y, v2sd x)
     v2sd xinfzero, yinfzero, xeqzero, yeqzero;
     v2sd xeqzeroandyinfzero, yeqzeroandxinfzero;
     v2sd specialcase;
-    v2sd tmp,tmp2;
-    
+    v2sd tmp, tmp2;
+
     xinfzero = _mm_cmplt_pd(x, _mm_setzero_pd());  // code =2
     yinfzero = _mm_cmplt_pd(y, _mm_setzero_pd());  // code = code |1;
 
@@ -788,22 +788,22 @@ static inline v2sd atan2_pd(v2sd y, v2sd x)
     xeqzeroandyinfzero = _mm_and_pd(xeqzero, yinfzero);
     yeqzeroandxinfzero = _mm_and_pd(yeqzero, xinfzero);
 #if 1
-    xeqzeroandyinfzero =  _mm_and_pd(xeqzeroandyinfzero, *(v2sd *) _pd_sign_mask);
-    tmp = _mm_xor_pd(*(v2sd *) _pd_PIO2F,xeqzeroandyinfzero); // either PI or -PI
-    z = _mm_andnot_pd(yeqzero,tmp); // not(yeqzero) and tmp => 0, PI/2, -PI/2
+    xeqzeroandyinfzero = _mm_and_pd(xeqzeroandyinfzero, *(v2sd *) _pd_sign_mask);
+    tmp = _mm_xor_pd(*(v2sd *) _pd_PIO2F, xeqzeroandyinfzero);  // either PI or -PI
+    z = _mm_andnot_pd(yeqzero, tmp);                            // not(yeqzero) and tmp => 0, PI/2, -PI/2
 #else
     z = *(v2sd *) _pd_PIO2F;
     z = _mm_blendv_pd(z, *(v2sd *) _pd_mPIO2F, xeqzeroandyinfzero);
-    z = _mm_blendv_pd(z, _mm_setzero_pd(), yeqzero); 
+    z = _mm_blendv_pd(z, _mm_setzero_pd(), yeqzero);
 #endif
     z = _mm_blendv_pd(z, *(v2sd *) _pd_PIF, yeqzeroandxinfzero);
-    
+
     specialcase = _mm_or_pd(xeqzero, yeqzero);
 
 #if 1
     tmp = _mm_and_pd(*(v2sd *) _pd_PIF, _mm_andnot_pd(yinfzero, xinfzero));
     tmp2 = _mm_and_pd(*(v2sd *) _pd_mPIF, _mm_and_pd(yinfzero, xinfzero));
-    w = _mm_add_pd(tmp,tmp2);
+    w = _mm_add_pd(tmp, tmp2);
 #else
     w = _mm_setzero_pd();
     w = _mm_blendv_pd(w, *(v2sd *) _pd_PIF, _mm_andnot_pd(yinfzero, xinfzero));  // y >= 0 && x<0
@@ -1150,7 +1150,7 @@ static inline v2sd tan_pd(v2sd xx)
     xxeqzero = _mm_cmpeq_pd(xx, _mm_setzero_pd());
 
     v2sd x, y, z, zz;
-    v2sid j, jandone, jandtwo,tmpi;
+    v2sid j, jandone, jandtwo, tmpi;
     v2sd sign;
 
     /* make argument positive but save the sign */
@@ -1178,13 +1178,13 @@ static inline v2sd tan_pd(v2sd xx)
 
     /* map zeros and singularities to origin */
     jandone = _mm_cmpgt_epi64(_mm_and_si128(j, *(v2sid *) _pi64_1), _mm_setzero_si128());
-    
+
 #if 1
-    tmp = _mm_and_pd(*(v2sd *) _pd_1,_mm_castsi128_pd(jandone));
-    tmpi = _mm_and_si128(*(v2sid *) _pi64_1,jandone);
-    j = _mm_add_epi64(j,tmpi);
-    y = _mm_add_pd(y,tmp);
-#else    
+    tmp = _mm_and_pd(*(v2sd *) _pd_1, _mm_castsi128_pd(jandone));
+    tmpi = _mm_and_si128(*(v2sid *) _pi64_1, jandone);
+    j = _mm_add_epi64(j, tmpi);
+    y = _mm_add_pd(y, tmp);
+#else
     j = _mm_blendv_epi8(j, _mm_add_epi64(j, *(v2sid *) _pi64_1), jandone);
     y = _mm_blendv_pd(y, _mm_add_pd(y, *(v2sd *) _pd_1), (v2sd) jandone);
 #endif
@@ -1204,7 +1204,7 @@ static inline v2sd tan_pd(v2sd xx)
     tmp2 = _mm_fmadd_pd_custom(zz, tmp2, *(v2sd *) _pd_TAN_Q3);
     tmp2 = _mm_div_pd(tmp, tmp2);
     tmp2 = _mm_mul_pd(zz, tmp2);
-    
+
 #if 1
     ysup1m14 = _mm_mul_pd(z, tmp2);
     ysup1m14 = _mm_and_pd(ysup1m14, zzsup1m14);

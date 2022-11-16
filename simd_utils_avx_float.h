@@ -3045,7 +3045,7 @@ static inline void sum256f(float *src, float *dst, int len)
     v8sf vec_acc1 = _mm256_setzero_ps();  // initialize the vector accumulator
     v8sf vec_acc2 = _mm256_setzero_ps();  // initialize the vector accumulator
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+    if (isAligned((uintptr_t) (src), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
             v8sf vec_tmp1 = _mm256_load_ps(src + i);
             vec_acc1 = _mm256_add_ps(vec_acc1, vec_tmp1);

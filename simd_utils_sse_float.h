@@ -292,7 +292,7 @@ static inline v4sf exp_ps_alternate(v4sf x)
     z_tmp = _mm_fmadd_ps_custom(z_tmp, pow2n, pow2n);
 
     z = _mm_blendv_ps(z_tmp, *(v4sf *) _ps_MAXNUMF, xsupmaxlogf);
-    
+
 #if 1
     z = _mm_andnot_ps(xinfminglogf, z);
 #else
@@ -391,7 +391,7 @@ static inline v4sf cbrtf_ps(v4sf xx)
     v4sf e, rem, sign;
     v4sf x, z;
     v4sf tmp, tmp2;
-    
+
     x = xx;
     // sign = _mm_cmpgt_ps(x, _mm_setzero_ps());
     sign = _mm_and_ps(xx, *(v4sf *) _ps_sign_mask);
@@ -433,8 +433,8 @@ static inline v4sf cbrtf_ps(v4sf xx)
     mul2 = _mm_mul_ps(x, mul_cst2);
 
     v4si remi = _mm_cvtps_epi32(rem);  // rem integer
-    v4si rem1 = _mm_cmpeq_epi32(remi, *(v4si*)_pi32_1);
-    v4si rem2 = _mm_cmpeq_epi32(remi, *(v4si*)_pi32_2);
+    v4si rem1 = _mm_cmpeq_epi32(remi, *(v4si *) _pi32_1);
+    v4si rem2 = _mm_cmpeq_epi32(remi, *(v4si *) _pi32_2);
 
     x = _mm_blendv_ps(x, mul1, _mm_castsi128_ps(rem1));  // rem==1
     x = _mm_blendv_ps(x, mul2, _mm_castsi128_ps(rem2));  // rem==2
@@ -2217,11 +2217,11 @@ static inline v4sf sinhf_ps(v4sf x)
     v4sf z, z_first_branch, z_second_branch, tmp;
     v4sf xsupmaxlogf, zsup1;
     v4sf sign;
-    
+
     // x = xx; if x < 0, z = -x, else x
     z = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, x);
     sign = _mm_and_ps(x, *(v4sf *) _ps_sign_mask);
-    
+
     xsupmaxlogf = _mm_cmpgt_ps(z, *(v4sf *) _ps_MAXLOGF);
 
     // First branch
@@ -2306,9 +2306,9 @@ static inline v4sf acoshf_ps(v4sf x)
     tmp = log_ps(x);
     tmp = _mm_add_ps(tmp, *(v4sf *) _ps_LOGE2F);
     z = _mm_blendv_ps(z, tmp, xsup1500);
-    
+
 #if 1
-    z = _mm_andnot_ps(xinf1,z);
+    z = _mm_andnot_ps(xinf1, z);
 #else
     z = _mm_blendv_ps(z, _mm_setzero_ps(), xinf1);
 #endif
@@ -2342,7 +2342,7 @@ static inline v4sf asinhf_ps(v4sf xx)
 {
     v4sf x, tmp, z, z_first_branch, z_second_branch;
     v4sf xxinf0, xsup1500, xinf0p5;
-    
+
     x = _mm_and_ps(*(v4sf *) _ps_pos_sign_mask, xx);
     xsup1500 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1500);
     xinf0p5 = _mm_cmplt_ps(x, *(v4sf *) _ps_0p5);
@@ -2424,7 +2424,7 @@ static inline v4sf atanhf_ps(v4sf x)
 
     z = _mm_blendv_ps(z_second_branch, z_first_branch, zinf0p5);
     z = _mm_blendv_ps(z, x, zinf1emin4);
-  
+
     z = _mm_blendv_ps(z, *(v4sf *) _ps_MAXNUMF, xsup1);
     z = _mm_blendv_ps(z, *(v4sf *) _ps_minMAXNUMF, xinfmin1);
 
@@ -2533,9 +2533,9 @@ static inline v4sf atan2f_ps(v4sf y, v4sf x)
     yeqzeroandxinfzero = _mm_and_ps(yeqzero, xinfzero);
 
 #if 1
-    xeqzeroandyinfzero =  _mm_and_ps(xeqzeroandyinfzero, *(v4sf *) _ps_sign_mask);
-    tmp = _mm_xor_ps(*(v4sf *) _ps_PIO2F,xeqzeroandyinfzero); // either PI or -PI
-    z = _mm_andnot_ps(yeqzero,tmp); // not(yeqzero) and tmp => 0, PI/2, -PI/2
+    xeqzeroandyinfzero = _mm_and_ps(xeqzeroandyinfzero, *(v4sf *) _ps_sign_mask);
+    tmp = _mm_xor_ps(*(v4sf *) _ps_PIO2F, xeqzeroandyinfzero);  // either PI or -PI
+    z = _mm_andnot_ps(yeqzero, tmp);                            // not(yeqzero) and tmp => 0, PI/2, -PI/2
 #else
     z = *(v4sf *) _ps_PIO2F;
     z = _mm_blendv_ps(z, *(v4sf *) _ps_mPIO2F, xeqzeroandyinfzero);
@@ -2543,21 +2543,21 @@ static inline v4sf atan2f_ps(v4sf y, v4sf x)
 #endif
     z = _mm_blendv_ps(z, *(v4sf *) _ps_PIF, yeqzeroandxinfzero);
     specialcase = _mm_or_ps(xeqzero, yeqzero);
-    
+
 #if 1
     tmp = _mm_and_ps(*(v4sf *) _ps_PIF, _mm_andnot_ps(yinfzero, xinfzero));
     tmp2 = _mm_and_ps(*(v4sf *) _ps_mPIF, _mm_and_ps(yinfzero, xinfzero));
-    w = _mm_add_ps(tmp,tmp2);
+    w = _mm_add_ps(tmp, tmp2);
 #else
     w = _mm_setzero_ps();
-    w = _mm_blendv_ps(w, *(v4sf *) _ps_PIF, _mm_andnot_ps(yinfzero, xinfzero));    // y >= 0 && x<0
-    w = _mm_blendv_ps(w, *(v4sf *) _ps_mPIF, _mm_and_ps(yinfzero, xinfzero));      // y < 0 && x<0
+    w = _mm_blendv_ps(w, *(v4sf *) _ps_PIF, _mm_andnot_ps(yinfzero, xinfzero));  // y >= 0 && x<0
+    w = _mm_blendv_ps(w, *(v4sf *) _ps_mPIF, _mm_and_ps(yinfzero, xinfzero));    // y < 0 && x<0
 #endif
 
     tmp = _mm_div_ps(y, x);
     tmp = atanf_ps(tmp);
     tmp = _mm_add_ps(w, tmp);
-    z = _mm_blendv_ps(tmp, z, specialcase); // atanf(y/x) if not in special case
+    z = _mm_blendv_ps(tmp, z, specialcase);  // atanf(y/x) if not in special case
     return (z);
 }
 
@@ -2754,7 +2754,7 @@ static inline v4sf tanf_ps(v4sf xx)
     /* compute x mod PIO4 */
     tmp = _mm_mul_ps(*(v4sf *) _ps_FOPI, x);
     j = _mm_cvttps_epi32(tmp);
-#if 1 // convert is faster than round on some targets
+#if 1  // convert is faster than round on some targets
     y = _mm_cvtepi32_ps(j);
 #else
     y = _mm_round_ps(tmp, ROUNDTOZERO);
@@ -2763,7 +2763,7 @@ static inline v4sf tanf_ps(v4sf xx)
     jandone = _mm_cmpgt_epi32(_mm_and_si128(j, *(v4si *) _pi32_1), _mm_setzero_si128());  // Ok?
     tmp = _mm_and_ps(*(v4sf *) _ps_1, _mm_castsi128_ps(jandone));
     y = _mm_add_ps(y, tmp);
-    tmpi = _mm_and_si128(*(v4si *) _pi32_1,jandone);
+    tmpi = _mm_and_si128(*(v4si *) _pi32_1, jandone);
     j = _mm_add_epi32(j, tmpi);
 
     z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP1, x);
@@ -2781,11 +2781,11 @@ static inline v4sf tanf_ps(v4sf xx)
     tmp = _mm_fmadd_ps_custom(tmp, zz, *(v4sf *) _ps_TAN_P5);
     tmp = _mm_mul_ps(zz, tmp);
 
-#if 1 // _mm_fmadd_ps_custom(tmp, z, z) has to been optimised to tmp*z and the + z is merged after
-// some targets, with no FMA or slow blendv should see improvements 
+#if 1  // _mm_fmadd_ps_custom(tmp, z, z) has to been optimised to tmp*z and the + z is merged after
+       // some targets, with no FMA or slow blendv should see improvements
     tmp = _mm_mul_ps(tmp, z);
     xsupem4 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1em4);  // if( x > 1.0e-4 )
-    tmp = _mm_and_ps(tmp,xsupem4);
+    tmp = _mm_and_ps(tmp, xsupem4);
     y = _mm_add_ps(z, tmp);
 #else
     tmp = _mm_fmadd_ps_custom(tmp, z, z);
@@ -3168,7 +3168,7 @@ static inline void sum128f(float *src, float *dst, int len)
     v4sf vec_acc1 = _mm_setzero_ps();  // initialize the vector accumulator
     v4sf vec_acc2 = _mm_setzero_ps();  // initialize the vector accumulator
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+    if (isAligned((uintptr_t) (src), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf vec_tmp1 = _mm_load_ps(src + i);
             vec_acc1 = _mm_add_ps(vec_acc1, vec_tmp1);

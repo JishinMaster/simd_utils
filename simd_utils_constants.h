@@ -160,6 +160,27 @@ typedef enum {
 #define c_cephes_FOPI 1.27323954473516  // 4 / M_PI
 
 
+#ifdef ALTIVEC
+
+#define ALTIVEC_LEN_FLOAT 4
+#define ALTIVEC_LEN_BYTES 16
+
+#define ALIGN16_BEG
+#define ALIGN16_END __attribute__((aligned(16)))
+
+#define _PI8_CONST(Name, Val)                                                                           \
+    static const ALIGN16_BEG unsigned char _pi8_##Name[16] ALIGN16_END = {Val, Val, Val, Val, Val, Val, \
+                                                                          Val, Val, Val, Val, Val, Val, Val, Val, Val, Val}
+
+_PI8_CONST(0, 0x00);
+_PI8_CONST(ff, 0xFF);
+
+typedef __vector float v4sf;
+typedef __vector int v4si;
+typedef __vector unsigned char v16u8;
+typedef __vector char v16s8;
+#endif
+
 #ifdef SSE
 
 #define SSE_LEN_BYTES 16  // Size of SSE lane
@@ -168,20 +189,13 @@ typedef enum {
 #define SSE_LEN_FLOAT 4   // number of float with an SSE lane
 #define SSE_LEN_DOUBLE 2  // number of double with an SSE lane
 
-#if defined(ARM)
+#ifdef ARM
 
 typedef float32x4_t v4sf;      // vector of 4 float
 typedef float32x4x2_t v4sfx2;  // vector of 4 float
 typedef uint32x4_t v4su;       // vector of 4 uint32
 typedef int32x4_t v4si;        // vector of 4 uint32
 typedef float32x4x2_t v4sfx2;
-
-#define _PS_CONST(Name, Val) \
-    static const ALIGN16_BEG float _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
-#define _PI32_CONST(Name, Val) \
-    static const ALIGN16_BEG int _pi32_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
-#define _PS_CONST_TYPE(Name, Type, Val) \
-    static const ALIGN16_BEG Type _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
 
 #else
 
@@ -191,15 +205,7 @@ typedef struct {
     v4sf val[2];
 } v4sfx2;
 
-
-#define _PS_CONST(Name, Val) \
-    static const ALIGN16_BEG float _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
-#define _PI32_CONST(Name, Val) \
-    static const ALIGN16_BEG int _pi32_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
-#define _PS_CONST_TYPE(Name, Type, Val) \
-    static const ALIGN16_BEG Type _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
-
-#endif
+#endif  // ARM
 
 #define ROUNDTONEAREST (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC)
 #define ROUNDTOFLOOR (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC)
@@ -213,10 +219,6 @@ typedef struct {
     v2sd val[2];
 } v2sdx2;
 
-// Warning, declared in reverse order since it's little endian :
-//  const v4sf conj_mask = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
-static const float _ps_conj_mask[4] __attribute__((aligned(16))) = {1.0f, -1.0f, 1.0f, -1.0f};
-
 #define _PD_CONST(Name, Val) \
     static const ALIGN16_BEG double _pd_##Name[2] ALIGN16_END = {Val, Val}
 #define _PI64_CONST(Name, Val) \
@@ -224,20 +226,36 @@ static const float _ps_conj_mask[4] __attribute__((aligned(16))) = {1.0f, -1.0f,
 #define _PD_CONST_TYPE(Name, Type, Val) \
     static const ALIGN16_BEG Type _pd_##Name[2] ALIGN16_END = {Val, Val}
 
+#endif  // SSE
+
+
+#if defined(SSE) || defined(ALTIVEC)
+
+#define _PS_CONST(Name, Val) \
+    static const ALIGN16_BEG float _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
+#define _PI32_CONST(Name, Val) \
+    static const ALIGN16_BEG int _pi32_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
+#define _PS_CONST_TYPE(Name, Type, Val) \
+    static const ALIGN16_BEG Type _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
+
+// Warning, declared in reverse order since it's little endian :
+//  const v4sf conj_mask = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
+#if defined(SSE)
+static const float _ps_conj_mask[4] __attribute__((aligned(16))) = {1.0f, -1.0f, 1.0f, -1.0f};
+#else  // ALTIVEC, big endian
+static const float _ps_conj_mask[4] __attribute__((aligned(16))) = {-1.0f, 1.0f, -1.0f, 1.0f};
+#endif
+
 /////////////// INT //////////////////
+_PI32_CONST(0, 0);
 _PI32_CONST(1, 1);
 _PI32_CONST(inv1, ~1);
 _PI32_CONST(2, 2);
 _PI32_CONST(4, 4);
 _PI32_CONST(0x7f, 0x7f);
-_PI64_CONST(1, 1);
-_PI64_CONST(inv1, ~1);
-_PI64_CONST(2, 2);
-_PI64_CONST(4, 4);
-_PI64_CONST(0x7f, 0x7f);
-
 
 /////////////// SINGLE //////////////////
+_PS_CONST(0, 0.0f);
 _PS_CONST(1, 1.0f);
 _PS_CONST(0p3, 0.333333333333f);
 _PS_CONST(min0p3, -0.333333333333f);
@@ -393,6 +411,16 @@ _PS_CONST(CBRTF_P2, -0.95438224771509446525043f);
 _PS_CONST(CBRTF_P3, 1.1399983354717293273738f);
 _PS_CONST(CBRTF_P4, 0.40238979564544752126924f);
 
+#endif  // SSE/ARM || ALTIVEC
+
+#ifdef SSE  // or ARM. no double precision for ALTIVEC
+/////////////// INT64 //////////////
+_PI64_CONST(1, 1);
+_PI64_CONST(inv1, ~1);
+_PI64_CONST(2, 2);
+_PI64_CONST(4, 4);
+_PI64_CONST(0x7f, 0x7f);
+
 /////////////// DOUBLE //////////////////
 _PD_CONST_TYPE(zero, int, (int) 0x00000000);
 _PD_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
@@ -514,7 +542,6 @@ _PD_CONST(TAN3PI8, 2.41421356237309504880); /* 3*pi/8 */
 
 _PD_CONST(min1, -1.0);
 
-
 _PD_CONST(1m14, 1.0e-14);
 _PD_CONST(TAN_P0, -1.30936939181383777646E4);
 _PD_CONST(TAN_P1, 1.15351664838587416140E6);
@@ -531,7 +558,7 @@ _PD_CONST(tanlossth, 1.073741824e9);
 _PD_CONST(PDEPI64U, 0x0010000000000000);
 
 
-#endif
+#endif  // SSE/ARM
 
 
 #ifdef AVX
@@ -1226,63 +1253,49 @@ _PD512_CONST(tanlossth, 1.073741824e9);
 #endif
 
 
-#ifdef ALTIVEC
-
-#define ALTIVEC_LEN_FLOAT 4
-#define ALTIVEC_LEN_BYTES 16
-
-#define ALIGN16_BEG
-#define ALIGN16_END __attribute__((aligned(16)))
-
-#define _PS_CONST(Name, Val) \
-    static const ALIGN16_BEG float _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
-#define _PI32_CONST(Name, Val) \
-    static const ALIGN16_BEG int _pi32_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
-#define _PS_CONST_TYPE(Name, Type, Val) \
-    static const ALIGN16_BEG Type _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
-#define _PI8_CONST(Name, Val)                                                                           \
-    static const ALIGN16_BEG unsigned char _pi8_##Name[16] ALIGN16_END = {Val, Val, Val, Val, Val, Val, \
-                                                                          Val, Val, Val, Val, Val, Val, Val, Val, Val, Val}
-
-_PI8_CONST(0, 0x00);
-_PS_CONST(0, 0.0f);
-_PS_CONST(1, 1.0f);
-_PS_CONST(0p5, 0.5f);
-_PS_CONST(min1, -1.0f);
-_PI8_CONST(ff, 0xFF);
-
-typedef __vector float v4sf;
-typedef __vector int v4si;
-typedef __vector unsigned char v16u8;
-typedef __vector char v16s8;
-#endif
-
 /// PRINT FUNCTIONS */
 #if 0
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
 
-static inline void print4(__m128 v)
+static inline void print4(v4sf v)
 {
     float *p = (float *) &v;
 #ifndef __SSE2__
+#ifndef ALTIVEC
     _mm_empty();
+#endif
 #endif
     printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
     //printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
 }
 
-static inline void print4i(__m128i v)
+static inline void print4x(v4si v)
 {
     int *p = (int *) &v;
 #ifndef __SSE2__
+#ifndef ALTIVEC
     _mm_empty();
+#endif
+#endif
+    printf("[%08x, %08x, %08x, %08x]", p[0], p[1], p[2], p[3]);
+    //printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
+}
+
+static inline void print4i(v4si v)
+{
+    int *p = (int *) &v;
+#ifndef __SSE2__
+#ifndef ALTIVEC
+    _mm_empty();
+#endif
 #endif
     printf("[%d, %d, %d, %d]", p[0], p[1], p[2], p[3]);
 }
 
 #endif
 
+#ifdef SSE
 static inline void print4short(__m64 v)
 {
     uint16_t *p = (uint16_t *) &v;
@@ -1310,6 +1323,9 @@ static inline void print2i(__m128i v)
     printf("[%ld, %ld]", p[0], p[1]);
 }
 
+#endif
+
+#ifdef AVX
 static inline void print8(__m256 v)
 {
     float *p = (float *) &v;
@@ -1337,6 +1353,9 @@ static inline void print4id(__m256i v)
     printf("[%ld, %ld, %ld, %ld]", p[0], p[1], p[2], p[3]);
 }
 
+#endif
+
+#ifdef AVX512
 static inline void print8d(__m512d v)
 {
     double *p = (double *) &v;
@@ -1354,5 +1373,7 @@ static inline void print8id(__m512i v)
 #endif
     printf("[%ld, %ld, %ld, %ld, %ld, %ld, %ld, %ld ]", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
 }
+
+#endif
 
 #endif

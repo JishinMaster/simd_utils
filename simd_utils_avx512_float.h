@@ -2751,7 +2751,7 @@ static inline void sum512f(float *src, float *dst, int len)
     v16sf vec_acc1 = _mm512_setzero_ps();  // initialize the vector accumulator
     v16sf vec_acc2 = _mm512_setzero_ps();  // initialize the vector accumulator
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+    if (isAligned((uintptr_t) (src), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf vec_tmp1 = _mm512_load_ps(src + i);
             vec_acc1 = _mm512_add_ps(vec_acc1, vec_tmp1);
