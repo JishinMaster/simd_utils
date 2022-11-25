@@ -44,7 +44,7 @@ static inline void vec_stu(v16u8 src, unsigned char *target)
     MSQ = vec_ld(0, target);                                        // most significant quadword
     LSQ = vec_ld(16, target);                                       // least significant quadword
     align = vec_lvsr(0, target);                                    // create alignment vector
-    mask = vec_perm(*(v16u8 *) _pi8_0, *(v16s8 *) _pi8_ff, align);  // Create select mask
+    mask = vec_perm(*(v16u8 *) _pi8_0, *(v16u8 *) _pi8_ff, align);  // Create select mask
     src = vec_perm(src, src, align);                                // Right rotate stored data
     MSQ = vec_sel(MSQ, src, mask);                                  // Insert data into MSQ part
     LSQ = vec_sel(src, LSQ, mask);                                  // Insert data into LSQ part
@@ -77,15 +77,44 @@ static inline v4si vec_nandi(v4si a, v4si b)
     return vec_andc(b, a);
 }
 
-static inline v4sf vec_div_precise(v4sf a, v4sf b)
+static inline v4sf vec_div_less_precise(v4sf a, v4sf b)
 {
     // Get the reciprocal estimate
     v4sf estimate = vec_re(b);
-
     // One round of Newton-Raphson refinement
     v4sf re = vec_madd(vec_nmsub(estimate, b, *(v4sf *) _ps_1), estimate, estimate);
     return vec_mul(a, re);
 }
+
+// http://preserve.mactech.com/articles/mactech/Vol.15/15.07/AltiVecRevealed/index.html
+// precise to full IEEE 24 bits
+static inline vector float vec_div_precise(vector float A, vector float B)
+{
+    vector float y0;
+    vector float y1;
+    vector float y2;
+    vector float Q;
+    vector float R;
+
+    y0 = vec_re(B);  // approximate 1/B
+
+    // y1 = y0*(-(y0*B - 1.0))+y0  i.e. y0+y0*(1.0 - y0*B)
+    y1 = vec_madd(y0, vec_nmsub(y0, B, *(v4sf *) _ps_1), y0);
+
+    // REPEAT the Newton-Raphson to get the required 24 bits
+    y2 = vec_madd(y1, vec_nmsub(y1, B, *(v4sf *) _ps_1), y1);
+
+    // y2 = y1*(-(y1*B - 1.0))+y1  i.e. y1+y1*(1.0 - y1*B)
+    // y2 is now the correctly rounded reciprocal, and the manual considers this
+    // OK for use in computing the remainder: Q = A*y2, R = A - B*Q
+
+    Q = vec_mul(A, y2);
+    R = vec_nmsub(B, Q, A);  // -(B*Q-A) == (A-B*Q)
+
+    // final rouding adjustment
+    return (vec_madd(R, y2, Q));
+}
+
 
 // In Altivec there is no sqrt, hence sqrt(a)= a*rsqrt(a)
 static inline v4sf vec_sqrt(v4sf a)
@@ -107,8 +136,8 @@ static inline v4sf vec_sqrt_precise(v4sf a)
     v4sf estimate = vec_rsqrte(a);
 
     // One round of Newton-Raphson refinement
-    v4sf estimateSquared = vec_madd(estimate, estimate, *(v4sf *) _ps_0);
-    v4sf halfEstimate = vec_madd(estimate, *(v4sf *) _ps_0p5, *(v4sf *) _ps_0);
+    v4sf estimateSquared = vec_mul(estimate, estimate);
+    v4sf halfEstimate = vec_mul(estimate, *(v4sf *) _ps_0p5);
     v4sf re = vec_madd(vec_nmsub(a, estimateSquared, *(v4sf *) _ps_1), halfEstimate, estimate);
 
     return vec_mul(a, re);
@@ -201,6 +230,51 @@ static inline void mul128f(float *src1, float *src2, float *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src1[i] * src2[i];
+    }
+}
+
+static inline void fabs128f(float *src, float *dst, int len)
+{
+    int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
+    stop_len *= (2 * ALTIVEC_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp = vec_ld(0, src + i);
+            v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            v4sf dst_tmp = vec_and(*(v4sf *) _ps_pos_sign_mask, src_tmp);
+            v4sf dst_tmp2 = vec_and(*(v4sf *) _ps_pos_sign_mask, src_tmp2);
+            vec_st(dst_tmp, 0, dst + i);
+            vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf dst_tmp = vec_and(*(v4sf *) _ps_pos_sign_mask, src_tmp);
+            v4sf dst_tmp2 = vec_and(*(v4sf *) _ps_pos_sign_mask, src_tmp2);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, dst + i);
+                vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = fabsf(src[i]);
     }
 }
 
@@ -355,11 +429,10 @@ static inline void cplxtoreal128f(complex32_t *src, float *dstRe, float *dstIm, 
 #endif
 }
 
-// vec_mergeh & vec_mergel?
 static inline void realtocplx128f(float *srcRe, float *srcIm, complex32_t *dst, int len)
 {
 #ifdef LLVMMCA
-    __asm volatile("# LLVM-MCA-BEGIN cplxtoreal128f" ::
+    __asm volatile("# LLVM-MCA-BEGIN realtocplx128f" ::
                        : "memory");
 #endif
     int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
@@ -441,7 +514,7 @@ static inline void realtocplx128f(float *srcRe, float *srcIm, complex32_t *dst, 
         dst[i].im = srcIm[i];
     }
 #ifdef LLVMMCA
-    __asm volatile("# LLVM-MCA-END cplxtoreal128f" ::
+    __asm volatile("# LLVM-MCA-END realtocplx128f" ::
                        : "memory");
 #endif
 }
@@ -643,7 +716,8 @@ static inline void log2_128f_precise(float *src, float *dst, int len)
     }
 }
 
-static inline void ln_128f(float *src, float *dst, int len)
+// less precise
+static inline void ln_128f_less_precise(float *src, float *dst, int len)
 {
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
@@ -779,13 +853,10 @@ static inline v4sf log10_ps(v4sf x)
     return x;
 }
 
-#warning "ALTIVEC log10_128f_precise just a stub for now"
 static inline void log10_128f_precise(float *src, float *dst, int len)
 {
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
-
-    const v4sf ln2_ln10_vec = {LN2_DIV_LN10, LN2_DIV_LN10, LN2_DIV_LN10, LN2_DIV_LN10};
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
@@ -804,6 +875,95 @@ static inline void log10_128f_precise(float *src, float *dst, int len)
                 a = vec_ld(0, src + i);
             }
             v4sf c = log10_ps(a);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = log10f(src[i]);
+    }
+}
+
+static inline v4sf log_ps(v4sf x)
+{
+    v4si emm0;
+    v4sf one = *(v4sf *) _ps_1;
+
+    __vector bool int invalid_mask = vec_cmple(x, *(v4sf *) _ps_0);
+
+    x = vec_max(x, *(v4sf *) _ps_min_norm_pos); /* cut off denormalized stuff */
+
+    __vector unsigned int shift_bits = vec_splats((unsigned int) 23);
+    v4sf *x_ptr = &x;
+    emm0 = vec_sr(*(v4si *) x_ptr, shift_bits);
+
+    /* keep only the fractional part */
+    x = vec_and(x, *(v4sf *) _ps_inv_mant_mask);
+    x = vec_or(x, *(v4sf *) _ps_0p5);
+
+    emm0 = vec_sub(emm0, *(v4si *) _pi32_0x7f);
+    v4sf e = vec_ctf(emm0, 0);
+
+    e = vec_add(e, one);
+
+    __vector bool int mask = vec_cmplt(x, *(v4sf *) _ps_cephes_SQRTHF);
+    __vector bool int *mask_ptr = &mask;
+    v4sf tmp = vec_and(x, *(v4sf *) mask_ptr);
+    x = vec_sub(x, one);
+    e = vec_sub(e, vec_and(one, mask));
+    x = vec_add(x, tmp);
+
+    v4sf z = vec_mul(x, x);
+
+    v4sf y = vec_madd(*(v4sf *) _ps_cephes_log_p0, x, *(v4sf *) _ps_cephes_log_p1);
+    y = vec_madd(y, x, *(v4sf *) _ps_cephes_log_p2);
+    y = vec_madd(y, x, *(v4sf *) _ps_cephes_log_p3);
+    y = vec_madd(y, x, *(v4sf *) _ps_cephes_log_p4);
+    y = vec_madd(y, x, *(v4sf *) _ps_cephes_log_p5);
+    y = vec_madd(y, x, *(v4sf *) _ps_cephes_log_p6);
+    y = vec_madd(y, x, *(v4sf *) _ps_cephes_log_p7);
+    y = vec_madd(y, x, *(v4sf *) _ps_cephes_log_p8);
+    y = vec_mul(y, x);
+
+    y = vec_mul(y, z);
+
+    y = vec_madd(e, *(v4sf *) _ps_cephes_log_q1, y);
+    tmp = vec_mul(z, *(v4sf *) _ps_0p5);
+    y = vec_sub(y, tmp);
+
+    tmp = vec_madd(e, *(v4sf *) _ps_cephes_log_q2, y);
+    x = vec_add(x, tmp);
+    x = vec_or(x, invalid_mask);  // negative arg will be NAN
+    return x;
+}
+
+static inline void ln_128f(float *src, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(log_ps(a), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+            v4sf c = log_ps(a);
 
             if (unalign_dst) {
                 vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
@@ -1052,12 +1212,6 @@ static inline void mean128f(float *src, float *dst, int len)
     float coeff = 1.0f / ((float) len);
     sum128f(src, dst, len);
     *dst *= coeff;
-}
-
-static inline void meankahan128f(float *src, float *dst, int len)
-{
-#warning "ALTIVEC meankahan128f stub"
-    mean128f(src, dst, len);
 }
 
 
@@ -1392,7 +1546,7 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
     x = vec_madd(y, *(v4sf *) _ps_minus_cephes_DP3, x);
 
     emm4 = vec_sub(emm4, *(v4si *) _pi32_2);
-    emm4 = vec_nandi(emm4, *(v4si *) _pi32_4);
+    emm4 = vec_andc(*(v4si *) _pi32_4, emm4);
     emm4 = vec_sl(emm4, shift_val);
     v4si *sign_bit_cos = &emm4;
 
@@ -1418,7 +1572,7 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
     /* select the correct result from the two polynoms */
     xmm3 = *(v4sf *) poly_mask;
     v4sf ysin2 = vec_and(xmm3, y2);
-    v4sf ysin1 = vec_nand(xmm3, y);
+    v4sf ysin1 = vec_andc(y, xmm3);
     y2 = vec_sub(y2, ysin2);
     y = vec_sub(y, ysin1);
 
@@ -1578,6 +1732,670 @@ static inline void tan128f_naive(float *restrict src, float *restrict dst, int l
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = tanf(src[i]);
+    }
+}
+
+static inline v4sf atanf_ps(v4sf xx)
+{
+    v4sf x, y, z;
+    v4sf sign;
+    __vector bool int suptan3pi8, inftan3pi8suppi8;
+    v4sf tmp;
+
+    x = vec_and(*(v4sf *) _ps_pos_sign_mask, xx);
+    sign = vec_and(xx, *(v4sf *) _ps_sign_mask);
+
+    /* range reduction */
+
+    y = *(v4sf *) _ps_0;
+    suptan3pi8 = vec_cmpgt(x, *(v4sf *) _ps_TAN3PI8F);  // if( x > tan 3pi/8 )
+    x = vec_sel(x, vec_div_precise(*(v4sf *) _ps_min1, x), suptan3pi8);
+    y = vec_sel(y, *(v4sf *) _ps_PIO2F, suptan3pi8);
+
+    inftan3pi8suppi8 = vec_and(vec_cmple(x, *(v4sf *) _ps_TAN3PI8F), vec_cmpgt(x, *(v4sf *) _ps_TANPI8F));  // if( x > tan 3pi/8 )
+
+    // To be optimised with RCP?
+    x = vec_sel(x, vec_div_precise(vec_sub(x, *(v4sf *) _ps_1), vec_add(x, *(v4sf *) _ps_1)), inftan3pi8suppi8);
+    y = vec_sel(y, *(v4sf *) _ps_PIO4F, inftan3pi8suppi8);
+
+    z = vec_mul(x, x);
+
+    tmp = vec_madd(*(v4sf *) _ps_ATAN_P0, z, *(v4sf *) _ps_ATAN_P1);
+    tmp = vec_madd(tmp, z, *(v4sf *) _ps_ATAN_P2);
+    tmp = vec_madd(tmp, z, *(v4sf *) _ps_ATAN_P3);
+    tmp = vec_mul(z, tmp);
+    tmp = vec_madd(tmp, x, x);
+
+    y = vec_add(y, tmp);
+
+    y = vec_xor(y, sign);
+    return (y);
+}
+
+static inline void atan128f(float *src, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(atanf_ps(a), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+            v4sf c = atanf_ps(a);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atanf(src[i]);
+    }
+}
+
+
+static inline v4sf atan2f_ps(v4sf y, v4sf x)
+{
+    v4sf z, w;
+    __vector bool int xinfzero, yinfzero, xeqzero, yeqzero;
+    __vector bool int xeqzeroandyinfzero, yeqzeroandxinfzero;
+    __vector bool int specialcase;
+    v4sf tmp, tmp2;
+
+    xinfzero = vec_cmplt(x, *(v4sf *) _ps_0);  // code =2
+    yinfzero = vec_cmplt(y, *(v4sf *) _ps_0);  // code = code |1;
+
+    xeqzero = vec_cmpeq(x, *(v4sf *) _ps_0);
+    yeqzero = vec_cmpeq(y, *(v4sf *) _ps_0);
+
+    xeqzeroandyinfzero = vec_and(xeqzero, yinfzero);
+    yeqzeroandxinfzero = vec_and(yeqzero, xinfzero);
+
+#if 1
+    xeqzeroandyinfzero = vec_and(xeqzeroandyinfzero, *(__vector bool int *) _ps_sign_mask);
+    tmp = vec_xor(*(v4sf *) _ps_PIO2F, xeqzeroandyinfzero);  // either PI or -PI
+    z = vec_andc(tmp, yeqzero);                              // not(yeqzero) and tmp => 0, PI/2, -PI/2
+#else
+    z = *(v4sf *) _ps_PIO2F;
+    z = vec_sel(z, *(v4sf *) _ps_mPIO2F, xeqzeroandyinfzero);
+    z = vec_sel(z, *(v4sf *) _ps_0, yeqzero);
+#endif
+    z = vec_sel(z, *(v4sf *) _ps_PIF, yeqzeroandxinfzero);
+    specialcase = vec_xor(xeqzero, yeqzero);
+
+#if 0
+    tmp = vec_and(*(v4sf *) _ps_PIF, vec_andc(xinfzero, yinfzero));
+    tmp2 = vec_and(*(v4sf *) _ps_mPIF, vec_and(yinfzero, xinfzero));
+    w = vec_add(tmp, tmp2);
+#else
+    w = *(v4sf *) _ps_0;
+    w = vec_sel(w, *(v4sf *) _ps_PIF, vec_andc(xinfzero, yinfzero));  // y >= 0 && x<0
+    w = vec_sel(w, *(v4sf *) _ps_mPIF, vec_and(yinfzero, xinfzero));  // y < 0 && x<0
+#endif
+
+    tmp = vec_div_precise(y, x);
+    tmp = atanf_ps(tmp);
+    tmp = vec_add(w, tmp);
+    z = vec_sel(tmp, z, specialcase);  // atanf(y/x) if not in special case
+    return (z);
+}
+
+static inline void atan2128f(float *src1, float *src2, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src1 + i);
+            v4sf b = vec_ld(0, src2 + i);
+            vec_st(atan2f_ps(a, b), 0, dst + i);
+        }
+    } else {
+        int unalign_src1 = (uintptr_t) (src1) % ALTIVEC_LEN_BYTES;
+        int unalign_src2 = (uintptr_t) (src2) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        /*To be improved : we constantly use unaligned load or store of those data
+        There exist better unaligned stream load or store which could improve performance
+        */
+        // The following loop relies on good branch prediction architecture
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a, b;
+            if (unalign_src1) {
+                a = (v4sf) vec_ldu((unsigned char *) (src1 + i));
+            } else {
+                a = vec_ld(0, src1 + i);
+            }
+            if (unalign_src2) {
+                b = (v4sf) vec_ldu((unsigned char *) (src2 + i));
+            } else {
+                b = vec_ld(0, src2 + i);
+            }
+            v4sf c = atan2f_ps(a, b);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atan2f(src1[i], src2[i]);
+    }
+}
+
+static inline v4sf tanhf_ps(v4sf xx)
+{
+    v4sf x, z, z_first_branch, z_second_branch;
+    __vector bool int xxsup0, xsupmaxlogfdiv2, xsup0p625;
+
+    xxsup0 = vec_cmpgt(xx, *(v4sf *) _ps_0);
+    xsupmaxlogfdiv2 = vec_cmpgt(xx, *(v4sf *) _ps_MAXLOGFDIV2);
+
+    x = vec_and(*(v4sf *) _ps_pos_sign_mask, xx);
+
+    xsup0p625 = vec_cmpge(x, *(v4sf *) _ps_0p625);
+    x = vec_sel(x, exp_ps_alternate(vec_add(x, x)), xsup0p625);
+
+    // z = 1.0 - 2.0 / (x + 1.0);
+    z_first_branch = vec_add(x, *(v4sf *) _ps_1);
+    z_first_branch = vec_div_precise(*(v4sf *) _ps_min2, z_first_branch);
+    z_first_branch = vec_add(*(v4sf *) _ps_1, z_first_branch);
+    z_first_branch = vec_sel(vec_xor(*(v4sf *) _ps_neg_sign_mask, z_first_branch), z_first_branch, xxsup0);
+
+    // z = x * x;
+    z = vec_mul(x, x);
+
+    z_second_branch = vec_madd(z, *(v4sf *) _ps_TANH_P0, *(v4sf *) _ps_TANH_P1);
+    z_second_branch = vec_madd(z_second_branch, z, *(v4sf *) _ps_TANH_P2);
+    z_second_branch = vec_madd(z_second_branch, z, *(v4sf *) _ps_TANH_P3);
+    z_second_branch = vec_madd(z_second_branch, z, *(v4sf *) _ps_TANH_P4);
+    z_second_branch = vec_mul(z_second_branch, z);
+    z_second_branch = vec_madd(z_second_branch, xx, xx);
+
+    z = vec_sel(z_second_branch, z_first_branch, xsup0p625);
+    // if (x > 0.5 * MAXLOGF), return (xx > 0)? 1.0f: -1.0f
+    z = vec_sel(z, *(v4sf *) _ps_min1, xsupmaxlogfdiv2);
+    z = vec_sel(z, *(v4sf *) _ps_1, vec_and(xxsup0, xsupmaxlogfdiv2));
+
+    return (z);
+}
+
+static inline void tanh128f(float *src, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(tanhf_ps(a), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+            v4sf c = tanhf_ps(a);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = tanhf(src[i]);
+    }
+}
+
+static inline v4sf atanhf_ps(v4sf x)
+{
+    v4sf z, tmp, tmp2, z_first_branch, z_second_branch;
+    __vector bool int xsup1, xinfmin1, zinf1emin4, zinf0p5;
+
+    z = vec_and(*(v4sf *) _ps_pos_sign_mask, x);
+
+    xsup1 = vec_cmpge(x, *(v4sf *) _ps_1);
+    xinfmin1 = vec_cmple(x, *(v4sf *) _ps_min1);
+    zinf1emin4 = vec_cmplt(z, *(v4sf *) _ps_1emin4);
+    zinf0p5 = vec_cmplt(z, *(v4sf *) _ps_0p5);
+
+    // First branch
+    tmp = vec_mul(x, x);
+    z_first_branch = vec_madd(*(v4sf *) _ps_ATANH_P0, tmp, *(v4sf *) _ps_ATANH_P1);
+    z_first_branch = vec_madd(z_first_branch, tmp, *(v4sf *) _ps_ATANH_P2);
+    z_first_branch = vec_madd(z_first_branch, tmp, *(v4sf *) _ps_ATANH_P3);
+    z_first_branch = vec_madd(z_first_branch, tmp, *(v4sf *) _ps_ATANH_P4);
+    z_first_branch = vec_mul(z_first_branch, tmp);
+    z_first_branch = vec_madd(z_first_branch, x, x);
+
+    // Second branch
+    // precision of rcp vs div?
+    tmp = vec_sub(*(v4sf *) _ps_1, x);
+    tmp2 = vec_re(tmp);
+    tmp = vec_madd(tmp2, x, tmp2);
+    z_second_branch = log_ps(tmp);
+    z_second_branch = vec_mul(*(v4sf *) _ps_0p5, z_second_branch);
+
+    z = vec_sel(z_second_branch, z_first_branch, zinf0p5);
+    z = vec_sel(z, x, zinf1emin4);
+
+    z = vec_sel(z, *(v4sf *) _ps_MAXNUMF, xsup1);
+    z = vec_sel(z, *(v4sf *) _ps_minMAXNUMF, xinfmin1);
+
+    return (z);
+}
+
+static inline void atanh128f(float *src, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(atanhf_ps(a), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+            v4sf c = atanhf_ps(a);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atanhf(src[i]);
+    }
+}
+
+static inline v4sf sinhf_ps(v4sf x)
+{
+    v4sf z, z_first_branch, z_second_branch, tmp;
+    __vector bool int xsupmaxlogf, zsup1;
+    v4sf sign;
+
+    // x = xx; if x < 0, z = -x, else x
+    z = vec_and(*(v4sf *) _ps_pos_sign_mask, x);
+    sign = vec_and(x, *(v4sf *) _ps_sign_mask);
+
+    xsupmaxlogf = vec_cmpgt(z, *(v4sf *) _ps_MAXLOGF);
+
+    // First branch
+    zsup1 = vec_cmpgt(z, *(v4sf *) _ps_1);
+    z_first_branch = exp_ps_alternate(z);
+    tmp = vec_div_precise(*(v4sf *) _ps_min0p5, z_first_branch);
+    z_first_branch = vec_madd(*(v4sf *) _ps_0p5, z_first_branch, tmp);
+
+#if 1
+    z_first_branch = vec_xor(z_first_branch, sign);
+#else
+    v4sf xinf0 = vec_cmplt(x, _mm_setzero_ps());
+    z_first_branch = vec_sel(z_first_branch, vec_xor(*(v4sf *) _ps_neg_sign_mask, z_first_branch), xinf0);
+#endif
+
+    // Second branch
+    tmp = vec_mul(x, x);
+    z_second_branch = vec_madd(*(v4sf *) _ps_SINH_P0, tmp, *(v4sf *) _ps_SINH_P1);
+    z_second_branch = vec_madd(z_second_branch, tmp, *(v4sf *) _ps_SINH_P2);
+    z_second_branch = vec_mul(z_second_branch, tmp);
+    z_second_branch = vec_madd(z_second_branch, x, x);
+
+    // Choose between first and second branch
+    z = vec_sel(z_second_branch, z_first_branch, zsup1);
+
+    // Set value to MAXNUMF if abs(x) > MAGLOGF
+    // Set value to -MAXNUMF if abs(x) > MAGLOGF and x < 0
+    tmp = vec_xor(*(v4sf *) _ps_MAXNUMF, sign);
+    z = vec_sel(z, tmp, xsupmaxlogf);
+
+    return (z);
+}
+
+static inline void sinh128f(float *src, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(sinhf_ps(a), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+            v4sf c = sinhf_ps(a);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = sinhf(src[i]);
+    }
+}
+
+static inline v4sf coshf_ps(v4sf xx)
+{
+    v4sf x, y, tmp;
+    __vector bool int xsupmaxlogf;
+
+    x = vec_and(*(v4sf *) _ps_pos_sign_mask, xx);
+    xsupmaxlogf = vec_cmpgt(x, *(v4sf *) _ps_MAXLOGF);
+
+    y = exp_ps_alternate(x);
+    tmp = vec_div_precise(*(v4sf *) _ps_0p5, y);  // or 1/(2*y)
+    y = vec_madd(*(v4sf *) _ps_0p5, y, tmp);
+    y = vec_sel(y, *(v4sf *) _ps_MAXNUMF, xsupmaxlogf);
+
+    return y;
+}
+
+static inline void cosh128f(float *src, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(coshf_ps(a), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+            v4sf c = coshf_ps(a);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = coshf(src[i]);
+    }
+}
+
+static inline v4sf asinhf_ps(v4sf xx)
+{
+    v4sf x, tmp, z, z_first_branch, z_second_branch;
+    __vector bool int xsup1500, xinf0p5;
+    v4sf xxinf0;
+
+    x = vec_and(*(v4sf *) _ps_pos_sign_mask, xx);
+    xsup1500 = vec_cmpgt(x, *(v4sf *) _ps_1500);
+    xinf0p5 = vec_cmplt(x, *(v4sf *) _ps_0p5);
+
+    xxinf0 = vec_and(xx, *(v4sf *) _ps_sign_mask);
+
+    tmp = vec_mul(x, x);
+    // First Branch (x < 0.5)
+    z_first_branch = vec_madd(*(v4sf *) _ps_ASINH_P0, tmp, *(v4sf *) _ps_ASINH_P1);
+    z_first_branch = vec_madd(z_first_branch, tmp, *(v4sf *) _ps_ASINH_P2);
+    z_first_branch = vec_madd(z_first_branch, tmp, *(v4sf *) _ps_ASINH_P3);
+    z_first_branch = vec_mul(z_first_branch, tmp);
+    z_first_branch = vec_madd(z_first_branch, x, x);
+
+    // Second Branch
+    z_second_branch = vec_sqrt_precise(vec_add(tmp, *(v4sf *) _ps_1));
+    z_second_branch = log_ps(vec_add(z_second_branch, x));
+
+    z = vec_sel(z_second_branch, z_first_branch, xinf0p5);
+    tmp = log_ps(x);
+    tmp = vec_add(tmp, *(v4sf *) _ps_LOGE2F);
+    z = vec_sel(z, tmp, xsup1500);
+    z = vec_xor(z, xxinf0);
+    return z;
+}
+
+static inline void asinh128f(float *src, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(asinhf_ps(a), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+            v4sf c = asinhf_ps(a);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = asinhf(src[i]);
+    }
+}
+
+static inline v4sf acoshf_ps(v4sf x)
+{
+    v4sf z, z_first_branch, z_second_branch;
+    __vector bool int xsup1500, zinf0p5, xinf1;
+    v4sf tmp;
+    xsup1500 = vec_cmpgt(x, *(v4sf *) _ps_1500);  // return  (logf(x) + LOGE2F)
+    xinf1 = vec_cmplt(x, *(v4sf *) _ps_1);        // return 0
+
+    z = vec_sub(x, *(v4sf *) _ps_1);
+
+    zinf0p5 = vec_cmplt(z, *(v4sf *) _ps_0p5);  // first and second branch
+
+    // First Branch (z < 0.5)
+    z_first_branch = vec_madd(*(v4sf *) _ps_ACOSH_P0, z, *(v4sf *) _ps_ACOSH_P1);
+    z_first_branch = vec_madd(z_first_branch, z, *(v4sf *) _ps_ACOSH_P2);
+    z_first_branch = vec_madd(z_first_branch, z, *(v4sf *) _ps_ACOSH_P3);
+    z_first_branch = vec_madd(z_first_branch, z, *(v4sf *) _ps_ACOSH_P4);
+    z_first_branch = vec_mul(z_first_branch, vec_sqrt_precise(z));
+
+    // Second Branch
+    z_second_branch = vec_madd(z, x, z);
+    z_second_branch = vec_sqrt_precise(z_second_branch);
+    z_second_branch = vec_add(x, z_second_branch);
+    z_second_branch = log_ps(z_second_branch);
+
+    z = vec_sel(z_second_branch, z_first_branch, zinf0p5);
+    tmp = log_ps(x);
+    tmp = vec_add(tmp, *(v4sf *) _ps_LOGE2F);
+    z = vec_sel(z, tmp, xsup1500);
+
+    __vector bool int *xinf1_ptr = &xinf1;
+    z = vec_andc(z, *(v4sf *) xinf1_ptr);
+
+    return z;
+}
+
+static inline void acosh128f(float *src, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(acoshf_ps(a), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+            v4sf c = acoshf_ps(a);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = acoshf(src[i]);
+    }
+}
+
+static inline v4sf asinf_ps(v4sf xx)
+{
+    v4sf a, x, z, z_tmp;
+    v4sf sign;
+    __vector bool int ainfem4, asup0p5;
+    v4sf tmp;
+    x = xx;
+    a = vec_and(*(v4sf *) _ps_pos_sign_mask, x);  // fabs(x)
+    // sign = vec_cmplt(x, *(v4sf *) _ps_0);        // 0xFFFFFFFF if x < 0.0
+    sign = vec_and(xx, *(v4sf *) _ps_sign_mask);
+
+    const v4sf ps1em4 = {1.0e-4, 1.0e-4, 1.0e-4, 1.0e-4};
+    ainfem4 = vec_cmplt(a, ps1em4);  // if( a < 1.0e-4f )
+
+    asup0p5 = vec_cmpgt(a, *(v4sf *) _ps_0p5);  // if( a > 0.5f ) flag = 1 else 0
+    z_tmp = vec_sub(*(v4sf *) _ps_1, a);
+    z_tmp = vec_mul(*(v4sf *) _ps_0p5, z_tmp);
+    z = vec_sel(vec_mul(a, a), z_tmp, asup0p5);
+    x = vec_sel(a, vec_sqrt_precise(z), asup0p5);
+
+    tmp = vec_madd(*(v4sf *) _ps_ASIN_P0, z, *(v4sf *) _ps_ASIN_P1);
+    tmp = vec_madd(z, tmp, *(v4sf *) _ps_ASIN_P2);
+    tmp = vec_madd(z, tmp, *(v4sf *) _ps_ASIN_P3);
+    tmp = vec_madd(z, tmp, *(v4sf *) _ps_ASIN_P4);
+    tmp = vec_mul(z, tmp);
+    tmp = vec_madd(x, tmp, x);
+
+    z = tmp;
+
+    z_tmp = vec_add(z, z);
+    z_tmp = vec_sub(*(v4sf *) _ps_PIO2F, z_tmp);
+    z = vec_sel(z, z_tmp, asup0p5);
+
+    // done:
+    z = vec_sel(z, a, ainfem4);
+    // z = vec_sel(z, vec_xor(*(v4sf *) _ps_neg_sign_mask, z), sign);
+    z = vec_xor(z, sign);
+
+    // if (x > 1.0) then return 0.0
+    z = vec_sel(z, *(v4sf *) _ps_0, vec_cmpgt(x, *(v4sf *) _ps_1));
+    return (z);
+}
+
+static inline void asin128f(float *src, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(asinf_ps(a), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+            v4sf c = asinf_ps(a);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = asinf(src[i]);
     }
 }
 

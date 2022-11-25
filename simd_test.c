@@ -14,6 +14,15 @@
 #include <time.h>
 #include "simd_utils.h"
 
+#ifdef __MACH__
+#include "macosx_wrapper.h"
+#endif
+
+#ifdef VDSP
+#include "vDSP.h"
+#include "vForce.h"
+#endif
+
 #ifdef IPP
 #include <ipp.h>
 #include <ippdefs.h>
@@ -1715,7 +1724,7 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     fabs128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1730,6 +1739,25 @@ int main(int argc, char **argv)
     printf("fabs128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     l2_err(inout2_ref, inout2, len);
+
+    /*
+    #ifdef VDSP // OS X 10.5
+        clock_gettime(CLOCK_REALTIME, &start);
+        vvfabf(inout2, inout, &len);
+        clock_gettime(CLOCK_REALTIME, &stop);
+        elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+        printf("vvfabf %d %lf\n", len, elapsed);
+
+        clock_gettime(CLOCK_REALTIME, &start);
+        for (l = 0; l < loop; l++)
+          vvfabf(inout2, inout, &len);
+        clock_gettime(CLOCK_REALTIME, &stop);
+        elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+        printf("vvfabf %d %lf\n", len, elapsed);
+        l2_err(inout2_ref, inout2, len);
+    #endif
+    */
+
 #endif
 
 #ifdef AVX
@@ -1931,6 +1959,7 @@ printf("\n");
 
     printf("mean %f ref %f\n", mean, mean_ref);
 
+#ifndef ALTIVEC
     clock_gettime(CLOCK_REALTIME, &start);
     meankahan128f(inout, &mean, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1945,6 +1974,7 @@ printf("\n");
     printf("meankahan128f %d %lf\n", len, elapsed);
 
     printf("mean %f ref %f\n", mean, mean_ref);
+#endif
 #endif
 
 #ifdef AVX
@@ -3643,6 +3673,25 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef VDSP
+    float val = 5.7f;
+    clock_gettime(CLOCK_REALTIME, &start);
+    vDSP_vsmul(inout, 1, &val, inout2, 1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vDSP_vsmul %d %lf\n", len, elapsed);
+
+    val = 6.3f;
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vDSP_vsmul(inout, 1, &val, inout2, 1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vDSP_vsmul %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
     mulc256f(inout, 5.7f, inout2, len);
@@ -4182,6 +4231,23 @@ printf("\n");
     l2_err(inout2_ref, inout3, len);
 #endif
 
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvsincosf(inout2, inout3, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvsincosf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvsincosf(inout2, inout3, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvsincosf %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+    l2_err(inout2_ref, inout3, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -4578,6 +4644,22 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvlogf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvlogf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvlogf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvlogf %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -4922,6 +5004,22 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("log10_128f_svml %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvlog10f(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvlog10f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvlog10f(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvlog10f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -5474,6 +5572,23 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("floor128f %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
+
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvfloorf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvfloorf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvfloorf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvfloorf %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -5575,6 +5690,23 @@ printf("\n");
     printf("ceil128f %d %lf\n", len, elapsed);
 
     l2_err(inout_ref, inout2, len);
+
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvceilf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvceilf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvceilf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvceilf %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -5911,6 +6043,22 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvtanf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvtanf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvtanf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvtanf %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -6182,7 +6330,7 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     tanh128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -6212,6 +6360,22 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("tanh128f_svml %d %lf\n", len, elapsed);
 
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvtanhf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvtanhf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvtanhf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvtanhf %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
 #endif
 
@@ -6337,7 +6501,7 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     sinh128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -6367,6 +6531,22 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sinh128f_svml %d %lf\n", len, elapsed);
 
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvsinhf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvsinhf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvsinhf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvsinhf %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
 #endif
 
@@ -6491,7 +6671,7 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     cosh128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -6521,6 +6701,22 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cosh128f_svml %d %lf\n", len, elapsed);
 
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvcoshf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvcoshf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvcoshf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvcoshf %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
 #endif
 
@@ -6651,7 +6847,7 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     atanh128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -6681,6 +6877,22 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("atanh128f_svml %d %lf\n", len, elapsed);
 
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvatanhf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvatanhf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvatanhf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvatanhf %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
 #endif
 
@@ -6811,7 +7023,7 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     asinh128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -6841,6 +7053,22 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("asinh128f_svml %d %lf\n", len, elapsed);
 
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvasinhf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvasinhf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvasinhf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvasinhf %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
 #endif
 
@@ -6969,7 +7197,7 @@ printf("\n");
     l2_err(inout2_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     acosh128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -6999,6 +7227,22 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("acosh128f_svml %d %lf\n", len, elapsed);
 
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvacoshf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvacoshf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvacoshf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvacoshf %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
 #endif
 
@@ -7131,7 +7375,7 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     asin128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -7458,7 +7702,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     atan128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -7595,7 +7839,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout2_ref, inout_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     atan2128f(inout, inout2, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -8039,6 +8283,29 @@ for (int i = 0; i < len; i++){
     printf("cplxtoreal128f %d %lf\n", len, elapsed);
     l2_err(inout3, inout_ref, len);
     l2_err(inout4, inout2_ref, len);
+
+#ifdef VDSP
+    DSPSplitComplex dsp_split;
+    dsp_split.realp = inout3;
+    dsp_split.imagp = inout4;
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vDSP_ctoz((DSPComplex *) inout, 2, &dsp_split, 1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vDSP_ctoz %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vDSP_ctoz((DSPComplex *) inout, 2, &dsp_split, 1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3 / (double) loop;
+    printf("vDSP_ctoz %d %lf\n", len, elapsed);
+    l2_err(inout3, inout_ref, len);
+    l2_err(inout4, inout2_ref, len);
+#endif
+
+
 #endif
 
 #ifdef AVX
@@ -8133,6 +8400,30 @@ for (int i = 0; i < len; i++){
     l2_err(inout, inout_ref, 2 * len);
 
 
+#endif
+
+#ifdef VDSP
+    //	DSPSplitComplex dsp_split;
+    //	dsp_split.realp=inout3;
+    //	dsp_split.imagp=inout4;
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    vDSP_ztoc(&dsp_split, 1, (DSPComplex *) inout, 2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vDSP_ztoc %d %lf\n", len, elapsed);
+
+    /*for(int i = 0; i < 2*len; i++)
+          printf("%f %f\n",inout[i],inout_ref[i]);
+        printf("\n\n");*/
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vDSP_ztoc(&dsp_split, 1, (DSPComplex *) inout, 2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3 / (double) loop;
+    printf("vDSP_ztoc %d %lf\n", len, elapsed);
+    l2_err(inout, inout_ref, 2 * len);
 #endif
 
 #ifdef AVX

@@ -73,7 +73,7 @@ static const int32_t inv_sign_mask = ~SIGN_MASK;
 #define IMM8_FLIP_VEC 0x1B              // change m128 from abcd to dcba
 #define IMM8_LO_HI_VEC 0x1E             // change m128 from abcd to cdab
 #define IMM8_PERMUTE_128BITS_LANES 0x1  // reverse abcd efgh to efgh abcd
-#define M_PI 3.14159265358979323846
+#define M_PI 3.14159265358979323846264338327950288
 
 typedef union {
     struct {
@@ -256,6 +256,7 @@ _PI32_CONST(0x7f, 0x7f);
 
 /////////////// SINGLE //////////////////
 _PS_CONST(0, 0.0f);
+_PS_CONST(min0, -0.0f);
 _PS_CONST(1, 1.0f);
 _PS_CONST(0p3, 0.333333333333f);
 _PS_CONST(min0p3, -0.333333333333f);
@@ -1270,9 +1271,9 @@ static inline void print4(v4sf v)
     //printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
 }
 
-static inline void print4x(v4si v)
+static inline void print4x(v4sf v)
 {
-    int *p = (int *) &v;
+    float *p = (float *) &v;
 #ifndef __SSE2__
 #ifndef ALTIVEC
     _mm_empty();
@@ -1293,6 +1294,17 @@ static inline void print4i(v4si v)
     printf("[%d, %d, %d, %d]", p[0], p[1], p[2], p[3]);
 }
 
+static inline void print4xi(v4si v)
+{
+    int *p = (int *) &v;
+#ifndef __SSE2__
+#ifndef ALTIVEC
+    _mm_empty();
+#endif
+#endif
+    printf("[%08x, %08x, %08x, %08x]", p[0], p[1], p[2], p[3]);
+    //printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
+}
 #endif
 
 #ifdef SSE

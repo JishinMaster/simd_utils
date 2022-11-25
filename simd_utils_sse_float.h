@@ -4175,15 +4175,15 @@ static inline void cplxconj128f(complex32_t *src, complex32_t *dst, int len)
     int stop_len = len / (2 * SSE_LEN_FLOAT);  //(len << 1) >> 2;
     stop_len *= 2 * SSE_LEN_FLOAT;             // stop_len << 2;
 
-    const v4sf conj_mask = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
-
+    // const v4sf conj_mask = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
+    __attribute__((aligned(SSE_LEN_BYTES))) int32_t conj_mask[SSE_LEN_FLOAT] = {(int) 0x00000000, (int) 0x80000000, (int) 0x00000000, (int) 0x80000000};
     int i;
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (i = 0; i < 2 * stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps((float *) (src) + i);
             v4sf src_tmp2 = _mm_load_ps((float *) (src) + i + SSE_LEN_FLOAT);
-            v4sf dst_tmp = _mm_mul_ps(src_tmp, conj_mask);
-            v4sf dst_tmp2 = _mm_mul_ps(src_tmp2, conj_mask);
+            v4sf dst_tmp = _mm_xor_ps(src_tmp, *(v4sf *) &conj_mask);
+            v4sf dst_tmp2 = _mm_xor_ps(src_tmp2, *(v4sf *) &conj_mask);
             _mm_store_ps((float *) (dst) + i, dst_tmp);
             _mm_store_ps((float *) (dst) + i + SSE_LEN_FLOAT, dst_tmp2);
         }
@@ -4191,8 +4191,8 @@ static inline void cplxconj128f(complex32_t *src, complex32_t *dst, int len)
         for (i = 0; i < 2 * stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps((float *) (src) + i);
             v4sf src_tmp2 = _mm_loadu_ps((float *) (src) + i + SSE_LEN_FLOAT);
-            v4sf dst_tmp = _mm_mul_ps(src_tmp, conj_mask);
-            v4sf dst_tmp2 = _mm_mul_ps(src_tmp2, conj_mask);
+            v4sf dst_tmp = _mm_xor_ps(src_tmp, *(v4sf *) &conj_mask);
+            v4sf dst_tmp2 = _mm_xor_ps(src_tmp2, *(v4sf *) &conj_mask);
             _mm_storeu_ps((float *) (dst) + i, dst_tmp);
             _mm_storeu_ps((float *) (dst) + i + SSE_LEN_FLOAT, dst_tmp2);
         }
