@@ -3414,7 +3414,7 @@ printf("\n");
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxconj128f((complex32_t *) inout, (complex32_t *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -4507,7 +4507,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sincosf_C_interleaved %d %lf\n", len, elapsed);
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     sincos128f_interleaved(inout, (complex32_t *) inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -8010,7 +8010,7 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("atan2f_interleaved_C %d %lf\n", len, elapsed);
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     atan2128f_interleaved((complex32_t *) inout, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -8919,7 +8919,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     vectorSlope128f(inout_ref, len, 2.5f, 3.0f);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -9153,7 +9153,7 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("PReluf_C %d %lf\n", len, elapsed);
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     PRelu128f(inout, inout2, 0.05f, len);
     clock_gettime(CLOCK_REALTIME, &stop);

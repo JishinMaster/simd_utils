@@ -1608,6 +1608,34 @@ static inline void sincos128f(float *src, float *dst_sin, float *dst_cos, int le
     }
 }
 
+static inline void sincos128f_interleaved(float *src, complex32_t *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp = vec_ld(0, src + i);
+            v4sf dst_sin_tmp;
+            v4sf dst_cos_tmp;
+            sincos_ps(src_tmp, &dst_sin_tmp, &dst_cos_tmp);
+            v4sf sin_cos_h = vec_mergeh(dst_sin_tmp, dst_cos_tmp);
+            v4sf sin_cos_l = vec_mergel(dst_sin_tmp, dst_cos_tmp);
+            vec_st(sin_cos_h, 0, (float *) (dst) + j);
+            vec_st(sin_cos_l, 0, (float *) (dst) + j + ALTIVEC_LEN_FLOAT);
+            j += 2 * ALTIVEC_LEN_FLOAT;
+        }
+    } else {
+        // TODO
+        printf("Error not aligned!\n");
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        mysincosf(src[i], &(dst[i].re), &(dst[i].im));
+    }
+}
+
 static inline v4sf tanf_ps(v4sf xx)
 {
     v4sf x, y, z, zz;
@@ -1899,6 +1927,56 @@ static inline void atan2128f(float *src1, float *src2, float *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = atan2f(src1[i], src2[i]);
+    }
+}
+
+static inline void atan2128f_interleaved(complex32_t *src, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, (float *) src + j);
+            v4sf b = vec_ld(0, (float *) src + j + ALTIVEC_LEN_FLOAT);
+            v4sf re = vec_perm(a, b, re_mask);
+            v4sf im = vec_perm(a, b, im_mask);
+            vec_st(atan2f_ps(im, re), 0, dst + i);
+            j += 2 * ALTIVEC_LEN_FLOAT;
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        /*To be improved : we constantly use unaligned load or store of those data
+        There exist better unaligned stream load or store which could improve performance
+        */
+        // The following loop relies on good branch prediction architecture
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a, b;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) ((float *) src + j));
+                b = (v4sf) vec_ldu((unsigned char *) ((float *) src + j + ALTIVEC_LEN_FLOAT));
+            } else {
+                a = vec_ld(0, (float *) src + j);
+                b = vec_ld(0, (float *) src + j + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf re = vec_perm(a, b, re_mask);
+            v4sf im = vec_perm(a, b, im_mask);
+            v4sf c = atan2f_ps(im, re);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+            j += 2 * ALTIVEC_LEN_FLOAT;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atan2f(src[i].im, src[i].re);
     }
 }
 
@@ -2399,17 +2477,54 @@ static inline void asin128f(float *src, float *dst, int len)
     }
 }
 
-// Work in progress
-#if 0
 
-//Best would be vec_sel(a,b,mask)?
-static inline v16u8 vec_blend(v16u8 a, v16u8 b, v16u8 mask)
+static inline void cplxconj128f(complex32_t *src, complex32_t *dst, int len)
 {
-    v16u8 b_tmp = vec_and(b, mask);
-    v16u8 a_tmp = vec_and(a, vec_cmpeq(mask,*(v16u8 *) _pi8_0));  
-    return vec_or(a_tmp, b_tmp);
-}
+    int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);  //(len << 1) >> 2;
+    stop_len *= 2 * ALTIVEC_LEN_FLOAT;             // stop_len << 2;
 
+    __attribute__((aligned(ALTIVEC_LEN_BYTES))) int32_t conj_mask[ALTIVEC_LEN_FLOAT] = {(int) 0x00000000, (int) 0x80000000, (int) 0x00000000, (int) 0x80000000};
+    int i;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (i = 0; i < 2 * stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp = vec_ld(0, (float *) (src) + i);
+            v4sf src_tmp2 = vec_ld(0, (float *) (src) + i + ALTIVEC_LEN_FLOAT);
+            v4sf dst_tmp = vec_xor(src_tmp, *(v4sf *) &conj_mask);
+            v4sf dst_tmp2 = vec_xor(src_tmp2, *(v4sf *) &conj_mask);
+            vec_st(dst_tmp, 0, (float *) (dst) + i);
+            vec_st(dst_tmp2, 0, (float *) (dst) + i + ALTIVEC_LEN_FLOAT);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (i = 0; i < 2 * stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) ((float *) (src) + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) ((float *) (src) + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, (float *) (src) + i);
+                src_tmp2 = vec_ld(0, (float *) (src) + i + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf dst_tmp = vec_xor(src_tmp, *(v4sf *) &conj_mask);
+            v4sf dst_tmp2 = vec_xor(src_tmp2, *(v4sf *) &conj_mask);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) ((float *) (dst) + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) ((float *) (dst) + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, (float *) (dst) + i);
+                vec_st(dst_tmp2, 0, (float *) (dst) + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i].re = src[i].re;
+        dst[i].im = -src[i].im;
+    }
+}
 
 static inline void PRelu128f(float *src, float *dst, float alpha, int len)
 {
@@ -2421,22 +2536,32 @@ static inline void PRelu128f(float *src, float *dst, float alpha, int len)
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf src_tmp = vec_ld(0, src + i);
-            v4sf tmp = vec_mul(alpha_vec, src_tmp);  // tmp = a*x (used when x < 0)
-
-            // if x > 0
-            //vec_cmpgt(src_tmp, zero)
-            __vector bool cmp = vec_cmpgt(src_tmp, zero);
-            v16u8 blend_res = vec_blend(*(v16u8*)&tmp, *(v16u8*)&src_tmp, *(v16u8*)&cmp);
-            vec_st(*(v4sf*)&blend_res, 0, dst + i);
+            v4sf tmp = vec_mul(alpha_vec, src_tmp);
+            __vector bool int cmp = vec_cmpgt(src_tmp, zero);
+            v4sf blend_res = vec_sel(tmp, src_tmp, cmp);
+            vec_st(blend_res, 0, dst + i);
         }
     } else {
-        /*for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
-            v4sf src_tmp = _mm_loadu_ps(src + i);
-            v4sf tmp = _mm_mul_ps(alpha_vec, src_tmp);  // tmp = a*x (used when x < 0)
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
 
-            // if x > 0
-            _mm_storeu_ps(dst + i, _mm_blendv_ps(tmp, src_tmp, _mm_cmpgt_ps(src_tmp, zero)));
-        }*/
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) ((float *) (src) + i));
+            } else {
+                src_tmp = vec_ld(0, (float *) (src) + i);
+            }
+            v4sf tmp = vec_mul(alpha_vec, src_tmp);
+            __vector bool int cmp = vec_cmpgt(src_tmp, zero);
+            v4sf blend_res = vec_sel(tmp, src_tmp, cmp);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &blend_res, (unsigned char *) ((float *) (dst) + i));
+            } else {
+                vec_st(blend_res, 0, (float *) (dst) + i);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -2446,4 +2571,45 @@ static inline void PRelu128f(float *src, float *dst, float alpha, int len)
             dst[i] = alpha * src[i];
     }
 }
-#endif
+
+static inline void vectorSlope128f(float *dst, int len, float offset, float slope)
+{
+    v4sf coef = {0.0f, slope, 2.0f * slope, 3.0f * slope};
+    v4sf slope8_vec = vec_splats(8.0f * slope);
+    v4sf curVal = vec_add(vec_splats(offset), coef);
+    v4sf curVal2 = vec_add(vec_splats(offset), coef);
+    curVal2 = vec_add(curVal2, vec_splats(4.0f * slope));
+
+    int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
+    stop_len *= (2 * ALTIVEC_LEN_FLOAT);
+
+    if (len >= ALTIVEC_LEN_BYTES) {
+        if (isAligned((uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+            vec_st(curVal, 0, dst + 0);
+            vec_st(curVal2, 0, dst + ALTIVEC_LEN_FLOAT);
+        } else {
+            vec_stu(*(v16u8 *) &curVal, (unsigned char *) ((float *) (dst) + 0));
+            vec_stu(*(v16u8 *) &curVal2, (unsigned char *) ((float *) (dst) + ALTIVEC_LEN_FLOAT));
+        }
+
+        if (isAligned((uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+            for (int i = 2 * ALTIVEC_LEN_FLOAT; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+                curVal = vec_add(curVal, slope8_vec);
+                vec_st(curVal, 0, dst + i);
+                curVal2 = vec_add(curVal2, slope8_vec);
+                vec_st(curVal2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        } else {
+            for (int i = 2 * ALTIVEC_LEN_FLOAT; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+                curVal = vec_add(curVal, slope8_vec);
+                vec_stu(*(v16u8 *) &curVal, (unsigned char *) ((float *) (dst) + i));
+                curVal2 = vec_add(curVal2, slope8_vec);
+                vec_stu(*(v16u8 *) &curVal2, (unsigned char *) ((float *) (dst) + i + ALTIVEC_LEN_FLOAT));
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = offset + slope * (float) i;
+    }
+}

@@ -78,7 +78,7 @@ Altivec implemented functions are indicated with "(a)".
 
 The following table is a work in progress, "?" means there is not yet an implemented function (or a directly equivalent Intel IPP function) :
 
-| SSE/NEON/ALTIVEC (X=128), AVX (X=256), AVX512 (X=512) | -----------C_REF----------- | -------------IPP_REF---------- | -----------RISCV------------- |
+| SSE/NEON/ALTIVEC (X=128), AVX (X=256), AVX512 (X=512) |           C_REF             |              IPP_REF           |            RISCV              |
 |-------------------------------------------------------|-----------------------------|--------------------------------|-------------------------------|
 |                                                       |                             |                                |                               |
 | log10_Xf/precise (a)                                  | log10f_C                    | ippsLog10_32f_A24              | log10_vec                     |
@@ -100,7 +100,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | mulcaddcXf                                            | mulcaddcf_C                 | ?                              | ?                             |
 | muladdcXf                                             | muladdcf_C                  | ?                              | ?                             |
 | divXf                                                 | divf_C                      | ippsDiv_32f_A24                | ?                             |
-| vectorSlopeXf                                         | vectorSlopef_C              | ippsVectorSlope_32f            | ?                             |
+| vectorSlopeXf    (a)                                  | vectorSlopef_C              | ippsVectorSlope_32f            | ?                             |
 | convertFloat32ToU8_X                                  | convertFloat32ToU8_C        | ippsConvert_32f8u_Sfs          | ?                             |
 | convertFloat32ToU16_X                                 | convertFloat32ToI16_C       | ippsConvert_32f16u_Sfs         | ?                             |
 | convertFloat32ToI16_X                                 | convertFloat32ToI16_C       | ippsConvert_32f16s_Sfs         | ?                             |
@@ -113,15 +113,15 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | maxeveryXf  (a)                                       | maxeveryf_c                 | ippsMaxEvery_32f               | maxeveryf_vec                 |
 | mineveryXf  (a)                                       | mineveryf_c                 | ippsMinEvery_32f               | mineveryf_vec                 |
 | minmaxXf    (a)                                       | minmaxf_c                   | ippsMinMax_32f                 | ?                             |
-| thresholdX_gt_f                                       | threshold_gt_f_C            | ippsThreshold_GT_32f           | threshold_gt_f_vec            |
-| thresholdX_gtabs_f                                    | threshold_gtabs_f_C         | ippsThreshold_GTAbs_32f        | ?                             |
-| thresholdX_lt_f                                       | threshold_lt_f_C            | ippsThreshold_LT_32f           | threshold_lt_f_vec            |
-| thresholdX_ltabs_f                                    | threshold_ltabs_f_C         | ippsThreshold_LTAbs_32f        | ?                             |
-| thresholdX_ltval_gtval_f                              | threshold_ltval_gtval_f_C   | ippsThreshold_LTValGTVal_32f   | threshold_ltval_gtval_f_vec   |
+| thresholdX_gt_f       (a)                             | threshold_gt_f_C            | ippsThreshold_GT_32f           | threshold_gt_f_vec            |
+| thresholdX_gtabs_f    (a)                             | threshold_gtabs_f_C         | ippsThreshold_GTAbs_32f        | ?                             |
+| thresholdX_lt_f       (a)                             | threshold_lt_f_C            | ippsThreshold_LT_32f           | threshold_lt_f_vec            |
+| thresholdX_ltabs_f    (a)                             | threshold_ltabs_f_C         | ippsThreshold_LTAbs_32f        | ?                             |
+| thresholdX_ltval_gtval_f (a)                          | threshold_ltval_gtval_f_C   | ippsThreshold_LTValGTVal_32f   | threshold_ltval_gtval_f_vec   |
 | sinXf                                                 | sinf_C                      | ippsSin_32f_A24                | sinf_vec                      |
 | cosXf                                                 | cosf_C                      | ippsCos_32f_A24                | ?                             |
 | sincosXf (a)                                          | sincosf_C                   | ippsSinCos_32f_A24             | sincosf_vec                   |
-| sincosXf_interleaved                                  | sincosf_C_interleaved       | ?                              | ?                             |
+| sincosXf_interleaved (a)                              | sincosf_C_interleaved       | ?                              | ?                             |
 | coshXf  (a)                                           | coshf_C                     | ippsCosh_32f_A24               | ?                             |
 | sinhXf  (a)                                           | sinhf_C                     | ippsSinh_32f_A24               | ?                             |
 | acoshXf (a)                                           | acoshf_C                    | ippsAcosh_32f_A24              | ?                             |
@@ -129,7 +129,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | atanhXf (a)                                           | atanhf_C                    | ippsAtanh_32f_A24              | ?                             |
 | atanXf  (a)                                           | atanf_C                     | ippsAtan_32f_A24               | ?                             |
 | atan2Xf (a)                                           | atan2f_C                    | ippsAtan2_32f_A24              | ?                             |
-| atan2Xf_interleaved                                   | atan2f_interleaved_C        | ?                              | ?                             |
+| atan2Xf_interleaved (a)                               | atan2f_interleaved_C        | ?                              | ?                             |
 | asinXf (a)                                            | asinf_C                     | ippsAsin_32f_A24               | ?                             |
 | tanhXf (a)                                            | tanhf_C                     | ippsTanh_32f_A24               | ?                             |
 | tanXf  (a)                                            | tanf_C                      | ippsTan_32f_A24                | ?                             |
@@ -149,7 +149,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | cplxvecmulXf_split  (a)                               | cplxvecmul_C_split/precise  | ?                              | cplxvecmul_vec_split          |
 | cplxconjvecmulXf                                      | cplxconjvecmul_C            | ippsMulByConj_32fc_A24         | ?                             |
 | cplxconjvecmulXf_split                                | cplxconjvecmul_C_split      | ?                              | ?                             |
-| cplxconjXf                                            | cplxconj_C                  | ippsConj_32fc_A24              | ?                             |
+| cplxconjXf          (a)                               | cplxconj_C                  | ippsConj_32fc_A24              | ?                             |
 | cplxvecdivXf                                          | cplxvecdiv_C                | ?                              | cplxvecdiv_vec                |
 | cplxvecdivXf_split                                    | cplxvecdiv_C_split          | ?                              | cplxvecdiv_vec_split          |
 | setXd                                                 | setd_C                      | ippsSet_64f                    | ?                             |
