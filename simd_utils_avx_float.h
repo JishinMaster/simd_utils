@@ -3448,7 +3448,6 @@ static inline void cplxconjvecmul256f(complex32_t *src1, complex32_t *src2, comp
     stop_len = stop_len * AVX_LEN_FLOAT;   // stop_len << 2;
 
     int i;
-    // const v8sf conj_mask = _mm256_set_ps(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
 
     if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (i = 0; i < 2 * stop_len; i += AVX_LEN_FLOAT) {
@@ -3538,21 +3537,30 @@ static inline void cplxconjvecmul256f_split(float *src1Re, float *src1Im, float 
 // prefer using cplxconjvecmulXf if you also need to do a multiply
 static inline void cplxconj256f(complex32_t *src, complex32_t *dst, int len)
 {
-    int stop_len = len / (AVX_LEN_FLOAT);  //(len << 1) >> 2;
-    stop_len = stop_len * AVX_LEN_FLOAT;   // stop_len << 2;
+    int stop_len = len / (2 * AVX_LEN_FLOAT);  //(len << 1) >> 2;
+    stop_len *= 2 * AVX_LEN_FLOAT;             // stop_len << 2;
 
-    // const v8sf conj_mask = _mm256_set_ps(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
-
+    __attribute__((aligned(AVX_LEN_BYTES))) int32_t conj_mask[AVX_LEN_FLOAT] = {
+        (int) 0x00000000, (int) 0x80000000, (int) 0x00000000, (int) 0x80000000,
+        (int) 0x00000000, (int) 0x80000000, (int) 0x00000000, (int) 0x80000000};
     int i;
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
-        for (i = 0; i < 2 * stop_len; i += AVX_LEN_FLOAT) {
+        for (i = 0; i < 2 * stop_len; i += 2 * AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps((float *) (src) + i);
-            _mm256_store_ps((float *) (dst) + i, _mm256_mul_ps(src_tmp, *(v8sf *) _ps256_conj_mask));
+            v8sf src_tmp2 = _mm256_load_ps((float *) (src) + i + AVX_LEN_FLOAT);
+            v8sf dst_tmp = _mm256_xor_ps(src_tmp, *(v8sf *) &conj_mask);
+            v8sf dst_tmp2 = _mm256_xor_ps(src_tmp2, *(v8sf *) &conj_mask);
+            _mm256_store_ps((float *) (dst) + i, dst_tmp);
+            _mm256_store_ps((float *) (dst) + i + AVX_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (i = 0; i < 2 * stop_len; i += AVX_LEN_FLOAT) {
+        for (i = 0; i < 2 * stop_len; i += 2 * AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_loadu_ps((float *) (src) + i);
-            _mm256_storeu_ps((float *) (dst) + i, _mm256_mul_ps(src_tmp, *(v8sf *) _ps256_conj_mask));
+            v8sf src_tmp2 = _mm256_loadu_ps((float *) (src) + i + AVX_LEN_FLOAT);
+            v8sf dst_tmp = _mm256_xor_ps(src_tmp, *(v8sf *) &conj_mask);
+            v8sf dst_tmp2 = _mm256_xor_ps(src_tmp2, *(v8sf *) &conj_mask);
+            _mm256_storeu_ps((float *) (dst) + i, dst_tmp);
+            _mm256_storeu_ps((float *) (dst) + i + AVX_LEN_FLOAT, dst_tmp2);
         }
     }
 

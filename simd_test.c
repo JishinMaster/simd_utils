@@ -7406,6 +7406,22 @@ printf("\n");
     l2_err(inout_ref, inout2, len);
 #endif
 
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvasinf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvasinf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvasinf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvasinf %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -7733,6 +7749,22 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2, len);
 #endif
 
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvatanf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvatanf %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvatanf(inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvatanf %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -7867,6 +7899,22 @@ for (int i = 0; i < len; i++){
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("atan2128f_svml %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout_ref, len);
+#endif
+
+#ifdef VDSP
+    clock_gettime(CLOCK_REALTIME, &start);
+    vvatan2f(inout_ref, inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("vvatan2f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        vvatan2f(inout_ref, inout2, inout, &len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("vvatan2f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout_ref, len);
 #endif
 

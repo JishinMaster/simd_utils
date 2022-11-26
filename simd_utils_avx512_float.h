@@ -3250,19 +3250,32 @@ static inline void cplxconjvecmul512f_split(float *src1Re, float *src1Im, float 
 // prefer using cplxconjvecmulXf if you also need to do a multiply
 static inline void cplxconj512f(complex32_t *src, complex32_t *dst, int len)
 {
-    int stop_len = len / (AVX512_LEN_FLOAT);  //(len << 1) >> 2;
-    stop_len = stop_len * AVX512_LEN_FLOAT;   // stop_len << 2;
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);  //(len << 1) >> 2;
+    stop_len *= 2 * AVX512_LEN_FLOAT;             // stop_len << 2;
 
+    __attribute__((aligned(AVX512_LEN_BYTES))) int32_t conj_mask[AVX512_LEN_FLOAT] = {
+        (int) 0x00000000, (int) 0x80000000, (int) 0x00000000, (int) 0x80000000,
+        (int) 0x00000000, (int) 0x80000000, (int) 0x00000000, (int) 0x80000000,
+        (int) 0x00000000, (int) 0x80000000, (int) 0x00000000, (int) 0x80000000,
+        (int) 0x00000000, (int) 0x80000000, (int) 0x00000000, (int) 0x80000000};
     int i;
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
-        for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), 2 * AVX512_LEN_BYTES)) {
+        for (i = 0; i < 2 * stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps((float *) (src) + i);
-            _mm512_store_ps((float *) (dst) + i, _mm512_mul_ps(src_tmp, *(v16sf *) _ps512_conj_mask));
+            v16sf src_tmp2 = _mm512_load_ps((float *) (src) + i + AVX512_LEN_FLOAT);
+            v16sf dst_tmp = _mm512_xor_ps(src_tmp, *(v16sf *) &conj_mask);
+            v16sf dst_tmp2 = _mm512_xor_ps(src_tmp2, *(v16sf *) &conj_mask);
+            _mm512_store_ps((float *) (dst) + i, dst_tmp);
+            _mm512_store_ps((float *) (dst) + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     } else {
-        for (i = 0; i < 2 * stop_len; i += AVX512_LEN_FLOAT) {
+        for (i = 0; i < 2 * stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps((float *) (src) + i);
-            _mm512_storeu_ps((float *) (dst) + i, _mm512_mul_ps(src_tmp, *(v16sf *) _ps512_conj_mask));
+            v16sf src_tmp2 = _mm512_loadu_ps((float *) (src) + i + AVX512_LEN_FLOAT);
+            v16sf dst_tmp = _mm512_xor_ps(src_tmp, *(v16sf *) &conj_mask);
+            v16sf dst_tmp2 = _mm512_xor_ps(src_tmp2, *(v16sf *) &conj_mask);
+            _mm512_storeu_ps((float *) (dst) + i, dst_tmp);
+            _mm512_storeu_ps((float *) (dst) + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
     }
 
