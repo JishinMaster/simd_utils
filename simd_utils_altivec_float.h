@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.3
+ * Version : 0.2.4
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -1143,8 +1143,20 @@ static inline void minmax128f(float *src, int len, float *min_value, float *max_
                 min_v2 = vec_min(min_v2, src_tmp2);
             }
         } else {
-            // TODO
-            printf("Error not aligned!\n");
+            src_tmp = (v4sf) vec_ldu((unsigned char *) (src + 0));
+            max_v = src_tmp;
+            min_v = src_tmp;
+            max_v2 = src_tmp;
+            min_v2 = src_tmp;
+
+            for (int i = ALTIVEC_LEN_FLOAT; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+                max_v = vec_max(max_v, src_tmp);
+                min_v = vec_min(min_v, src_tmp);
+                max_v2 = vec_max(max_v2, src_tmp2);
+                min_v2 = vec_min(min_v2, src_tmp2);
+            }
         }
 
         max_v = vec_max(max_v, max_v2);
@@ -1192,8 +1204,13 @@ static inline void sum128f(float *src, float *dst, int len)
             vec_acc2 = vec_add(vec_acc2, vec_tmp2);
         }
     } else {
-        // TODO
-        printf("Error not aligned!\n");
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf vec_tmp1, vec_tmp2;
+            vec_tmp1 = (v4sf) vec_ldu((unsigned char *) (src + i));
+            vec_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            vec_acc1 = vec_add(vec_acc1, vec_tmp1);
+            vec_acc2 = vec_add(vec_acc2, vec_tmp2);
+        }
     }
     vec_acc1 = vec_add(vec_acc1, vec_acc2);
     vec_st(vec_acc1, 0, accumulate);
@@ -1232,8 +1249,29 @@ static inline void threshold128_gt_f(float *src, float *dst, int len, float valu
             vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
         }
     } else {
-        //  TODO
-        printf("Error not aligned!\n");
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf dst_tmp = vec_min(src_tmp, tmp);
+            v4sf dst_tmp2 = vec_min(src_tmp2, tmp);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, dst + i);
+                vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -1264,8 +1302,35 @@ static inline void threshold128_gtabs_f(float *src, float *dst, int len, float v
             vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
         }
     } else {
-        // TODO
-        printf("Error not aligned!\n");
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf src_sign = vec_and(src_tmp, *(v4sf *) _ps_sign_mask);  // extract sign
+            v4sf src_sign2 = vec_and(src_tmp2, *(v4sf *) _ps_sign_mask);
+            v4sf src_abs = vec_and(src_tmp, *(v4sf *) _ps_pos_sign_mask);  // take absolute value
+            v4sf src_abs2 = vec_and(src_tmp2, *(v4sf *) _ps_pos_sign_mask);
+            v4sf dst_tmp = vec_min(src_abs, pval);
+            v4sf dst_tmp2 = vec_min(src_abs2, pval);
+            dst_tmp = vec_xor(dst_tmp, src_sign);
+            dst_tmp2 = vec_xor(dst_tmp2, src_sign2);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, dst + i);
+                vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -1295,8 +1360,29 @@ static inline void threshold128_lt_f(float *src, float *dst, int len, float valu
             vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
         }
     } else {
-        // TODO
-        printf("Error not aligned!\n");
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf dst_tmp = vec_max(src_tmp, tmp);
+            v4sf dst_tmp2 = vec_max(src_tmp2, tmp);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, dst + i);
+                vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -1327,8 +1413,35 @@ static inline void threshold128_ltabs_f(float *src, float *dst, int len, float v
             vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
         }
     } else {
-        // TODO
-        printf("Error not aligned!\n");
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf src_sign = vec_and(src_tmp, *(v4sf *) _ps_sign_mask);  // extract sign
+            v4sf src_sign2 = vec_and(src_tmp2, *(v4sf *) _ps_sign_mask);
+            v4sf src_abs = vec_and(src_tmp, *(v4sf *) _ps_pos_sign_mask);  // take absolute value
+            v4sf src_abs2 = vec_and(src_tmp2, *(v4sf *) _ps_pos_sign_mask);
+            v4sf dst_tmp = vec_max(src_abs, pval);
+            v4sf dst_tmp2 = vec_max(src_abs2, pval);
+            dst_tmp = vec_xor(dst_tmp, src_sign);
+            dst_tmp2 = vec_xor(dst_tmp2, src_sign2);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, dst + i);
+                vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -1367,8 +1480,36 @@ static inline void threshold128_ltval_gtval_f(float *src, float *dst, int len, f
             vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
         }
     } else {
-        // TODO
-        printf("Error not aligned!\n");
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+            __vector bool int lt_mask = vec_cmplt(src_tmp, ltlevel_v);
+            __vector bool int gt_mask = vec_cmpgt(src_tmp, gtlevel_v);
+            v4sf dst_tmp = vec_sel(src_tmp, ltvalue_v, lt_mask);
+            dst_tmp = vec_sel(dst_tmp, gtvalue_v, gt_mask);
+            vec_st(dst_tmp, 0, dst + i);
+            __vector bool int lt_mask2 = vec_cmplt(src_tmp2, ltlevel_v);
+            __vector bool int gt_mask2 = vec_cmpgt(src_tmp2, gtlevel_v);
+            v4sf dst_tmp2 = vec_sel(src_tmp2, ltvalue_v, lt_mask2);
+            dst_tmp2 = vec_sel(dst_tmp2, gtvalue_v, gt_mask2);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, dst + i);
+                vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -1392,8 +1533,29 @@ static inline void round128f(float *src, float *dst, int len)
             vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
         }
     } else {
-        // TODO
-        printf("Error not aligned!\n");
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf dst_tmp = vec_round(src_tmp);
+            v4sf dst_tmp2 = vec_round(src_tmp2);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, dst + i);
+                vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -1416,8 +1578,29 @@ static inline void ceil128f(float *src, float *dst, int len)
             vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
         }
     } else {
-        // TODO
-        printf("Error not aligned!\n");
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf dst_tmp = vec_ceil(src_tmp);
+            v4sf dst_tmp2 = vec_ceil(src_tmp2);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, dst + i);
+                vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -1440,8 +1623,29 @@ static inline void floor128f(float *src, float *dst, int len)
             vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
         }
     } else {
-        // TODO
-        printf("Error not aligned!\n");
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf dst_tmp = vec_floor(src_tmp);
+            v4sf dst_tmp2 = vec_floor(src_tmp2);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, dst + i);
+                vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -1464,8 +1668,29 @@ static inline void trunc128f(float *src, float *dst, int len)
             vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
         }
     } else {
-        // TODO
-        printf("Error not aligned!\n");
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf dst_tmp = vec_trunc(src_tmp);
+            v4sf dst_tmp2 = vec_trunc(src_tmp2);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, dst + i);
+                vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -1493,8 +1718,29 @@ static inline void flip128f(float *src, float *dst, int len)
             vec_st(src_tmp_flip2, 0, dst + len - i - 2 * ALTIVEC_LEN_FLOAT);
         }
     } else {
-        // TODO
-        printf("Error not aligned!\n");
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 2 * ALTIVEC_LEN_FLOAT; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf src_tmp_flip = vec_perm(src_tmp, src_tmp, flip_vector);  // rotate vec from abcd to bcba
+            v4sf src_tmp_flip2 = vec_perm(src_tmp2, src_tmp2, flip_vector);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &src_tmp_flip, (unsigned char *) (dst + len - i - ALTIVEC_LEN_FLOAT));
+                vec_stu(*(v16u8 *) &src_tmp_flip2, (unsigned char *) (dst + len - i - 2 * ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(src_tmp_flip, 0, dst + len - i - ALTIVEC_LEN_FLOAT);
+                vec_st(src_tmp_flip2, 0, dst + len - i - 2 * ALTIVEC_LEN_FLOAT);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -1599,8 +1845,33 @@ static inline void sincos128f(float *src, float *dst_sin, float *dst_cos, int le
             vec_st(dst_cos_tmp, 0, dst_cos + i);
         }
     } else {
-        // TODO
-        printf("Error not aligned!\n");
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst_sin = (uintptr_t) (dst_sin) % ALTIVEC_LEN_BYTES;
+        int unalign_dst_cos = (uintptr_t) (dst_cos) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+            }
+            v4sf dst_sin_tmp;
+            v4sf dst_cos_tmp;
+            sincos_ps(src_tmp, &dst_sin_tmp, &dst_cos_tmp);
+
+            if (unalign_dst_sin) {
+                vec_stu(*(v16u8 *) &dst_sin_tmp, (unsigned char *) (dst_sin + i));
+            } else {
+                vec_st(dst_sin_tmp, 0, dst_sin + i);
+            }
+
+            if (unalign_dst_cos) {
+                vec_stu(*(v16u8 *) &dst_cos_tmp, (unsigned char *) (dst_cos + i));
+            } else {
+                vec_st(dst_cos_tmp, 0, dst_cos + i);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -1627,8 +1898,33 @@ static inline void sincos128f_interleaved(float *src, complex32_t *dst, int len)
             j += 2 * ALTIVEC_LEN_FLOAT;
         }
     } else {
-        // TODO
-        printf("Error not aligned!\n");
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+            }
+            v4sf dst_sin_tmp;
+            v4sf dst_cos_tmp;
+            sincos_ps(src_tmp, &dst_sin_tmp, &dst_cos_tmp);
+            v4sf sin_cos_h = vec_mergeh(dst_sin_tmp, dst_cos_tmp);
+            v4sf sin_cos_l = vec_mergel(dst_sin_tmp, dst_cos_tmp);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &sin_cos_h, (unsigned char *) ((float *) (dst) + j));
+                vec_stu(*(v16u8 *) &sin_cos_l, (unsigned char *) ((float *) (dst) + j + ALTIVEC_LEN_FLOAT));
+
+            } else {
+                vec_st(sin_cos_h, 0, (float *) (dst) + j);
+                vec_st(sin_cos_l, 0, (float *) (dst) + j + ALTIVEC_LEN_FLOAT);
+            }
+
+            j += 2 * ALTIVEC_LEN_FLOAT;
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -2611,5 +2907,124 @@ static inline void vectorSlope128f(float *dst, int len, float offset, float slop
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = offset + slope * (float) i;
+    }
+}
+
+// from https://stackoverflow.com/questions/57454416/sse-integer-2n-powers-of-2-for-32-bit-integers-without-avx2
+static inline v4sf power_of_twof(v4si b)
+{
+    v4si exp = vec_add(b, vec_splats((int) 127));
+    v4si s;
+    __vector unsigned int shift_bits = vec_splats((unsigned int) 23);
+    s = vec_sl(exp, shift_bits);
+    v4si *f = &s;
+    return *(v4sf *) f;
+}
+
+static inline v4sf cbrtf_ps(v4sf xx)
+{
+    v4sf e, rem, sign;
+    v4sf x, z;
+    v4sf tmp, tmp2;
+
+    x = xx;
+    sign = vec_and(xx, *(v4sf *) _ps_sign_mask);
+    x = vec_and(x, *(v4sf *) _ps_pos_sign_mask);
+
+    z = x;
+    /* extract power of 2, leaving
+     * mantissa between 0.5 and 1
+     */
+    // x = frexpf(x, &e);
+    // solve problem for zero
+    __vector unsigned int shift_bits = vec_splats((unsigned int) 23);
+    v4sf *x_ptr = &x;
+    v4si emm0 = vec_sr(*(v4si *) x_ptr, shift_bits);
+    x = vec_and(x, *(v4sf *) _ps_inv_mant_mask);
+    x = vec_or(x, *(v4sf *) _ps_0p5);
+    emm0 = vec_sub(emm0, *(v4si *) _pi32_0x7f);
+    e = vec_ctf(emm0, 0);
+    e = vec_add(e, *(v4sf *) _ps_1);
+    tmp = vec_madd(*(v4sf *) _ps_CBRTF_P0, x, *(v4sf *) _ps_CBRTF_P1);
+    tmp = vec_madd(x, tmp, *(v4sf *) _ps_CBRTF_P2);
+    tmp = vec_madd(x, tmp, *(v4sf *) _ps_CBRTF_P3);
+    x = vec_madd(x, tmp, *(v4sf *) _ps_CBRTF_P4);
+
+    /* exponent divided by 3 */
+    __vector bool int e_sign = vec_cmpge(e, *(v4sf *) _ps_0);
+    e = vec_and(e, *(v4sf *) _ps_pos_sign_mask);
+
+    rem = e;
+    e = vec_mul(e, *(v4sf *) _ps_0p3);
+    v4sf e_tmp = vec_mul(*(v4sf *) _ps_3, vec_floor(e));
+    rem = vec_sub(rem, e_tmp);
+
+    v4sf mul1, mul2;
+    v4sf mul_cst1 = vec_sel(*(v4sf *) _ps_cephes_invCBRT2, *(v4sf *) _ps_cephes_CBRT2, e_sign);
+    v4sf mul_cst2 = vec_sel(*(v4sf *) _ps_cephes_invCBRT4, *(v4sf *) _ps_cephes_CBRT4, e_sign);
+    mul1 = vec_mul(x, mul_cst1);
+    mul2 = vec_mul(x, mul_cst2);
+
+    v4si remi = vec_cts(rem, 0);  // rem integer
+    __vector bool int rem1 = vec_cmpeq(remi, *(v4si *) _pi32_1);
+    __vector bool int rem2 = vec_cmpeq(remi, *(v4si *) _pi32_2);
+
+    x = vec_sel(x, mul1, rem1);  // rem==1
+    x = vec_sel(x, mul2, rem2);  // rem==2
+
+    /* multiply by power of 2 */
+    //  x = ldexpf(x, e);
+    // x= x* (1 >> e)
+    v4sf cst = power_of_twof(vec_cts(e, 0));
+    // blend sign of e
+    tmp = vec_mul(x, cst);
+    tmp2 = vec_div_precise(x, cst);
+    x = vec_sel(tmp2, tmp, e_sign);
+
+    /* Newton iteration */
+    // x -= (x - (z / (x * x))) * 0.333333333333;
+    tmp2 = vec_mul(x, x);
+    tmp2 = vec_div_precise(z, tmp2);
+    tmp2 = vec_sub(x, tmp2);
+    tmp2 = vec_mul(tmp2, *(v4sf *) _ps_0p3);
+    x = vec_sub(x, tmp2);
+
+    x = vec_xor(x, sign);
+    return x;
+}
+
+static inline void cbrt128f(float *src, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(cbrtf_ps(a), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+            v4sf c = cbrtf_ps(a);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = cbrtf(src[i]);
     }
 }

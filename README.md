@@ -42,6 +42,7 @@ The project has been tested on :
 - Qemu 5.X (emulator) )for arm/aarch64, ppc and riscv
 - Cortex-a53 (Raspberry Pi 3B)
 - Cortex-a9 (ZYBO)
+- PowerPC G5 (iMac G5)
 
 ## Building
 
@@ -85,7 +86,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | log2_Xf/precise  (a)                                  | log2f_C                     |                                | ?                             |
 | ln_Xf  (a)                                            | lnf_C                       | ippsLn_32f_A24                 | ?                             |
 | exp_Xf (a)                                            | expf_C                      | ippsExp_32f_A24                | ?                             |
-| cbrtXf                                                | cbrtf_C                     | ?                              | ?                             |
+| cbrtXf  (a)                                           | cbrtf_C                     | ?                              | ?                             |
 | fabsXf (a)                                            | fabsf_C                     | ippsAbs_32f                    | ?                             |
 | setXf  (a)                                            | setf_C                      | ippsSet_32f                    | ?                             |
 | zeroXf (a)                                            | zerof_C                     | ippsZero_32f                   | ?                             |

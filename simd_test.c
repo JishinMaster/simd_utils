@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.3
+ * Version : 0.2.4
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -517,6 +517,8 @@ int main(int argc, char **argv)
 
 #endif /* USE_MALLOC */
 
+
+    simd_utils_get_version();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////// BEGIN //////////////////////////////////////////////////////////////////////////////
@@ -9673,7 +9675,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout2, inout_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     cbrt128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);

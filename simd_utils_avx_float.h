@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.3
+ * Version : 0.2.4
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -408,9 +408,7 @@ static inline v8sf cbrt256f_ps(v8sf xx)
 
     /* multiply by power of 2 */
     //  x = ldexpf(x, e);
-    // v8sf cst = _mm256_srli_epi32()
     // x= x* (1 >> e)
-    // AVX2 : _mm256_srlv_epi32 pour shift
     v8sf cst = power_of_two256f(_mm256_cvtps_epi32(e));
     // blend sign of e
     x = _mm256_blendv_ps(_mm256_div_ps(x, cst), _mm256_mul_ps(x, cst), e_sign);
