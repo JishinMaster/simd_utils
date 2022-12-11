@@ -55,7 +55,7 @@ Simply include simd_utils.h in your C/C++ file, and compile with :
 - AVX512 support : gcc -DSSE -DAVX -DAVX512 -march=skylake-avx512 -mprefer-vector-width=512 -c file.c -I .
 - ARM V7 NEON support : arm-none-linux-gnueabihf-gcc -march=armv7-a -mfpu=neon -DARM -DSSE -flax-vector-conversions -c file.c -I .
 - ARM V8 NEON support : aarch64-linux-gnu-gcc -DARM -DFMA -DSSE -flax-vector-conversions -c file.c -I .
-- RISCV support : riscv64-unknown-elf-gcc -DUSE_MALLOC -DRISCV -march=rv64gcv -c file.c-I .
+- RISCV support : riscv64-unknown-linux-gnu-gcc -DRISCV -march=rv64gcv -c file.c-I .
 - ALTIVEC support : powerpc64-linux-gnu-gcc -DALTIVEC -DFMA -maltivec -flax-vector-conversions -c file.c -I .
 
 For FMA support you need to add -DFMA and -mfma to x86 targets, and -DFMA to Armv8 targets.
@@ -87,29 +87,29 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | ln_Xf  (a)                                            | lnf_C                       | ippsLn_32f_A24                 | ?                             |
 | exp_Xf (a)                                            | expf_C                      | ippsExp_32f_A24                | ?                             |
 | cbrtXf  (a)                                           | cbrtf_C                     | ?                              | ?                             |
-| fabsXf (a)                                            | fabsf_C                     | ippsAbs_32f                    | ?                             |
-| setXf  (a)                                            | setf_C                      | ippsSet_32f                    | ?                             |
-| zeroXf (a)                                            | zerof_C                     | ippsZero_32f                   | ?                             |
-| copyXf                                                | copyf_C                     | ippsCopy_32f                   | ?                             |
+| fabsXf (a)                                            | fabsf_C                     | ippsAbs_32f                    | fabsf_vec                     |
+| setXf  (a)                                            | setf_C                      | ippsSet_32f                    | setf_vec                      |
+| zeroXf (a)                                            | zerof_C                     | ippsZero_32f                   | zerof_vec                     |
+| copyXf                                                | copyf_C                     | ippsCopy_32f                   | copyf_vec                     |
 | addXf                                                 | addf_c                      | ippsAdd_32f                    | addf_vec                      |
-| mulXf  (a)                                            | mulf_C                      | ippsMul_32f                    | ?                             |
-| subXf                                                 | subf_c                      | ippsSub_32f                    | ?                             |
-| addcXf                                                | addcf_C                     | ippsAddC_32f                   | ?                             |
-| mulcXf                                                | mulcf_C                     | ippsMulC_32f                   | ?                             |
-| muladdXf                                              | muladdf_C                   | ?                              | ?                             |
-| mulcaddXf                                             | mulcaddf_C                  | ?                              | ?                             |
-| mulcaddcXf                                            | mulcaddcf_C                 | ?                              | ?                             |
-| muladdcXf                                             | muladdcf_C                  | ?                              | ?                             |
-| divXf                                                 | divf_C                      | ippsDiv_32f_A24                | ?                             |
-| vectorSlopeXf    (a)                                  | vectorSlopef_C              | ippsVectorSlope_32f            | ?                             |
+| mulXf  (a)                                            | mulf_C                      | ippsMul_32f                    | mulf_vec                      |
+| subXf                                                 | subf_c                      | ippsSub_32f                    | subf_vec                      |
+| addcXf                                                | addcf_C                     | ippsAddC_32f                   | addcf_vec                     |
+| mulcXf                                                | mulcf_C                     | ippsMulC_32f                   | mulcf_vec                     |
+| muladdXf                                              | muladdf_C                   | ?                              | muladdf_vec                   |
+| mulcaddXf                                             | mulcaddf_C                  | ?                              | mulcaddf_vec                  |
+| mulcaddcXf                                            | mulcaddcf_C                 | ?                              | mulcaddcf_vec                 |
+| muladdcXf                                             | muladdcf_C                  | ?                              | muladdcf_vec                  |
+| divXf                                                 | divf_C                      | ippsDiv_32f_A24                | divf_vec                      |
+| vectorSlopeXf    (a)                                  | vectorSlopef_C              | ippsVectorSlope_32f            | vectorSlopef_vec              |
 | convertFloat32ToU8_X                                  | convertFloat32ToU8_C        | ippsConvert_32f8u_Sfs          | ?                             |
 | convertFloat32ToU16_X                                 | convertFloat32ToI16_C       | ippsConvert_32f16u_Sfs         | ?                             |
 | convertFloat32ToI16_X                                 | convertFloat32ToI16_C       | ippsConvert_32f16s_Sfs         | ?                             |
 | convertInt16ToFloat32_X                               | convertInt16ToFloat32_C     | ippsConvert_16s32f_Sfs         | ?                             |
-| cplxtorealXf   (a)                                    | cplxtorealf_C               | ippsCplxToReal_32fc            | ?                             |
-| realtocplxXf   (a)                                    | realtocplx_C                | ippsRealToCplx_32f             | ?                             |
-| convertX_64f32f                                       | convert_64f32f_C            | ippsConvert_64f32f             | ?                             |
-| convertX_32f64f                                       | convert_32f64f_C            | ippsConvert_32f64f             | ?                             |
+| cplxtorealXf   (a)                                    | cplxtorealf_C               | ippsCplxToReal_32fc            | cplxtorealf_vec               |
+| realtocplxXf   (a)                                    | realtocplx_C                | ippsRealToCplx_32f             | realtocplxf_vec               |
+| convertX_64f32f                                       | convert_64f32f_C            | ippsConvert_64f32f             | convert_64f32f_vec            |
+| convertX_32f64f                                       | convert_32f64f_C            | ippsConvert_32f64f             | convert_32f64f_vec            |
 | flipXf   (a)                                          | flipf_C                     | ippsFlip_32f                   | ?                             |
 | maxeveryXf  (a)                                       | maxeveryf_c                 | ippsMaxEvery_32f               | maxeveryf_vec                 |
 | mineveryXf  (a)                                       | mineveryf_c                 | ippsMinEvery_32f               | mineveryf_vec                 |
@@ -141,7 +141,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | subcrevXf                                             | subcrevf_C                  | ippsSubCRev_32f                | ?                             |
 | sumXf    (a)                                          | sumf_C                      | ippsSum_32f                    | sumf_vec                      |
 | meanXf   (a)                                          | meanf_C                     | ippsMean_32f                   | meanf_vec                     |
-| sqrtXf                                                | sqrtf_C                     | ippsSqrt_32f                   | ?                             |
+| sqrtXf                                                | sqrtf_C                     | ippsSqrt_32f                   | sqrtf_vec                     |
 | roundXf  (a)                                          | roundf_C                    | ippsRound_32f                  | ?                             |
 | ceilXf   (a)                                          | ceilf_C                     | ippsCeil_32f                   | ?                             |
 | floorXf  (a)                                          | floorf_C                    | ippsFloor_32f                  | ?                             |
@@ -150,28 +150,28 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | cplxvecmulXf_split  (a)                               | cplxvecmul_C_split/precise  | ?                              | cplxvecmul_vec_split          |
 | cplxconjvecmulXf                                      | cplxconjvecmul_C            | ippsMulByConj_32fc_A24         | ?                             |
 | cplxconjvecmulXf_split                                | cplxconjvecmul_C_split      | ?                              | ?                             |
-| cplxconjXf          (a)                               | cplxconj_C                  | ippsConj_32fc_A24              | ?                             |
+| cplxconjXf          (a)                               | cplxconj_C                  | ippsConj_32fc_A24              | cplxconjf_vec                 |
 | cplxvecdivXf                                          | cplxvecdiv_C                | ?                              | cplxvecdiv_vec                |
 | cplxvecdivXf_split                                    | cplxvecdiv_C_split          | ?                              | cplxvecdiv_vec_split          |
-| setXd                                                 | setd_C                      | ippsSet_64f                    | ?                             |
-| zeroXd                                                | zerod_C                     | ippsZero_64f                   | ?                             |
-| copyXd                                                | copyd_C                     | ippsCopy_64f                   | ?                             |
-| sqrtXd                                                | sqrtd_C                     | ippsSqrt_64f                   | ?                             |
-| addXd                                                 | addd_c                      | ippsAdd_64f                    | ?                             |
-| mulXd                                                 | muld_c                      | ippsMul_64f                    | ?                             |
-| subXd                                                 | subd_c                      | ippsSub_64f                    | ?                             |
-| divXd                                                 | divd_c                      | ippsDiv_64f                    | ?                             |
-| addcXd                                                | addcd_C                     | ippsAddC_64f                   | ?                             |
-| mulcXd                                                | mulcd_C                     | ippsMulC_64f                   | ?                             |
-| muladdXd                                              | muladdd_C                   | ?                              | ?                             |
-| mulcaddXd                                             | mulcaddd_C                  | ?                              | ?                             |
-| mulcaddcXd                                            | mulcaddcd_C                 | ?                              | ?                             |
-| muladdcXd                                             | muladdcd_C                  | ?                              | ?                             |
+| setXd                                                 | setd_C                      | ippsSet_64f                    | setd_vec                      |
+| zeroXd                                                | zerod_C                     | ippsZero_64f                   | zerod_vec                     |
+| copyXd                                                | copyd_C                     | ippsCopy_64f                   | copyd_vec                     |
+| sqrtXd                                                | sqrtd_C                     | ippsSqrt_64f                   | sqrtd_vec                     |
+| addXd                                                 | addd_c                      | ippsAdd_64f                    | addd_vec                      |
+| mulXd                                                 | muld_c                      | ippsMul_64f                    | muld_vec                      |
+| subXd                                                 | subd_c                      | ippsSub_64f                    | subd_vec                      |
+| divXd                                                 | divd_c                      | ippsDiv_64f                    | divd_vec                      |
+| addcXd                                                | addcd_C                     | ippsAddC_64f                   | addcd_vec                     |
+| mulcXd                                                | mulcd_C                     | ippsMulC_64f                   | mulcd_vec                     |
+| muladdXd                                              | muladdd_C                   | ?                              | muladdd_vec                   |
+| mulcaddXd                                             | mulcaddd_C                  | ?                              | muladdcd_vec                  |
+| mulcaddcXd                                            | mulcaddcd_C                 | ?                              | mulcaddcd_vec                 |
+| muladdcXd                                             | muladdcd_C                  | ?                              | muladdcd_vec                  |
 | roundXd                                               | roundd_C                    | ippsRound_64f                  | ?                             |
 | ceilXd                                                | ceild_C                     | ippsCeil_64f                   | ?                             |
 | floorXd                                               | floord_C                    | ippsFloor_64f                  | ?                             |
 | truncXd                                               | truncd_C                    | ippsTrunc_64f                  | ?                             |
-| vectorSlopeXd                                         | vectorSloped_C              | ippsVectorSlope_64f            | ?                             |
+| vectorSlopeXd                                         | vectorSloped_C              | ippsVectorSlope_64f            | vectorSloped_vec              |
 | sincosXd                                              | sincosd_C                   | ippsSinCos_64f_A53             | ?                             |
 | atanXd                                                | atan_C                      | ippsAtan_64f_A53               | ?                             |
 | asinXd                                                | asin_C                      | ippsAsin_64f_A53               | ?                             |
@@ -179,8 +179,8 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | mulXs                                                 | muls_c                      | ?                              | muls_vec                      |
 | subXs                                                 | subs_c                      | ?                              | subs_vec                      |
 | addcXs                                                | addcs_C                     | ?                              | addcs_vec                     |
-| vectorSlopeXs                                         | vectorSlopes_C              | ippsVectorSlope_32s            | ?                             |
-| copyXs                                                | copys_C                     | ippsCopy_32s                   | ?                             |
+| vectorSlopeXs                                         | vectorSlopes_C              | ippsVectorSlope_32s            | vectorSlopes_vec              |
+| copyXs                                                | copys_C                     | ippsCopy_32s                   | copys_vec                     |
 | ?                                                     | ?                           | ?                              | mulcs_vec                     |
 | absdiff16s_Xs                                         | absdiff16s_c                | ?                              | ?                             |
 | ?                                                     | ors_c                       | ippsOr_32u                     | ?                             |
