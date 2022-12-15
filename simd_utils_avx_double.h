@@ -794,6 +794,35 @@ static inline void sincos256d(double *src, double *dst_sin, double *dst_cos, int
     }
 }
 
+static inline void sincos256d_interleaved(double *src, complex64_t *dst, int len)
+{
+    int stop_len = len / AVX_LEN_DOUBLE;
+    stop_len *= AVX_LEN_DOUBLE;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_load_pd(src + i);
+            v4sdx2 dst_tmp;
+            sincos256_pd(src_tmp, &(dst_tmp.val[1]), &(dst_tmp.val[0]));
+            _mm256_store2_pd((double *) dst + j, dst_tmp);
+            j += 2 * AVX_LEN_DOUBLE;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_loadu_pd(src + i);
+            v4sdx2 dst_tmp;
+            sincos256_pd(src_tmp, &(dst_tmp.val[1]), &(dst_tmp.val[0]));
+            _mm256_store2u_pd((double *) dst + j, dst_tmp);
+            j += 2 * AVX_LEN_DOUBLE;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i].im = sin(src[i]);
+        dst[i].re = cos(src[i]);
+    }
+}
 
 static inline void pol2cart2D256f_precise(float *r, float *theta, float *x, float *y, int len)
 {

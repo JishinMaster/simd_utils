@@ -610,6 +610,36 @@ static inline void sincos128d(double *src, double *dst_sin, double *dst_cos, int
     }
 }
 
+static inline void sincos128d_interleaved(double *src, complex64_t *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_load_pd(src + i);
+            v2sdx2 dst_tmp;
+            sincos_pd(src_tmp, &(dst_tmp.val[1]), &(dst_tmp.val[0]));
+            _mm_store2_pd((double *) dst + j, dst_tmp);
+            j += 2 * SSE_LEN_DOUBLE;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_loadu_pd(src + i);
+            v2sdx2 dst_tmp;
+            sincos_pd(src_tmp, &(dst_tmp.val[1]), &(dst_tmp.val[0]));
+            _mm_store2u_pd((double *) dst + j, dst_tmp);
+            j += 2 * SSE_LEN_DOUBLE;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i].im = sin(src[i]);
+        dst[i].re = cos(src[i]);
+    }
+}
+
 static inline v2sd asin_pd(v2sd x)
 {
     v2sd a, z;

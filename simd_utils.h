@@ -231,6 +231,58 @@ static inline void _mm_store2u_ps(float *mem_addr, v4sfx2 a)
 #endif
 }
 
+static inline v2sdx2 _mm_load2_pd(double const *mem_addr)
+{
+#ifdef ARM
+    return vld2q_f64(mem_addr);
+#else
+    v2sd tmp1 = _mm_load_pd(mem_addr);
+    v2sd tmp2 = _mm_load_pd(mem_addr + SSE_LEN_DOUBLE);
+    v2sdx2 ret;
+    ret.val[0] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(2, 0, 2, 0));
+    ret.val[1] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(3, 1, 3, 1));
+    return ret;
+#endif
+}
+
+static inline v2sdx2 _mm_load2u_pd(double const *mem_addr)
+{
+#ifdef ARM
+    return vld2q_f64(mem_addr);
+#else
+    v2sd tmp1 = _mm_loadu_pd(mem_addr);
+    v2sd tmp2 = _mm_loadu_pd(mem_addr + SSE_LEN_DOUBLE);
+    v2sdx2 ret;
+    ret.val[0] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(2, 0, 2, 0));
+    ret.val[1] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(3, 1, 3, 1));
+    return ret;
+#endif
+}
+
+static inline void _mm_store2_pd(double *mem_addr, v2sdx2 a)
+{
+#ifdef ARM
+    vst2q_f64(mem_addr, a);
+#else
+    v2sd tmp1 = _mm_unpacklo_pd(a.val[0], a.val[1]);
+    v2sd tmp2 = _mm_unpackhi_pd(a.val[0], a.val[1]);
+    _mm_store_pd(mem_addr, tmp1);
+    _mm_store_pd(mem_addr + SSE_LEN_DOUBLE, tmp2);
+#endif
+}
+
+static inline void _mm_store2u_pd(double *mem_addr, v2sdx2 a)
+{
+#ifdef ARM
+    vst2q_f64(mem_addr, a);
+#else
+    v2sd tmp1 = _mm_unpacklo_pd(a.val[0], a.val[1]);
+    v2sd tmp2 = _mm_unpackhi_pd(a.val[0], a.val[1]);
+    _mm_storeu_pd(mem_addr, tmp1);
+    _mm_storeu_pd(mem_addr + SSE_LEN_DOUBLE, tmp2);
+#endif
+}
+
 static inline __m128 _mm_fmadd_ps_custom(__m128 a, __m128 b, __m128 c)
 {
 // Haswell comes with avx2 and fma
@@ -397,6 +449,46 @@ static inline void _mm256_store2u_ps(float *mem_addr, v8sfx2 a)
     _mm256_storeu_ps(mem_addr + AVX_LEN_FLOAT, perm1);
 }
 
+static inline v4sdx2 _mm256_load2_pd(double const *mem_addr)
+{
+    v2sdx2 src_1 = _mm_load2_pd(mem_addr);
+    v2sdx2 src_2 = _mm_load2_pd(mem_addr + 2 * AVX_LEN_DOUBLE);
+    v4sdx2 ret;
+    ret.val[0] = _mm256_set_m128d(src_2.val[0], src_1.val[0]);
+    ret.val[1] = _mm256_set_m128d(src_2.val[1], src_1.val[1]);
+    return ret;
+}
+
+static inline v4sdx2 _mm256_load2u_pd(double const *mem_addr)
+{
+    v2sdx2 src_1 = _mm_load2u_pd(mem_addr);
+    v2sdx2 src_2 = _mm_load2u_pd(mem_addr + 2 * AVX_LEN_DOUBLE);
+    v4sdx2 ret;
+    ret.val[0] = _mm256_set_m128d(src_2.val[0], src_1.val[0]);
+    ret.val[1] = _mm256_set_m128d(src_2.val[1], src_1.val[1]);
+    return ret;
+}
+
+static inline void _mm256_store2_pd(double *mem_addr, v4sdx2 a)
+{
+    v4sd cplx0 = _mm256_unpacklo_pd(a.val[0], a.val[1]);
+    v4sd cplx1 = _mm256_unpackhi_pd(a.val[0], a.val[1]);
+    v4sd perm0 = _mm256_permute2f128_pd(cplx0, cplx1, 0x20);  // permute mask [cplx1(127:0],cplx0[127:0])
+    v4sd perm1 = _mm256_permute2f128_pd(cplx0, cplx1, 0x31);  // permute mask [cplx1(255:128],cplx0[255:128])
+    _mm256_store_pd(mem_addr, perm0);
+    _mm256_store_pd(mem_addr + AVX_LEN_DOUBLE, perm1);
+}
+
+static inline void _mm256_store2u_pd(double *mem_addr, v4sdx2 a)
+{
+    v4sd cplx0 = _mm256_unpacklo_pd(a.val[0], a.val[1]);
+    v4sd cplx1 = _mm256_unpackhi_pd(a.val[0], a.val[1]);
+    v4sd perm0 = _mm256_permute2f128_pd(cplx0, cplx1, 0x20);  // permute mask [cplx1(127:0],cplx0[127:0])
+    v4sd perm1 = _mm256_permute2f128_pd(cplx0, cplx1, 0x31);  // permute mask [cplx1(255:128],cplx0[255:128])
+    _mm256_storeu_pd(mem_addr, perm0);
+    _mm256_storeu_pd(mem_addr + AVX_LEN_DOUBLE, perm1);
+}
+
 #include "simd_utils_avx_double.h"
 #include "simd_utils_avx_float.h"
 #include "simd_utils_avx_int32.h"
@@ -469,6 +561,42 @@ static inline void _mm512_store2u_ps(float *mem_addr, v16sfx2 a)
     v16sf tmp2 = _mm512_permutex2var_ps(a.val[1], *(v16si *) _pi32_512_idx_cplx_hi, a.val[0]);
     _mm512_storeu_ps(mem_addr, tmp1);
     _mm512_storeu_ps(mem_addr + AVX512_LEN_FLOAT, tmp2);
+}
+
+static inline v8sdx2 _mm512_load2_pd(double const *mem_addr)
+{
+    v8sd vec1 = _mm512_load_pd(mem_addr);                     // load 0 1 2 3 4 5 6 7
+    v8sd vec2 = _mm512_load_pd(mem_addr + AVX512_LEN_DOUBLE);  // load 8 9 10 11 12 13 14 15
+    v8sdx2 ret;
+    ret.val[0] = _mm512_permutex2var_pd(vec2, *(v8sid *) _pi64_512_idx_re, vec1);
+    ret.val[1] = _mm512_permutex2var_pd(vec2, *(v8sid *) _pi64_512_idx_im, vec1);
+    return ret;
+}
+
+static inline v8sdx2 _mm512_load2u_pd(double const *mem_addr)
+{
+    v8sd vec1 = _mm512_loadu_pd(mem_addr);                     // load 0 1 2 3 4 5 6 7
+    v8sd vec2 = _mm512_loadu_pd(mem_addr + AVX512_LEN_DOUBLE);  // load 8 9 10 11 12 13 14 15
+    v8sdx2 ret;
+    ret.val[0] = _mm512_permutex2var_pd(vec2, *(v8sid *) _pi64_512_idx_re, vec1);
+    ret.val[1] = _mm512_permutex2var_pd(vec2, *(v8sid *) _pi64_512_idx_im, vec1);
+    return ret;
+}
+
+static inline void _mm512_store2_pd(double *mem_addr, v8sdx2 a)
+{
+    v8sd tmp1 = _mm512_permutex2var_pd(a.val[1], *(v8sid *) _pi64_512_idx_cplx_lo, a.val[0]);
+    v8sd tmp2 = _mm512_permutex2var_pd(a.val[1], *(v8sid *) _pi64_512_idx_cplx_hi, a.val[0]);
+    _mm512_store_pd(mem_addr, tmp1);
+    _mm512_store_pd(mem_addr + AVX512_LEN_DOUBLE, tmp2);
+}
+
+static inline void _mm512_store2u_pd(double *mem_addr, v8sdx2 a)
+{
+    v8sd tmp1 = _mm512_permutex2var_pd(a.val[1], *(v8sid *) _pi64_512_idx_cplx_lo, a.val[0]);
+    v8sd tmp2 = _mm512_permutex2var_pd(a.val[1], *(v8sid *) _pi64_512_idx_cplx_hi, a.val[0]);
+    _mm512_storeu_pd(mem_addr, tmp1);
+    _mm512_storeu_pd(mem_addr + AVX512_LEN_DOUBLE, tmp2);
 }
 
 #include "simd_utils_avx512_double.h"
@@ -1264,7 +1392,18 @@ static inline void sincosf_C_interleaved(float *src, complex32_t *dst, int len)
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        mysincosf(src[i], &(dst[i].re), &(dst[i].im));
+        mysincosf(src[i], &(dst[i].im), &(dst[i].re));
+    }
+}
+
+static inline void sincosd_C_interleaved(double *src, complex64_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i].im = sin(src[i]);
+        dst[i].re = cos(src[i]);
     }
 }
 
@@ -1275,6 +1414,16 @@ static inline void sqrtf_C(float *src, float *dst, int len)
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] = sqrtf(src[i]);
+    }
+}
+
+static inline void modff_C(float *src, float *integer, float* remainder, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        remainder[i] = modff(src[i], &(integer[i]));
     }
 }
 

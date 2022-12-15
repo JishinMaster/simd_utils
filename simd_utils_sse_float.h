@@ -2155,7 +2155,7 @@ static inline void sincos128f_interleaved(float *src, complex32_t *dst, int len)
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
             v4sfx2 dst_tmp;
-            sincos_ps(src_tmp, &(dst_tmp.val[0]), &(dst_tmp.val[1]));
+            sincos_ps(src_tmp, &(dst_tmp.val[1]), &(dst_tmp.val[0]));
             _mm_store2_ps((float *) dst + j, dst_tmp);
             j += 2 * SSE_LEN_FLOAT;
         }
@@ -2163,14 +2163,14 @@ static inline void sincos128f_interleaved(float *src, complex32_t *dst, int len)
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
             v4sfx2 dst_tmp;
-            sincos_ps(src_tmp, &(dst_tmp.val[0]), &(dst_tmp.val[1]));
+            sincos_ps(src_tmp, &(dst_tmp.val[1]), &(dst_tmp.val[0]));
             _mm_store2u_ps((float *) dst + j, dst_tmp);
             j += 2 * SSE_LEN_FLOAT;
         }
     }
 
     for (int i = stop_len; i < len; i++) {
-        mysincosf(src[i], &(dst[i].re), &(dst[i].im));
+        mysincosf(src[i], &(dst[i].im), &(dst[i].re));
     }
 }
 
@@ -4483,5 +4483,43 @@ static inline void cart2pol2D128f(float *x, float *y, float *r, float *theta, in
     for (int i = stop_len; i < len; i++) {
         r[i] = sqrtf(x[i] * x[i] + (y[i] * y[i]));
         theta[i] = atan2f(y[i], x[i]);
+    }
+}
+
+static inline void modf128f(float *src, float *integer, float* remainder, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+    if (areAligned3((uintptr_t) (src), (uintptr_t) (integer), (uintptr_t) (remainder), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4sf integer_tmp = _mm_round_ps(src_tmp, ROUNDTOZERO);
+            v4sf integer_tmp2 = _mm_round_ps(src_tmp2, ROUNDTOZERO);
+            v4sf remainder_tmp = _mm_sub_ps(src_tmp, integer_tmp);
+            v4sf remainder_tmp2 = _mm_sub_ps(src_tmp2, integer_tmp2);
+            _mm_store_ps(integer + i, integer_tmp);
+            _mm_store_ps(integer + i + SSE_LEN_FLOAT, integer_tmp2);
+            _mm_store_ps(remainder + i, remainder_tmp);
+            _mm_store_ps(remainder + i + SSE_LEN_FLOAT, remainder_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+            v4sf integer_tmp = _mm_round_ps(src_tmp, ROUNDTOZERO);
+            v4sf integer_tmp2 = _mm_round_ps(src_tmp2, ROUNDTOZERO);
+            v4sf remainder_tmp = _mm_sub_ps(src_tmp, integer_tmp);
+            v4sf remainder_tmp2 = _mm_sub_ps(src_tmp2, integer_tmp2);
+            _mm_storeu_ps(integer + i, integer_tmp);
+            _mm_storeu_ps(integer + i + SSE_LEN_FLOAT, integer_tmp2);
+            _mm_storeu_ps(remainder + i, remainder_tmp);
+            _mm_storeu_ps(remainder + i + SSE_LEN_FLOAT, remainder_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        remainder[i] = modff(src[i], &(integer[i]));
     }
 }

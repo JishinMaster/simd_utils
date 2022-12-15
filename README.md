@@ -122,7 +122,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | sinXf                                                 | sinf_C                      | ippsSin_32f_A24                | sinf_vec                      |
 | cosXf                                                 | cosf_C                      | ippsCos_32f_A24                | ?                             |
 | sincosXf (a)                                          | sincosf_C                   | ippsSinCos_32f_A24             | sincosf_vec                   |
-| sincosXf_interleaved (a)                              | sincosf_C_interleaved       | ?                              | ?                             |
+| sincosXf_interleaved (a)                              | sincosf_C_interleaved       | ippsCIS_32fc_A24               | ?                             |
 | coshXf  (a)                                           | coshf_C                     | ippsCosh_32f_A24               | ?                             |
 | sinhXf  (a)                                           | sinhf_C                     | ippsSinh_32f_A24               | ?                             |
 | acoshXf (a)                                           | acoshf_C                    | ippsAcosh_32f_A24              | ?                             |
@@ -146,6 +146,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | ceilXf   (a)                                          | ceilf_C                     | ippsCeil_32f                   | ?                             |
 | floorXf  (a)                                          | floorf_C                    | ippsFloor_32f                  | ?                             |
 | truncXf  (a)                                          | truncf_C                    | ippsTrunc_32f                  | ?                             |
+| modfXf  (a)                                           | modff_C                     | ippsModf_32f                   | ?                             |
 | cplxvecmulXf                                          | cplxvecmul_C/precise        | ippsMul_32fc_A11/24            | cplxvecmul_vec                |
 | cplxvecmulXf_split  (a)                               | cplxvecmul_C_split/precise  | ?                              | cplxvecmul_vec_split          |
 | cplxconjvecmulXf                                      | cplxconjvecmul_C            | ippsMulByConj_32fc_A24         | ?                             |
@@ -173,6 +174,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | truncXd                                               | truncd_C                    | ippsTrunc_64f                  | ?                             |
 | vectorSlopeXd                                         | vectorSloped_C              | ippsVectorSlope_64f            | vectorSloped_vec              |
 | sincosXd                                              | sincosd_C                   | ippsSinCos_64f_A53             | ?                             |
+| sincosXd_interleaved                                  | sincosd_C_interleaved       | ippsCIS_64fc_A53               | ?                             |
 | atanXd                                                | atan_C                      | ippsAtan_64f_A53               | ?                             |
 | asinXd                                                | asin_C                      | ippsAsin_64f_A53               | ?                             |
 | addXs                                                 | adds_c                      | ?                              | adds_vec                      |
