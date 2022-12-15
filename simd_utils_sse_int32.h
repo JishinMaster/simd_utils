@@ -393,3 +393,62 @@ static inline void powerspect16s_128s_interleaved(complex16s_t *src, int32_t *ds
         dst[i] = (int32_t) src[i].re * (int32_t) src[i].re + (int32_t) src[i].im * (int32_t) src[i].im;
     }
 }
+
+//Works with positive scale_factor (divides final value)
+static inline void sum16s32s128(int16_t *src, int len, int32_t *dst, int scale_factor)
+{
+    int stop_len = len / (4 * SSE_LEN_INT16);
+    stop_len *= (4 * SSE_LEN_INT16);
+
+    __attribute__((aligned(SSE_LEN_BYTES))) int32_t accumulate[SSE_LEN_INT32] = {0, 0, 0, 0};
+    int32_t tmp_acc = 0;
+    int16_t scale = 1 << scale_factor;
+    v4si one = _mm_set1_epi16(1);
+    v4si vec_acc1 = _mm_setzero_si128();  // initialize the vector accumulator
+    v4si vec_acc2 = _mm_setzero_si128();  // initialize the vector accumulator
+
+    if (isAligned((uintptr_t) (src), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * SSE_LEN_INT16) {
+            v4si vec_src_tmp = _mm_load_si128((__m128i *) ((const int16_t *)src + i));
+            v4si vec_src_tmp2 = _mm_load_si128((__m128i *) ((const int16_t *)src + i + SSE_LEN_INT16));
+            v4si vec_src_tmp3 = _mm_load_si128((__m128i *) ((const int16_t *)src + i + 2*SSE_LEN_INT16));
+            v4si vec_src_tmp4 = _mm_load_si128((__m128i *) ((const int16_t *)src + i + 3*SSE_LEN_INT16));
+            vec_src_tmp = _mm_madd_epi16(vec_src_tmp, one);
+            vec_src_tmp2 = _mm_madd_epi16(vec_src_tmp2, one);
+            vec_src_tmp3 = _mm_madd_epi16(vec_src_tmp3, one);
+            vec_src_tmp4 = _mm_madd_epi16(vec_src_tmp4, one);
+            vec_src_tmp = _mm_add_epi32(vec_src_tmp, vec_src_tmp2);
+            vec_src_tmp3 = _mm_add_epi32(vec_src_tmp3, vec_src_tmp4);
+            vec_acc1 = _mm_add_epi32(vec_src_tmp, vec_acc1);
+            vec_acc2 = _mm_add_epi32(vec_src_tmp3, vec_acc2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * SSE_LEN_INT16) {
+            v4si vec_src_tmp = _mm_loadu_si128((__m128i *) ((const int16_t *)src + i));
+            v4si vec_src_tmp2 = _mm_loadu_si128((__m128i *) ((const int16_t *)src + i + SSE_LEN_INT16));
+            v4si vec_src_tmp3 = _mm_loadu_si128((__m128i *) ((const int16_t *)src + i + 2*SSE_LEN_INT16));
+            v4si vec_src_tmp4 = _mm_loadu_si128((__m128i *) ((const int16_t *)src + i + 3*SSE_LEN_INT16));
+            vec_src_tmp = _mm_madd_epi16(vec_src_tmp, one);
+            vec_src_tmp2 = _mm_madd_epi16(vec_src_tmp2, one);
+            vec_src_tmp3 = _mm_madd_epi16(vec_src_tmp3, one);
+            vec_src_tmp4 = _mm_madd_epi16(vec_src_tmp4, one);
+            vec_src_tmp = _mm_add_epi32(vec_src_tmp, vec_src_tmp2);
+            vec_src_tmp3 = _mm_add_epi32(vec_src_tmp3, vec_src_tmp4);
+            vec_acc1 = _mm_add_epi32(vec_src_tmp, vec_acc1);
+            vec_acc2 = _mm_add_epi32(vec_src_tmp3, vec_acc2);
+        }
+    }
+    
+    vec_acc1 = _mm_add_epi32(vec_acc1, vec_acc2);
+    _mm_store_si128((v4si*)accumulate, vec_acc1);
+
+    for (int i = stop_len; i < len; i++) {
+        tmp_acc += (int32_t)src[i];
+    }
+
+    tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3];
+
+    tmp_acc /= scale;
+    *dst = tmp_acc;
+}
+

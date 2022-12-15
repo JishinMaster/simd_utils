@@ -348,6 +348,64 @@ static inline void powerspect16s_256s_interleaved(complex16s_t *src, int32_t *ds
     }
 }
 
+static inline void sum16s32s256(int16_t *src, int len, int32_t *dst, int scale_factor)
+{
+    int stop_len = len / (4 * AVX_LEN_INT16);
+    stop_len *= (4 * AVX_LEN_INT16);
+
+    __attribute__((aligned(AVX_LEN_BYTES))) int32_t accumulate[AVX_LEN_INT32] = {0, 0, 0, 0,\
+                                                                                 0, 0, 0, 0};
+    int32_t tmp_acc = 0;
+    int16_t scale = 1 << scale_factor;
+    v8si one = _mm256_set1_epi16(1);
+    v8si vec_acc1 = _mm256_setzero_si256();  // initialize the vector accumulator
+    v8si vec_acc2 = _mm256_setzero_si256();  // initialize the vector accumulator
+
+    if (isAligned((uintptr_t) (src), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_INT16) {
+            v8si vec_src_tmp = _mm256_load_si256((__m256i *) ((const int16_t *)src + i));
+            v8si vec_src_tmp2 = _mm256_load_si256((__m256i *) ((const int16_t *)src + i + AVX_LEN_INT16));
+            v8si vec_src_tmp3 = _mm256_load_si256((__m256i *) ((const int16_t *)src + i + 2*AVX_LEN_INT16));
+            v8si vec_src_tmp4 = _mm256_load_si256((__m256i *) ((const int16_t *)src + i + 3*AVX_LEN_INT16));
+            vec_src_tmp = _mm256_madd_epi16(vec_src_tmp, one);
+            vec_src_tmp2 = _mm256_madd_epi16(vec_src_tmp2, one);
+            vec_src_tmp3 = _mm256_madd_epi16(vec_src_tmp3, one);
+            vec_src_tmp4 = _mm256_madd_epi16(vec_src_tmp4, one);
+            vec_src_tmp = _mm256_add_epi32(vec_src_tmp, vec_src_tmp2);
+            vec_src_tmp3 = _mm256_add_epi32(vec_src_tmp3, vec_src_tmp4);
+            vec_acc1 = _mm256_add_epi32(vec_src_tmp, vec_acc1);
+            vec_acc2 = _mm256_add_epi32(vec_src_tmp3, vec_acc2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_INT16) {
+            v8si vec_src_tmp = _mm256_loadu_si256((__m256i *) ((const int16_t *)src + i));
+            v8si vec_src_tmp2 = _mm256_loadu_si256((__m256i *) ((const int16_t *)src + i + AVX_LEN_INT16));
+            v8si vec_src_tmp3 = _mm256_loadu_si256((__m256i *) ((const int16_t *)src + i + 2*AVX_LEN_INT16));
+            v8si vec_src_tmp4 = _mm256_loadu_si256((__m256i *) ((const int16_t *)src + i + 3*AVX_LEN_INT16));
+            vec_src_tmp = _mm256_madd_epi16(vec_src_tmp, one);
+            vec_src_tmp2 = _mm256_madd_epi16(vec_src_tmp2, one);
+            vec_src_tmp3 = _mm256_madd_epi16(vec_src_tmp3, one);
+            vec_src_tmp4 = _mm256_madd_epi16(vec_src_tmp4, one);
+            vec_src_tmp = _mm256_add_epi32(vec_src_tmp, vec_src_tmp2);
+            vec_src_tmp3 = _mm256_add_epi32(vec_src_tmp3, vec_src_tmp4);
+            vec_acc1 = _mm256_add_epi32(vec_src_tmp, vec_acc1);
+            vec_acc2 = _mm256_add_epi32(vec_src_tmp3, vec_acc2);
+        }
+    }
+    
+    vec_acc1 = _mm256_add_epi32(vec_acc1, vec_acc2);
+    _mm256_store_si256((v8si*)accumulate, vec_acc1);
+
+    for (int i = stop_len; i < len; i++) {
+        tmp_acc += (int32_t)src[i];
+    }
+
+    tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3] +\
+                        accumulate[4] + accumulate[5] + accumulate[6] + accumulate[7];
+    tmp_acc /= scale;
+    *dst = tmp_acc;
+}
+
 // is it useful to unroll?
 static inline void gatheri_256s(int32_t *src, int32_t *dst, int stride, int offset, int len)
 {

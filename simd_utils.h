@@ -1703,6 +1703,18 @@ static inline void cplxconj_C(complex32_t *src, complex32_t *dst, int len)
     }
 }
 
+static inline void dotf_C(float *src1, float *src2, int len, float *dst)
+{
+    float tmp_acc = 0.0f;
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        tmp_acc += src1[i] * src2[i];
+    }
+    *dst=tmp_acc;
+}
+
 static inline void vectorSlopef_C(float *dst, int len, float offset, float slope)
 {
 #ifdef OMP
@@ -2054,6 +2066,23 @@ static inline void absdiff16s_c(int16_t *a, int16_t *b, int16_t *c, int len)
     for (int i = 0; i < len; i++) {
         c[i] = abs(a[i] - b[i]);
     }
+
+}
+
+static inline void sum16s32s_C(int16_t *src, int len, int32_t *dst, int scale_factor)
+{
+
+    int32_t tmp_acc = 0;
+    int16_t scale = 1 << scale_factor;
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        tmp_acc += (int32_t)src[i];
+    }
+    
+    tmp_acc /= scale;
+    *dst = tmp_acc;
 }
 
 static inline void powerspect16s_c_interleaved(complex16s_t *src, int32_t *dst, int len)

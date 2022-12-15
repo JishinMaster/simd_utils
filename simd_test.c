@@ -3568,8 +3568,96 @@ printf("\n");
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
-    printf("\n");
+   /////////////////////////////////////////////////////////// DOTF //////////////////////////////////////////////////////////////////////////////
+    printf("DOTF\n");
 
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) i / 3000.0f;  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+        inout2[i] = (float) i / (-1270.577f);
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    dotf_C(inout, inout2, len,  &inout_ref[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("dotf_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        dotf_C(inout, inout2, len,  &inout_ref[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("dotf_C %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsDotProd_32f(inout, inout2, len,  &inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsDotProd_32f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsDotProd_32f(inout, inout2, len,  &inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsDotProd_32f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    printf("%f %f\n",inout_ref[0], inout3[0]);
+#endif
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    dot128f(inout, inout2, len,  &inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("dot128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        dot128f(inout, inout2, len,  &inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("dot128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    printf("%f %f\n",inout_ref[0], inout3[0]);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    dot256f(inout, inout2, len,  &inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("dot256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        dot256f(inout, inout2, len,  &inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("dot256f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    printf("%f %f\n",inout_ref[0], inout3[0]);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    dot512f(inout, inout2, len,  &inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("dot512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        dot512f(inout, inout2, len,  &inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("dot512f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    printf("%f %f\n",inout_ref[0], inout3[0]);
+#endif
+
+    printf("\n");
     /////////////////////////////////////////////////////////// MULADD //////////////////////////////////////////////////////////////////////////////
     printf("MULADD\n");
 
@@ -9795,6 +9883,94 @@ for (int i = 0; i < len; i++){
     /*for(int i = 0; i < len; i++)
           printf("%d %d %d\n",inout_s1[i], inout_i1[i], inout_iref[i]);
         printf("\n\n");*/
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// SUM16S32S //////////////////////////////////////////////////////////////////////////////
+    printf("SUM16S32S\n");
+
+
+    for (int i = 0; i < 2 * len; i++) {
+        inout_s1[i] = (rand() % 32767);
+        if (i % 4 == 0)
+            inout_s1[i] = -inout_s1[i];
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    sum16s32s_C(inout_s1, len, &inout_iref[0], 3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sum16s32s_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sum16s32s_C(inout_s1, len, &inout_iref[0], 3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sum16s32s_C %d %lf\n", len, elapsed);
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsSum_16s32s_Sfs(inout_s1, len, &inout_i1[0], 3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsSum_16s32s_Sfs %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsSum_16s32s_Sfs(inout_s1, len, &inout_i1[0], 3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsSum_16s32s_Sfs %d %lf\n", len, elapsed);
+    printf("%d %d\n",inout_iref[0], inout_i1[0]);
+#endif
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    sum16s32s128(inout_s1, len, &inout_i1[0], 3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sum16s32s128 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sum16s32s128(inout_s1, len, &inout_i1[0], 3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sum16s32s128 %d %lf\n", len, elapsed);
+    printf("%d %d\n",inout_iref[0], inout_i1[0]);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    sum16s32s256(inout_s1, len, &inout_i1[0], 3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sum16s32s256 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sum16s32s256(inout_s1, len, &inout_i1[0], 3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sum16s32s256 %d %lf\n", len, elapsed);
+    printf("%d %d\n",inout_iref[0], inout_i1[0]);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    sum16s32s512(inout_s1, len, &inout_i1[0], 3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sum16s32s512 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sum16s32s512(inout_s1, len, &inout_i1[0], 3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sum16s32s512 %d %lf\n", len, elapsed);
+    printf("%d %d\n",inout_iref[0], inout_i1[0]);
+#endif
 
     printf("\n");
     /////////////////////////////////////////////////////////// EXPERIMENTAL //////////////////////////////////////////////////////////////////////////////

@@ -101,6 +101,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | mulcaddcXf                                            | mulcaddcf_C                 | ?                              | mulcaddcf_vec                 |
 | muladdcXf                                             | muladdcf_C                  | ?                              | muladdcf_vec                  |
 | divXf                                                 | divf_C                      | ippsDiv_32f_A24                | divf_vec                      |
+| dotXf                                                 | dotf_C                      | ippsDotProd_32f                | ?                             |
 | vectorSlopeXf    (a)                                  | vectorSlopef_C              | ippsVectorSlope_32f            | vectorSlopef_vec              |
 | convertFloat32ToU8_X                                  | convertFloat32ToU8_C        | ippsConvert_32f8u_Sfs          | ?                             |
 | convertFloat32ToU16_X                                 | convertFloat32ToI16_C       | ippsConvert_32f16u_Sfs         | ?                             |
@@ -185,6 +186,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | copyXs                                                | copys_C                     | ippsCopy_32s                   | copys_vec                     |
 | ?                                                     | ?                           | ?                              | mulcs_vec                     |
 | absdiff16s_Xs                                         | absdiff16s_c                | ?                              | ?                             |
+| sum16s32sX                                            | sum16s32s_C                 | ippsSum_16s32s_Sfs             | ?                             |
 | ?                                                     | ors_c                       | ippsOr_32u                     | ?                             |
 | ?                                                     | ands_c                      | ippsAnd_32u                    | ?                             |
 | sigmoidXf                                             | sigmoidf_C                  | ?                              | ?                             |

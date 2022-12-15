@@ -3079,6 +3079,49 @@ static inline void mean256f(float *src, float *dst, int len)
     *dst *= coeff;
 }
 
+static inline void dot256f(float *src1, float *src2, int len, float *dst)
+{
+    int stop_len = len / (2 * AVX_LEN_FLOAT);
+    stop_len *= (2 * AVX_LEN_FLOAT);
+
+    __attribute__((aligned(AVX_LEN_BYTES))) float accumulate[AVX_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f,\
+                                                                              0.0f, 0.0f, 0.0f, 0.0f};
+    float tmp_acc = 0.0f;
+    v8sf vec_acc1 = _mm256_setzero_ps();  // initialize the vector accumulator
+    v8sf vec_acc2 = _mm256_setzero_ps();  // initialize the vector accumulator
+
+    if (areAligned2((uintptr_t) (src1), (uintptr_t) (src2), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+            v8sf vec_src1_tmp = _mm256_load_ps(src1 + i);
+            v8sf vec_src1_tmp2 = _mm256_load_ps(src1 + i + AVX_LEN_FLOAT);
+            v8sf vec_src2_tmp = _mm256_load_ps(src2 + i);
+            v8sf vec_src2_tmp2 = _mm256_load_ps(src2 + i + AVX_LEN_FLOAT);
+            vec_acc1 = _mm256_fmadd_ps_custom(vec_src1_tmp, vec_src2_tmp, vec_acc1);
+            vec_acc2 = _mm256_fmadd_ps_custom(vec_src1_tmp2, vec_src2_tmp2, vec_acc2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+            v8sf vec_src1_tmp = _mm256_loadu_ps(src1 + i);
+            v8sf vec_src1_tmp2 = _mm256_loadu_ps(src1 + i + AVX_LEN_FLOAT);
+            v8sf vec_src2_tmp = _mm256_loadu_ps(src2 + i);
+            v8sf vec_src2_tmp2 = _mm256_loadu_ps(src2 + i + AVX_LEN_FLOAT);
+            vec_acc1 = _mm256_fmadd_ps_custom(vec_src1_tmp, vec_src2_tmp, vec_acc1);
+            vec_acc2 = _mm256_fmadd_ps_custom(vec_src1_tmp2, vec_src2_tmp2, vec_acc2);
+        }
+    }
+    vec_acc1 = _mm256_add_ps(vec_acc1, vec_acc2);
+    _mm256_store_ps(accumulate, vec_acc1);
+
+    for (int i = stop_len; i < len; i++) {
+        tmp_acc += src1[i] * src2[i];
+    }
+
+    tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3] +\
+    accumulate[4] + accumulate[5] + accumulate[6] + accumulate[7];
+
+    *dst = tmp_acc;
+}
+
 static inline void sqrt256f(float *src, float *dst, int len)
 {
     int stop_len = len / (2 * AVX_LEN_FLOAT);

@@ -360,6 +360,66 @@ static inline void powerspect16s_512s_interleaved(complex16s_t *src, int32_t *ds
     }
 }
 
+static inline void sum16s32s512(int16_t *src, int len, int32_t *dst, int scale_factor)
+{
+    int stop_len = len / (4 * AVX512_LEN_INT16);
+    stop_len *= (4 * AVX512_LEN_INT16);
+
+    __attribute__((aligned(AVX512_LEN_BYTES))) int32_t accumulate[AVX512_LEN_INT32] = {0, 0, 0, 0,\
+                                                               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,};
+    int32_t tmp_acc = 0;
+    int16_t scale = 1 << scale_factor;
+    v16si one = _mm512_set1_epi16(1);
+    v16si vec_acc1 = _mm512_setzero_si512();  // initialize the vector accumulator
+    v16si vec_acc2 = _mm512_setzero_si512();  // initialize the vector accumulator
+
+    if (isAligned((uintptr_t) (src), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_INT16) {
+            v16si vec_src_tmp = _mm512_load_si512((__m512i *) ((const int16_t *)src + i));
+            v16si vec_src_tmp2 = _mm512_load_si512((__m512i *) ((const int16_t *)src + i + AVX512_LEN_INT16));
+            v16si vec_src_tmp3 = _mm512_load_si512((__m512i *) ((const int16_t *)src + i + 2*AVX512_LEN_INT16));
+            v16si vec_src_tmp4 = _mm512_load_si512((__m512i *) ((const int16_t *)src + i + 3*AVX512_LEN_INT16));
+            vec_src_tmp = _mm512_madd_epi16(vec_src_tmp, one);
+            vec_src_tmp2 = _mm512_madd_epi16(vec_src_tmp2, one);
+            vec_src_tmp3 = _mm512_madd_epi16(vec_src_tmp3, one);
+            vec_src_tmp4 = _mm512_madd_epi16(vec_src_tmp4, one);
+            vec_src_tmp = _mm512_add_epi32(vec_src_tmp, vec_src_tmp2);
+            vec_src_tmp3 = _mm512_add_epi32(vec_src_tmp3, vec_src_tmp4);
+            vec_acc1 = _mm512_add_epi32(vec_src_tmp, vec_acc1);
+            vec_acc2 = _mm512_add_epi32(vec_src_tmp3, vec_acc2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_INT16) {
+            v16si vec_src_tmp = _mm512_loadu_si512((__m512i *) ((const int16_t *)src + i));
+            v16si vec_src_tmp2 = _mm512_loadu_si512((__m512i *) ((const int16_t *)src + i + AVX512_LEN_INT16));
+            v16si vec_src_tmp3 = _mm512_loadu_si512((__m512i *) ((const int16_t *)src + i + 2*AVX512_LEN_INT16));
+            v16si vec_src_tmp4 = _mm512_loadu_si512((__m512i *) ((const int16_t *)src + i + 3*AVX512_LEN_INT16));
+            vec_src_tmp = _mm512_madd_epi16(vec_src_tmp, one);
+            vec_src_tmp2 = _mm512_madd_epi16(vec_src_tmp2, one);
+            vec_src_tmp3 = _mm512_madd_epi16(vec_src_tmp3, one);
+            vec_src_tmp4 = _mm512_madd_epi16(vec_src_tmp4, one);
+            vec_src_tmp = _mm512_add_epi32(vec_src_tmp, vec_src_tmp2);
+            vec_src_tmp3 = _mm512_add_epi32(vec_src_tmp3, vec_src_tmp4);
+            vec_acc1 = _mm512_add_epi32(vec_src_tmp, vec_acc1);
+            vec_acc2 = _mm512_add_epi32(vec_src_tmp3, vec_acc2);
+        }
+    }
+    
+    vec_acc1 = _mm512_add_epi32(vec_acc1, vec_acc2);
+    _mm512_store_si512((v16si*)accumulate, vec_acc1);
+
+    for (int i = stop_len; i < len; i++) {
+        tmp_acc += (int32_t)src[i];
+    }
+
+    tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3] +\
+                        accumulate[4] + accumulate[5] + accumulate[6] + accumulate[7] +\
+                        accumulate[8] + accumulate[9] + accumulate[10] + accumulate[11] +\
+                        accumulate[12] + accumulate[13] + accumulate[14] + accumulate[15];
+    tmp_acc /= scale;
+    *dst = tmp_acc;
+} 
+
 
 // is it useful to unroll?
 static inline void gatheri_512s(int32_t *src, int32_t *dst, int stride, int offset, int len)
