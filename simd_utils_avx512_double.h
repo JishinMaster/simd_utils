@@ -452,6 +452,77 @@ static inline void vectorSlope512d(double *dst, int len, double offset, double s
     }
 }
 
+static inline void cplxtoreal512d(complex64_t *src, double *dstRe, double *dstIm, int len)
+{
+    int stop_len = 2 * len / (4 * AVX512_LEN_DOUBLE);
+    stop_len *= 4 * AVX512_LEN_DOUBLE;
+
+    int j = 0;
+    if (areAligned3((uintptr_t) (src), (uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_DOUBLE) {
+            v8sdx2 vec1 = _mm512_load2_pd((double const *) (src) + i);
+            v8sdx2 vec2 = _mm512_load2_pd((double const *) (src) + i + 2 * AVX512_LEN_DOUBLE);
+            _mm512_store_pd(dstRe + j, vec1.val[0]);
+            _mm512_store_pd(dstIm + j, vec1.val[1]);
+            _mm512_store_pd(dstRe + j + AVX512_LEN_DOUBLE, vec2.val[0]);
+            _mm512_store_pd(dstIm + j + AVX512_LEN_DOUBLE, vec2.val[1]);
+            j += 2 * AVX512_LEN_DOUBLE;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_DOUBLE) {
+            v8sdx2 vec1 = _mm512_load2u_pd((double const *) (src) + i);
+            v8sdx2 vec2 = _mm512_load2u_pd((double const *) (src) + i + 2 * AVX512_LEN_DOUBLE);
+            _mm512_storeu_pd(dstRe + j, vec1.val[0]);
+            _mm512_storeu_pd(dstIm + j, vec1.val[1]);
+            _mm512_storeu_pd(dstRe + j + AVX512_LEN_DOUBLE, vec2.val[0]);
+            _mm512_storeu_pd(dstIm + j + AVX512_LEN_DOUBLE, vec2.val[1]);
+            j += 2 * AVX512_LEN_DOUBLE;
+        }
+    }
+
+    for (int i = j; i < len; i++) {
+        dstRe[i] = src[i].re;
+        dstIm[i] = src[i].im;
+    }
+}
+
+static inline void realtocplx512d(double *srcRe, double *srcIm, complex64_t *dst, int len)
+{
+    int stop_len = len / (2 * AVX512_LEN_DOUBLE);
+    stop_len *= 2 * AVX512_LEN_DOUBLE;
+
+    int j = 0;
+    if (areAligned3((uintptr_t) (srcRe), (uintptr_t) (srcIm), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_DOUBLE) {
+            v8sd re = _mm512_load_pd(srcRe + i);
+            v8sd im = _mm512_load_pd(srcIm + i);
+            v8sd re2 = _mm512_load_pd(srcRe + i + AVX512_LEN_DOUBLE);
+            v8sd im2 = _mm512_load_pd(srcIm + i + AVX512_LEN_DOUBLE);
+            v8sdx2 reim = {{re, im}};
+            v8sdx2 reim2 = {{re2, im2}};
+            _mm512_store2_pd((double *) (dst) + j, reim);
+            _mm512_store2_pd((double *) (dst) + j + 2 * AVX512_LEN_DOUBLE, reim2);
+            j += 4 * AVX512_LEN_DOUBLE;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_DOUBLE) {
+            v8sd re = _mm512_loadu_pd(srcRe + i);
+            v8sd im = _mm512_loadu_pd(srcIm + i);
+            v8sd re2 = _mm512_loadu_pd(srcRe + i + AVX512_LEN_DOUBLE);
+            v8sd im2 = _mm512_loadu_pd(srcIm + i + AVX512_LEN_DOUBLE);
+            v8sdx2 reim = {{re, im}};
+            v8sdx2 reim2 = {{re2, im2}};
+            _mm512_store2u_pd((double *) (dst) + j, reim);
+            _mm512_store2u_pd((double *) (dst) + j + 2 * AVX512_LEN_DOUBLE, reim2);
+            j += 4 * AVX512_LEN_DOUBLE;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i].re = srcRe[i];
+        dst[i].im = srcIm[i];
+    }
+}
 
 static inline v8sd asin512_pd(v8sd x)
 {
@@ -662,6 +733,55 @@ static inline void atan512d(double *src, double *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = atan(src[i]);
+    }
+}
+
+static inline void atan2512d(double *src1, double *src2, double *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_DOUBLE;
+    stop_len *= AVX512_LEN_DOUBLE;
+
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            _mm512_store_pd(dst + i, atan2512_pd(_mm512_load_pd(src1 + i), _mm512_load_pd(src2 + i)));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            _mm512_storeu_pd(dst + i, atan2512_pd(_mm512_loadu_pd(src1 + i), _mm512_loadu_pd(src2 + i)));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atan2(src1[i], src2[i]);
+    }
+}
+
+static inline void atan2512d_interleaved(complex64_t *src, double *dst, int len)
+{
+    int stop_len = len / (2 * AVX512_LEN_DOUBLE);
+    stop_len *= 2 * AVX512_LEN_DOUBLE;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_DOUBLE) {
+            v8sdx2 src_split = _mm512_load2_pd((double *) (src) + j);
+            v8sdx2 src_split2 = _mm512_load2_pd((double *) (src) + j + 2 * AVX512_LEN_DOUBLE);
+            _mm512_store_pd(dst + i, atan2512_pd(src_split.val[1], src_split.val[0]));
+            _mm512_store_pd(dst + i + AVX512_LEN_DOUBLE, atan2512_pd(src_split2.val[1], src_split2.val[0]));
+            j += 4 * AVX512_LEN_DOUBLE;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_DOUBLE) {
+            v8sdx2 src_split = _mm512_load2u_pd((double *) (src) + j);
+            v8sdx2 src_split2 = _mm512_load2u_pd((double *) (src) + j + 2 * AVX512_LEN_DOUBLE);
+            _mm512_storeu_pd(dst + i, atan2512_pd(src_split.val[1], src_split.val[0]));
+            _mm512_storeu_pd(dst + i + AVX512_LEN_DOUBLE, atan2512_pd(src_split2.val[1], src_split2.val[0]));
+            j += 4 * AVX512_LEN_DOUBLE;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atan2(src[i].im, src[i].re);
     }
 }
 

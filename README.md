@@ -177,7 +177,11 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | sincosXd                                              | sincosd_C                   | ippsSinCos_64f_A53             | ?                             |
 | sincosXd_interleaved                                  | sincosd_C_interleaved       | ippsCIS_64fc_A53               | ?                             |
 | atanXd                                                | atan_C                      | ippsAtan_64f_A53               | ?                             |
+| atan2Xd                                               | atan2d_C                    | ippsAtan2_64f_A53              | ?                             |
+| atan2Xd_interleaved                                   | atan2_interleaved_C         | ?                              | ?                             |
 | asinXd                                                | asin_C                      | ippsAsin_64f_A53               | ?                             |
+| cplxtorealXd                                          | cplxtoreald_C               | ippsCplxToReal_64fc            | ?                             |
+| realtocplxXd                                          | realtocplxd_C               | ippsRealToCplx_64f             | ?                             |
 | addXs                                                 | adds_c                      | ?                              | adds_vec                      |
 | mulXs                                                 | muls_c                      | ?                              | muls_vec                      |
 | subXs                                                 | subs_c                      | ?                              | subs_vec                      |

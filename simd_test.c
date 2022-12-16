@@ -3663,6 +3663,7 @@ printf("\n");
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
+   printf("\n");
    /////////////////////////////////////////////////////////// DOTF //////////////////////////////////////////////////////////////////////////////
     printf("DOTF\n");
 
@@ -8292,8 +8293,8 @@ for (int i = 0; i < len; i++){
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (-1.0f * i + 0.15f) / 2.5f / (float) (5 * len);
-        inout_ref[i] = 50.0f;
-        inout2_ref[i] = 50.0f;
+        inout2[i] = (float)(rand()%12345)/123456.0f + 0.123f;
+        if(i%4==0) inout2[i] = -inout2[i];
     }
 
     clock_gettime(CLOCK_REALTIME, &start);
@@ -8455,7 +8456,6 @@ for (int i = 0; i < len; i++){
 #endif
 
 #endif
-
 
     printf("\n");
     /////////////////////////////////////////////////////////// ATANF2_INTERLEAVED /////////////////////////////////////////////////////
@@ -8696,8 +8696,8 @@ for (int i = 0; i < len; i++){
 
     for (int i = 0; i < len; i++) {
         inoutd[i] = (double) (-1.0 * i + 0.15) / 2.5 / (double) (5 * len);
-        inoutd_ref[i] = 50.0;
-        inoutd2_ref[i] = 50.0;
+        inoutd2[i] = (double)(rand()%12345)/123456.0 + 0.123;
+        if(i%4==0) inout2[i] = -inout2[i];
     }
 
     clock_gettime(CLOCK_REALTIME, &start);
@@ -8743,6 +8743,108 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("atan2128d %d %lf\n", len, elapsed);
     l2_errd(inoutd2_ref, inoutd_ref, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2256d(inoutd, inoutd2, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2256d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atan2256d(inoutd, inoutd2, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atan2256d %d %lf\n", len, elapsed);
+    l2_errd(inoutd2_ref, inoutd_ref, len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2512d(inoutd, inoutd2, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2512d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atan2512d(inoutd, inoutd2, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atan2512d %d %lf\n", len, elapsed);
+    l2_errd(inoutd2_ref, inoutd_ref, len);
+#endif
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// ATANF2_INTERLEAVED /////////////////////////////////////////////////////
+    printf("ATAN2_INTERLEAVED\n");
+
+    for (int i = 0; i < 2*len; i++) {
+        inoutd[i] = (double) (-1.0 * i + 0.15) / 2.5 / (double) (5 * len);
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2_interleaved_C((complex64_t *) inoutd, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2d_interleaved_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atan2_interleaved_C((complex64_t *) inoutd, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atan2d_interleaved_C %d %lf\n", len, elapsed);
+
+#if defined(SSE)
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2128d_interleaved((complex64_t *) inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2128d_interleaved %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atan2128d_interleaved((complex64_t *) inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atan2128d_interleaved %d %lf\n", len, elapsed);
+    l2_errd(inoutd2, inoutd_ref, len);
+#endif
+
+#if defined(AVX)
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2256d_interleaved((complex64_t *) inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2256d_interleaved %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atan2256d_interleaved((complex64_t *) inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atan2256d_interleaved %d %lf\n", len, elapsed);
+    l2_errd(inoutd2, inoutd_ref, len);
+#endif
+
+#if defined(AVX512)
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2512d_interleaved((complex64_t *) inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2512d_interleaved %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atan2512d_interleaved((complex64_t *) inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atan2512d_interleaved %d %lf\n", len, elapsed);
+    l2_errd(inoutd2, inoutd_ref, len);
 #endif
 
     printf("\n");
@@ -9015,6 +9117,179 @@ for (int i = 0; i < len; i++){
     /*for(int i = 0; i < len; i++)
         printf("%f %f || %f %f \n",inout3[i],inout_ref[i], inout4[i],inout2_ref[i]);*/
 
+
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// CPLX2REALD //////////////////////////////////////////////////////////////////////////////
+    printf("CPLX2REALD\n");
+    for (int i = 0; i < 2*len; i++) {
+        inoutd[i] = (double)(rand()%12345);
+    }
+
+    for (int i = 0; i < len; i++) {
+        inoutd2[i] = 0.0;
+        inoutd3[i] = 0.0;
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxtoreald_C((complex64_t *) inoutd, inoutd_ref, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxtoreald_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cplxtoreald_C((complex64_t *) inoutd, inoutd_ref, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cplxtoreald_C %d %lf\n", len, elapsed);
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsCplxToReal_64fc((const Ipp64fc *) inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsCplxToReal_64fc %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsCplxToReal_64fc((const Ipp64fc *) inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsCplxToReal_64fc %d %lf\n", len, elapsed);
+    l2_errd(inoutd2, inoutd_ref, len);
+    l2_errd(inoutd3, inoutd2_ref, len);
+#endif
+
+#if defined(SSE) 
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxtoreal128d((complex64_t *) inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxtoreal128d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cplxtoreal128d((complex64_t *) inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cplxtoreal128d %d %lf\n", len, elapsed);
+    l2_errd(inoutd2, inoutd_ref, len);
+    l2_errd(inoutd3, inoutd2_ref, len);
+    
+#endif
+
+#if defined(AVX) 
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxtoreal256d((complex64_t *) inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxtoreal256d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cplxtoreal256d((complex64_t *) inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cplxtoreal256d %d %lf\n", len, elapsed);
+    l2_errd(inoutd2, inoutd_ref, len);
+    l2_errd(inoutd3, inoutd2_ref, len);
+    
+#endif
+
+#if defined(AVX512) 
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxtoreal512d((complex64_t *) inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxtoreal512d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cplxtoreal512d((complex64_t *) inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cplxtoreal512d %d %lf\n", len, elapsed);
+    l2_errd(inoutd2, inoutd_ref, len);
+    l2_errd(inoutd3, inoutd2_ref, len);
+    
+#endif
+    printf("\n");
+    /////////////////////////////////////////////////////////// REAL2CPLXD //////////////////////////////////////////////////////////////////////////////
+    printf("REAL2CPLXD\n");
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    realtocplxd_C(inoutd2, inoutd3, (complex64_t *) inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("realtocplxd_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        realtocplxd_C(inoutd2, inoutd3, (complex64_t *) inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("realtocplxd_C %d %lf\n", len, elapsed);
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsRealToCplx_64f(inoutd2, inoutd3, (Ipp64fc *) inoutd, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsRealToCplx_64f %d %lf\n", len, elapsed);
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsRealToCplx_64f(inoutd2, inoutd3, (Ipp64fc *) inoutd, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsRealToCplx_64f %d %lf\n", len, elapsed);
+    l2_errd(inoutd, inoutd_ref, 2 * len);
+#endif
+
+#if defined(SSE)
+    clock_gettime(CLOCK_REALTIME, &start);
+    realtocplx128d(inoutd2, inoutd3, (complex64_t *) inoutd, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("realtocplx128d %d %lf\n", len, elapsed);
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        realtocplx128d(inoutd2, inoutd3, (complex64_t *) inoutd, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3 / (double) loop;
+    printf("realtocplx128d %d %lf\n", len, elapsed);
+    l2_errd(inoutd, inoutd_ref, 2 * len);
+#endif
+
+#if defined(AVX)
+    clock_gettime(CLOCK_REALTIME, &start);
+    realtocplx256d(inoutd2, inoutd3, (complex64_t *) inoutd, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("realtocplx256d %d %lf\n", len, elapsed);
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        realtocplx256d(inoutd2, inoutd3, (complex64_t *) inoutd, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3 / (double) loop;
+    printf("realtocplx256d %d %lf\n", len, elapsed);
+    l2_errd(inoutd, inoutd_ref, 2 * len);
+#endif
+
+#if defined(AVX512)
+    clock_gettime(CLOCK_REALTIME, &start);
+    realtocplx512d(inoutd2, inoutd3, (complex64_t *) inoutd, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("realtocplx512d %d %lf\n", len, elapsed);
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        realtocplx512d(inoutd2, inoutd3, (complex64_t *) inoutd, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3 / (double) loop;
+    printf("realtocplx512d %d %lf\n", len, elapsed);
+    l2_errd(inoutd, inoutd_ref, 2 * len);
+#endif
 
     printf("\n");
     /////////////////////////////////////////////////////////// CONVERTFLOAT32_U8 //////////////////////////////////////////////////////////////////////////////

@@ -455,6 +455,78 @@ static inline void vectorSlope128d(double *dst, int len, double offset, double s
     }
 }
 
+static inline void cplxtoreal128d(complex64_t *src, double *dstRe, double *dstIm, int len)
+{
+    int stop_len = 2 * len / (4 * SSE_LEN_DOUBLE);
+    stop_len *= 4 * SSE_LEN_DOUBLE;
+
+    int j = 0;
+    if (areAligned3((uintptr_t) (src), (uintptr_t) (dstRe), (uintptr_t) (dstIm), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * SSE_LEN_DOUBLE) {
+            v2sdx2 vec1 = _mm_load2_pd((double const *) (src) + i);
+            v2sdx2 vec2 = _mm_load2_pd((double const *) (src) + i + 2 * SSE_LEN_DOUBLE);
+            _mm_store_pd(dstRe + j, vec1.val[0]);
+            _mm_store_pd(dstIm + j, vec1.val[1]);
+            _mm_store_pd(dstRe + j + SSE_LEN_DOUBLE, vec2.val[0]);
+            _mm_store_pd(dstIm + j + SSE_LEN_DOUBLE, vec2.val[1]);
+            j += 2 * SSE_LEN_DOUBLE;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 4 * SSE_LEN_DOUBLE) {
+            v2sdx2 vec1 = _mm_load2u_pd((double const *) (src) + i);
+            v2sdx2 vec2 = _mm_load2u_pd((double const *) (src) + i + 2 * SSE_LEN_DOUBLE);
+            _mm_storeu_pd(dstRe + j, vec1.val[0]);
+            _mm_storeu_pd(dstIm + j, vec1.val[1]);
+            _mm_storeu_pd(dstRe + j + SSE_LEN_DOUBLE, vec2.val[0]);
+            _mm_storeu_pd(dstIm + j + SSE_LEN_DOUBLE, vec2.val[1]);
+            j += 2 * SSE_LEN_DOUBLE;
+        }
+    }
+
+    for (int i = j; i < len; i++) {
+        dstRe[i] = src[i].re;
+        dstIm[i] = src[i].im;
+    }
+}
+
+static inline void realtocplx128d(double *srcRe, double *srcIm, complex64_t *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_DOUBLE);
+    stop_len *= 2 * SSE_LEN_DOUBLE;
+
+    int j = 0;
+    if (areAligned3((uintptr_t) (srcRe), (uintptr_t) (srcIm), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
+            v2sd re = _mm_load_pd(srcRe + i);
+            v2sd im = _mm_load_pd(srcIm + i);
+            v2sd re2 = _mm_load_pd(srcRe + i + SSE_LEN_DOUBLE);
+            v2sd im2 = _mm_load_pd(srcIm + i + SSE_LEN_DOUBLE);
+            v2sdx2 reim = {{re, im}};
+            v2sdx2 reim2 = {{re2, im2}};
+            _mm_store2_pd((double *) (dst) + j, reim);
+            _mm_store2_pd((double *) (dst) + j + 2 * SSE_LEN_DOUBLE, reim2);
+            j += 4 * SSE_LEN_DOUBLE;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
+            v2sd re = _mm_loadu_pd(srcRe + i);
+            v2sd im = _mm_loadu_pd(srcIm + i);
+            v2sd re2 = _mm_loadu_pd(srcRe + i + SSE_LEN_DOUBLE);
+            v2sd im2 = _mm_loadu_pd(srcIm + i + SSE_LEN_DOUBLE);
+            v2sdx2 reim = {{re, im}};
+            v2sdx2 reim2 = {{re2, im2}};
+            _mm_store2u_pd((double *) (dst) + j, reim);
+            _mm_store2u_pd((double *) (dst) + j + 2 * SSE_LEN_DOUBLE, reim2);
+            j += 4 * SSE_LEN_DOUBLE;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i].re = srcRe[i];
+        dst[i].im = srcIm[i];
+    }
+}
+
 
 // Work in progress
 // in SSE, missing _mm_cvtepi64_pd, _mm_cvttpd_epi64
@@ -887,6 +959,35 @@ static inline void atan2128d(double *src1, double *src2, double *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = atan2(src1[i], src2[i]);
+    }
+}
+
+static inline void atan2128d_interleaved(complex64_t *src, double *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_DOUBLE);
+    stop_len *= 2 * SSE_LEN_DOUBLE;
+
+    int j = 0;
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
+            v2sdx2 src_split = _mm_load2_pd((double *) (src) + j);
+            v2sdx2 src_split2 = _mm_load2_pd((double *) (src) + j + 2 * SSE_LEN_DOUBLE);
+            _mm_store_pd(dst + i, atan2_pd(src_split.val[1], src_split.val[0]));
+            _mm_store_pd(dst + i + SSE_LEN_DOUBLE, atan2_pd(src_split2.val[1], src_split2.val[0]));
+            j += 4 * SSE_LEN_DOUBLE;
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
+            v2sdx2 src_split = _mm_load2u_pd((double *) (src) + j);
+            v2sdx2 src_split2 = _mm_load2u_pd((double *) (src) + j + 2 * SSE_LEN_DOUBLE);
+            _mm_storeu_pd(dst + i, atan2_pd(src_split.val[1], src_split.val[0]));
+            _mm_storeu_pd(dst + i + SSE_LEN_DOUBLE, atan2_pd(src_split2.val[1], src_split2.val[0]));
+            j += 4 * SSE_LEN_DOUBLE;
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = atan2(src[i].im, src[i].re);
     }
 }
 

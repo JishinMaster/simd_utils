@@ -239,8 +239,8 @@ static inline v2sdx2 _mm_load2_pd(double const *mem_addr)
     v2sd tmp1 = _mm_load_pd(mem_addr);
     v2sd tmp2 = _mm_load_pd(mem_addr + SSE_LEN_DOUBLE);
     v2sdx2 ret;
-    ret.val[0] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(2, 0, 2, 0));
-    ret.val[1] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(3, 1, 3, 1));
+    ret.val[0] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(0, 0, 0, 0));
+    ret.val[1] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(3, 3, 3, 3));
     return ret;
 #endif
 }
@@ -253,8 +253,8 @@ static inline v2sdx2 _mm_load2u_pd(double const *mem_addr)
     v2sd tmp1 = _mm_loadu_pd(mem_addr);
     v2sd tmp2 = _mm_loadu_pd(mem_addr + SSE_LEN_DOUBLE);
     v2sdx2 ret;
-    ret.val[0] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(2, 0, 2, 0));
-    ret.val[1] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(3, 1, 3, 1));
+    ret.val[0] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(0, 0, 0, 0));
+    ret.val[1] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(3, 3, 3, 3));
     return ret;
 #endif
 }
@@ -861,6 +861,29 @@ static inline void realtocplx_C(float *srcRe, float *srcIm, complex32_t *dst, in
     }
 }
 
+static inline void cplxtoreald_C(complex64_t *src, double *dstRe, double *dstIm, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dstRe[i] = src[i].re;
+        dstIm[i] = src[i].im;
+    }
+}
+
+
+static inline void realtocplxd_C(double *srcRe, double *srcIm, complex64_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i].re = srcRe[i];
+        dst[i].im = srcIm[i];
+    }
+}
+
 static inline void convert_64f32f_C(double *src, float *dst, int len)
 {
 #ifdef OMP
@@ -1341,6 +1364,16 @@ static inline void atan2_C(double *src1, double *src2, double *dst, int len)
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] = atan2(src1[i], src2[i]);
+    }
+}
+
+static inline void atan2_interleaved_C(complex64_t *src, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = atan2(src[i].im, src[i].re);
     }
 }
 
