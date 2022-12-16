@@ -452,3 +452,51 @@ static inline void sum16s32s128(int16_t *src, int len, int32_t *dst, int scale_f
     *dst = tmp_acc;
 }
 
+
+static inline void threshold128_ltval_gtval_s(int32_t *src, int32_t *dst, int len, int32_t ltlevel, int32_t ltvalue, int32_t gtlevel, int32_t gtvalue)
+{
+    const v4si ltlevel_v = _mm_set1_epi32(ltlevel);
+    const v4si ltvalue_v = _mm_set1_epi32(ltvalue);
+    const v4si gtlevel_v = _mm_set1_epi32(gtlevel);
+    const v4si gtvalue_v = _mm_set1_epi32(gtvalue);
+
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4si src_tmp = _mm_load_si128((v4si *) (src + i));
+            v4si src_tmp2 = _mm_load_si128((v4si *) (src + i + SSE_LEN_FLOAT));
+            v4si lt_mask = _mm_cmplt_epi32(src_tmp, ltlevel_v);
+            v4si gt_mask = _mm_cmpgt_epi32(src_tmp, gtlevel_v);
+            v4si dst_tmp = _mm_blendv_epi8(src_tmp, ltvalue_v, lt_mask);
+            dst_tmp = _mm_blendv_epi8(dst_tmp, gtvalue_v, gt_mask);
+            _mm_store_si128((v4si*)(dst + i), dst_tmp);
+            v4si lt_mask2 = _mm_cmplt_epi32(src_tmp2, ltlevel_v);
+            v4si gt_mask2 = _mm_cmpgt_epi32(src_tmp2, gtlevel_v);
+            v4si dst_tmp2 = _mm_blendv_epi8(src_tmp2, ltvalue_v, lt_mask2);
+            dst_tmp2 = _mm_blendv_epi8(dst_tmp2, gtvalue_v, gt_mask2);
+            _mm_store_si128((v4si*)(dst + i + SSE_LEN_FLOAT), dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4si src_tmp = _mm_loadu_si128((v4si *) (src + i));
+            v4si src_tmp2 = _mm_loadu_si128((v4si *) (src + i + SSE_LEN_FLOAT));
+            v4si lt_mask = _mm_cmplt_epi32(src_tmp, ltlevel_v);
+            v4si gt_mask = _mm_cmpgt_epi32(src_tmp, gtlevel_v);
+            v4si dst_tmp = _mm_blendv_epi8(src_tmp, ltvalue_v, lt_mask);
+            dst_tmp = _mm_blendv_epi8(dst_tmp, gtvalue_v, gt_mask);
+            _mm_storeu_si128((v4si*)(dst + i), dst_tmp);
+            v4si lt_mask2 = _mm_cmplt_epi32(src_tmp2, ltlevel_v);
+            v4si gt_mask2 = _mm_cmpgt_epi32(src_tmp2, gtlevel_v);
+            v4si dst_tmp2 = _mm_blendv_epi8(src_tmp2, ltvalue_v, lt_mask2);
+            dst_tmp2 = _mm_blendv_epi8(dst_tmp2, gtvalue_v, gt_mask2);
+            _mm_storeu_si128((v4si*)(dst + i + SSE_LEN_FLOAT), dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i] < ltlevel ? ltvalue : src[i];
+        dst[i] = src[i] > gtlevel ? gtvalue : dst[i];
+    }
+}

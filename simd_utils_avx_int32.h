@@ -406,6 +406,56 @@ static inline void sum16s32s256(int16_t *src, int len, int32_t *dst, int scale_f
     *dst = tmp_acc;
 }
 
+
+// no cmplt_epi32 with AVX2. gt(b,a) = le(a,b), not lt. To be improved?
+static inline void threshold256_ltval_gtval_s(int32_t *src, int32_t *dst, int len, int32_t ltlevel, int32_t ltvalue, int32_t gtlevel, int32_t gtvalue)
+{
+    const v8si ltlevel_v = _mm256_set1_epi32(ltlevel);
+    const v8si ltvalue_v = _mm256_set1_epi32(ltvalue);
+    const v8si gtlevel_v = _mm256_set1_epi32(gtlevel);
+    const v8si gtvalue_v = _mm256_set1_epi32(gtvalue);
+
+    int stop_len = len / (2 * AVX_LEN_FLOAT);
+    stop_len *= (2 * AVX_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_INT32) {
+            v8si src_tmp = _mm256_load_si256((v8si *) (src + i));
+            v8si src_tmp2 = _mm256_load_si256((v8si *) (src + i + AVX_LEN_INT32));
+            v8si lt_mask = _mm256_cmpgt_epi32(ltlevel_v, src_tmp);
+            v8si gt_mask = _mm256_cmpgt_epi32(src_tmp, gtlevel_v);
+            v8si dst_tmp = _mm256_blendv_epi8(src_tmp, ltvalue_v, lt_mask);
+            dst_tmp = _mm256_blendv_epi8(dst_tmp, gtvalue_v, gt_mask);
+            _mm256_store_si256((v8si*)(dst + i), dst_tmp);
+            v8si lt_mask2 = _mm256_cmpgt_epi32(ltlevel_v, src_tmp2);
+            v8si gt_mask2 = _mm256_cmpgt_epi32(src_tmp2, gtlevel_v);
+            v8si dst_tmp2 = _mm256_blendv_epi8(src_tmp2, ltvalue_v, lt_mask2);
+            dst_tmp2 = _mm256_blendv_epi8(dst_tmp2, gtvalue_v, gt_mask2);
+            _mm256_store_si256((v8si*)(dst + i + AVX_LEN_INT32), dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_INT32) {
+            v8si src_tmp = _mm256_loadu_si256((v8si *) (src + i));
+            v8si src_tmp2 = _mm256_loadu_si256((v8si *) (src + i + AVX_LEN_INT32));
+            v8si lt_mask = _mm256_cmpgt_epi32(ltlevel_v, src_tmp);
+            v8si gt_mask = _mm256_cmpgt_epi32(src_tmp, gtlevel_v);
+            v8si dst_tmp = _mm256_blendv_epi8(src_tmp, ltvalue_v, lt_mask);
+            dst_tmp = _mm256_blendv_epi8(dst_tmp, gtvalue_v, gt_mask);
+            _mm256_storeu_si256((v8si*)(dst + i), dst_tmp);
+            v8si lt_mask2 = _mm256_cmpgt_epi32(ltlevel_v, src_tmp2);
+            v8si gt_mask2 = _mm256_cmpgt_epi32(src_tmp2, gtlevel_v);
+            v8si dst_tmp2 = _mm256_blendv_epi8(src_tmp2, ltvalue_v, lt_mask2);
+            dst_tmp2 = _mm256_blendv_epi8(dst_tmp2, gtvalue_v, gt_mask2);
+            _mm256_storeu_si256((v8si*)(dst + i + AVX_LEN_INT32), dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i] < ltlevel ? ltvalue : src[i];
+        dst[i] = src[i] > gtlevel ? gtvalue : dst[i];
+    }
+}
+
 // is it useful to unroll?
 static inline void gatheri_256s(int32_t *src, int32_t *dst, int stride, int offset, int len)
 {

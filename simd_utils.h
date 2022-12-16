@@ -2095,6 +2095,17 @@ static inline void powerspect16s_c_interleaved(complex16s_t *src, int32_t *dst, 
     }
 }
 
+static inline void threshold_ltval_gtval_s_C(int32_t *src, int32_t *dst, int len, int32_t ltlevel, int32_t ltvalue, int32_t gtlevel, int32_t gtvalue)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src[i] < ltlevel ? ltvalue : src[i];
+        dst[i] = dst[i] > gtlevel ? gtvalue : dst[i];
+    }
+}
+
 /*
     x = r × cos( θ )
     y = r × sin( θ )

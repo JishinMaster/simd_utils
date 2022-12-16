@@ -420,6 +420,54 @@ static inline void sum16s32s512(int16_t *src, int len, int32_t *dst, int scale_f
     *dst = tmp_acc;
 } 
 
+static inline void threshold512_ltval_gtval_s(int32_t *src, int32_t *dst, int len, int32_t ltlevel, int32_t ltvalue, int32_t gtlevel, int32_t gtvalue)
+{
+    const v16si ltlevel_v = _mm512_set1_epi32(ltlevel);
+    const v16si ltvalue_v = _mm512_set1_epi32(ltvalue);
+    const v16si gtlevel_v = _mm512_set1_epi32(gtlevel);
+    const v16si gtvalue_v = _mm512_set1_epi32(gtvalue);
+
+    int stop_len = len / (2 * AVX512_LEN_INT32);
+    stop_len *= (2 * AVX512_LEN_INT32);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_INT32) {
+            v16si src_tmp = _mm512_load_si512((v16si *) (src + i));
+            v16si src_tmp2 = _mm512_load_si512((v16si *) (src + i + AVX512_LEN_INT32));
+            __mmask16 lt_mask = _mm512_cmp_epi32_mask(src_tmp, ltlevel_v, _MM_CMPINT_LT);
+            __mmask16 gt_mask = _mm512_cmp_epi32_mask(src_tmp, gtlevel_v, _MM_CMPINT_NLE);
+            v16si dst_tmp = _mm512_mask_blend_epi32(lt_mask, src_tmp, ltvalue_v);
+            dst_tmp = _mm512_mask_blend_epi32(gt_mask, dst_tmp, gtvalue_v);
+            _mm512_store_si512((v16si*)(dst + i), dst_tmp);
+            __mmask16 lt_mask2 = _mm512_cmp_epi32_mask(src_tmp2, ltlevel_v, _MM_CMPINT_LT);
+            __mmask16 gt_mask2 = _mm512_cmp_epi32_mask(src_tmp2, gtlevel_v, _MM_CMPINT_NLE);
+            v16si dst_tmp2 = _mm512_mask_blend_epi32(lt_mask2, src_tmp2, ltvalue_v);
+            dst_tmp2 = _mm512_mask_blend_epi32(gt_mask2, dst_tmp2, gtvalue_v);
+            _mm512_store_si512((v16si*)(dst + i + AVX512_LEN_INT32), dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_INT32) {
+            v16si src_tmp = _mm512_loadu_si512((v16si *) (src + i));
+            v16si src_tmp2 = _mm512_loadu_si512((v16si *) (src + i + AVX512_LEN_INT32));
+            __mmask16 lt_mask = _mm512_cmp_epi32_mask(src_tmp, ltlevel_v, _MM_CMPINT_LT);
+            __mmask16 gt_mask = _mm512_cmp_epi32_mask(src_tmp, gtlevel_v, _MM_CMPINT_NLE);
+            v16si dst_tmp = _mm512_mask_blend_epi32(lt_mask, src_tmp, ltvalue_v);
+            dst_tmp = _mm512_mask_blend_epi32(gt_mask, dst_tmp, gtvalue_v);
+            _mm512_storeu_si512((v16si*)(dst + i), dst_tmp);
+            __mmask16 lt_mask2 = _mm512_cmp_epi32_mask(src_tmp2, ltlevel_v, _MM_CMPINT_LT);
+            __mmask16 gt_mask2 = _mm512_cmp_epi32_mask(src_tmp2, gtlevel_v, _MM_CMPINT_NLE);
+            v16si dst_tmp2 = _mm512_mask_blend_epi32(lt_mask2, src_tmp2, ltvalue_v);
+            dst_tmp2 = _mm512_mask_blend_epi32(gt_mask2, dst_tmp2, gtvalue_v);
+            _mm512_storeu_si512((v16si*)(dst + i + AVX512_LEN_INT32), dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i] < ltlevel ? ltvalue : src[i];
+        dst[i] = src[i] > gtlevel ? gtvalue : dst[i];
+    }
+}
+
 
 // is it useful to unroll?
 static inline void gatheri_512s(int32_t *src, int32_t *dst, int stride, int offset, int len)

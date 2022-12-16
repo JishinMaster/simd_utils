@@ -1287,7 +1287,6 @@ int main(int argc, char **argv)
     /////////////////////////////////////////////////////////// THRESHOLD_LTValGTVal //////////////////////////////////////////////////////////////////////////////
     printf("THRESHOLD_LTValGTVal\n");
 
-
     clock_gettime(CLOCK_REALTIME, &start);
     threshold_ltval_gtval_f_C(inout, inout2_ref, len, 0.5f, 0.35f, 0.7f, 0.77f);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1395,6 +1394,102 @@ int main(int argc, char **argv)
     /*for(int i = 0; i < len; i++){
       printf("%f %f %f\n", inout[i],inout2_ref[i],inout2[i]);
     }*/
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// THRESHOLD_LTValGTVals //////////////////////////////////////////////////////////////////////////////
+    printf("THRESHOLD_LTValGTVals\n");
+
+    for (int i = 0; i <  len; i++) {
+        inout_i1[i] = (rand() % 1234567);
+        if (i % 4 == 0)
+            inout_i1[i] = -inout_i1[i];
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_ltval_gtval_s_C(inout_i1, inout_iref, len, 80, 10, 100, 90);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_ltval_gtval_s_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+      threshold_ltval_gtval_s_C(inout_i1, inout_iref, len, 80, 10, 100, 90);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold_ltval_gtval_s_C %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsThreshold_LTValGTVal_32s(inout_i1, inout_i2, len, 80, 10, 100, 90);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsThreshold_LTValGTVal_32s %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsThreshold_LTValGTVal_32s(inout_i1, inout_i2, len, 80, 10, 100, 90);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsThreshold_LTValGTVal_32s %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err_i32(inout_i2, inout_iref, len);
+#endif
+
+#if defined(SSE)
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold128_ltval_gtval_s(inout_i1, inout_i2, len, 80, 10, 100, 90);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold128_ltval_gtval_s %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold128_ltval_gtval_s(inout_i1, inout_i2, len, 80, 10, 100, 90);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold128_ltval_gtval_s %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err_i32(inout_i2, inout_iref, len);
+#endif
+
+#if defined(AVX)
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold256_ltval_gtval_s(inout_i1, inout_i2, len, 80, 10, 100, 90);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold256_ltval_gtval_s %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold256_ltval_gtval_s(inout_i1, inout_i2, len, 80, 10, 100, 90);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold256_ltval_gtval_s %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err_i32(inout_i2, inout_iref, len);
+#endif
+
+#if defined(AVX512)
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold512_ltval_gtval_s(inout_i1, inout_i2, len, 80, 10, 100, 90);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold512_ltval_gtval_s %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold512_ltval_gtval_s(inout_i1, inout_i2, len, 80, 10, 100, 90);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold512_ltval_gtval_s %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err_i32(inout_i2, inout_iref, len);
+#endif
 
     printf("\n");
     /////////////////////////////////////////////////////////// MAXEVERY //////////////////////////////////////////////////////////////////////////////

@@ -183,6 +183,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | subXs                                                 | subs_c                      | ?                              | subs_vec                      |
 | addcXs                                                | addcs_C                     | ?                              | addcs_vec                     |
 | vectorSlopeXs                                         | vectorSlopes_C              | ippsVectorSlope_32s            | vectorSlopes_vec              |
+| thresholdX_ltval_gtval_s                              | threshold_ltval_gtval_s_C   | ippsThreshold_LTValGTVal_32s   | ?                             |
 | copyXs                                                | copys_C                     | ippsCopy_32s                   | copys_vec                     |
 | ?                                                     | ?                           | ?                              | mulcs_vec                     |
 | absdiff16s_Xs                                         | absdiff16s_c                | ?                              | ?                             |
