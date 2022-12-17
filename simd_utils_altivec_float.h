@@ -1131,8 +1131,9 @@ static inline void cplxvecmul128f_split(float *src1Re, float *src1Im, float *src
 
 static inline void minmax128f(float *src, int len, float *min_value, float *max_value)
 {
-    int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
+    int stop_len = (len - ALTIVEC_LEN_FLOAT) / (2 * ALTIVEC_LEN_FLOAT);
     stop_len *= (2 * ALTIVEC_LEN_FLOAT);
+    stop_len = (stop_len < 0) ? 0 : stop_len;
 
     float min_f[ALTIVEC_LEN_FLOAT] __attribute__((aligned(ALTIVEC_LEN_BYTES)));
     float max_f[ALTIVEC_LEN_FLOAT] __attribute__((aligned(ALTIVEC_LEN_BYTES)));
@@ -3045,15 +3046,15 @@ static inline void cbrt128f(float *src, float *dst, int len)
     }
 }
 
-static inline void modf128f(float *src, float *integer, float* remainder, int len)
+static inline void modf128f(float *src, float *integer, float *remainder, int len)
 {
-    int stop_len = len / (2*ALTIVEC_LEN_FLOAT);
-    stop_len *= (2*ALTIVEC_LEN_FLOAT);
+    int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
+    stop_len *= (2 * ALTIVEC_LEN_FLOAT);
 
     if (areAligned3((uintptr_t) (src), (uintptr_t) (integer), (uintptr_t) (remainder), ALTIVEC_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += 2*ALTIVEC_LEN_FLOAT) {
-            v4sf src_tmp = vec_ld(0,src + i);
-            v4sf src_tmp2 = vec_ld(0,src + i + ALTIVEC_LEN_FLOAT);
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp = vec_ld(0, src + i);
+            v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
             v4sf integer_tmp = vec_trunc(src_tmp);
             v4sf integer_tmp2 = vec_trunc(src_tmp2);
             v4sf remainder_tmp = vec_sub(src_tmp, integer_tmp);
@@ -3067,15 +3068,15 @@ static inline void modf128f(float *src, float *integer, float* remainder, int le
         int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
         int unalign_integer = (uintptr_t) (integer) % ALTIVEC_LEN_BYTES;
         int unalign_remainder = (uintptr_t) (remainder) % ALTIVEC_LEN_BYTES;
-        
-        for (int i = 0; i < stop_len; i += 2*ALTIVEC_LEN_FLOAT) {
-            v4sf src_tmp,src_tmp2;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
             if (unalign_src) {
                 src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
                 src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
             } else {
-                src_tmp = vec_ld(0,src + i);
-                src_tmp2 = vec_ld(0,src + i + ALTIVEC_LEN_FLOAT);
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
             }
             v4sf integer_tmp = vec_trunc(src_tmp);
             v4sf integer_tmp2 = vec_trunc(src_tmp2);
@@ -3089,7 +3090,7 @@ static inline void modf128f(float *src, float *integer, float* remainder, int le
                 vec_st(integer_tmp, 0, integer + i);
                 vec_st(integer_tmp2, 0, integer + i + ALTIVEC_LEN_FLOAT);
             }
-            
+
             if (unalign_remainder) {
                 vec_stu(*(v16u8 *) &remainder_tmp, (unsigned char *) (remainder + i));
                 vec_stu(*(v16u8 *) &remainder_tmp2, (unsigned char *) (remainder + i + ALTIVEC_LEN_FLOAT));

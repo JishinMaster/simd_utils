@@ -188,6 +188,14 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | subXs                                                 | subs_c                      | ?                              | subs_vec                      |
 | addcXs                                                | addcs_C                     | ?                              | addcs_vec                     |
 | vectorSlopeXs                                         | vectorSlopes_C              | ippsVectorSlope_32s            | vectorSlopes_vec              |
+| flipXs                                                | flips_C                     | ?                              | ?                             |
+| maxeveryXs                                            | maxeverys_c                 | ?                              | ?                             |
+| mineveryXs                                            | mineverys_c                 | ?                              | ?                             |
+| minmaxXs                                              | minmaxs_c                   | ippsMinMax_32s                 | ?                             |
+| thresholdX_gt_s                                       | threshold_gt_s_C            | ippsThreshold_GT_32s           | ?                             |
+| thresholdX_gtabs_s                                    | threshold_gtabs_s_C         | ippsThreshold_GTAbs_32s        | ?                             |
+| thresholdX_lt_s                                       | threshold_lt_s_C            | ippsThreshold_LT_32s           | ?                             |
+| thresholdX_ltabs_s                                    | threshold_ltabs_s_C         | ippsThreshold_LTAbs_32s        | ?                             |
 | thresholdX_ltval_gtval_s                              | threshold_ltval_gtval_s_C   | ippsThreshold_LTValGTVal_32s   | ?                             |
 | copyXs                                                | copys_C                     | ippsCopy_32s                   | copys_vec                     |
 | ?                                                     | ?                           | ?                              | mulcs_vec                     |

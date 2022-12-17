@@ -565,7 +565,7 @@ static inline void _mm512_store2u_ps(float *mem_addr, v16sfx2 a)
 
 static inline v8sdx2 _mm512_load2_pd(double const *mem_addr)
 {
-    v8sd vec1 = _mm512_load_pd(mem_addr);                     // load 0 1 2 3 4 5 6 7
+    v8sd vec1 = _mm512_load_pd(mem_addr);                      // load 0 1 2 3 4 5 6 7
     v8sd vec2 = _mm512_load_pd(mem_addr + AVX512_LEN_DOUBLE);  // load 8 9 10 11 12 13 14 15
     v8sdx2 ret;
     ret.val[0] = _mm512_permutex2var_pd(vec2, *(v8sid *) _pi64_512_idx_re, vec1);
@@ -575,7 +575,7 @@ static inline v8sdx2 _mm512_load2_pd(double const *mem_addr)
 
 static inline v8sdx2 _mm512_load2u_pd(double const *mem_addr)
 {
-    v8sd vec1 = _mm512_loadu_pd(mem_addr);                     // load 0 1 2 3 4 5 6 7
+    v8sd vec1 = _mm512_loadu_pd(mem_addr);                      // load 0 1 2 3 4 5 6 7
     v8sd vec2 = _mm512_loadu_pd(mem_addr + AVX512_LEN_DOUBLE);  // load 8 9 10 11 12 13 14 15
     v8sdx2 ret;
     ret.val[0] = _mm512_permutex2var_pd(vec2, *(v8sid *) _pi64_512_idx_re, vec1);
@@ -1217,6 +1217,16 @@ static inline void flipf_C(float *src, float *dst, int len)
     }
 }
 
+static inline void flips_C(int32_t *src, int32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[len - i - 1] = src[i];
+    }
+}
+
 static inline void asinf_C(float *src, float *dst, int len)
 {
 #ifdef OMP
@@ -1450,7 +1460,7 @@ static inline void sqrtf_C(float *src, float *dst, int len)
     }
 }
 
-static inline void modff_C(float *src, float *integer, float* remainder, int len)
+static inline void modff_C(float *src, float *integer, float *remainder, int len)
 {
 #ifdef OMP
 #pragma omp simd
@@ -1745,7 +1755,7 @@ static inline void dotf_C(float *src1, float *src2, int len, float *dst)
     for (int i = 0; i < len; i++) {
         tmp_acc += src1[i] * src2[i];
     }
-    *dst=tmp_acc;
+    *dst = tmp_acc;
 }
 
 static inline void dotf_C_precise(float *src1, float *src2, int len, float *dst)
@@ -1755,14 +1765,14 @@ static inline void dotf_C_precise(float *src1, float *src2, int len, float *dst)
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        tmp_acc += (double)src1[i] * (double)src2[i];
+        tmp_acc += (double) src1[i] * (double) src2[i];
     }
-    *dst= (float)tmp_acc;
+    *dst = (float) tmp_acc;
 }
 
 static inline void dotcf_C(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
 {
-    complex32_t dst_tmp = {0.0f,0.0f};
+    complex32_t dst_tmp = {0.0f, 0.0f};
 
 #ifdef OMP
 #pragma omp simd
@@ -1771,25 +1781,25 @@ static inline void dotcf_C(complex32_t *src1, complex32_t *src2, int len, comple
         dst_tmp.re += src1[i].re * src2[i].re - (src1[i].im * src2[i].im);
         dst_tmp.im += src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
     }
-    
+
     dst->re = dst_tmp.re;
     dst->im = dst_tmp.im;
 }
 
 static inline void dotcf_C_precise(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
 {
-    complex64_t dst_tmp = {0.0,0.0};
+    complex64_t dst_tmp = {0.0, 0.0};
 
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst_tmp.re += (double)src1[i].re * (double)src2[i].re - ((double)src1[i].im * (double)src2[i].im);
-        dst_tmp.im += (double)src1[i].re * (double)src2[i].im + ((double)src2[i].re * (double)src1[i].im);
+        dst_tmp.re += (double) src1[i].re * (double) src2[i].re - ((double) src1[i].im * (double) src2[i].im);
+        dst_tmp.im += (double) src1[i].re * (double) src2[i].im + ((double) src2[i].re * (double) src1[i].im);
     }
-    
-    dst->re = (float)dst_tmp.re;
-    dst->im = (float)dst_tmp.im;
+
+    dst->re = (float) dst_tmp.re;
+    dst->im = (float) dst_tmp.im;
 }
 
 static inline void vectorSlopef_C(float *dst, int len, float offset, float slope)
@@ -2143,21 +2153,19 @@ static inline void absdiff16s_c(int16_t *a, int16_t *b, int16_t *c, int len)
     for (int i = 0; i < len; i++) {
         c[i] = abs(a[i] - b[i]);
     }
-
 }
 
 static inline void sum16s32s_C(int16_t *src, int len, int32_t *dst, int scale_factor)
 {
-
     int32_t tmp_acc = 0;
     int16_t scale = 1 << scale_factor;
 #ifdef OMP
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        tmp_acc += (int32_t)src[i];
+        tmp_acc += (int32_t) src[i];
     }
-    
+
     tmp_acc /= scale;
     *dst = tmp_acc;
 }
@@ -2169,6 +2177,91 @@ static inline void powerspect16s_c_interleaved(complex16s_t *src, int32_t *dst, 
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] = (int32_t) src[i].re * (int32_t) src[i].re + (int32_t) src[i].im * (int32_t) src[i].im;
+    }
+}
+
+static inline void maxeverys_c(int32_t *src1, int32_t *src2, int32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src1[i] > src2[i] ? src1[i] : src2[i];
+    }
+}
+
+static inline void mineverys_c(int32_t *src1, int32_t *src2, int32_t *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src1[i] < src2[i] ? src1[i] : src2[i];
+    }
+}
+
+static inline void minmaxs_c(int32_t *src, int len, int32_t *min_value, int32_t *max_value)
+{
+    int32_t min_tmp = src[0];
+    int32_t max_tmp = src[0];
+
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 1; i < len; i++) {
+        max_tmp = max_tmp > src[i] ? max_tmp : src[i];
+        min_tmp = min_tmp < src[i] ? min_tmp : src[i];
+    }
+
+    *max_value = max_tmp;
+    *min_value = min_tmp;
+}
+
+static inline void threshold_gt_s_C(int32_t *src, int32_t *dst, int len, int32_t value)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src[i] < value ? src[i] : value;
+    }
+}
+
+static inline void threshold_gtabs_s_C(int32_t *src, int32_t *dst, int len, int32_t value)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        if (src[i] >= 0) {
+            dst[i] = src[i] > value ? value : src[i];
+        } else {
+            dst[i] = src[i] < (-value) ? (-value) : src[i];
+        }
+    }
+}
+
+static inline void threshold_lt_s_C(int32_t *src, int32_t *dst, int len, int32_t value)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = src[i] > value ? src[i] : value;
+    }
+}
+
+static inline void threshold_ltabs_s_C(int32_t *src, int32_t *dst, int len, int32_t value)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        if (src[i] >= 0) {
+            dst[i] = src[i] < value ? value : src[i];
+        } else {
+            dst[i] = src[i] > (-value) ? (-value) : src[i];
+        }
     }
 }
 

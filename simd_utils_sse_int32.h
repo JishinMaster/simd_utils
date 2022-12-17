@@ -394,7 +394,7 @@ static inline void powerspect16s_128s_interleaved(complex16s_t *src, int32_t *ds
     }
 }
 
-//Works with positive scale_factor (divides final value)
+// Works with positive scale_factor (divides final value)
 static inline void sum16s32s128(int16_t *src, int len, int32_t *dst, int scale_factor)
 {
     int stop_len = len / (4 * SSE_LEN_INT16);
@@ -409,10 +409,10 @@ static inline void sum16s32s128(int16_t *src, int len, int32_t *dst, int scale_f
 
     if (isAligned((uintptr_t) (src), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 4 * SSE_LEN_INT16) {
-            v4si vec_src_tmp = _mm_load_si128((__m128i *) ((const int16_t *)src + i));
-            v4si vec_src_tmp2 = _mm_load_si128((__m128i *) ((const int16_t *)src + i + SSE_LEN_INT16));
-            v4si vec_src_tmp3 = _mm_load_si128((__m128i *) ((const int16_t *)src + i + 2*SSE_LEN_INT16));
-            v4si vec_src_tmp4 = _mm_load_si128((__m128i *) ((const int16_t *)src + i + 3*SSE_LEN_INT16));
+            v4si vec_src_tmp = _mm_load_si128((__m128i *) ((const int16_t *) src + i));
+            v4si vec_src_tmp2 = _mm_load_si128((__m128i *) ((const int16_t *) src + i + SSE_LEN_INT16));
+            v4si vec_src_tmp3 = _mm_load_si128((__m128i *) ((const int16_t *) src + i + 2 * SSE_LEN_INT16));
+            v4si vec_src_tmp4 = _mm_load_si128((__m128i *) ((const int16_t *) src + i + 3 * SSE_LEN_INT16));
             vec_src_tmp = _mm_madd_epi16(vec_src_tmp, one);
             vec_src_tmp2 = _mm_madd_epi16(vec_src_tmp2, one);
             vec_src_tmp3 = _mm_madd_epi16(vec_src_tmp3, one);
@@ -424,10 +424,10 @@ static inline void sum16s32s128(int16_t *src, int len, int32_t *dst, int scale_f
         }
     } else {
         for (int i = 0; i < stop_len; i += 4 * SSE_LEN_INT16) {
-            v4si vec_src_tmp = _mm_loadu_si128((__m128i *) ((const int16_t *)src + i));
-            v4si vec_src_tmp2 = _mm_loadu_si128((__m128i *) ((const int16_t *)src + i + SSE_LEN_INT16));
-            v4si vec_src_tmp3 = _mm_loadu_si128((__m128i *) ((const int16_t *)src + i + 2*SSE_LEN_INT16));
-            v4si vec_src_tmp4 = _mm_loadu_si128((__m128i *) ((const int16_t *)src + i + 3*SSE_LEN_INT16));
+            v4si vec_src_tmp = _mm_loadu_si128((__m128i *) ((const int16_t *) src + i));
+            v4si vec_src_tmp2 = _mm_loadu_si128((__m128i *) ((const int16_t *) src + i + SSE_LEN_INT16));
+            v4si vec_src_tmp3 = _mm_loadu_si128((__m128i *) ((const int16_t *) src + i + 2 * SSE_LEN_INT16));
+            v4si vec_src_tmp4 = _mm_loadu_si128((__m128i *) ((const int16_t *) src + i + 3 * SSE_LEN_INT16));
             vec_src_tmp = _mm_madd_epi16(vec_src_tmp, one);
             vec_src_tmp2 = _mm_madd_epi16(vec_src_tmp2, one);
             vec_src_tmp3 = _mm_madd_epi16(vec_src_tmp3, one);
@@ -438,12 +438,12 @@ static inline void sum16s32s128(int16_t *src, int len, int32_t *dst, int scale_f
             vec_acc2 = _mm_add_epi32(vec_src_tmp3, vec_acc2);
         }
     }
-    
+
     vec_acc1 = _mm_add_epi32(vec_acc1, vec_acc2);
-    _mm_store_si128((__m128i*)accumulate, vec_acc1);
+    _mm_store_si128((__m128i *) accumulate, vec_acc1);
 
     for (int i = stop_len; i < len; i++) {
-        tmp_acc += (int32_t)src[i];
+        tmp_acc += (int32_t) src[i];
     }
 
     tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3];
@@ -452,6 +452,354 @@ static inline void sum16s32s128(int16_t *src, int len, int32_t *dst, int scale_f
     *dst = tmp_acc;
 }
 
+static inline void flip128s(int32_t *src, int32_t *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_INT32);
+    stop_len *= (2 * SSE_LEN_INT32);
+
+    int mini = ((len - 1) < (2 * SSE_LEN_INT32)) ? (len - 1) : (2 * SSE_LEN_INT32);
+    for (int i = 0; i < mini; i++) {
+        dst[len - i - 1] = src[i];
+    }
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst + len - SSE_LEN_INT32), SSE_LEN_BYTES)) {
+        for (int i = 2 * SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src_tmp = _mm_load_si128((__m128i *) ((const int32_t *) src + i));  // load a,b,c,d
+            v4si src_tmp2 = _mm_load_si128((__m128i *) ((const int32_t *) src + i + SSE_LEN_INT32));
+            v4si src_tmp_slip = _mm_shuffle_epi32(src_tmp, IMM8_FLIP_VEC);  // rotate vec from abcd to bcba
+            v4si src_tmp_slip2 = _mm_shuffle_epi32(src_tmp2, IMM8_FLIP_VEC);
+            _mm_store_si128((__m128i *) (dst + len - i - SSE_LEN_INT32), src_tmp_slip);  // store the flipped vector
+            _mm_store_si128((__m128i *) (dst + len - i - 2 * SSE_LEN_INT32), src_tmp_slip2);
+        }
+    } else {
+        for (int i = 2 * SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src_tmp = _mm_loadu_si128((__m128i *) (src + i));  // load a,b,c,d
+            v4si src_tmp2 = _mm_loadu_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            v4si src_tmp_slip = _mm_shuffle_epi32(src_tmp, IMM8_FLIP_VEC);  // rotate vec from abcd to bcba
+            v4si src_tmp_slip2 = _mm_shuffle_epi32(src_tmp2, IMM8_FLIP_VEC);
+            _mm_storeu_si128((__m128i *) (dst + len - i - SSE_LEN_INT32), src_tmp_slip);  // store the flipped vector
+            _mm_storeu_si128((__m128i *) (dst + len - i - 2 * SSE_LEN_INT32), src_tmp_slip2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[len - i - 1] = src[i];
+    }
+}
+
+static inline void maxevery128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_INT32);
+    stop_len *= (2 * SSE_LEN_INT32);
+
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src1_tmp = _mm_load_si128((__m128i *) ((const int32_t *) src1 + i));
+            v4si src2_tmp = _mm_load_si128((__m128i *) ((const int32_t *) src2 + i));
+            v4si src1_tmp2 = _mm_load_si128((__m128i *) ((const int32_t *) src1 + i + SSE_LEN_INT32));
+            v4si src2_tmp2 = _mm_load_si128((__m128i *) ((const int32_t *) src2 + i + SSE_LEN_INT32));
+            v4si max1 = _mm_max_epi32(src1_tmp, src2_tmp);
+            v4si max2 = _mm_max_epi32(src1_tmp2, src2_tmp2);
+            _mm_store_si128((__m128i *) (dst + i), max1);
+            _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), max2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src1_tmp = _mm_loadu_si128((__m128i *) (src1 + i));
+            v4si src2_tmp = _mm_loadu_si128((__m128i *) (src2 + i));
+            v4si src1_tmp2 = _mm_loadu_si128((__m128i *) (src1 + i + SSE_LEN_INT32));
+            v4si src2_tmp2 = _mm_loadu_si128((__m128i *) (src2 + i + SSE_LEN_INT32));
+            v4si max1 = _mm_max_epi32(src1_tmp, src2_tmp);
+            v4si max2 = _mm_max_epi32(src1_tmp2, src2_tmp2);
+            _mm_storeu_si128((__m128i *) (dst + i), max1);
+            _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), max2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src1[i] > src2[i] ? src1[i] : src2[i];
+    }
+}
+
+static inline void minevery128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_INT32);
+    stop_len *= (2 * SSE_LEN_INT32);
+
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src1_tmp = _mm_load_si128((__m128i *) ((const int32_t *) src1 + i));
+            v4si src2_tmp = _mm_load_si128((__m128i *) ((const int32_t *) src2 + i));
+            v4si src1_tmp2 = _mm_load_si128((__m128i *) ((const int32_t *) src1 + i + SSE_LEN_INT32));
+            v4si src2_tmp2 = _mm_load_si128((__m128i *) ((const int32_t *) src2 + i + SSE_LEN_INT32));
+            v4si min1 = _mm_min_epi32(src1_tmp, src2_tmp);
+            v4si min2 = _mm_min_epi32(src1_tmp2, src2_tmp2);
+            _mm_store_si128((__m128i *) (dst + i), min1);
+            _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), min2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src1_tmp = _mm_loadu_si128((__m128i *) (src1 + i));
+            v4si src2_tmp = _mm_loadu_si128((__m128i *) (src2 + i));
+            v4si src1_tmp2 = _mm_loadu_si128((__m128i *) (src1 + i + SSE_LEN_INT32));
+            v4si src2_tmp2 = _mm_loadu_si128((__m128i *) (src2 + i + SSE_LEN_INT32));
+            v4si min1 = _mm_min_epi32(src1_tmp, src2_tmp);
+            v4si min2 = _mm_min_epi32(src1_tmp2, src2_tmp2);
+            _mm_storeu_si128((__m128i *) (dst + i), min1);
+            _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), min2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src1[i] < src2[i] ? src1[i] : src2[i];
+    }
+}
+
+
+static inline void minmax128s(int32_t *src, int len, int32_t *min_value, int32_t *max_value)
+{
+    int stop_len = (len - SSE_LEN_INT32) / (2 * SSE_LEN_INT32);
+    stop_len *= (2 * SSE_LEN_INT32);
+    stop_len = (stop_len < 0) ? 0 : stop_len;
+
+    int32_t min_s[SSE_LEN_INT32] __attribute__((aligned(SSE_LEN_BYTES)));
+    int32_t max_s[SSE_LEN_INT32] __attribute__((aligned(SSE_LEN_BYTES)));
+    v4si max_v, min_v, max_v2, min_v2;
+    v4si src_tmp, src_tmp2;
+
+    int32_t min_tmp = src[0];
+    int32_t max_tmp = src[0];
+
+    if (len >= SSE_LEN_INT32) {
+        if (isAligned((uintptr_t) (src), SSE_LEN_BYTES)) {
+            src_tmp = _mm_load_si128((__m128i *) ((const int32_t *) src + 0));
+            max_v = src_tmp;
+            min_v = src_tmp;
+            max_v2 = src_tmp;
+            min_v2 = src_tmp;
+
+            for (int i = SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
+                src_tmp = _mm_load_si128((__m128i *) ((const int32_t *) src + i));
+                src_tmp2 = _mm_load_si128((__m128i *) ((const int32_t *) src + i + SSE_LEN_INT32));
+                max_v = _mm_max_epi32(max_v, src_tmp);
+                min_v = _mm_min_epi32(min_v, src_tmp);
+                max_v2 = _mm_max_epi32(max_v2, src_tmp2);
+                min_v2 = _mm_min_epi32(min_v2, src_tmp2);
+            }
+        } else {
+            src_tmp = _mm_loadu_si128((__m128i *) (src + 0));
+            max_v = src_tmp;
+            min_v = src_tmp;
+            max_v2 = src_tmp;
+            min_v2 = src_tmp;
+
+            for (int i = SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
+                src_tmp = _mm_loadu_si128((__m128i *) ((const int32_t *) src + i));
+                src_tmp2 = _mm_loadu_si128((__m128i *) ((const int32_t *) src + i + SSE_LEN_INT32));
+                max_v = _mm_max_epi32(max_v, src_tmp);
+                min_v = _mm_min_epi32(min_v, src_tmp);
+                max_v2 = _mm_max_epi32(max_v2, src_tmp2);
+                min_v2 = _mm_min_epi32(min_v2, src_tmp2);
+            }
+        }
+
+        max_v = _mm_max_epi32(max_v, max_v2);
+        min_v = _mm_min_epi32(min_v, min_v2);
+
+        _mm_store_si128((__m128i *) (max_s), max_v);
+        _mm_store_si128((__m128i *) (min_s), min_v);
+
+        max_tmp = max_s[0];
+        max_tmp = max_tmp > max_s[1] ? max_tmp : max_s[1];
+        max_tmp = max_tmp > max_s[2] ? max_tmp : max_s[2];
+        max_tmp = max_tmp > max_s[3] ? max_tmp : max_s[3];
+
+        min_tmp = min_s[0];
+        min_tmp = min_tmp < min_s[1] ? min_tmp : min_s[1];
+        min_tmp = min_tmp < min_s[2] ? min_tmp : min_s[2];
+        min_tmp = min_tmp < min_s[3] ? min_tmp : min_s[3];
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        max_tmp = max_tmp > src[i] ? max_tmp : src[i];
+        min_tmp = min_tmp < src[i] ? min_tmp : src[i];
+    }
+
+    *max_value = max_tmp;
+    *min_value = min_tmp;
+}
+
+
+static inline void threshold128_gt_s(int32_t *src, int32_t *dst, int len, int32_t value)
+{
+    const v4si tmp = _mm_set1_epi32(value);
+
+    int stop_len = len / (2 * SSE_LEN_INT32);
+    stop_len *= (2 * SSE_LEN_INT32);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src_tmp = _mm_load_si128((__m128i *) (src + i));
+            v4si src_tmp2 = _mm_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            v4si dst_tmp = _mm_min_epi32(src_tmp, tmp);
+            v4si dst_tmp2 = _mm_min_epi32(src_tmp2, tmp);
+            _mm_store_si128((__m128i *) (dst + i), dst_tmp);
+            _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src_tmp = _mm_loadu_si128((__m128i *) (src + i));
+            v4si src_tmp2 = _mm_loadu_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            v4si dst_tmp = _mm_min_epi32(src_tmp, tmp);
+            v4si dst_tmp2 = _mm_min_epi32(src_tmp2, tmp);
+            _mm_storeu_si128((__m128i *) (dst + i), dst_tmp);
+            _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i] < value ? src[i] : value;
+    }
+}
+
+
+static inline void threshold128_gtabs_s(int32_t *src, int32_t *dst, int len, int32_t value)
+{
+    const v4si pval = _mm_set1_epi32(value);
+    const v4si mval = _mm_set1_epi32(-value);
+
+    int stop_len = len / (2 * SSE_LEN_INT32);
+    stop_len *= (2 * SSE_LEN_INT32);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src_tmp = _mm_load_si128((__m128i *) (src + i));
+            v4si src_tmp2 = _mm_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            v4si src_abs = _mm_abs_epi32(src_tmp);
+            v4si src_abs2 = _mm_abs_epi32(src_tmp2);
+            v4si eqmask = _mm_cmpeq_epi32(src_abs, src_tmp);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v4si eqmask2 = _mm_cmpeq_epi32(src_abs2, src_tmp2);
+            v4si max = _mm_min_epi32(src_tmp, pval);
+            v4si max2 = _mm_min_epi32(src_tmp2, pval);
+            v4si min = _mm_max_epi32(src_tmp, mval);
+            v4si min2 = _mm_max_epi32(src_tmp2, mval);
+            v4si dst_tmp = _mm_blendv_epi8(min, max, eqmask);
+            v4si dst_tmp2 = _mm_blendv_epi8(min2, max2, eqmask2);
+            _mm_store_si128((__m128i *) (dst + i), dst_tmp);
+            _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src_tmp = _mm_loadu_si128((__m128i *) (src + i));
+            v4si src_tmp2 = _mm_loadu_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            v4si src_abs = _mm_abs_epi32(src_tmp);
+            v4si src_abs2 = _mm_abs_epi32(src_tmp2);
+            v4si eqmask = _mm_cmpeq_epi32(src_abs, src_tmp);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v4si eqmask2 = _mm_cmpeq_epi32(src_abs2, src_tmp2);
+            v4si max = _mm_min_epi32(src_tmp, pval);
+            v4si max2 = _mm_min_epi32(src_tmp2, pval);
+            v4si min = _mm_max_epi32(src_tmp, mval);
+            v4si min2 = _mm_max_epi32(src_tmp2, mval);
+            v4si dst_tmp = _mm_blendv_epi8(min, max, eqmask);
+            v4si dst_tmp2 = _mm_blendv_epi8(min2, max2, eqmask2);
+            _mm_storeu_si128((__m128i *) (dst + i), dst_tmp);
+            _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0) {
+            dst[i] = src[i] > value ? value : src[i];
+        } else {
+            dst[i] = src[i] < (-value) ? (-value) : src[i];
+        }
+    }
+}
+
+static inline void threshold128_lt_s(int32_t *src, int32_t *dst, int len, int32_t value)
+{
+    const v4si tmp = _mm_set1_epi32(value);
+
+    int stop_len = len / (2 * SSE_LEN_INT32);
+    stop_len *= (2 * SSE_LEN_INT32);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src_tmp = _mm_load_si128((__m128i *) (src + i));
+            v4si src_tmp2 = _mm_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            v4si dst_tmp = _mm_max_epi32(src_tmp, tmp);
+            v4si dst_tmp2 = _mm_max_epi32(src_tmp2, tmp);
+            _mm_store_si128((__m128i *) (dst + i), dst_tmp);
+            _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src_tmp = _mm_loadu_si128((__m128i *) (src + i));
+            v4si src_tmp2 = _mm_loadu_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            v4si dst_tmp = _mm_max_epi32(src_tmp, tmp);
+            v4si dst_tmp2 = _mm_max_epi32(src_tmp2, tmp);
+            _mm_storeu_si128((__m128i *) (dst + i), dst_tmp);
+            _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i] > value ? src[i] : value;
+    }
+}
+
+static inline void threshold128_ltabs_s(int32_t *src, int32_t *dst, int len, int32_t value)
+{
+    const v4si pval = _mm_set1_epi32(value);
+    const v4si mval = _mm_set1_epi32(-value);
+
+    int stop_len = len / (2 * SSE_LEN_INT32);
+    stop_len *= (2 * SSE_LEN_INT32);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src_tmp = _mm_load_si128((__m128i *) (src + i));
+            v4si src_tmp2 = _mm_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            v4si src_abs = _mm_abs_epi32(src_tmp);
+            v4si src_abs2 = _mm_abs_epi32(src_tmp2);
+            v4si eqmask = _mm_cmpeq_epi32(src_abs, src_tmp);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v4si eqmask2 = _mm_cmpeq_epi32(src_abs2, src_tmp2);
+            v4si max = _mm_max_epi32(src_tmp, pval);
+            v4si max2 = _mm_max_epi32(src_tmp2, pval);
+            v4si min = _mm_min_epi32(src_tmp, mval);
+            v4si min2 = _mm_min_epi32(src_tmp2, mval);
+            v4si dst_tmp = _mm_blendv_epi8(min, max, eqmask);
+            v4si dst_tmp2 = _mm_blendv_epi8(min2, max2, eqmask2);
+            _mm_store_si128((__m128i *) (dst + i), dst_tmp);
+            _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src_tmp = _mm_loadu_si128((__m128i *) (src + i));
+            v4si src_tmp2 = _mm_loadu_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            v4si src_abs = _mm_abs_epi32(src_tmp);
+            v4si src_abs2 = _mm_abs_epi32(src_tmp2);
+            v4si eqmask = _mm_cmpeq_epi32(src_abs, src_tmp);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
+            v4si eqmask2 = _mm_cmpeq_epi32(src_abs2, src_tmp2);
+            v4si max = _mm_max_epi32(src_tmp, pval);
+            v4si max2 = _mm_max_epi32(src_tmp2, pval);
+            v4si min = _mm_min_epi32(src_tmp, mval);
+            v4si min2 = _mm_min_epi32(src_tmp2, mval);
+            v4si dst_tmp = _mm_blendv_epi8(min, max, eqmask);
+            v4si dst_tmp2 = _mm_blendv_epi8(min2, max2, eqmask2);
+            _mm_storeu_si128((__m128i *) (dst + i), dst_tmp);
+            _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0) {
+            dst[i] = src[i] < value ? value : src[i];
+        } else {
+            dst[i] = src[i] > (-value) ? (-value) : src[i];
+        }
+    }
+}
 
 static inline void threshold128_ltval_gtval_s(int32_t *src, int32_t *dst, int len, int32_t ltlevel, int32_t ltvalue, int32_t gtlevel, int32_t gtvalue)
 {
@@ -471,12 +819,12 @@ static inline void threshold128_ltval_gtval_s(int32_t *src, int32_t *dst, int le
             v4si gt_mask = _mm_cmpgt_epi32(src_tmp, gtlevel_v);
             v4si dst_tmp = _mm_blendv_epi8(src_tmp, ltvalue_v, lt_mask);
             dst_tmp = _mm_blendv_epi8(dst_tmp, gtvalue_v, gt_mask);
-            _mm_store_si128((__m128i*)(dst + i), dst_tmp);
+            _mm_store_si128((__m128i *) (dst + i), dst_tmp);
             v4si lt_mask2 = _mm_cmplt_epi32(src_tmp2, ltlevel_v);
             v4si gt_mask2 = _mm_cmpgt_epi32(src_tmp2, gtlevel_v);
             v4si dst_tmp2 = _mm_blendv_epi8(src_tmp2, ltvalue_v, lt_mask2);
             dst_tmp2 = _mm_blendv_epi8(dst_tmp2, gtvalue_v, gt_mask2);
-            _mm_store_si128((__m128i*)(dst + i + SSE_LEN_FLOAT), dst_tmp2);
+            _mm_store_si128((__m128i *) (dst + i + SSE_LEN_FLOAT), dst_tmp2);
         }
     } else {
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
@@ -486,12 +834,12 @@ static inline void threshold128_ltval_gtval_s(int32_t *src, int32_t *dst, int le
             v4si gt_mask = _mm_cmpgt_epi32(src_tmp, gtlevel_v);
             v4si dst_tmp = _mm_blendv_epi8(src_tmp, ltvalue_v, lt_mask);
             dst_tmp = _mm_blendv_epi8(dst_tmp, gtvalue_v, gt_mask);
-            _mm_storeu_si128((__m128i*)(dst + i), dst_tmp);
+            _mm_storeu_si128((__m128i *) (dst + i), dst_tmp);
             v4si lt_mask2 = _mm_cmplt_epi32(src_tmp2, ltlevel_v);
             v4si gt_mask2 = _mm_cmpgt_epi32(src_tmp2, gtlevel_v);
             v4si dst_tmp2 = _mm_blendv_epi8(src_tmp2, ltvalue_v, lt_mask2);
             dst_tmp2 = _mm_blendv_epi8(dst_tmp2, gtvalue_v, gt_mask2);
-            _mm_storeu_si128((__m128i*)(dst + i + SSE_LEN_FLOAT), dst_tmp2);
+            _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_FLOAT), dst_tmp2);
         }
     }
 

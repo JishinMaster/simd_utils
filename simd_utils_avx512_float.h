@@ -1327,8 +1327,9 @@ static inline void minevery512f(float *src1, float *src2, float *dst, int len)
 
 static inline void minmax512f(float *src, int len, float *min_value, float *max_value)
 {
-    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    int stop_len = (len - AVX512_LEN_FLOAT) / (2 * AVX512_LEN_FLOAT);
     stop_len *= (2 * AVX512_LEN_FLOAT);
+    stop_len = (stop_len < 0) ? 0 : stop_len;
 
     v16sf max_v, min_v, max_v2, min_v2;
     v16sf src_tmp, src_tmp2;
@@ -2827,21 +2828,21 @@ static inline void dot512f(float *src1, float *src2, int len, float *dst)
     *dst = tmp_acc;
 }
 
-static inline void dotc512f(complex32_t *src1, complex32_t *src2,  int len, complex32_t *dst)
+static inline void dotc512f(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
 {
     int stop_len = len / (4 * AVX512_LEN_FLOAT);
     stop_len *= (4 * AVX512_LEN_FLOAT);
 
-    v16sfx2 vec_acc1 = {_mm512_setzero_ps(),_mm512_setzero_ps()};  // initialize the vector accumulator
-    v16sfx2 vec_acc2 = {_mm512_setzero_ps(),_mm512_setzero_ps()};  // initialize the vector accumulator
+    v16sfx2 vec_acc1 = {_mm512_setzero_ps(), _mm512_setzero_ps()};  // initialize the vector accumulator
+    v16sfx2 vec_acc2 = {_mm512_setzero_ps(), _mm512_setzero_ps()};  // initialize the vector accumulator
 
-    complex32_t dst_tmp = {0.0f,0.0f};
+    complex32_t dst_tmp = {0.0f, 0.0f};
 
     __attribute__((aligned(AVX512_LEN_BYTES))) float accumulateRe[AVX512_LEN_FLOAT];
     __attribute__((aligned(AVX512_LEN_BYTES))) float accumulateIm[AVX512_LEN_FLOAT];
-    
+
     //  (ac -bd) + i(ad + bc)
-    if (areAligned2((uintptr_t) (src1), (uintptr_t) (src2),  AVX512_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src1), (uintptr_t) (src2), AVX512_LEN_BYTES)) {
         for (int i = 0; i < 2 * stop_len; i += 4 * AVX512_LEN_FLOAT) {
             v16sfx2 src1_split = _mm512_load2_ps((float *) (src1) + i);  // a0a1a2a3, b0b1b2b3
             v16sfx2 src2_split = _mm512_load2_ps((float *) (src2) + i);  // c0c1c2c3 d0d1d2d3
@@ -2889,22 +2890,22 @@ static inline void dotc512f(complex32_t *src1, complex32_t *src2,  int len, comp
     vec_acc1.val[1] = _mm512_add_ps(vec_acc1.val[1], vec_acc2.val[1]);
     _mm512_store_ps(accumulateRe, vec_acc1.val[0]);
     _mm512_store_ps(accumulateIm, vec_acc1.val[1]);
-    
+
     for (int i = stop_len; i < len; i++) {
         dst_tmp.re += src1[i].re * src2[i].re - (src1[i].im * src2[i].im);
         dst_tmp.im += src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
     }
-    
-    dst_tmp.re = dst_tmp.re + accumulateRe[0] + accumulateRe[1] + accumulateRe[2] + accumulateRe[3] +\
-                accumulateRe[4] + accumulateRe[5] + accumulateRe[6] + accumulateRe[7] +\
-                accumulateRe[8] + accumulateRe[9] + accumulateRe[10] + accumulateRe[11] +\
-                accumulateRe[12] + accumulateRe[13] + accumulateRe[14] + accumulateRe[15];
-    dst_tmp.im = dst_tmp.im + accumulateRe[0] + accumulateRe[1] + accumulateRe[2] + accumulateRe[3] +\
-                accumulateRe[4] + accumulateRe[5] + accumulateRe[6] + accumulateRe[7] +\
-                accumulateRe[8] + accumulateRe[9] + accumulateRe[10] + accumulateRe[11] +\
-                accumulateRe[12] + accumulateRe[13] + accumulateRe[14] + accumulateRe[15];
 
-    
+    dst_tmp.re = dst_tmp.re + accumulateRe[0] + accumulateRe[1] + accumulateRe[2] + accumulateRe[3] +
+                 accumulateRe[4] + accumulateRe[5] + accumulateRe[6] + accumulateRe[7] +
+                 accumulateRe[8] + accumulateRe[9] + accumulateRe[10] + accumulateRe[11] +
+                 accumulateRe[12] + accumulateRe[13] + accumulateRe[14] + accumulateRe[15];
+    dst_tmp.im = dst_tmp.im + accumulateRe[0] + accumulateRe[1] + accumulateRe[2] + accumulateRe[3] +
+                 accumulateRe[4] + accumulateRe[5] + accumulateRe[6] + accumulateRe[7] +
+                 accumulateRe[8] + accumulateRe[9] + accumulateRe[10] + accumulateRe[11] +
+                 accumulateRe[12] + accumulateRe[13] + accumulateRe[14] + accumulateRe[15];
+
+
     dst->re = dst_tmp.re;
     dst->im = dst_tmp.im;
 }
@@ -3598,7 +3599,7 @@ static inline void cart2pol2D512f(float *x, float *y, float *r, float *theta, in
     }
 }
 
-static inline void modf512f(float *src, float *integer, float* remainder, int len)
+static inline void modf512f(float *src, float *integer, float *remainder, int len)
 {
     int stop_len = len / (2 * AVX512_LEN_FLOAT);
     stop_len *= (2 * AVX512_LEN_FLOAT);

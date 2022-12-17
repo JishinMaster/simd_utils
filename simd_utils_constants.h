@@ -1005,16 +1005,16 @@ static const int _pi32_512_idx_re[16] __attribute__((aligned(64))) = {0x10, 0x12
                                                                       0x18, 0x1A, 0x1C, 0x1E, 0, 2, 4, 6, 8, 10, 12, 14};
 static const int _pi32_512_idx_im[16] __attribute__((aligned(64))) = {0x11, 0x13, 0x15, 0x17,
                                                                       0x19, 0x1B, 0x1D, 0x1F, 1, 3, 5, 7, 9, 11, 13, 15};
-static const int64_t _pi64_512_idx_re[8] __attribute__((aligned(64))) = { 8, 10, 12, 14, 0, 2, 4, 6};
-static const int64_t _pi64_512_idx_im[8] __attribute__((aligned(64))) = {9, 8+3, 8+5, 8+7, 1, 3, 5, 7};
+static const int64_t _pi64_512_idx_re[8] __attribute__((aligned(64))) = {8, 10, 12, 14, 0, 2, 4, 6};
+static const int64_t _pi64_512_idx_im[8] __attribute__((aligned(64))) = {9, 8 + 3, 8 + 5, 8 + 7, 1, 3, 5, 7};
 
-                                                                      
+
 // used for realtocplx transforms
 static const int _pi32_512_idx_cplx_lo[16] __attribute__((aligned(64))) = {0x10, 0, 0x11, 1,
                                                                            0x12, 2, 0x13, 3, 0x14, 4, 0x15, 5, 0x16, 6, 0x17, 7};
 static const int _pi32_512_idx_cplx_hi[16] __attribute__((aligned(64))) = {0x18, 8, 0x19, 9,
                                                                            0x1A, 10, 0x1B, 11, 0x1C, 12, 0x1D, 13, 0x1E, 14, 0x1F, 15};
-static const int64_t _pi64_512_idx_cplx_lo[8] __attribute__((aligned(64))) = { 0x8, 0x0, 0x9, 0x1, 0xA, 0x2, 0xB, 0x3};
+static const int64_t _pi64_512_idx_cplx_lo[8] __attribute__((aligned(64))) = {0x8, 0x0, 0x9, 0x1, 0xA, 0x2, 0xB, 0x3};
 static const int64_t _pi64_512_idx_cplx_hi[8] __attribute__((aligned(64))) = {0xC, 0x4, 0xD, 0x5, 0xE, 6, 0xF, 0x7};
 
 ////////// SINGLE /////////////

@@ -1678,8 +1678,9 @@ static inline void minevery128f(float *src1, float *src2, float *dst, int len)
 
 static inline void minmax128f(float *src, int len, float *min_value, float *max_value)
 {
-    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    int stop_len = (len - SSE_LEN_FLOAT) / (2 * SSE_LEN_FLOAT);
     stop_len *= (2 * SSE_LEN_FLOAT);
+    stop_len = (stop_len < 0) ? 0 : stop_len;
 
     float min_f[SSE_LEN_FLOAT] __attribute__((aligned(SSE_LEN_BYTES)));
     float max_f[SSE_LEN_FLOAT] __attribute__((aligned(SSE_LEN_BYTES)));
@@ -3309,21 +3310,21 @@ static inline void dot128f(float *src1, float *src2, int len, float *dst)
     *dst = tmp_acc;
 }
 
-static inline void dotc128f(complex32_t *src1, complex32_t *src2,  int len, complex32_t *dst)
+static inline void dotc128f(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
 {
     int stop_len = len / (4 * SSE_LEN_FLOAT);
     stop_len *= (4 * SSE_LEN_FLOAT);
 
-    v4sfx2 vec_acc1 = {_mm_setzero_ps(),_mm_setzero_ps()};  // initialize the vector accumulator
-    v4sfx2 vec_acc2 = {_mm_setzero_ps(),_mm_setzero_ps()};  // initialize the vector accumulator
+    v4sfx2 vec_acc1 = {_mm_setzero_ps(), _mm_setzero_ps()};  // initialize the vector accumulator
+    v4sfx2 vec_acc2 = {_mm_setzero_ps(), _mm_setzero_ps()};  // initialize the vector accumulator
 
-    complex32_t dst_tmp = {0.0f,0.0f};
+    complex32_t dst_tmp = {0.0f, 0.0f};
 
     __attribute__((aligned(SSE_LEN_BYTES))) float accumulateRe[SSE_LEN_FLOAT];
     __attribute__((aligned(SSE_LEN_BYTES))) float accumulateIm[SSE_LEN_FLOAT];
-    
+
     //  (ac -bd) + i(ad + bc)
-    if (areAligned2((uintptr_t) (src1), (uintptr_t) (src2),  SSE_LEN_BYTES)) {
+    if (areAligned2((uintptr_t) (src1), (uintptr_t) (src2), SSE_LEN_BYTES)) {
         for (int i = 0; i < 2 * stop_len; i += 4 * SSE_LEN_FLOAT) {
             v4sfx2 src1_split = _mm_load2_ps((float *) (src1) + i);  // a0a1a2a3, b0b1b2b3
             v4sfx2 src2_split = _mm_load2_ps((float *) (src2) + i);  // c0c1c2c3 d0d1d2d3
@@ -3371,16 +3372,16 @@ static inline void dotc128f(complex32_t *src1, complex32_t *src2,  int len, comp
     vec_acc1.val[1] = _mm_add_ps(vec_acc1.val[1], vec_acc2.val[1]);
     _mm_store_ps(accumulateRe, vec_acc1.val[0]);
     _mm_store_ps(accumulateIm, vec_acc1.val[1]);
-    
+
     for (int i = stop_len; i < len; i++) {
         dst_tmp.re += src1[i].re * src2[i].re - (src1[i].im * src2[i].im);
         dst_tmp.im += src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
     }
-    
+
     dst_tmp.re = dst_tmp.re + accumulateRe[0] + accumulateRe[1] + accumulateRe[2] + accumulateRe[3];
     dst_tmp.im = dst_tmp.im + accumulateIm[0] + accumulateIm[1] + accumulateIm[2] + accumulateIm[3];
 
-    
+
     dst->re = dst_tmp.re;
     dst->im = dst_tmp.im;
 }
@@ -4603,7 +4604,7 @@ static inline void cart2pol2D128f(float *x, float *y, float *r, float *theta, in
     }
 }
 
-static inline void modf128f(float *src, float *integer, float* remainder, int len)
+static inline void modf128f(float *src, float *integer, float *remainder, int len)
 {
     int stop_len = len / (2 * SSE_LEN_FLOAT);
     stop_len *= (2 * SSE_LEN_FLOAT);
