@@ -239,8 +239,8 @@ static inline v2sdx2 _mm_load2_pd(double const *mem_addr)
     v2sd tmp1 = _mm_load_pd(mem_addr);
     v2sd tmp2 = _mm_load_pd(mem_addr + SSE_LEN_DOUBLE);
     v2sdx2 ret;
-    ret.val[0] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(0, 0, 0, 0));
-    ret.val[1] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(3, 3, 3, 3));
+    ret.val[0] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE2(0, 0));
+    ret.val[1] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE2(1, 1));
     return ret;
 #endif
 }
@@ -253,8 +253,8 @@ static inline v2sdx2 _mm_load2u_pd(double const *mem_addr)
     v2sd tmp1 = _mm_loadu_pd(mem_addr);
     v2sd tmp2 = _mm_loadu_pd(mem_addr + SSE_LEN_DOUBLE);
     v2sdx2 ret;
-    ret.val[0] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(0, 0, 0, 0));
-    ret.val[1] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE(3, 3, 3, 3));
+    ret.val[0] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE2(0, 0));
+    ret.val[1] = _mm_shuffle_pd(tmp1, tmp2, _MM_SHUFFLE2(1, 1));
     return ret;
 #endif
 }
@@ -1746,6 +1746,50 @@ static inline void dotf_C(float *src1, float *src2, int len, float *dst)
         tmp_acc += src1[i] * src2[i];
     }
     *dst=tmp_acc;
+}
+
+static inline void dotf_C_precise(float *src1, float *src2, int len, float *dst)
+{
+    double tmp_acc = 0.0;
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        tmp_acc += (double)src1[i] * (double)src2[i];
+    }
+    *dst= (float)tmp_acc;
+}
+
+static inline void dotcf_C(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
+{
+    complex32_t dst_tmp = {0.0f,0.0f};
+
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst_tmp.re += src1[i].re * src2[i].re - (src1[i].im * src2[i].im);
+        dst_tmp.im += src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
+    }
+    
+    dst->re = dst_tmp.re;
+    dst->im = dst_tmp.im;
+}
+
+static inline void dotcf_C_precise(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
+{
+    complex64_t dst_tmp = {0.0,0.0};
+
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst_tmp.re += (double)src1[i].re * (double)src2[i].re - ((double)src1[i].im * (double)src2[i].im);
+        dst_tmp.im += (double)src1[i].re * (double)src2[i].im + ((double)src2[i].re * (double)src1[i].im);
+    }
+    
+    dst->re = (float)dst_tmp.re;
+    dst->im = (float)dst_tmp.im;
 }
 
 static inline void vectorSlopef_C(float *dst, int len, float offset, float slope)

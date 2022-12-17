@@ -3038,7 +3038,7 @@ static inline void sum256f(float *src, float *dst, int len)
     int stop_len = len / (2 * AVX_LEN_FLOAT);
     stop_len *= (2 * AVX_LEN_FLOAT);
 
-    __attribute__((aligned(AVX_LEN_BYTES))) float accumulate[AVX_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+    __attribute__((aligned(AVX_LEN_BYTES))) float accumulate[AVX_LEN_FLOAT];
     float tmp_acc = 0.0f;
     v8sf vec_acc1 = _mm256_setzero_ps();  // initialize the vector accumulator
     v8sf vec_acc2 = _mm256_setzero_ps();  // initialize the vector accumulator
@@ -3084,8 +3084,7 @@ static inline void dot256f(float *src1, float *src2, int len, float *dst)
     int stop_len = len / (2 * AVX_LEN_FLOAT);
     stop_len *= (2 * AVX_LEN_FLOAT);
 
-    __attribute__((aligned(AVX_LEN_BYTES))) float accumulate[AVX_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f,\
-                                                                              0.0f, 0.0f, 0.0f, 0.0f};
+    __attribute__((aligned(AVX_LEN_BYTES))) float accumulate[AVX_LEN_FLOAT];
     float tmp_acc = 0.0f;
     v8sf vec_acc1 = _mm256_setzero_ps();  // initialize the vector accumulator
     v8sf vec_acc2 = _mm256_setzero_ps();  // initialize the vector accumulator
@@ -3120,6 +3119,84 @@ static inline void dot256f(float *src1, float *src2, int len, float *dst)
     accumulate[4] + accumulate[5] + accumulate[6] + accumulate[7];
 
     *dst = tmp_acc;
+}
+
+static inline void dotc256f(complex32_t *src1, complex32_t *src2,  int len, complex32_t *dst)
+{
+    int stop_len = len / (4 * AVX_LEN_FLOAT);
+    stop_len *= (4 * AVX_LEN_FLOAT);
+
+    v8sfx2 vec_acc1 = {_mm256_setzero_ps(),_mm256_setzero_ps()};  // initialize the vector accumulator
+    v8sfx2 vec_acc2 = {_mm256_setzero_ps(),_mm256_setzero_ps()};  // initialize the vector accumulator
+
+    complex32_t dst_tmp = {0.0f,0.0f};
+
+    __attribute__((aligned(AVX_LEN_BYTES))) float accumulateRe[AVX_LEN_FLOAT];
+    __attribute__((aligned(AVX_LEN_BYTES))) float accumulateIm[AVX_LEN_FLOAT];
+    
+    //  (ac -bd) + i(ad + bc)
+    if (areAligned2((uintptr_t) (src1), (uintptr_t) (src2),  AVX_LEN_BYTES)) {
+        for (int i = 0; i < 2 * stop_len; i += 4 * AVX_LEN_FLOAT) {
+            v8sfx2 src1_split = _mm256_load2_ps((float *) (src1) + i);  // a0a1a2a3, b0b1b2b3
+            v8sfx2 src2_split = _mm256_load2_ps((float *) (src2) + i);  // c0c1c2c3 d0d1d2d3
+            v8sfx2 src1_split2 = _mm256_load2_ps((float *) (src1) + i + 2 * AVX_LEN_FLOAT);
+            v8sfx2 src2_split2 = _mm256_load2_ps((float *) (src2) + i + 2 * AVX_LEN_FLOAT);
+            v8sf ac = _mm256_mul_ps(src1_split.val[0], src2_split.val[0]);     // ac
+            v8sf ad = _mm256_mul_ps(src1_split.val[0], src2_split.val[1]);     // ad
+            v8sf ac2 = _mm256_mul_ps(src1_split2.val[0], src2_split2.val[0]);  // ac
+            v8sf ad2 = _mm256_mul_ps(src1_split2.val[0], src2_split2.val[1]);  // ad
+            v8sfx2 tmp_split;
+            v8sfx2 tmp_split2;
+            tmp_split.val[0] = _mm256_fnmadd_ps_custom(src1_split.val[1], src2_split.val[1], ac);
+            tmp_split.val[1] = _mm256_fmadd_ps_custom(src1_split.val[1], src2_split.val[0], ad);
+            tmp_split2.val[0] = _mm256_fnmadd_ps_custom(src1_split2.val[1], src2_split2.val[1], ac2);
+            tmp_split2.val[1] = _mm256_fmadd_ps_custom(src1_split2.val[1], src2_split2.val[0], ad2);
+            vec_acc1.val[0] = _mm256_add_ps(vec_acc1.val[0], tmp_split.val[0]);
+            vec_acc1.val[1] = _mm256_add_ps(vec_acc1.val[1], tmp_split.val[1]);
+            vec_acc2.val[0] = _mm256_add_ps(vec_acc2.val[0], tmp_split2.val[0]);
+            vec_acc2.val[1] = _mm256_add_ps(vec_acc2.val[1], tmp_split2.val[1]);
+        }
+    } else {
+        for (int i = 0; i < 2 * stop_len; i += 4 * AVX_LEN_FLOAT) {
+            v8sfx2 src1_split = _mm256_load2u_ps((float *) (src1) + i);  // a0a1a2a3, b0b1b2b3
+            v8sfx2 src2_split = _mm256_load2u_ps((float *) (src2) + i);  // c0c1c2c3 d0d1d2d3
+            v8sfx2 src1_split2 = _mm256_load2u_ps((float *) (src1) + i + 2 * AVX_LEN_FLOAT);
+            v8sfx2 src2_split2 = _mm256_load2u_ps((float *) (src2) + i + 2 * AVX_LEN_FLOAT);
+            v8sf ac = _mm256_mul_ps(src1_split.val[0], src2_split.val[0]);     // ac
+            v8sf ad = _mm256_mul_ps(src1_split.val[0], src2_split.val[1]);     // ad
+            v8sf ac2 = _mm256_mul_ps(src1_split2.val[0], src2_split2.val[0]);  // ac
+            v8sf ad2 = _mm256_mul_ps(src1_split2.val[0], src2_split2.val[1]);  // ad
+            v8sfx2 tmp_split;
+            v8sfx2 tmp_split2;
+            tmp_split.val[0] = _mm256_fnmadd_ps_custom(src1_split.val[1], src2_split.val[1], ac);
+            tmp_split.val[1] = _mm256_fmadd_ps_custom(src1_split.val[1], src2_split.val[0], ad);
+            tmp_split2.val[0] = _mm256_fnmadd_ps_custom(src1_split2.val[1], src2_split2.val[1], ac2);
+            tmp_split2.val[1] = _mm256_fmadd_ps_custom(src1_split2.val[1], src2_split2.val[0], ad2);
+            vec_acc1.val[0] = _mm256_add_ps(vec_acc1.val[0], tmp_split.val[0]);
+            vec_acc1.val[1] = _mm256_add_ps(vec_acc1.val[1], tmp_split.val[1]);
+            vec_acc2.val[0] = _mm256_add_ps(vec_acc2.val[0], tmp_split2.val[0]);
+            vec_acc2.val[1] = _mm256_add_ps(vec_acc2.val[1], tmp_split2.val[1]);
+        }
+    }
+
+    vec_acc1.val[0] = _mm256_add_ps(vec_acc1.val[0], vec_acc2.val[0]);
+    vec_acc1.val[1] = _mm256_add_ps(vec_acc1.val[1], vec_acc2.val[1]);
+    _mm256_store_ps(accumulateRe, vec_acc1.val[0]);
+    _mm256_store_ps(accumulateIm, vec_acc1.val[1]);
+    
+    for (int i = stop_len; i < len; i++) {
+        dst_tmp.re += src1[i].re * src2[i].re - (src1[i].im * src2[i].im);
+        dst_tmp.im += src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
+    }
+    
+    dst_tmp.re = dst_tmp.re + accumulateRe[0] + accumulateRe[1] + accumulateRe[2] + accumulateRe[3] +\
+                accumulateRe[4] + accumulateRe[5] + accumulateRe[6] + accumulateRe[7];
+    dst_tmp.im = dst_tmp.im + accumulateRe[0] + accumulateRe[1] + accumulateRe[2] + accumulateRe[3] +\
+                accumulateRe[4] + accumulateRe[5] + accumulateRe[6] + accumulateRe[7];
+
+    
+    dst->re = dst_tmp.re;
+    dst->im = dst_tmp.im;
 }
 
 static inline void sqrt256f(float *src, float *dst, int len)

@@ -102,6 +102,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | muladdcXf                                             | muladdcf_C                  | ?                              | muladdcf_vec                  |
 | divXf                                                 | divf_C                      | ippsDiv_32f_A24                | divf_vec                      |
 | dotXf                                                 | dotf_C                      | ippsDotProd_32f                | ?                             |
+| dotcXf                                                | dotcf_C                     | ippsDotProd_32fc               | ?                             |
 | vectorSlopeXf    (a)                                  | vectorSlopef_C              | ippsVectorSlope_32f            | vectorSlopef_vec              |
 | convertFloat32ToU8_X                                  | convertFloat32ToU8_C        | ippsConvert_32f8u_Sfs          | ?                             |
 | convertFloat32ToU16_X                                 | convertFloat32ToI16_C       | ippsConvert_32f16u_Sfs         | ?                             |

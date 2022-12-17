@@ -3685,6 +3685,12 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("dotf_C %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    dotf_C_precise(inout, inout2, len,  &inout_ref[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("dotf_C_precise %d %lf\n", len, elapsed);
+
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsDotProd_32f(inout, inout2, len,  &inout3[0]);
@@ -3751,6 +3757,107 @@ printf("\n");
     printf("dot512f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     printf("%f %f\n",inout_ref[0], inout3[0]);
+#endif
+
+
+   printf("\n");
+   /////////////////////////////////////////////////////////// DOTF //////////////////////////////////////////////////////////////////////////////
+    printf("DOTCF\n");
+
+    for (int i = 0; i < 2*len; i++) {
+        inout[i] = (float) i / 3000.0f;  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+        inout2[i] = (float) i / (-1270.577f);
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    dotcf_C((complex32_t*)inout, (complex32_t*)inout2, len,  (complex32_t*)&inout_ref[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("dotcf_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        dotcf_C((complex32_t*)inout, (complex32_t*)inout2, len,  (complex32_t*)&inout_ref[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("dotcf_C %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    dotcf_C_precise((complex32_t*)inout, (complex32_t*)inout2, len,  (complex32_t*)&inout_ref[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("dotcf_C_precise %d %lf\n", len, elapsed);
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsDotProd_32fc((const Ipp32fc*)inout, (const Ipp32fc*)inout2, len,  (Ipp32fc*)&inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsDotProd_32fc %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsDotProd_32fc((const Ipp32fc*)inout, (const Ipp32fc*)inout2, len,  (Ipp32fc*)&inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsDotProd_32fc %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    printf("%f %f\n",inout_ref[0], inout3[0]);
+    printf("%f %f\n",inout_ref[1], inout3[1]);
+#endif
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    dotc128f((complex32_t*)inout, (complex32_t*)inout2, len,  (complex32_t*)&inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("dotc128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        dotc128f((complex32_t*)inout, (complex32_t*)inout2, len,  (complex32_t*)&inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("dotc128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    printf("%f %f\n",inout_ref[0], inout3[0]);
+    printf("%f %f\n",inout_ref[1], inout3[1]);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    dotc256f((complex32_t*)inout, (complex32_t*)inout2, len,  (complex32_t*)&inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("dotc256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        dotc256f((complex32_t*)inout, (complex32_t*)inout2, len,  (complex32_t*)&inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("dotc256f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    printf("%f %f\n",inout_ref[0], inout3[0]);
+    printf("%f %f\n",inout_ref[1], inout3[1]);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    dotc512f((complex32_t*)inout, (complex32_t*)inout2, len,  (complex32_t*)&inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("dotc512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        dotc512f((complex32_t*)inout, (complex32_t*)inout2, len,  (complex32_t*)&inout3[0]);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("dotc512f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    printf("%f %f\n",inout_ref[0], inout3[0]);
+    printf("%f %f\n",inout_ref[1], inout3[1]);
 #endif
 
     printf("\n");
