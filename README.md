@@ -28,7 +28,7 @@ Supported targets are :
 - RISC-V Vector extension 1.0 (experimental)
 - PowerPC Alitivec (experimental)
 
-128 bit functions (SSE and NEON) are name function128type, such as asin128f, which computes the arcsinus function on an float32 array. Float64 functions have the "d" suffix.
+128 bit functions (SSE, NEON, ALTIVEC) are name function128type, such as asin128f, which computes the arcsinus function on an float32 array. Float64 functions have the "d" suffix.
 256 bit functions (AVX/AVX2) have 256 instead of 128 in their name, such as asin256f.
 256 bit functions (AVX512) have 512 instead of 128 in their name, such as cos512f.
 Vector functions (RISCV) for which the SIMD length makes less sense, are name functionType_vec, such as subs_vec, which substract an int32 array from and other one.
@@ -61,6 +61,7 @@ Simply include simd_utils.h in your C/C++ file, and compile with :
 For FMA support you need to add -DFMA and -mfma to x86 targets, and -DFMA to Armv8 targets.
 For ARMV7 targets, you could also add -DSSE2NEON_PRECISE_SQRT for improved accuracy with sqrt and rsqrt
 For X86 targets with ICC compiler, simply add -DICC to activate Intel SVML intrinsics.
+Altivec support is intended mostly for older Big Endian PowerPC. Newer Little Endian might benefit from a direct conversion from SSE similar to sse2neon.
 
 ## OpenCL (experimental)
 
@@ -91,17 +92,17 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | setXf  (a)                                            | setf_C                      | ippsSet_32f                    | setf_vec                      |
 | zeroXf (a)                                            | zerof_C                     | ippsZero_32f                   | zerof_vec                     |
 | copyXf                                                | copyf_C                     | ippsCopy_32f                   | copyf_vec                     |
-| addXf                                                 | addf_c                      | ippsAdd_32f                    | addf_vec                      |
+| addXf  (a)                                            | addf_c                      | ippsAdd_32f                    | addf_vec                      |
 | mulXf  (a)                                            | mulf_C                      | ippsMul_32f                    | mulf_vec                      |
-| subXf                                                 | subf_c                      | ippsSub_32f                    | subf_vec                      |
-| addcXf                                                | addcf_C                     | ippsAddC_32f                   | addcf_vec                     |
-| mulcXf                                                | mulcf_C                     | ippsMulC_32f                   | mulcf_vec                     |
+| subXf  (a)                                            | subf_c                      | ippsSub_32f                    | subf_vec                      |
+| addcXf (a)                                            | addcf_C                     | ippsAddC_32f                   | addcf_vec                     |
+| mulcXf (a)                                            | mulcf_C                     | ippsMulC_32f                   | mulcf_vec                     |
 | muladdXf                                              | muladdf_C                   | ?                              | muladdf_vec                   |
 | mulcaddXf                                             | mulcaddf_C                  | ?                              | mulcaddf_vec                  |
 | mulcaddcXf                                            | mulcaddcf_C                 | ?                              | mulcaddcf_vec                 |
 | muladdcXf                                             | muladdcf_C                  | ?                              | muladdcf_vec                  |
 | divXf                                                 | divf_C                      | ippsDiv_32f_A24                | divf_vec                      |
-| dotXf                                                 | dotf_C                      | ippsDotProd_32f                | ?                             |
+| dotXf  (a)                                            | dotf_C                      | ippsDotProd_32f                | ?                             |
 | dotcXf                                                | dotcf_C                     | ippsDotProd_32fc               | ?                             |
 | vectorSlopeXf    (a)                                  | vectorSlopef_C              | ippsVectorSlope_32f            | vectorSlopef_vec              |
 | convertFloat32ToU8_X                                  | convertFloat32ToU8_C        | ippsConvert_32f8u_Sfs          | ?                             |
@@ -140,7 +141,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | powerspectXf_split (a)                                | powerspectf_C_split         | ippsPowerSpectr_32f            | powerspectf_split_vec         |
 | magnitudeXf_interleaved                               | magnitudef_C_interleaved    | ippsMagnitude_32fc             | ?                             |
 | powerspectXf_interleaved                              | powerspectf_C_interleaved   | ippsPowerSpectr_32fc           | ?                             |
-| subcrevXf                                             | subcrevf_C                  | ippsSubCRev_32f                | ?                             |
+| subcrevXf (a)                                         | subcrevf_C                  | ippsSubCRev_32f                | ?                             |
 | sumXf    (a)                                          | sumf_C                      | ippsSum_32f                    | sumf_vec                      |
 | meanXf   (a)                                          | meanf_C                     | ippsMean_32f                   | meanf_vec                     |
 | sqrtXf                                                | sqrtf_C                     | ippsSqrt_32f                   | sqrtf_vec                     |
@@ -183,23 +184,23 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | asinXd                                                | asin_C                      | ippsAsin_64f_A53               | ?                             |
 | cplxtorealXd                                          | cplxtoreald_C               | ippsCplxToReal_64fc            | ?                             |
 | realtocplxXd                                          | realtocplxd_C               | ippsRealToCplx_64f             | ?                             |
-| addXs                                                 | adds_c                      | ?                              | adds_vec                      |
+| addXs   (a)                                           | adds_c                      | ?                              | adds_vec                      |
 | mulXs                                                 | muls_c                      | ?                              | muls_vec                      |
-| subXs                                                 | subs_c                      | ?                              | subs_vec                      |
-| addcXs                                                | addcs_C                     | ?                              | addcs_vec                     |
-| vectorSlopeXs                                         | vectorSlopes_C              | ippsVectorSlope_32s            | vectorSlopes_vec              |
-| flipXs                                                | flips_C                     | ?                              | ?                             |
-| maxeveryXs                                            | maxeverys_c                 | ?                              | ?                             |
-| mineveryXs                                            | mineverys_c                 | ?                              | ?                             |
-| minmaxXs                                              | minmaxs_c                   | ippsMinMax_32s                 | ?                             |
-| thresholdX_gt_s                                       | threshold_gt_s_C            | ippsThreshold_GT_32s           | ?                             |
-| thresholdX_gtabs_s                                    | threshold_gtabs_s_C         | ippsThreshold_GTAbs_32s        | ?                             |
-| thresholdX_lt_s                                       | threshold_lt_s_C            | ippsThreshold_LT_32s           | ?                             |
-| thresholdX_ltabs_s                                    | threshold_ltabs_s_C         | ippsThreshold_LTAbs_32s        | ?                             |
-| thresholdX_ltval_gtval_s                              | threshold_ltval_gtval_s_C   | ippsThreshold_LTValGTVal_32s   | ?                             |
+| subXs   (a)                                           | subs_c                      | ?                              | subs_vec                      |
+| addcXs  (a)                                           | addcs_C                     | ?                              | addcs_vec                     |
+| vectorSlopeXs (a)                                     | vectorSlopes_C              | ippsVectorSlope_32s            | vectorSlopes_vec              |
+| flipXs  (a)                                           | flips_C                     | ?                              | ?                             |
+| maxeveryXs (a)                                        | maxeverys_c                 | ?                              | ?                             |
+| mineveryXs (a)                                        | mineverys_c                 | ?                              | ?                             |
+| minmaxXs   (a)                                        | minmaxs_c                   | ippsMinMax_32s                 | ?                             |
+| thresholdX_gt_s  (a)                                  | threshold_gt_s_C            | ippsThreshold_GT_32s           | ?                             |
+| thresholdX_gtabs_s (a)                                | threshold_gtabs_s_C         | ippsThreshold_GTAbs_32s        | ?                             |
+| thresholdX_lt_s     (a)                               | threshold_lt_s_C            | ippsThreshold_LT_32s           | ?                             |
+| thresholdX_ltabs_s  (a)                               | threshold_ltabs_s_C         | ippsThreshold_LTAbs_32s        | ?                             |
+| thresholdX_ltval_gtval_s (a)                          | threshold_ltval_gtval_s_C   | ippsThreshold_LTValGTVal_32s   | ?                             |
 | copyXs                                                | copys_C                     | ippsCopy_32s                   | copys_vec                     |
 | ?                                                     | ?                           | ?                              | mulcs_vec                     |
-| absdiff16s_Xs                                         | absdiff16s_c                | ?                              | ?                             |
+| absdiff16s_Xs (a)                                     | absdiff16s_c                | ?                              | ?                             |
 | sum16s32sX                                            | sum16s32s_C                 | ippsSum_16s32s_Sfs             | ?                             |
 | ?                                                     | ors_c                       | ippsOr_32u                     | ?                             |
 | ?                                                     | ands_c                      | ippsAnd_32u                    | ?                             |

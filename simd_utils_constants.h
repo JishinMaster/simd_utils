@@ -163,6 +163,8 @@ typedef enum {
 #ifdef ALTIVEC
 
 #define ALTIVEC_LEN_FLOAT 4
+#define ALTIVEC_LEN_INT32 4
+#define ALTIVEC_LEN_INT16 8
 #define ALTIVEC_LEN_BYTES 16
 
 #define ALIGN16_BEG
@@ -177,8 +179,21 @@ _PI8_CONST(ff, 0xFF);
 
 typedef __vector float v4sf;
 typedef __vector int v4si;
+typedef __vector unsigned int v4ui;
+typedef __vector short v8ss;
 typedef __vector unsigned char v16u8;
 typedef __vector char v16s8;
+typedef __vector bool int v4bi;
+
+// extract real and imaginary part with
+//   v4sf re = vec_perm(vec1, vec2, re_mask);
+//   v4sf im = vec_perm(vec1, vec2, im_mask);
+static const v16u8 re_mask = {0, 1, 2, 3, 8, 9, 10, 11, 16, 17, 18, 19, 24, 25, 26, 27};
+static const v16u8 im_mask = {4, 5, 6, 7, 12, 13, 14, 15, 20, 21, 22, 23, 28, 29, 30, 31};
+static const v16u8 reim_mask_hi = {0, 1, 2, 3, 16, 17, 18, 19, 4, 5, 6, 7, 20, 21, 22, 23};
+static const v16u8 reim_mask_lo = {8, 9, 10, 11, 24, 25, 26, 27, 12, 13, 14, 15, 28, 29, 30, 31};
+static const v16u8 flip_vector = {12, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3};
+
 #endif
 
 #ifdef SSE

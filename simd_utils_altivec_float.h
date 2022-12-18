@@ -12,46 +12,6 @@
 #include <stdint.h>
 #include <string.h>
 
-
-// extract real and imaginary part with
-//   v4sf re = vec_perm(vec1, vec2, re_mask);
-//   v4sf im = vec_perm(vec1, vec2, im_mask);
-static const v16u8 re_mask = {0, 1, 2, 3, 8, 9, 10, 11, 16, 17, 18, 19, 24, 25, 26, 27};
-static const v16u8 im_mask = {4, 5, 6, 7, 12, 13, 14, 15, 20, 21, 22, 23, 28, 29, 30, 31};
-static const v16u8 reim_mask_hi = {0, 1, 2, 3, 16, 17, 18, 19, 4, 5, 6, 7, 20, 21, 22, 23};
-static const v16u8 reim_mask_lo = {8, 9, 10, 11, 24, 25, 26, 27, 12, 13, 14, 15, 28, 29, 30, 31};
-static const v16u8 flip_vector = {12, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3};
-
-// Compare and perm operations => perm unit
-//  On e6500, VPERM operations take 2 cycles. VFPU operations take 6 cycles.
-//  Complex FPU operations take 7 cycles (and block the unit for 2 cycles)
-
-// use pointer dereferencing to make it generic?
-static inline v16u8 vec_ldu(unsigned char *v)
-{
-    v16u8 permute = vec_lvsl(0, v);
-    v16u8 MSQ = vec_ld(0, v);
-    v16u8 LSQ = vec_ld(16, v);
-    return vec_perm(MSQ, LSQ, permute);
-}
-
-/// From http://mirror.informatimago.com/next/developer.apple.com/hardware/ve/alignment.html
-static inline void vec_stu(v16u8 src, unsigned char *target)
-{
-    v16u8 MSQ, LSQ, result;
-    v16u8 mask, align;
-
-    MSQ = vec_ld(0, target);                                        // most significant quadword
-    LSQ = vec_ld(16, target);                                       // least significant quadword
-    align = vec_lvsr(0, target);                                    // create alignment vector
-    mask = vec_perm(*(v16u8 *) _pi8_0, *(v16u8 *) _pi8_ff, align);  // Create select mask
-    src = vec_perm(src, src, align);                                // Right rotate stored data
-    MSQ = vec_sel(MSQ, src, mask);                                  // Insert data into MSQ part
-    LSQ = vec_sel(src, LSQ, mask);                                  // Insert data into LSQ part
-    vec_st(MSQ, 0, target);                                         // Store the MSQ part
-    vec_st(LSQ, 16, target);                                        // Store the LSQ part
-}
-
 // In Altivec there is only mad and not mul
 static inline v4sf vec_mul(v4sf a, v4sf b)
 {
@@ -186,6 +146,229 @@ static inline void zero128f(float *dst, int len)
     set128f(dst, 0.0f, len);
 }
 
+static inline void add128f(float *src1, float *src2, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src1 + i);
+            v4sf b = vec_ld(0, src2 + i);
+            vec_st(vec_add(a, b), 0, dst + i);
+        }
+    } else {
+        int unalign_src1 = (uintptr_t) (src1) % ALTIVEC_LEN_BYTES;
+        int unalign_src2 = (uintptr_t) (src2) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        /*To be improved : we constantly use unaligned load or store of those data
+        There exist better unaligned stream load or store which could improve performance
+        */
+        // The following loop relies on good branch prediction architecture
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a, b;
+            if (unalign_src1) {
+                a = (v4sf) vec_ldu((unsigned char *) (src1 + i));
+            } else {
+                a = vec_ld(0, src1 + i);
+            }
+            if (unalign_src2) {
+                b = (v4sf) vec_ldu((unsigned char *) (src2 + i));
+            } else {
+                b = vec_ld(0, src2 + i);
+            }
+            v4sf c = vec_add(a, b);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src1[i] + src2[i];
+    }
+}
+
+static inline void addc128f(float *src, float value, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    v4sf b = vec_splats(value);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(vec_add(a, b), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        /*To be improved : we constantly use unaligned load or store of those data
+        There exist better unaligned stream load or store which could improve performance
+        */
+        // The following loop relies on good branch prediction architecture
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+
+            v4sf c = vec_add(a, b);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i] + value;
+    }
+}
+
+static inline void sub128f(float *src1, float *src2, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src1 + i);
+            v4sf b = vec_ld(0, src2 + i);
+            vec_st(vec_sub(a, b), 0, dst + i);
+        }
+    } else {
+        int unalign_src1 = (uintptr_t) (src1) % ALTIVEC_LEN_BYTES;
+        int unalign_src2 = (uintptr_t) (src2) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        /*To be improved : we constantly use unaligned load or store of those data
+        There exist better unaligned stream load or store which could improve performance
+        */
+        // The following loop relies on good branch prediction architecture
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a, b;
+            if (unalign_src1) {
+                a = (v4sf) vec_ldu((unsigned char *) (src1 + i));
+            } else {
+                a = vec_ld(0, src1 + i);
+            }
+            if (unalign_src2) {
+                b = (v4sf) vec_ldu((unsigned char *) (src2 + i));
+            } else {
+                b = vec_ld(0, src2 + i);
+            }
+            v4sf c = vec_sub(a, b);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src1[i] - src2[i];
+    }
+}
+
+static inline void subc128f(float *src, float value, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    v4sf b = vec_splats(value);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(vec_sub(a, b), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        /*To be improved : we constantly use unaligned load or store of those data
+        There exist better unaligned stream load or store which could improve performance
+        */
+        // The following loop relies on good branch prediction architecture
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+
+            v4sf c = vec_sub(a, b);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i] - value;
+    }
+}
+
+static inline void subcrev128f(float *src, float value, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    v4sf b = vec_splats(value);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(vec_sub(b, a), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        /*To be improved : we constantly use unaligned load or store of those data
+        There exist better unaligned stream load or store which could improve performance
+        */
+        // The following loop relies on good branch prediction architecture
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+
+            v4sf c = vec_sub(b, a);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = value - src[i];
+    }
+}
+
 static inline void mul128f(float *src1, float *src2, float *dst, int len)
 {
     int stop_len = len / ALTIVEC_LEN_FLOAT;
@@ -230,6 +413,49 @@ static inline void mul128f(float *src1, float *src2, float *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src1[i] * src2[i];
+    }
+}
+
+static inline void mulc128f(float *src, float value, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    v4sf b = vec_splats(value);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a = vec_ld(0, src + i);
+            vec_st(vec_mul(a, b), 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        /*To be improved : we constantly use unaligned load or store of those data
+        There exist better unaligned stream load or store which could improve performance
+        */
+        // The following loop relies on good branch prediction architecture
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf a;
+            if (unalign_src) {
+                a = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+                a = vec_ld(0, src + i);
+            }
+
+            v4sf c = vec_mul(a, b);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &c, (unsigned char *) (dst + i));
+            } else {
+                vec_st(c, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i] * value;
     }
 }
 
@@ -539,7 +765,7 @@ static inline v4sf exp_ps_alternate(v4sf x)
 {
     v4sf z_tmp, z, fx;
     v4si n;
-    __vector bool int xsupmaxlogf, xinfminglogf;
+    v4bi xsupmaxlogf, xinfminglogf;
 
     xsupmaxlogf = vec_cmpgt(x, *(v4sf *) _ps_MAXLOGF);
     xinfminglogf = vec_cmplt(x, *(v4sf *) _ps_MINLOGF);
@@ -556,9 +782,8 @@ static inline v4sf exp_ps_alternate(v4sf x)
 
     n = vec_cts(z, 0);
     n = vec_add(n, *(v4si *) _pi32_0x7f);
-    __vector unsigned int shift_bits = vec_splats((unsigned int) 23);
+    v4ui shift_bits = vec_splats((unsigned int) 23);
     n = vec_sl(n, shift_bits);
-    v4si *pow2n = &n;
 
     z = vec_mul(x, x);
 
@@ -570,7 +795,7 @@ static inline v4sf exp_ps_alternate(v4sf x)
     z_tmp = vec_madd(z_tmp, z, x);
 
     /* build 2^n */
-    z_tmp = vec_madd(z_tmp, *(v4sf *) pow2n, *(v4sf *) pow2n);
+    z_tmp = vec_madd(z_tmp, *(v4sf *)&n, *(v4sf *)&n);
 
     z = vec_sel(z_tmp, *(v4sf *) _ps_MAXNUMF, xsupmaxlogf);
     z = vec_sel(z, *(v4sf *) _ps_0, xinfminglogf);
@@ -655,9 +880,8 @@ static inline v4sf log2_ps(v4sf x)
     v4sf one = *(v4sf *) _ps_1;
     v4sf invalid_mask = (v4sf) vec_cmple(x, *(v4sf *) _ps_0);
     x = vec_max(x, *(v4sf *) _ps_min_norm_pos); /* cut off denormalized stuff */
-    __vector unsigned int shift_bits = vec_splats((unsigned int) 23);
-    v4sf *x_ptr = &x;
-    emm0 = vec_sr(*(v4si *) x_ptr, shift_bits);
+    v4ui shift_bits = vec_splats((unsigned int) 23);
+    emm0 = vec_sr(*(v4si *) &x, shift_bits);
 
     /* keep only the fractional part */
     x = vec_and(x, *(v4sf *) _ps_inv_mant_mask);
@@ -821,9 +1045,8 @@ static inline v4sf log10_ps(v4sf x)
     v4sf one = *(v4sf *) _ps_1;
     v4sf invalid_mask = (v4sf) vec_cmple(x, *(v4sf *) _ps_0);
     x = vec_max(x, *(v4sf *) _ps_min_norm_pos); /* cut off denormalized stuff */
-    __vector unsigned int shift_bits = vec_splats((unsigned int) 23);
-    v4sf *x_ptr = &x;
-    emm0 = vec_sr(*(v4si *) x_ptr, shift_bits);
+    v4ui shift_bits = vec_splats((unsigned int) 23);
+    emm0 = vec_sr(*(v4si *)&x, shift_bits);
 
     /* keep only the fractional part */
     x = vec_and(x, *(v4sf *) _ps_inv_mant_mask);
@@ -910,13 +1133,12 @@ static inline v4sf log_ps(v4sf x)
     v4si emm0;
     v4sf one = *(v4sf *) _ps_1;
 
-    __vector bool int invalid_mask = vec_cmple(x, *(v4sf *) _ps_0);
+    v4bi invalid_mask = vec_cmple(x, *(v4sf *) _ps_0);
 
     x = vec_max(x, *(v4sf *) _ps_min_norm_pos); /* cut off denormalized stuff */
 
-    __vector unsigned int shift_bits = vec_splats((unsigned int) 23);
-    v4sf *x_ptr = &x;
-    emm0 = vec_sr(*(v4si *) x_ptr, shift_bits);
+    v4ui shift_bits = vec_splats((unsigned int) 23);
+    emm0 = vec_sr(*(v4si *) &x, shift_bits);
 
     /* keep only the fractional part */
     x = vec_and(x, *(v4sf *) _ps_inv_mant_mask);
@@ -927,9 +1149,8 @@ static inline v4sf log_ps(v4sf x)
 
     e = vec_add(e, one);
 
-    __vector bool int mask = vec_cmplt(x, *(v4sf *) _ps_cephes_SQRTHF);
-    __vector bool int *mask_ptr = &mask;
-    v4sf tmp = vec_and(x, *(v4sf *) mask_ptr);
+    v4bi mask = vec_cmplt(x, *(v4sf *) _ps_cephes_SQRTHF);
+    v4sf tmp = vec_and(x, *(v4sf *)&mask);
     x = vec_sub(x, one);
     e = vec_sub(e, vec_and(one, mask));
     x = vec_add(x, tmp);
@@ -1207,11 +1428,11 @@ static inline void sum128f(float *src, float *dst, int len)
     int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
     stop_len *= (2 * ALTIVEC_LEN_FLOAT);
 
-    __attribute__((aligned(ALTIVEC_LEN_BYTES))) float accumulate[ALTIVEC_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f};
+    __attribute__((aligned(ALTIVEC_LEN_BYTES))) float accumulate[ALTIVEC_LEN_FLOAT];
     float tmp_acc = 0.0f;
 
-    v4sf vec_acc1 = {0.0f, 0.0f, 0.0f, 0.0f};  // initialize the vector accumulator
-    v4sf vec_acc2 = {0.0f, 0.0f, 0.0f, 0.0f};  // initialize the vector accumulator
+    v4sf vec_acc1 = vec_splats(0.0f);  // initialize the vector accumulator
+    v4sf vec_acc2 = vec_splats(0.0f);  // initialize the vector accumulator
 
     if (isAligned((uintptr_t) (src), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
@@ -1298,7 +1519,7 @@ static inline void threshold128_gt_f(float *src, float *dst, int len, float valu
 
 static inline void threshold128_gtabs_f(float *src, float *dst, int len, float value)
 {
-    const v4sf pval = {value, value, value, value};
+    const v4sf pval = vec_splats(value);
 
     int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
     stop_len *= (2 * ALTIVEC_LEN_FLOAT);
@@ -1409,7 +1630,7 @@ static inline void threshold128_lt_f(float *src, float *dst, int len, float valu
 
 static inline void threshold128_ltabs_f(float *src, float *dst, int len, float value)
 {
-    const v4sf pval = {value, value, value, value};
+    const v4sf pval = vec_splats(value);
 
     int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
     stop_len *= (2 * ALTIVEC_LEN_FLOAT);
@@ -1485,13 +1706,13 @@ static inline void threshold128_ltval_gtval_f(float *src, float *dst, int len, f
         for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
             v4sf src_tmp = vec_ld(0, src + i);
             v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
-            __vector bool int lt_mask = vec_cmplt(src_tmp, ltlevel_v);
-            __vector bool int gt_mask = vec_cmpgt(src_tmp, gtlevel_v);
+            v4bi lt_mask = vec_cmplt(src_tmp, ltlevel_v);
+            v4bi gt_mask = vec_cmpgt(src_tmp, gtlevel_v);
             v4sf dst_tmp = vec_sel(src_tmp, ltvalue_v, lt_mask);
             dst_tmp = vec_sel(dst_tmp, gtvalue_v, gt_mask);
             vec_st(dst_tmp, 0, dst + i);
-            __vector bool int lt_mask2 = vec_cmplt(src_tmp2, ltlevel_v);
-            __vector bool int gt_mask2 = vec_cmpgt(src_tmp2, gtlevel_v);
+            v4bi lt_mask2 = vec_cmplt(src_tmp2, ltlevel_v);
+            v4bi gt_mask2 = vec_cmpgt(src_tmp2, gtlevel_v);
             v4sf dst_tmp2 = vec_sel(src_tmp2, ltvalue_v, lt_mask2);
             dst_tmp2 = vec_sel(dst_tmp2, gtvalue_v, gt_mask2);
             vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
@@ -1509,13 +1730,13 @@ static inline void threshold128_ltval_gtval_f(float *src, float *dst, int len, f
                 src_tmp = vec_ld(0, src + i);
                 src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
             }
-            __vector bool int lt_mask = vec_cmplt(src_tmp, ltlevel_v);
-            __vector bool int gt_mask = vec_cmpgt(src_tmp, gtlevel_v);
+            v4bi lt_mask = vec_cmplt(src_tmp, ltlevel_v);
+            v4bi gt_mask = vec_cmpgt(src_tmp, gtlevel_v);
             v4sf dst_tmp = vec_sel(src_tmp, ltvalue_v, lt_mask);
             dst_tmp = vec_sel(dst_tmp, gtvalue_v, gt_mask);
             vec_st(dst_tmp, 0, dst + i);
-            __vector bool int lt_mask2 = vec_cmplt(src_tmp2, ltlevel_v);
-            __vector bool int gt_mask2 = vec_cmpgt(src_tmp2, gtlevel_v);
+            v4bi lt_mask2 = vec_cmplt(src_tmp2, ltlevel_v);
+            v4bi gt_mask2 = vec_cmpgt(src_tmp2, gtlevel_v);
             v4sf dst_tmp2 = vec_sel(src_tmp2, ltvalue_v, lt_mask2);
             dst_tmp2 = vec_sel(dst_tmp2, gtvalue_v, gt_mask2);
 
@@ -1792,8 +2013,8 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
     /* get the swap sign flag for the sine */
     emm0 = vec_and(emm2, *(v4si *) _pi32_4);
     // emm0 = vec_slli(emm0, 29);
-    //__vector unsigned int shift_val = vec_splat_u32(13); //between -16 and +15. asm tests gives 13 for 29 bits: 16+13?
-    __vector unsigned int shift_val = vec_splats((unsigned int) 29);
+    //v4ui shift_val = vec_splat_u32(13); //between -16 and +15. asm tests gives 13 for 29 bits: 16+13?
+    v4ui shift_val = vec_splats((unsigned int) 29);
     emm0 = vec_sl(emm0, shift_val);
     v4si *swap_sign_bit_sin = &emm0;
 
@@ -2080,7 +2301,7 @@ static inline v4sf atanf_ps(v4sf xx)
 {
     v4sf x, y, z;
     v4sf sign;
-    __vector bool int suptan3pi8, inftan3pi8suppi8;
+    v4bi suptan3pi8, inftan3pi8suppi8;
     v4sf tmp;
 
     x = vec_and(*(v4sf *) _ps_pos_sign_mask, xx);
@@ -2153,10 +2374,10 @@ static inline void atan128f(float *src, float *dst, int len)
 static inline v4sf atan2f_ps(v4sf y, v4sf x)
 {
     v4sf z, w;
-    __vector bool int xinfzero, yinfzero, xeqzero, yeqzero;
-    __vector bool int xeqzeroandyinfzero, yeqzeroandxinfzero;
-    __vector bool int specialcase;
-    v4sf tmp, tmp2;
+    v4bi xinfzero, yinfzero, xeqzero, yeqzero;
+    v4bi xeqzeroandyinfzero, yeqzeroandxinfzero;
+    v4bi specialcase;
+    v4sf tmp;
 
     xinfzero = vec_cmplt(x, *(v4sf *) _ps_0);  // code =2
     yinfzero = vec_cmplt(y, *(v4sf *) _ps_0);  // code = code |1;
@@ -2168,7 +2389,7 @@ static inline v4sf atan2f_ps(v4sf y, v4sf x)
     yeqzeroandxinfzero = vec_and(yeqzero, xinfzero);
 
 #if 1
-    xeqzeroandyinfzero = vec_and(xeqzeroandyinfzero, *(__vector bool int *) _ps_sign_mask);
+    xeqzeroandyinfzero = vec_and(xeqzeroandyinfzero, *(v4bi *) _ps_sign_mask);
     tmp = vec_xor(*(v4sf *) _ps_PIO2F, xeqzeroandyinfzero);  // either PI or -PI
     z = vec_andc(tmp, yeqzero);                              // not(yeqzero) and tmp => 0, PI/2, -PI/2
 #else
@@ -2181,7 +2402,7 @@ static inline v4sf atan2f_ps(v4sf y, v4sf x)
 
 #if 0
     tmp = vec_and(*(v4sf *) _ps_PIF, vec_andc(xinfzero, yinfzero));
-    tmp2 = vec_and(*(v4sf *) _ps_mPIF, vec_and(yinfzero, xinfzero));
+    v4sf tmp2 = vec_and(*(v4sf *) _ps_mPIF, vec_and(yinfzero, xinfzero));
     w = vec_add(tmp, tmp2);
 #else
     w = *(v4sf *) _ps_0;
@@ -2296,7 +2517,7 @@ static inline void atan2128f_interleaved(complex32_t *src, float *dst, int len)
 static inline v4sf tanhf_ps(v4sf xx)
 {
     v4sf x, z, z_first_branch, z_second_branch;
-    __vector bool int xxsup0, xsupmaxlogfdiv2, xsup0p625;
+    v4bi xxsup0, xsupmaxlogfdiv2, xsup0p625;
 
     xxsup0 = vec_cmpgt(xx, *(v4sf *) _ps_0);
     xsupmaxlogfdiv2 = vec_cmpgt(xx, *(v4sf *) _ps_MAXLOGFDIV2);
@@ -2369,7 +2590,7 @@ static inline void tanh128f(float *src, float *dst, int len)
 static inline v4sf atanhf_ps(v4sf x)
 {
     v4sf z, tmp, tmp2, z_first_branch, z_second_branch;
-    __vector bool int xsup1, xinfmin1, zinf1emin4, zinf0p5;
+    v4bi xsup1, xinfmin1, zinf1emin4, zinf0p5;
 
     z = vec_and(*(v4sf *) _ps_pos_sign_mask, x);
 
@@ -2443,7 +2664,7 @@ static inline void atanh128f(float *src, float *dst, int len)
 static inline v4sf sinhf_ps(v4sf x)
 {
     v4sf z, z_first_branch, z_second_branch, tmp;
-    __vector bool int xsupmaxlogf, zsup1;
+    v4bi xsupmaxlogf, zsup1;
     v4sf sign;
 
     // x = xx; if x < 0, z = -x, else x
@@ -2522,7 +2743,7 @@ static inline void sinh128f(float *src, float *dst, int len)
 static inline v4sf coshf_ps(v4sf xx)
 {
     v4sf x, y, tmp;
-    __vector bool int xsupmaxlogf;
+    v4bi xsupmaxlogf;
 
     x = vec_and(*(v4sf *) _ps_pos_sign_mask, xx);
     xsupmaxlogf = vec_cmpgt(x, *(v4sf *) _ps_MAXLOGF);
@@ -2574,7 +2795,7 @@ static inline void cosh128f(float *src, float *dst, int len)
 static inline v4sf asinhf_ps(v4sf xx)
 {
     v4sf x, tmp, z, z_first_branch, z_second_branch;
-    __vector bool int xsup1500, xinf0p5;
+    v4bi xsup1500, xinf0p5;
     v4sf xxinf0;
 
     x = vec_and(*(v4sf *) _ps_pos_sign_mask, xx);
@@ -2642,7 +2863,7 @@ static inline void asinh128f(float *src, float *dst, int len)
 static inline v4sf acoshf_ps(v4sf x)
 {
     v4sf z, z_first_branch, z_second_branch;
-    __vector bool int xsup1500, zinf0p5, xinf1;
+    v4bi xsup1500, zinf0p5, xinf1;
     v4sf tmp;
     xsup1500 = vec_cmpgt(x, *(v4sf *) _ps_1500);  // return  (logf(x) + LOGE2F)
     xinf1 = vec_cmplt(x, *(v4sf *) _ps_1);        // return 0
@@ -2669,7 +2890,7 @@ static inline v4sf acoshf_ps(v4sf x)
     tmp = vec_add(tmp, *(v4sf *) _ps_LOGE2F);
     z = vec_sel(z, tmp, xsup1500);
 
-    __vector bool int *xinf1_ptr = &xinf1;
+    v4bi *xinf1_ptr = &xinf1;
     z = vec_andc(z, *(v4sf *) xinf1_ptr);
 
     return z;
@@ -2715,7 +2936,7 @@ static inline v4sf asinf_ps(v4sf xx)
 {
     v4sf a, x, z, z_tmp;
     v4sf sign;
-    __vector bool int ainfem4, asup0p5;
+    v4bi ainfem4, asup0p5;
     v4sf tmp;
     x = xx;
     a = vec_and(*(v4sf *) _ps_pos_sign_mask, x);  // fabs(x)
@@ -2850,7 +3071,7 @@ static inline void PRelu128f(float *src, float *dst, float alpha, int len)
         for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
             v4sf src_tmp = vec_ld(0, src + i);
             v4sf tmp = vec_mul(alpha_vec, src_tmp);
-            __vector bool int cmp = vec_cmpgt(src_tmp, zero);
+            v4bi cmp = vec_cmpgt(src_tmp, zero);
             v4sf blend_res = vec_sel(tmp, src_tmp, cmp);
             vec_st(blend_res, 0, dst + i);
         }
@@ -2866,7 +3087,7 @@ static inline void PRelu128f(float *src, float *dst, float alpha, int len)
                 src_tmp = vec_ld(0, (float *) (src) + i);
             }
             v4sf tmp = vec_mul(alpha_vec, src_tmp);
-            __vector bool int cmp = vec_cmpgt(src_tmp, zero);
+            v4bi cmp = vec_cmpgt(src_tmp, zero);
             v4sf blend_res = vec_sel(tmp, src_tmp, cmp);
 
             if (unalign_dst) {
@@ -2932,10 +3153,9 @@ static inline v4sf power_of_twof(v4si b)
 {
     v4si exp = vec_add(b, vec_splats((int) 127));
     v4si s;
-    __vector unsigned int shift_bits = vec_splats((unsigned int) 23);
+    v4ui shift_bits = vec_splats((unsigned int) 23);
     s = vec_sl(exp, shift_bits);
-    v4si *f = &s;
-    return *(v4sf *) f;
+    return *(v4sf *) &s;
 }
 
 static inline v4sf cbrtf_ps(v4sf xx)
@@ -2954,9 +3174,8 @@ static inline v4sf cbrtf_ps(v4sf xx)
      */
     // x = frexpf(x, &e);
     // solve problem for zero
-    __vector unsigned int shift_bits = vec_splats((unsigned int) 23);
-    v4sf *x_ptr = &x;
-    v4si emm0 = vec_sr(*(v4si *) x_ptr, shift_bits);
+    v4ui shift_bits = vec_splats((unsigned int) 23);
+    v4si emm0 = vec_sr(*(v4si *) &x, shift_bits);
     x = vec_and(x, *(v4sf *) _ps_inv_mant_mask);
     x = vec_or(x, *(v4sf *) _ps_0p5);
     emm0 = vec_sub(emm0, *(v4si *) _pi32_0x7f);
@@ -2968,7 +3187,7 @@ static inline v4sf cbrtf_ps(v4sf xx)
     x = vec_madd(x, tmp, *(v4sf *) _ps_CBRTF_P4);
 
     /* exponent divided by 3 */
-    __vector bool int e_sign = vec_cmpge(e, *(v4sf *) _ps_0);
+    v4bi e_sign = vec_cmpge(e, *(v4sf *) _ps_0);
     e = vec_and(e, *(v4sf *) _ps_pos_sign_mask);
 
     rem = e;
@@ -2983,8 +3202,8 @@ static inline v4sf cbrtf_ps(v4sf xx)
     mul2 = vec_mul(x, mul_cst2);
 
     v4si remi = vec_cts(rem, 0);  // rem integer
-    __vector bool int rem1 = vec_cmpeq(remi, *(v4si *) _pi32_1);
-    __vector bool int rem2 = vec_cmpeq(remi, *(v4si *) _pi32_2);
+    v4bi rem1 = vec_cmpeq(remi, *(v4si *) _pi32_1);
+    v4bi rem2 = vec_cmpeq(remi, *(v4si *) _pi32_2);
 
     x = vec_sel(x, mul1, rem1);  // rem==1
     x = vec_sel(x, mul2, rem2);  // rem==2
@@ -3104,4 +3323,61 @@ static inline void modf128f(float *src, float *integer, float *remainder, int le
     for (int i = stop_len; i < len; i++) {
         remainder[i] = modff(src[i], &(integer[i]));
     }
+}
+
+static inline void dot128f(float *src1, float *src2, int len, float *dst)
+{
+    int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
+    stop_len *= (2 * ALTIVEC_LEN_FLOAT);
+
+    __attribute__((aligned(ALTIVEC_LEN_BYTES))) float accumulate[ALTIVEC_LEN_FLOAT];
+    float tmp_acc = 0.0f;
+
+    v4sf vec_acc1 = vec_splats(0.0f);  // initialize the vector accumulator
+    v4sf vec_acc2 = vec_splats(0.0f);  // initialize the vector accumulator
+    
+    if (areAligned2((uintptr_t) (src1), (uintptr_t) (src2), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src1_tmp = vec_ld(0, src1 + i);
+            v4sf src1_tmp2 = vec_ld(0, src1 + i + ALTIVEC_LEN_FLOAT);
+            v4sf src2_tmp = vec_ld(0, src2 + i);
+            v4sf src2_tmp2 = vec_ld(0, src2 + i + ALTIVEC_LEN_FLOAT);
+            vec_acc1 = vec_madd(src1_tmp, src2_tmp, vec_acc1);
+            vec_acc2 = vec_madd(src1_tmp2, src2_tmp2, vec_acc2);
+        }
+    } else {
+        int unalign_src1 = (uintptr_t) (src1) % ALTIVEC_LEN_BYTES;
+        int unalign_src2 = (uintptr_t) (src2) % ALTIVEC_LEN_BYTES;
+        
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf src1_tmp, src1_tmp2, src2_tmp, src2_tmp2;
+            if (unalign_src1) {
+                src1_tmp = (v4sf) vec_ldu((unsigned char *) (src1 + i));
+                src1_tmp2 = (v4sf) vec_ldu((unsigned char *) (src1 + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src1_tmp = vec_ld(0, src1 + i);
+                src1_tmp2 = vec_ld(0, src1 + i + ALTIVEC_LEN_FLOAT);
+            }
+            
+            if (unalign_src2) {
+                src2_tmp = (v4sf) vec_ldu((unsigned char *) (src2 + i));
+                src2_tmp2 = (v4sf) vec_ldu((unsigned char *) (src2 + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src2_tmp = vec_ld(0, src2 + i);
+                src2_tmp2 = vec_ld(0, src2 + i + ALTIVEC_LEN_FLOAT);
+            }
+            vec_acc1 = vec_madd(src1_tmp, src2_tmp, vec_acc1);
+            vec_acc2 = vec_madd(src1_tmp2, src2_tmp2, vec_acc2);
+        }
+    }
+    vec_acc1 = vec_add(vec_acc1, vec_acc2);
+    vec_st(vec_acc1, 0, accumulate);
+
+    for (int i = stop_len; i < len; i++) {
+        tmp_acc += src1[i] * src2[i];
+    }
+
+    tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3];
+
+    *dst = tmp_acc;
 }

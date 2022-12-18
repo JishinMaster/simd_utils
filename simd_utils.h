@@ -614,7 +614,39 @@ static inline void _mm512_store2u_pd(double *mem_addr, v8sdx2 a)
 #endif /* RISCV */
 
 #ifdef ALTIVEC
+#include <altivec.h>
+// Compare and perm operations => perm unit
+//  On e6500, VPERM operations take 2 cycles. VFPU operations take 6 cycles.
+//  Complex FPU operations take 7 cycles (and block the unit for 2 cycles)
+
+// use pointer dereferencing to make it generic?
+static inline v16u8 vec_ldu(unsigned char *v)
+{
+    v16u8 permute = vec_lvsl(0, v);
+    v16u8 MSQ = vec_ld(0, v);
+    v16u8 LSQ = vec_ld(16, v);
+    return vec_perm(MSQ, LSQ, permute);
+}
+
+/// From http://mirror.informatimago.com/next/developer.apple.com/hardware/ve/alignment.html
+static inline void vec_stu(v16u8 src, unsigned char *target)
+{
+    v16u8 MSQ, LSQ;
+    v16u8 mask, align;
+
+    MSQ = vec_ld(0, target);                                        // most significant quadword
+    LSQ = vec_ld(16, target);                                       // least significant quadword
+    align = vec_lvsr(0, target);                                    // create alignment vector
+    mask = vec_perm(*(v16u8 *) _pi8_0, *(v16u8 *) _pi8_ff, align);  // Create select mask
+    src = vec_perm(src, src, align);                                // Right rotate stored data
+    MSQ = vec_sel(MSQ, src, mask);                                  // Insert data into MSQ part
+    LSQ = vec_sel(src, LSQ, mask);                                  // Insert data into LSQ part
+    vec_st(MSQ, 0, target);                                         // Store the MSQ part
+    vec_st(LSQ, 16, target);                                        // Store the LSQ part
+}
+
 #include "simd_utils_altivec_float.h"
+#include "simd_utils_altivec_int32.h"
 #endif /* ALTIVEC */
 
 #ifdef CUSTOM_MALLOC
@@ -1772,7 +1804,7 @@ static inline void dotf_C_precise(float *src1, float *src2, int len, float *dst)
 
 static inline void dotcf_C(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
 {
-    complex32_t dst_tmp = {0.0f, 0.0f};
+    complex32_t dst_tmp = {{0.0f, 0.0f}};
 
 #ifdef OMP
 #pragma omp simd
@@ -1788,7 +1820,7 @@ static inline void dotcf_C(complex32_t *src1, complex32_t *src2, int len, comple
 
 static inline void dotcf_C_precise(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
 {
-    complex64_t dst_tmp = {0.0, 0.0};
+    complex64_t dst_tmp = {{0.0, 0.0}};
 
 #ifdef OMP
 #pragma omp simd

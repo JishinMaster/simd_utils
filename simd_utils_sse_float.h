@@ -3274,7 +3274,7 @@ static inline void dot128f(float *src1, float *src2, int len, float *dst)
     int stop_len = len / (2 * SSE_LEN_FLOAT);
     stop_len *= (2 * SSE_LEN_FLOAT);
 
-    __attribute__((aligned(SSE_LEN_BYTES))) float accumulate[SSE_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f};
+    __attribute__((aligned(SSE_LEN_BYTES))) float accumulate[SSE_LEN_FLOAT];
     float tmp_acc = 0.0f;
     v4sf vec_acc1 = _mm_setzero_ps();  // initialize the vector accumulator
     v4sf vec_acc2 = _mm_setzero_ps();  // initialize the vector accumulator
