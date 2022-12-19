@@ -788,7 +788,7 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined (ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     copy128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2780,7 +2780,7 @@ printf("\n");
     l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
-#if defined(SSE)
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxvecdiv128f((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2888,7 +2888,7 @@ printf("\n");
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cplxvecdiv_C_split_precise %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxvecdiv128f_split(inout, inout2, inout3, inout4, inout5, inout6, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3072,7 +3072,7 @@ printf("\n");
     l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
-#if defined(SSE)
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxvecmul128f((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3087,6 +3087,11 @@ printf("\n");
     printf("cplxvecmul128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     l2_err(inout_ref, inout2_ref, 2 * len);
+    
+    /*for(int i = 0; i < 2*len; i+=2){ 
+      printf("%f %f %f %f ||| %f %f || %f %f\n", inout[i], inout[i+1],inout2[i], inout2[i+1],\
+              inout_ref[i], inout2_ref[i], inout_ref[i+1], inout2_ref[i+1]);
+    }*/
 #endif
 
 #ifdef AVX
@@ -3815,7 +3820,7 @@ printf("\n");
     printf("%f %f\n", inout_ref[1], inout3[1]);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     dotc128f((complex32_t *) inout, (complex32_t *) inout2, len, (complex32_t *) &inout3[0]);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -11292,7 +11297,7 @@ for (int i = 0; i < len; i++){
     printf("ippsCopy_32s %d BW %lf GB/s\n", len, (GB / elapsed));
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     copy128s(inout_i1, inout_i2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -11308,6 +11313,7 @@ for (int i = 0; i < len; i++){
 
     l2_err_i32(inout_i2, inout_iref, len);
 
+#ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
     copy128s_2(inout_i1, inout_i2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -11368,6 +11374,7 @@ for (int i = 0; i < len; i++){
     printf("fast_copy128s_4 %d BW %lf GB/s\n", len, (GB / elapsed));
 
     l2_err_i32(inout_i2, inout_iref, len);
+#endif
 
 #endif
 

@@ -23,10 +23,10 @@ Some of the functions are vectorised version of the cephes maths library (https:
 Supported targets are : 
 - SSE (SSE4.X mostly)
 - AVX (AVX and AVX2)
-- AVX512 (experimental, most of float32 functions)
+- AVX512
 - ARM Neon (through sse2neon plus some optimized functions).
 - RISC-V Vector extension 1.0 (experimental)
-- PowerPC Alitivec (experimental)
+- PowerPC Alitivec (no double precision suppport)
 
 128 bit functions (SSE, NEON, ALTIVEC) are name function128type, such as asin128f, which computes the arcsinus function on an float32 array. Float64 functions have the "d" suffix.
 256 bit functions (AVX/AVX2) have 256 instead of 128 in their name, such as asin256f.
@@ -91,7 +91,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | fabsXf (a)                                            | fabsf_C                     | ippsAbs_32f                    | fabsf_vec                     |
 | setXf  (a)                                            | setf_C                      | ippsSet_32f                    | setf_vec                      |
 | zeroXf (a)                                            | zerof_C                     | ippsZero_32f                   | zerof_vec                     |
-| copyXf                                                | copyf_C                     | ippsCopy_32f                   | copyf_vec                     |
+| copyXf (a)                                            | copyf_C                     | ippsCopy_32f                   | copyf_vec                     |
 | addXf  (a)                                            | addf_c                      | ippsAdd_32f                    | addf_vec                      |
 | mulXf  (a)                                            | mulf_C                      | ippsMul_32f                    | mulf_vec                      |
 | subXf  (a)                                            | subf_c                      | ippsSub_32f                    | subf_vec                      |
@@ -101,9 +101,9 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | mulcaddXf                                             | mulcaddf_C                  | ?                              | mulcaddf_vec                  |
 | mulcaddcXf                                            | mulcaddcf_C                 | ?                              | mulcaddcf_vec                 |
 | muladdcXf                                             | muladdcf_C                  | ?                              | muladdcf_vec                  |
-| divXf                                                 | divf_C                      | ippsDiv_32f_A24                | divf_vec                      |
+| divXf  (a)                                            | divf_C                      | ippsDiv_32f_A24                | divf_vec                      |
 | dotXf  (a)                                            | dotf_C                      | ippsDotProd_32f                | ?                             |
-| dotcXf                                                | dotcf_C                     | ippsDotProd_32fc               | ?                             |
+| dotcXf (a)                                            | dotcf_C                     | ippsDotProd_32fc               | ?                             |
 | vectorSlopeXf    (a)                                  | vectorSlopef_C              | ippsVectorSlope_32f            | vectorSlopef_vec              |
 | convertFloat32ToU8_X                                  | convertFloat32ToU8_C        | ippsConvert_32f8u_Sfs          | ?                             |
 | convertFloat32ToU16_X                                 | convertFloat32ToI16_C       | ippsConvert_32f16u_Sfs         | ?                             |
@@ -150,13 +150,13 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | floorXf  (a)                                          | floorf_C                    | ippsFloor_32f                  | ?                             |
 | truncXf  (a)                                          | truncf_C                    | ippsTrunc_32f                  | ?                             |
 | modfXf  (a)                                           | modff_C                     | ippsModf_32f                   | ?                             |
-| cplxvecmulXf                                          | cplxvecmul_C/precise        | ippsMul_32fc_A11/24            | cplxvecmul_vec                |
+| cplxvecmulXf  (a)                                     | cplxvecmul_C/precise        | ippsMul_32fc_A11/24            | cplxvecmul_vec                |
 | cplxvecmulXf_split  (a)                               | cplxvecmul_C_split/precise  | ?                              | cplxvecmul_vec_split          |
-| cplxconjvecmulXf                                      | cplxconjvecmul_C            | ippsMulByConj_32fc_A24         | ?                             |
+| cplxconjvecmulXf   (a)                                | cplxconjvecmul_C            | ippsMulByConj_32fc_A24         | ?                             |
 | cplxconjvecmulXf_split                                | cplxconjvecmul_C_split      | ?                              | ?                             |
 | cplxconjXf          (a)                               | cplxconj_C                  | ippsConj_32fc_A24              | cplxconjf_vec                 |
-| cplxvecdivXf                                          | cplxvecdiv_C                | ?                              | cplxvecdiv_vec                |
-| cplxvecdivXf_split                                    | cplxvecdiv_C_split          | ?                              | cplxvecdiv_vec_split          |
+| cplxvecdivXf        (a)                               | cplxvecdiv_C                | ?                              | cplxvecdiv_vec                |
+| cplxvecdivXf_split  (a)                               | cplxvecdiv_C_split          | ?                              | cplxvecdiv_vec_split          |
 | setXd                                                 | setd_C                      | ippsSet_64f                    | setd_vec                      |
 | zeroXd                                                | zerod_C                     | ippsZero_64f                   | zerod_vec                     |
 | copyXd                                                | copyd_C                     | ippsCopy_64f                   | copyd_vec                     |
@@ -198,7 +198,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | thresholdX_lt_s     (a)                               | threshold_lt_s_C            | ippsThreshold_LT_32s           | ?                             |
 | thresholdX_ltabs_s  (a)                               | threshold_ltabs_s_C         | ippsThreshold_LTAbs_32s        | ?                             |
 | thresholdX_ltval_gtval_s (a)                          | threshold_ltval_gtval_s_C   | ippsThreshold_LTValGTVal_32s   | ?                             |
-| copyXs                                                | copys_C                     | ippsCopy_32s                   | copys_vec                     |
+| copyXs  (a)                                           | copys_C                     | ippsCopy_32s                   | copys_vec                     |
 | ?                                                     | ?                           | ?                              | mulcs_vec                     |
 | absdiff16s_Xs (a)                                     | absdiff16s_c                | ?                              | ?                             |
 | sum16s32sX                                            | sum16s32s_C                 | ippsSum_16s32s_Sfs             | ?                             |

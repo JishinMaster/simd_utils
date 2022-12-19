@@ -1293,6 +1293,18 @@ _PD512_CONST(tanlossth, 1.073741824e9);
 
 #if defined(SSE) || defined(ALTIVEC)
 
+static inline void print4_4digits(v4sf v)
+{
+    float *p = (float *) &v;
+#ifndef __SSE2__
+#ifndef ALTIVEC
+    _mm_empty();
+#endif
+#endif
+    printf("[%3.4g, %3.4g, %3.4g, %3.4g]", p[0], p[1], p[2], p[3]);
+    //printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
+}
+
 static inline void print4(v4sf v)
 {
     float *p = (float *) &v;

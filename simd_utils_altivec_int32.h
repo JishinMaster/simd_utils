@@ -12,6 +12,46 @@
 #include <stdint.h>
 #include <string.h>
 
+static inline void copy128s(int32_t *src, int32_t *dst, int len)
+{
+    int stop_len = len / (2 * ALTIVEC_LEN_INT32);
+    stop_len *= (2 * ALTIVEC_LEN_INT32);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_INT32) {
+            v4si src_tmp = vec_ld(0, src + i);
+            v4si src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_INT32);
+            vec_st(src_tmp, 0, dst + i);
+            vec_st(src_tmp2, 0, dst + i + ALTIVEC_LEN_INT32);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_INT32) {
+            v4si src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4si) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4si) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_INT32));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_INT32);
+            }
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &src_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &src_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_INT32));
+            } else {
+                vec_st(src_tmp, 0, dst + i);
+                vec_st(src_tmp2, 0, dst + i + ALTIVEC_LEN_INT32);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i];
+    }
+}
+
 static inline void add128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {
     int stop_len = len / ALTIVEC_LEN_INT32;
