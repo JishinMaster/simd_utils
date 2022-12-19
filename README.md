@@ -105,9 +105,9 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | dotXf  (a)                                            | dotf_C                      | ippsDotProd_32f                | ?                             |
 | dotcXf (a)                                            | dotcf_C                     | ippsDotProd_32fc               | ?                             |
 | vectorSlopeXf    (a)                                  | vectorSlopef_C              | ippsVectorSlope_32f            | vectorSlopef_vec              |
-| convertFloat32ToU8_X                                  | convertFloat32ToU8_C        | ippsConvert_32f8u_Sfs          | ?                             |
-| convertFloat32ToU16_X                                 | convertFloat32ToI16_C       | ippsConvert_32f16u_Sfs         | ?                             |
-| convertFloat32ToI16_X                                 | convertFloat32ToI16_C       | ippsConvert_32f16s_Sfs         | ?                             |
+| convertFloat32ToU8_X  (a)                             | convertFloat32ToU8_C        | ippsConvert_32f8u_Sfs          | ?                             |
+| convertFloat32ToU16_X (a)                             | convertFloat32ToI16_C       | ippsConvert_32f16u_Sfs         | ?                             |
+| convertFloat32ToI16_X  (a)                            | convertFloat32ToI16_C       | ippsConvert_32f16s_Sfs         | ?                             |
 | convertInt16ToFloat32_X                               | convertInt16ToFloat32_C     | ippsConvert_16s32f_Sfs         | ?                             |
 | cplxtorealXf   (a)                                    | cplxtorealf_C               | ippsCplxToReal_32fc            | cplxtorealf_vec               |
 | realtocplxXf   (a)                                    | realtocplx_C                | ippsRealToCplx_32f             | realtocplxf_vec               |

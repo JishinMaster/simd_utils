@@ -9559,7 +9559,7 @@ for (int i = 0; i < len; i++){
 
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined (ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     convertFloat32ToU8_128(inout, inout_u1, len, RndZero, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -9652,7 +9652,7 @@ for (int i = 0; i < len; i++){
     l2_err_i16(inout_s1, inout_s2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     convertFloat32ToI16_128(inout, inout_s2, len, RndZero, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -9742,7 +9742,7 @@ for (int i = 0; i < len; i++){
     l2_err_i16(inout_s1, inout_s2, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     convertFloat32ToU16_128(inout, (uint16_t *) inout_s2, len, RndZero, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -9832,7 +9832,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) // || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     convertInt16ToFloat32_128(inout_s1, inout_ref, len, 4);
     clock_gettime(CLOCK_REALTIME, &stop);

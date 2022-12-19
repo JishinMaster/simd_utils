@@ -12,6 +12,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifndef __MACH__
+#include "fpu_control.h"
+#endif
+
 // In Altivec there is only mad and not mul
 static inline v4sf vec_mul(v4sf a, v4sf b)
 {
@@ -3862,3 +3866,225 @@ static inline void dotc128f(complex32_t *src1, complex32_t *src2, int len, compl
     dst->re = dst_tmp.re;
     dst->im = dst_tmp.im;
 }
+
+#ifndef __MACH__
+static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int stop_len = len / (4 * ALTIVEC_LEN_FLOAT);
+    stop_len *= (4 * ALTIVEC_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v4sf scale_fact_vec = vec_splats(scale_fact_mult);
+
+    fpu_control_t  _mm_rounding_ori; // save rounding mode
+    _FPU_GETCW(_mm_rounding_ori);
+    
+    int rounding_ori = fegetround();
+
+    if (rounding_mode == RndZero) {
+        _FPU_SETCW(_FPU_RC_ZERO | _FPU_DEFAULT);  // rounding_vec = ROUNDTOZERO;
+        fesetround(FE_TOWARDZERO);
+    } else if (rounding_mode == RndFinancial) {  // nothing to do, Default bankers rounding => round to nearest even
+    } else {
+        _FPU_SETCW(_FPU_RC_NEAREST | _FPU_DEFAULT); // rounding_vec = ROUNDTONEAREST;
+        fesetround(FE_TONEAREST);
+    }
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp1 = vec_ld(0, src + i);
+            v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            v4sf src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+            v4sf src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+            v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+            v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+            v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+            v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+            v4si tmp1_int = vec_cts(tmp1, 0);
+            v4si tmp2_int = vec_cts(tmp2, 0);
+            v4si tmp3_int = vec_cts(tmp3, 0);
+            v4si tmp4_int = vec_cts(tmp4, 0);
+            v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
+            v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
+            v16u8 tmp7 = vec_packsu(tmp5, tmp6);
+            vec_st(tmp7, 0, dst + i);
+        }
+    } else {
+      //TODO
+    }
+
+    if (rounding_mode == RndFinancial) {
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        // Default round toward zero
+        for (int i = stop_len; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
+        }
+        _FPU_SETCW(_mm_rounding_ori);  // restore previous rounding mode
+        fesetround(rounding_ori);
+    }
+}
+
+static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int stop_len = len / (4 * ALTIVEC_LEN_FLOAT);
+    stop_len *= (4 * ALTIVEC_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v4sf scale_fact_vec = vec_splats(scale_fact_mult);
+
+    fpu_control_t  _mm_rounding_ori; // save rounding mode
+    _FPU_GETCW(_mm_rounding_ori);
+    
+    int rounding_ori = fegetround();
+
+    if (rounding_mode == RndZero) {
+        _FPU_SETCW(_FPU_RC_ZERO | _FPU_DEFAULT);  // rounding_vec = ROUNDTOZERO;
+        fesetround(FE_TOWARDZERO);
+    } else if (rounding_mode == RndFinancial) {  // nothing to do, Default bankers rounding => round to nearest even
+    } else {
+        _FPU_SETCW(_FPU_RC_NEAREST | _FPU_DEFAULT); // rounding_vec = ROUNDTONEAREST;
+        fesetround(FE_TONEAREST);
+    }
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp1 = vec_ld(0, src + i);
+            v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            v4sf src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+            v4sf src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+            v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+            v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+            v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+            v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+            v4si tmp1_int = vec_cts(tmp1, 0);
+            v4si tmp2_int = vec_cts(tmp2, 0);
+            v4si tmp3_int = vec_cts(tmp3, 0);
+            v4si tmp4_int = vec_cts(tmp4, 0);
+            v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
+            v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
+            vec_st(tmp5, 0, dst + i);
+            vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_INT16);
+        }
+    } else {
+      //TODO
+    }
+    
+    if (rounding_mode == RndFinancial) {
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        // Default round toward zero
+        for (int i = stop_len; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
+        }
+        _FPU_SETCW(_mm_rounding_ori);  // restore previous rounding mode
+        fesetround(rounding_ori);
+    }
+}
+
+static inline void convertFloat32ToU16_128(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int stop_len = len / (4 * ALTIVEC_LEN_FLOAT);
+    stop_len *= (4 * ALTIVEC_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v4sf scale_fact_vec = vec_splats(scale_fact_mult);
+
+    fpu_control_t  _mm_rounding_ori; // save rounding mode
+    _FPU_GETCW(_mm_rounding_ori);
+    
+    int rounding_ori = fegetround();
+
+    if (rounding_mode == RndZero) {
+        _FPU_SETCW(_FPU_RC_ZERO | _FPU_DEFAULT);  // rounding_vec = ROUNDTOZERO;
+        fesetround(FE_TOWARDZERO);
+    } else if (rounding_mode == RndFinancial) {  // nothing to do, Default bankers rounding => round to nearest even
+    } else {
+        _FPU_SETCW(_FPU_RC_NEAREST | _FPU_DEFAULT); // rounding_vec = ROUNDTONEAREST;
+        fesetround(FE_TONEAREST);
+    }
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp1 = vec_ld(0, src + i);
+            v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            v4sf src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+            v4sf src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+            v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+            v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+            v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+            v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+            v4si tmp1_int = vec_cts(tmp1, 0);
+            v4si tmp2_int = vec_cts(tmp2, 0);
+            v4si tmp3_int = vec_cts(tmp3, 0);
+            v4si tmp4_int = vec_cts(tmp4, 0);
+            v8us tmp5 = vec_packsu(tmp1_int, tmp2_int);
+            v8us tmp6 = vec_packsu(tmp3_int, tmp4_int);
+            vec_st(tmp5, 0, dst + i);
+            vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_INT16);
+        }
+    } else {
+      //TODO
+    }
+
+    if (rounding_mode == RndFinancial) {
+        for (int i = stop_len; i < len; i++) {
+            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+    } else {
+        // Default round toward zero
+        for (int i = stop_len; i < len; i++) {
+            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
+        }
+        _FPU_SETCW(_mm_rounding_ori);  // restore previous rounding mode
+        fesetround(rounding_ori);
+    }
+}
+
+/*
+static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, int scale_factor)
+{
+    int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
+    stop_len *= (2 * ALTIVEC_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v4sf scale_fact_vec = vec_splats(scale_fact_mult);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v8ss vec  = vec_ld(0, src + i); // loads 1 2 3 4 5 6 7 8 8
+            v8ss low  = vec_mergeh(vec, vec); // low 1 1 2 2 3 3 4 4
+            v8ss high = vec_mergel(vec, vec); // high 5 5 6 6 7 7 8 8
+            v4ui shift = vec_splats((unsigned int)16);
+            v16u8 lowu  = vec_sra(*(v16u8*)&low, *(v16u8*)&shift); // make low 1 -1 2 -1 3 -1 4 -4
+            v16u8 highu = vec_sra(*(v16u8*)&high, *(v16u8*)&shift); // make high 5 -1 6 -1 7 -1 8 -1
+            v4sf lowf  = vec_ctf(*(v4si*)&lowu, 0);
+            v4sf highf = vec_ctf(*(v4si*)&highu, 0);
+            
+            // convert the vector to float and scale it
+            v4sf floatlo = vec_mul(lowf, scale_fact_vec);
+            v4sf floathi = vec_mul(highf, scale_fact_vec);
+
+            vec_st(floatlo, 0, dst + i);
+            vec_st(floathi, 0, dst + i + ALTIVEC_LEN_FLOAT);
+        }
+    } else {
+        //TODO
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = (float) src[i] * scale_fact_mult;
+    }
+}
+*/
+#endif

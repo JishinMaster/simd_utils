@@ -181,6 +181,7 @@ typedef __vector float v4sf;
 typedef __vector int v4si;
 typedef __vector unsigned int v4ui;
 typedef __vector short v8ss;
+typedef __vector unsigned short v8us;
 typedef __vector unsigned char v16u8;
 typedef __vector char v16s8;
 typedef __vector bool int v4bi;
