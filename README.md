@@ -144,7 +144,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | subcrevXf (a)                                         | subcrevf_C                  | ippsSubCRev_32f                | ?                             |
 | sumXf    (a)                                          | sumf_C                      | ippsSum_32f                    | sumf_vec                      |
 | meanXf   (a)                                          | meanf_C                     | ippsMean_32f                   | meanf_vec                     |
-| sqrtXf                                                | sqrtf_C                     | ippsSqrt_32f                   | sqrtf_vec                     |
+| sqrtXf   (a)                                          | sqrtf_C                     | ippsSqrt_32f                   | sqrtf_vec                     |
 | roundXf  (a)                                          | roundf_C                    | ippsRound_32f                  | ?                             |
 | ceilXf   (a)                                          | ceilf_C                     | ippsCeil_32f                   | ?                             |
 | floorXf  (a)                                          | floorf_C                    | ippsFloor_32f                  | ?                             |

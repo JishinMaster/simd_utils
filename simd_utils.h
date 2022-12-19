@@ -645,6 +645,38 @@ static inline void vec_stu(v16u8 src, unsigned char *target)
     vec_st(LSQ, 16, target);                                        // Store the LSQ part
 }
 
+static inline v4sfx2 vec_ld2(float* mem){
+  v4sfx2 ret;
+  v4sf vec1 = vec_ld(0, (float *) (mem));
+  v4sf vec2 = vec_ld(0, (float *) (mem) + ALTIVEC_LEN_FLOAT);
+  ret.val[0] = vec_perm(vec1, vec2, re_mask);
+  ret.val[1] = vec_perm(vec1, vec2, im_mask);
+  return ret;
+}
+
+static inline v4sfx2 vec_ld2u(float* mem){
+  v4sfx2 ret;
+  v4sf vec1 = (v4sf) vec_ldu((unsigned char *)((float *) (mem)));
+  v4sf vec2 = (v4sf) vec_ldu((unsigned char *)((float *) (mem) + ALTIVEC_LEN_FLOAT));
+  ret.val[0] = vec_perm(vec1, vec2, re_mask);
+  ret.val[1] = vec_perm(vec1, vec2, im_mask);
+  return ret;
+}
+
+static inline void vec_st2(v4sfx2 vec, float* mem){
+  v4sf reim = vec_mergeh(vec.val[0], vec.val[1]);
+  v4sf reim_ = vec_mergel(vec.val[0], vec.val[1]);
+  vec_st(reim, 0, (float *) (mem));
+  vec_st(reim_, 0, (float *) (mem) + ALTIVEC_LEN_FLOAT);
+}
+
+static inline void vec_st2u(v4sfx2 vec, float* mem){
+  v4sf reim = vec_mergeh(vec.val[0], vec.val[1]);
+  v4sf reim_ = vec_mergel(vec.val[0], vec.val[1]);
+  vec_stu(*(v16u8 *) &reim, (unsigned char *) ((float *) (mem)));
+  vec_stu(*(v16u8 *) &reim_, (unsigned char *) ((float *) (mem) + ALTIVEC_LEN_FLOAT));
+}
+
 #include "simd_utils_altivec_float.h"
 #include "simd_utils_altivec_int32.h"
 #endif /* ALTIVEC */

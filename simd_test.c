@@ -286,121 +286,120 @@ int main(int argc, char **argv)
     int len = atoi(argv[1]);
 
 #ifndef USE_MALLOC
-    int ret;
-    ret = posix_memalign((void **) &inout, atoi(argv[2]), 2 * len * sizeof(float));
+    posix_memalign((void **) &inout, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout == NULL) {
-        printf("ret = posix_memalign inout failed\n");
+        printf("posix_memalign inout failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout2, atoi(argv[2]), 2 * len * sizeof(float));
+    posix_memalign((void **) &inout2, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout2 == NULL) {
-        printf("ret = posix_memalign inout2 failed\n");
+        printf("posix_memalign inout2 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout3, atoi(argv[2]), len * sizeof(float));
+    posix_memalign((void **) &inout3, atoi(argv[2]), len * sizeof(float));
     if (inout3 == NULL) {
-        printf("ret = posix_memalign inout3 failed\n");
+        printf("posix_memalign inout3 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout4, atoi(argv[2]), len * sizeof(float));
+    posix_memalign((void **) &inout4, atoi(argv[2]), len * sizeof(float));
     if (inout4 == NULL) {
-        printf("ret = posix_memalign inout4 failed\n");
+        printf("posix_memalign inout4 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout5, atoi(argv[2]), len * sizeof(float));
+    posix_memalign((void **) &inout5, atoi(argv[2]), len * sizeof(float));
     if (inout3 == NULL) {
-        printf("ret = posix_memalign inout5 failed\n");
+        printf("posix_memalign inout5 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout6, atoi(argv[2]), len * sizeof(float));
+    posix_memalign((void **) &inout6, atoi(argv[2]), len * sizeof(float));
     if (inout4 == NULL) {
-        printf("ret = posix_memalign inout6 failed\n");
+        printf("posix_memalign inout6 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout_ref, atoi(argv[2]), 2 * len * sizeof(float));
+    posix_memalign((void **) &inout_ref, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout_ref == NULL) {
-        printf("ret = posix_memalign inout_ref failed\n");
+        printf("posix_memalign inout_ref failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout2_ref, atoi(argv[2]), 2 * len * sizeof(float));
+    posix_memalign((void **) &inout2_ref, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout2_ref == NULL) {
-        printf("ret = posix_memalign inout2_ref failed\n");
+        printf("posix_memalign inout2_ref failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inoutd, atoi(argv[2]), 2 * len * sizeof(double));
+    posix_memalign((void **) &inoutd, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd == NULL) {
-        printf("ret = posix_memalign inoutd failed\n");
+        printf("posix_memalign inoutd failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inoutd2, atoi(argv[2]), 2 * len * sizeof(double));
+    posix_memalign((void **) &inoutd2, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd == NULL) {
-        printf("ret = posix_memalign inoutd2 failed\n");
+        printf("posix_memalign inoutd2 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inoutd3, atoi(argv[2]), 2 * len * sizeof(double));
+    posix_memalign((void **) &inoutd3, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd == NULL) {
-        printf("ret = posix_memalign inoutd3 failed\n");
+        printf("posix_memalign inoutd3 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inoutd_ref, atoi(argv[2]), 2 * len * sizeof(double));
+    posix_memalign((void **) &inoutd_ref, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd_ref == NULL) {
-        printf("ret = posix_memalign inoutd_ref failed\n");
+        printf("posix_memalign inoutd_ref failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inoutd2_ref, atoi(argv[2]), 2 * len * sizeof(double));
+    posix_memalign((void **) &inoutd2_ref, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd_ref == NULL) {
-        printf("ret = posix_memalign inoutd2_ref failed\n");
+        printf("posix_memalign inoutd2_ref failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout_u1, atoi(argv[2]), len * sizeof(uint8_t));
+    posix_memalign((void **) &inout_u1, atoi(argv[2]), len * sizeof(uint8_t));
     if (inout_u1 == NULL) {
-        printf("ret = posix_memalign inout_u1 failed\n");
+        printf("posix_memalign inout_u1 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout_u2, atoi(argv[2]), len * sizeof(uint8_t));
+    posix_memalign((void **) &inout_u2, atoi(argv[2]), len * sizeof(uint8_t));
     if (inout_u2 == NULL) {
-        printf("ret = posix_memalign inout_u2 failed\n");
+        printf("posix_memalign inout_u2 failed\n");
         return -1;
     }
 
-    ret = posix_memalign((void **) &inout_s1, atoi(argv[2]), 2 * len * sizeof(int16_t));
+    posix_memalign((void **) &inout_s1, atoi(argv[2]), 2 * len * sizeof(int16_t));
     if (inout_s1 == NULL) {
-        printf("ret = posix_memalign inout_s1 failed\n");
+        printf("posix_memalign inout_s1 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout_s2, atoi(argv[2]), 2 * len * sizeof(int16_t));
+    posix_memalign((void **) &inout_s2, atoi(argv[2]), 2 * len * sizeof(int16_t));
     if (inout_s2 == NULL) {
-        printf("ret = posix_memalign inout_s2 failed\n");
+        printf("posix_memalign inout_s2 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout_s3, atoi(argv[2]), 2 * len * sizeof(int16_t));
+    posix_memalign((void **) &inout_s3, atoi(argv[2]), 2 * len * sizeof(int16_t));
     if (inout_s3 == NULL) {
-        printf("ret = posix_memalign inout_s3 failed\n");
+        printf("posix_memalign inout_s3 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout_sref, atoi(argv[2]), 2 * len * sizeof(int16_t));
+    posix_memalign((void **) &inout_sref, atoi(argv[2]), 2 * len * sizeof(int16_t));
     if (inout_sref == NULL) {
-        printf("ret = posix_memalign inout_sref failed\n");
+        printf("posix_memalign inout_sref failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout_i1, atoi(argv[2]), len * sizeof(int32_t));
+    posix_memalign((void **) &inout_i1, atoi(argv[2]), len * sizeof(int32_t));
     if (inout_i1 == NULL) {
-        printf("ret = posix_memalign inout_i1 failed\n");
+        printf("posix_memalign inout_i1 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout_i2, atoi(argv[2]), len * sizeof(int32_t));
+    posix_memalign((void **) &inout_i2, atoi(argv[2]), len * sizeof(int32_t));
     if (inout_i2 == NULL) {
-        printf("ret = posix_memalign inout_i2 failed\n");
+        printf("posix_memalign inout_i2 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout_i3, atoi(argv[2]), len * sizeof(int32_t));
+    posix_memalign((void **) &inout_i3, atoi(argv[2]), len * sizeof(int32_t));
     if (inout_i3 == NULL) {
-        printf("ret = posix_memalign inout_i3 failed\n");
+        printf("posix_memalign inout_i3 failed\n");
         return -1;
     }
-    ret = posix_memalign((void **) &inout_iref, atoi(argv[2]), len * sizeof(int32_t));
+    posix_memalign((void **) &inout_iref, atoi(argv[2]), len * sizeof(int32_t));
     if (inout_iref == NULL) {
-        printf("ret = posix_memalign inout_iref failed\n");
+        printf("posix_memalign inout_iref failed\n");
         return -1;
     }
 
@@ -506,22 +505,22 @@ int main(int argc, char **argv)
 
     inout_i1 = (int32_t *) malloc(len * sizeof(int32_t));
     if (inout_i1 == NULL) {
-        printf("ret = posix_memalign inout_i1 failed\n");
+        printf("posix_memalign inout_i1 failed\n");
         return -1;
     }
     inout_i2 = (int32_t *) malloc(len * sizeof(int32_t));
     if (inout_i2 == NULL) {
-        printf("ret = posix_memalign inout_i2 failed\n");
+        printf("posix_memalign inout_i2 failed\n");
         return -1;
     }
     inout_i3 = (int32_t *) malloc(len * sizeof(int32_t));
     if (inout_i3 == NULL) {
-        printf("ret = posix_memalign inout_i3 failed\n");
+        printf("posix_memalign inout_i3 failed\n");
         return -1;
     }
     inout_iref = (int32_t *) malloc(len * sizeof(int32_t));
     if (inout_iref == NULL) {
-        printf("ret = posix_memalign inout_iref failed\n");
+        printf("posix_memalign inout_iref failed\n");
         return -1;
     }
 
@@ -6525,6 +6524,107 @@ printf("\n");
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("trunc512f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// SQRTF //////////////////////////////////////////////////////////////////////////////
+    printf("SQRTF\n");
+
+    for(int i = 0; i < len; i++)
+      inout[i] = (float)(rand()/123456)/3.55555f;
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    sqrtf_C(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sqrtf_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sqrtf_C(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sqrtf_C %d %lf\n", len, elapsed);
+
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsSqrt_32f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippssqrt_32f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsSqrt_32f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippssqrt_32f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#if defined(SSE) || defined(ALTIVEC)
+    clock_gettime(CLOCK_REALTIME, &start);
+    sqrt128f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sqrt128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sqrt128f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sqrt128f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    sqrt256f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sqrt256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sqrt256f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sqrt256f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    sqrt512f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sqrt512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sqrt512f(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sqrt512f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    sqrtf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sqrtf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sqrtf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sqrtf_vec %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
 #endif
 

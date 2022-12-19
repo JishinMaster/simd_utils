@@ -185,6 +185,10 @@ typedef __vector unsigned char v16u8;
 typedef __vector char v16s8;
 typedef __vector bool int v4bi;
 
+typedef struct {
+    v4sf val[2];
+} v4sfx2;
+
 // extract real and imaginary part with
 //   v4sf re = vec_perm(vec1, vec2, re_mask);
 //   v4sf im = vec_perm(vec1, vec2, im_mask);

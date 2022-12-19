@@ -603,18 +603,12 @@ static inline void cplxtoreal128f(complex32_t *src, float *dstRe, float *dstIm, 
 
     if (areAligned3((uintptr_t) (src), (uintptr_t) (dstRe), (uintptr_t) (dstIm), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
-            v4sf vec1 = vec_ld(0, (float const *) (src) + i);
-            v4sf vec2 = vec_ld(0, (float const *) (src) + i + ALTIVEC_LEN_FLOAT);
-            v4sf vec3 = vec_ld(0, (float const *) (src) + i + 2 * ALTIVEC_LEN_FLOAT);
-            v4sf vec4 = vec_ld(0, (float const *) (src) + i + 3 * ALTIVEC_LEN_FLOAT);
-            v4sf re = vec_perm(vec1, vec2, re_mask);
-            v4sf im = vec_perm(vec1, vec2, im_mask);
-            v4sf re2 = vec_perm(vec3, vec4, re_mask);
-            v4sf im2 = vec_perm(vec3, vec4, im_mask);
-            vec_st(re, 0, dstRe + j);
-            vec_st(im, 0, dstIm + j);
-            vec_st(re2, 0, dstRe + j + ALTIVEC_LEN_FLOAT);
-            vec_st(im2, 0, dstIm + j + ALTIVEC_LEN_FLOAT);
+            v4sfx2 vec1 = vec_ld2((float *) (src) + i);
+            v4sfx2 vec2 = vec_ld2((float *) (src) + i + 2 * ALTIVEC_LEN_FLOAT);
+            vec_st(vec1.val[0], 0, dstRe + j);
+            vec_st(vec1.val[1], 0, dstIm + j);
+            vec_st(vec2.val[0], 0, dstRe + j + ALTIVEC_LEN_FLOAT);
+            vec_st(vec2.val[1], 0, dstIm + j + ALTIVEC_LEN_FLOAT);
             j += 2 * ALTIVEC_LEN_FLOAT;
         }
     } else {
@@ -623,39 +617,30 @@ static inline void cplxtoreal128f(complex32_t *src, float *dstRe, float *dstIm, 
         int unalign_dstIm = (uintptr_t) (dstIm) % ALTIVEC_LEN_BYTES;
 
         for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
-            v4sf vec1, vec2, vec3, vec4;
+            v4sfx2 vec1, vec2;
 
             if (unalign_src) {
-                vec1 = (v4sf) vec_ldu((unsigned char *) ((float const *) (src) + i));
-                vec2 = (v4sf) vec_ldu((unsigned char *) ((float const *) (src) + i + ALTIVEC_LEN_FLOAT));
-                vec3 = (v4sf) vec_ldu((unsigned char *) ((float const *) (src) + i + 2 * ALTIVEC_LEN_FLOAT));
-                vec4 = (v4sf) vec_ldu((unsigned char *) ((float const *) (src) + i + 3 * ALTIVEC_LEN_FLOAT));
+                vec1 = vec_ld2u((float *) (src) + i);
+                vec2 = vec_ld2u((float *) (src) + i + 2 * ALTIVEC_LEN_FLOAT);
             } else {
-                vec1 = vec_ld(0, (float const *) (src) + i);
-                vec2 = vec_ld(0, (float const *) (src) + i + ALTIVEC_LEN_FLOAT);
-                vec3 = vec_ld(0, (float const *) (src) + i + 2 * ALTIVEC_LEN_FLOAT);
-                vec4 = vec_ld(0, (float const *) (src) + i + 3 * ALTIVEC_LEN_FLOAT);
+                vec1 = vec_ld2((float *) (src) + i);
+                vec2 = vec_ld2((float *) (src) + i + 2 * ALTIVEC_LEN_FLOAT);
             }
 
-            v4sf re = vec_perm(vec1, vec2, re_mask);
-            v4sf im = vec_perm(vec1, vec2, im_mask);
-            v4sf re2 = vec_perm(vec3, vec4, re_mask);
-            v4sf im2 = vec_perm(vec3, vec4, im_mask);
-
             if (unalign_dstRe) {
-                vec_stu(*(v16u8 *) &re, (unsigned char *) (dstRe + j));
-                vec_stu(*(v16u8 *) &re2, (unsigned char *) (dstRe + j + ALTIVEC_LEN_FLOAT));
+                vec_stu(*(v16u8 *) &vec1.val[0], (unsigned char *) (dstRe + j));
+                vec_stu(*(v16u8 *) &vec2.val[0], (unsigned char *) (dstRe + j + ALTIVEC_LEN_FLOAT));
             } else {
-                vec_st(re, 0, dstRe + j);
-                vec_st(re2, 0, dstRe + j + ALTIVEC_LEN_FLOAT);
+                vec_st(vec1.val[0], 0, dstRe + j);
+                vec_st(vec2.val[0], 0, dstRe + j + ALTIVEC_LEN_FLOAT);
             }
 
             if (unalign_dstIm) {
-                vec_stu(*(v16u8 *) &im, (unsigned char *) (dstIm + j));
-                vec_stu(*(v16u8 *) &im2, (unsigned char *) (dstIm + j + ALTIVEC_LEN_FLOAT));
+                vec_stu(*(v16u8 *) &vec1.val[1], (unsigned char *) (dstIm + j));
+                vec_stu(*(v16u8 *) &vec2.val[1], (unsigned char *) (dstIm + j + ALTIVEC_LEN_FLOAT));
             } else {
-                vec_st(im, 0, dstIm + j);
-                vec_st(im2, 0, dstIm + j + ALTIVEC_LEN_FLOAT);
+                vec_st(vec1.val[1], 0, dstIm + j);
+                vec_st(vec2.val[1], 0, dstIm + j + ALTIVEC_LEN_FLOAT);
             }
             j += 2 * ALTIVEC_LEN_FLOAT;
         }
@@ -683,25 +668,14 @@ static inline void realtocplx128f(float *srcRe, float *srcIm, complex32_t *dst, 
 
     if (areAligned3((uintptr_t) (srcRe), (uintptr_t) (srcIm), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
-            v4sf re = vec_ld(0, (float const *) (srcRe) + i);
-            v4sf im = vec_ld(0, (float const *) (srcIm) + i);
-            v4sf re2 = vec_ld(0, (float const *) (srcRe) + i + ALTIVEC_LEN_FLOAT);
-            v4sf im2 = vec_ld(0, (float const *) (srcIm) + i + ALTIVEC_LEN_FLOAT);
-#if 1
-            v4sf reim = vec_mergeh(re, im);      // vec_perm(re, im, reim_mask_hi);
-            v4sf reim_ = vec_mergel(re, im);     // vec_perm(re, im, reim_mask_lo);
-            v4sf reim2 = vec_mergeh(re2, im2);   // vec_perm(re2, im2, reim_mask_hi);
-            v4sf reim2_ = vec_mergel(re2, im2);  // vec_perm(re2, im2, reim_mask_lo);
-#else
-            v4sf reim = vec_perm(re, im, reim_mask_hi);
-            v4sf reim_ = vec_perm(re, im, reim_mask_lo);
-            v4sf reim2 = vec_perm(re2, im2, reim_mask_hi);
-            v4sf reim2_ = vec_perm(re2, im2, reim_mask_lo);
-#endif
-            vec_st(reim, 0, (float *) (dst) + j);
-            vec_st(reim_, 0, (float *) (dst) + j + ALTIVEC_LEN_FLOAT);
-            vec_st(reim2, 0, (float *) (dst) + j + 2 * ALTIVEC_LEN_FLOAT);
-            vec_st(reim2_, 0, (float *) (dst) + j + 3 * ALTIVEC_LEN_FLOAT);
+            v4sfx2 cplx1, cplx2;
+            cplx1.val[0] = vec_ld(0, (float const *) (srcRe) + i);
+            cplx1.val[1] = vec_ld(0, (float const *) (srcIm) + i);
+            cplx2.val[0] = vec_ld(0, (float const *) (srcRe) + i + ALTIVEC_LEN_FLOAT);
+            cplx2.val[1] = vec_ld(0, (float const *) (srcIm) + i + ALTIVEC_LEN_FLOAT);
+            
+            vec_st2(cplx1, (float *) (dst) + j);
+            vec_st2(cplx2, (float *) (dst) + j + 2 * ALTIVEC_LEN_FLOAT);
             j += 4 * ALTIVEC_LEN_FLOAT;
         }
     } else {
@@ -710,42 +684,30 @@ static inline void realtocplx128f(float *srcRe, float *srcIm, complex32_t *dst, 
         int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
 
         for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
-            v4sf re, im;
-            v4sf re2, im2;
-            v4sf reim, reim_;
-            v4sf reim2, reim2_;
+            v4sfx2 cplx1, cplx2;
 
             if (unalign_srcRe) {
-                re = (v4sf) vec_ldu((unsigned char *) ((float const *) (srcRe) + i));
-                re2 = (v4sf) vec_ldu((unsigned char *) ((float const *) (srcRe) + i + ALTIVEC_LEN_FLOAT));
+                cplx1.val[0] = (v4sf) vec_ldu((unsigned char *) ((float const *) (srcRe) + i));
+                cplx2.val[0] = (v4sf) vec_ldu((unsigned char *) ((float const *) (srcRe) + i + ALTIVEC_LEN_FLOAT));
             } else {
-                re = vec_ld(0, (float const *) (srcRe) + i);
-                re2 = vec_ld(0, (float const *) (srcRe) + i + ALTIVEC_LEN_FLOAT);
+                cplx1.val[0] = vec_ld(0, (float const *) (srcRe) + i);
+                cplx2.val[0] = vec_ld(0, (float const *) (srcRe) + i + ALTIVEC_LEN_FLOAT);
             }
 
             if (unalign_srcIm) {
-                im = (v4sf) vec_ldu((unsigned char *) ((float const *) (srcIm) + i));
-                im2 = (v4sf) vec_ldu((unsigned char *) ((float const *) (srcIm) + i + ALTIVEC_LEN_FLOAT));
+                cplx1.val[1] = (v4sf) vec_ldu((unsigned char *) ((float const *) (srcIm) + i));
+                cplx2.val[1] = (v4sf) vec_ldu((unsigned char *) ((float const *) (srcIm) + i + ALTIVEC_LEN_FLOAT));
             } else {
-                im = vec_ld(0, (float const *) (srcIm) + i);
-                im2 = vec_ld(0, (float const *) (srcIm) + i + ALTIVEC_LEN_FLOAT);
+                cplx1.val[1] = vec_ld(0, (float const *) (srcIm) + i);
+                cplx2.val[1] = vec_ld(0, (float const *) (srcIm) + i + ALTIVEC_LEN_FLOAT);
             }
 
-            reim = vec_mergeh(re, im);
-            reim_ = vec_mergel(re, im);
-            reim2 = vec_mergeh(re2, im2);
-            reim2_ = vec_mergel(re2, im2);
-
             if (unalign_dst) {
-                vec_stu(*(v16u8 *) &reim, (unsigned char *) ((float *) (dst) + j));
-                vec_stu(*(v16u8 *) &reim_, (unsigned char *) ((float *) (dst) + j + ALTIVEC_LEN_FLOAT));
-                vec_stu(*(v16u8 *) &reim2, (unsigned char *) ((float *) (dst) + j + 2 * ALTIVEC_LEN_FLOAT));
-                vec_stu(*(v16u8 *) &reim2_, (unsigned char *) ((float *) (dst) + j + 3 * ALTIVEC_LEN_FLOAT));
+                vec_st2u(cplx1, (float *) (dst) + j);
+                vec_st2u(cplx2, (float *) (dst) + j + 2 * ALTIVEC_LEN_FLOAT);
             } else {
-                vec_st(reim, 0, (float *) (dst) + j);
-                vec_st(reim_, 0, (float *) (dst) + j + ALTIVEC_LEN_FLOAT);
-                vec_st(reim2, 0, (float *) (dst) + j + 2 * ALTIVEC_LEN_FLOAT);
-                vec_st(reim2_, 0, (float *) (dst) + j + 3 * ALTIVEC_LEN_FLOAT);
+                vec_st2(cplx1, (float *) (dst) + j);
+                vec_st2(cplx2, (float *) (dst) + j + 2 * ALTIVEC_LEN_FLOAT);
             }
             j += 4 * ALTIVEC_LEN_FLOAT;
         }
@@ -1933,6 +1895,51 @@ static inline void trunc128f(float *src, float *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = truncf(src[i]);
+    }
+}
+
+static inline void sqrt128f(float *src, float *dst, int len)
+{
+    int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
+    stop_len *= (2 * ALTIVEC_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp = vec_ld(0, src + i);
+            v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            v4sf dst_tmp = vec_sqrt_precise(src_tmp);
+            v4sf dst_tmp2 = vec_sqrt_precise(src_tmp2);
+            vec_st(dst_tmp, 0, dst + i);
+            vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+            v4sf dst_tmp = vec_sqrt_precise(src_tmp);
+            v4sf dst_tmp2 = vec_sqrt_precise(src_tmp2);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, dst + i);
+                vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = sqrtf(src[i]);
     }
 }
 
