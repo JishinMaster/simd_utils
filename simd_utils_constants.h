@@ -221,10 +221,20 @@ typedef int32x4_t v4si;        // vector of 4 uint32
 typedef float32x4x2_t v4sfx2;
 typedef float64x2x2_t v2sdx2;
 
+typedef int8x16_t v8ss;
+typedef uint8x16_t v8us;
+typedef uint16x8_t v16u8;
+typedef uint16x8_t v16s8;
+
 #else
 
 typedef __m128 v4sf;   // vector of 4 float (sse1)
 typedef __m128i v4si;  // vector of 4 int (sse2)
+typedef __m128i v8ss;
+typedef __m128i v8us;
+typedef __m128i v16u8;
+typedef __m128i v16s8;
+
 typedef struct {
     v4sf val[2];
 } v4sfx2;
@@ -1328,6 +1338,31 @@ static inline void print4x(v4sf v)
 #endif
     printf("[%08x, %08x, %08x, %08x]", p[0], p[1], p[2], p[3]);
     //printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
+}
+
+static inline void print8xs(v8ss v)
+{
+    short *p = (short *) &v;
+#ifndef __SSE2__
+#ifndef ALTIVEC
+    _mm_empty();
+#endif
+#endif
+    printf("[%04x, %04x, %04x, %04x, %04x, %04x, %04x, %04x]",\
+              p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+}
+
+static inline void print16xu(v16u8 v)
+{
+    uint8_t *p = (uint8_t *) &v;
+#ifndef __SSE2__
+#ifndef ALTIVEC
+    _mm_empty();
+#endif
+#endif
+    printf("[%02x, %02x, %02x, %02x, %02x, %02x, %02x, %02x,%02x, %02x, %02x, %02x, %02x, %02x, %02x, %02x]",\
+            p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],\
+            p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
 }
 
 static inline void print4i(v4si v)

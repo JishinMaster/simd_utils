@@ -9832,7 +9832,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
-#if defined(SSE) // || defined(ALTIVEC)
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     convertInt16ToFloat32_128(inout_s1, inout_ref, len, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -10518,7 +10518,7 @@ for (int i = 0; i < len; i++){
     printf("%d %d\n", inout_iref[0], inout_i1[0]);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     sum16s32s128(inout_s1, len, &inout_i1[0], 3);
     clock_gettime(CLOCK_REALTIME, &stop);

@@ -108,7 +108,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | convertFloat32ToU8_X  (a)                             | convertFloat32ToU8_C        | ippsConvert_32f8u_Sfs          | ?                             |
 | convertFloat32ToU16_X (a)                             | convertFloat32ToI16_C       | ippsConvert_32f16u_Sfs         | ?                             |
 | convertFloat32ToI16_X  (a)                            | convertFloat32ToI16_C       | ippsConvert_32f16s_Sfs         | ?                             |
-| convertInt16ToFloat32_X                               | convertInt16ToFloat32_C     | ippsConvert_16s32f_Sfs         | ?                             |
+| convertInt16ToFloat32_X  (a)                          | convertInt16ToFloat32_C     | ippsConvert_16s32f_Sfs         | ?                             |
 | cplxtorealXf   (a)                                    | cplxtorealf_C               | ippsCplxToReal_32fc            | cplxtorealf_vec               |
 | realtocplxXf   (a)                                    | realtocplx_C                | ippsRealToCplx_32f             | realtocplxf_vec               |
 | convertX_64f32f                                       | convert_64f32f_C            | ippsConvert_64f32f             | convert_64f32f_vec            |
@@ -201,7 +201,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | copyXs  (a)                                           | copys_C                     | ippsCopy_32s                   | copys_vec                     |
 | ?                                                     | ?                           | ?                              | mulcs_vec                     |
 | absdiff16s_Xs (a)                                     | absdiff16s_c                | ?                              | ?                             |
-| sum16s32sX                                            | sum16s32s_C                 | ippsSum_16s32s_Sfs             | ?                             |
+| sum16s32sX (a)                                           | sum16s32s_C                 | ippsSum_16s32s_Sfs             | ?                             |
 | ?                                                     | ors_c                       | ippsOr_32u                     | ?                             |
 | ?                                                     | ands_c                      | ippsAnd_32u                    | ?                             |
 | sigmoidXf                                             | sigmoidf_C                  | ?                              | ?                             |

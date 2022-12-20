@@ -400,7 +400,7 @@ static inline void sum16s32s128(int16_t *src, int len, int32_t *dst, int scale_f
     int stop_len = len / (4 * SSE_LEN_INT16);
     stop_len *= (4 * SSE_LEN_INT16);
 
-    __attribute__((aligned(SSE_LEN_BYTES))) int32_t accumulate[SSE_LEN_INT32] = {0, 0, 0, 0};
+    __attribute__((aligned(SSE_LEN_BYTES))) int32_t accumulate[SSE_LEN_INT32];
     int32_t tmp_acc = 0;
     int16_t scale = 1 << scale_factor;
     v4si one = _mm_set1_epi16(1);
