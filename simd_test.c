@@ -8598,14 +8598,14 @@ for (int i = 0; i < len; i++){
 
 #ifdef VDSP
     clock_gettime(CLOCK_REALTIME, &start);
-    vvatan2f(inout_ref, inout2, inout, &len);
+    vvatan2f(inout_ref, inout, inout2, &len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("vvatan2f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        vvatan2f(inout_ref, inout2, inout, &len);
+        vvatan2f(inout_ref, inout, inout2, &len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("vvatan2f %d %lf\n", len, elapsed);
@@ -9560,6 +9560,7 @@ for (int i = 0; i < len; i++){
 #endif
 
 #if defined(SSE) || defined (ALTIVEC)
+#ifndef __MACH__
     clock_gettime(CLOCK_REALTIME, &start);
     convertFloat32ToU8_128(inout, inout_u1, len, RndZero, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -9572,8 +9573,8 @@ for (int i = 0; i < len; i++){
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToU8_128 %d %lf\n", len, elapsed);
-
     l2_err_u8(inout_u1, inout_u2, len);
+#endif
 #endif
 
     /*for(int i = 0; i < len; i++)
@@ -9653,6 +9654,7 @@ for (int i = 0; i < len; i++){
 #endif
 
 #if defined(SSE) || defined(ALTIVEC)
+#ifndef __MACH__
     clock_gettime(CLOCK_REALTIME, &start);
     convertFloat32ToI16_128(inout, inout_s2, len, RndZero, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -9667,6 +9669,7 @@ for (int i = 0; i < len; i++){
     printf("convertFloat32ToI16_128 %d %lf\n", len, elapsed);
 
     l2_err_i16(inout_s1, inout_s2, len);
+#endif
 #endif
 
 #ifdef AVX
@@ -9743,6 +9746,7 @@ for (int i = 0; i < len; i++){
 #endif
 
 #if defined(SSE) || defined(ALTIVEC)
+#ifndef __MACH__
     clock_gettime(CLOCK_REALTIME, &start);
     convertFloat32ToU16_128(inout, (uint16_t *) inout_s2, len, RndZero, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -9757,7 +9761,7 @@ for (int i = 0; i < len; i++){
     printf("convertFloat32ToU16_128 %d %lf\n", len, elapsed);
 
     l2_err_i16(inout_s1, inout_s2, len);
-
+#endif
     /*for(int i=0; i < len; i++)
       printf("%f %u %u\n",inout[i], (uint16_t)inout_s1[i], (uint16_t)inout_s2[i]);*/
 #endif
@@ -9833,6 +9837,7 @@ for (int i = 0; i < len; i++){
 #endif
 
 #if defined(SSE) || defined(ALTIVEC)
+#ifndef __MACH__
     clock_gettime(CLOCK_REALTIME, &start);
     convertInt16ToFloat32_128(inout_s1, inout_ref, len, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -9846,6 +9851,7 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertInt16ToFloat32_128 %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2_ref, len);
+#endif
 #endif
 
 #ifdef AVX
@@ -11711,7 +11717,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout4, inout2_ref, len);
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     pol2cart2D128f(inout, inout2, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -11728,6 +11734,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout3, inout_ref, len);
     l2_err(inout4, inout2_ref, len);
 
+#ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
     pol2cart2D128f_precise(inout, inout2, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -11743,6 +11750,8 @@ for (int i = 0; i < len; i++){
 
     l2_err(inout3, inout_ref, len);
     l2_err(inout4, inout2_ref, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -11867,7 +11876,7 @@ for (int i = 0; i < len; i++){
 
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     cart2pol2D128f(inout, inout2, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -11884,6 +11893,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout3, inout_ref, len);
     l2_err(inout4, inout2_ref, len);
 
+#ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
     cart2pol2D128f_precise(inout, inout2, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -11899,7 +11909,7 @@ for (int i = 0; i < len; i++){
 
     l2_err(inout3, inout_ref, len);
     l2_err(inout4, inout2_ref, len);
-
+#endif
     /*for(int i = 0; i < len; i++)
          printf("%0.7f %0.7f %0.7f %0.7f %0.7f %0.7f\n",inout[i], inout2[i],inout3[i],inout_ref[i], inout4[i],inout2_ref[i]);*/
 #endif

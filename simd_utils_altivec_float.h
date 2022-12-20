@@ -41,6 +41,8 @@ static inline v4si vec_nandi(v4si a, v4si b)
     return vec_andc(b, a);
 }
 
+
+#if 0 // vec_div does not exist on older GCC?
 static inline v4sf vec_div_less_precise(v4sf a, v4sf b)
 {
     // Get the reciprocal estimate
@@ -78,8 +80,14 @@ static inline vector float vec_div_precise(vector float A, vector float B)
     // final rouding adjustment
     return (vec_madd(R, y2, Q));
 }
+#else
 
+static inline vector float vec_div_precise(vector float A, vector float B){
+  return vec_div(A,B);
+}
+#endif
 
+#if 1// vec_sqrt does not exist on older GCC?
 // In Altivec there is no sqrt, hence sqrt(a)= a*rsqrt(a)
 static inline v4sf vec_sqrt(v4sf a)
 {
@@ -106,6 +114,19 @@ static inline v4sf vec_sqrt_precise(v4sf a)
 
     return vec_mul(a, re);
 }
+
+#else
+static inline v4sf vec_sqrt(v4sf a)
+{
+    return __builtin_vec_sqrt(a);
+}
+
+static inline v4sf vec_sqrt_precise(v4sf a)
+{
+    return __builtin_vec_sqrt(a);
+}
+#endif
+
 
 static inline void set128f(float *dst, float value, int len)
 {
@@ -3686,7 +3707,7 @@ static inline void modf128f(float *src, float *integer, float *remainder, int le
             v4sf src_tmp, src_tmp2;
             if (unalign_src) {
                 src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
-                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
             } else {
                 src_tmp = vec_ld(0, src + i);
                 src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
@@ -4219,3 +4240,59 @@ static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, 
     }
 }
 #endif
+
+static inline void pol2cart2D128f(float *r, float *theta, float *x, float *y, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (r), (uintptr_t) (theta), ALTIVEC_LEN_BYTES) &&
+        areAligned2((uintptr_t) (x), (uintptr_t) (y), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf r_tmp = vec_ld(0,r + i);
+            v4sf theta_tmp = vec_ld(0,theta + i);
+            v4sf sin_tmp;
+            v4sf cos_tmp;
+            sincos_ps(theta_tmp, &sin_tmp, &cos_tmp);
+            v4sf x_tmp = vec_mul(r_tmp, cos_tmp);
+            v4sf y_tmp = vec_mul(r_tmp, sin_tmp);
+            vec_st(x_tmp, 0, x + i);
+            vec_st(y_tmp, 0, y + i);
+        }
+    } else {
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        float sin_tmp, cos_tmp;
+        mysincosf(theta[i], &sin_tmp, &cos_tmp);
+        x[i] = r[i] * cos_tmp;
+        y[i] = r[i] * sin_tmp;
+    }
+}
+
+static inline void cart2pol2D128f(float *x, float *y, float *r, float *theta, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (r), (uintptr_t) (theta), ALTIVEC_LEN_BYTES) &&
+        areAligned2((uintptr_t) (x), (uintptr_t) (y), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf x_tmp = vec_ld(0,x + i);
+            v4sf y_tmp = vec_ld(0,y + i);
+            v4sf y_square = vec_mul(y_tmp, y_tmp);
+            v4sf r_tmp = vec_madd(x_tmp, x_tmp, y_square);
+            r_tmp = vec_sqrt_precise(r_tmp);
+            v4sf theta_tmp = atan2f_ps(y_tmp, x_tmp);
+            vec_st(r_tmp, 0, r + i);
+            vec_st(theta_tmp, 0, theta + i);
+        }
+    } else {
+
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        r[i] = sqrtf(x[i] * x[i] + (y[i] * y[i]));
+        theta[i] = atan2f(y[i], x[i]);
+    }
+}

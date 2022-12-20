@@ -207,8 +207,8 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | sigmoidXf                                             | sigmoidf_C                  | ?                              | ?                             |
 | PReluXf    (a)                                        | PReluf_C                    | ?                              | ?                             |
 | softmaxXf                                             | softmaxf_C                  | ?                              | ?                             |
-| pol2cart2DXf                                          | pol2cart2Df_C               | ?                              | ?                             |
-| cart2pol2DXf                                          | cart2pol2Df_C               | ?                              | ?                             |
+| pol2cart2DXf (a)                                      | pol2cart2Df_C               | ?                              | ?                             |
+| cart2pol2DXf (a)                                      | cart2pol2Df_C               | ?                              | ?                             |
 | gatheri_256/512s                                      | gatheri_C                   | ?                              | ?                             |
 
 
