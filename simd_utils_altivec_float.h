@@ -4260,6 +4260,43 @@ static inline void pol2cart2D128f(float *r, float *theta, float *x, float *y, in
             vec_st(y_tmp, 0, y + i);
         }
     } else {
+        int unalign_r = (uintptr_t) (r) % ALTIVEC_LEN_BYTES;
+        int unalign_theta = (uintptr_t) (theta) % ALTIVEC_LEN_BYTES;
+        int unalign_x = (uintptr_t) (x) % ALTIVEC_LEN_BYTES;
+        int unalign_y = (uintptr_t) (y) % ALTIVEC_LEN_BYTES;
+        
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf r_tmp, theta_tmp;
+            if (unalign_r) {
+                r_tmp = (v4sf) vec_ldu((unsigned char *) (r + i));
+            } else {
+              r_tmp = vec_ld(0,r + i);
+            }
+
+            if (unalign_theta) {
+                theta_tmp = (v4sf) vec_ldu((unsigned char *) (theta + i));
+            } else {
+              theta_tmp = vec_ld(0,theta + i);
+            }
+
+            v4sf sin_tmp;
+            v4sf cos_tmp;
+            sincos_ps(theta_tmp, &sin_tmp, &cos_tmp);
+            v4sf x_tmp = vec_mul(r_tmp, cos_tmp);
+            v4sf y_tmp = vec_mul(r_tmp, sin_tmp);
+
+            if (unalign_x) {
+              vec_stu(*(v16u8 *) &x_tmp, (unsigned char *) (x + i));
+            } else {
+              vec_st(x_tmp, 0, x + i);
+            }
+
+            if (unalign_y) {
+              vec_stu(*(v16u8 *) &y_tmp, (unsigned char *) (y + i));
+            } else {
+              vec_st(y_tmp, 0, y + i);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -4288,11 +4325,154 @@ static inline void cart2pol2D128f(float *x, float *y, float *r, float *theta, in
             vec_st(theta_tmp, 0, theta + i);
         }
     } else {
+        int unalign_r = (uintptr_t) (r) % ALTIVEC_LEN_BYTES;
+        int unalign_theta = (uintptr_t) (theta) % ALTIVEC_LEN_BYTES;
+        int unalign_x = (uintptr_t) (x) % ALTIVEC_LEN_BYTES;
+        int unalign_y = (uintptr_t) (y) % ALTIVEC_LEN_BYTES;
 
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf x_tmp, y_tmp;
+            if (unalign_x) {
+                x_tmp = (v4sf) vec_ldu((unsigned char *) (x + i));
+            } else {
+              x_tmp = vec_ld(0,x + i);
+            }
+            
+            if (unalign_y) {
+                y_tmp = (v4sf) vec_ldu((unsigned char *) (y + i));
+            } else {
+              y_tmp = vec_ld(0,y + i);
+            }
+            
+            v4sf y_square = vec_mul(y_tmp, y_tmp);
+            v4sf r_tmp = vec_madd(x_tmp, x_tmp, y_square);
+            r_tmp = vec_sqrt_precise(r_tmp);
+            v4sf theta_tmp = atan2f_ps(y_tmp, x_tmp);
+
+            if (unalign_r) {
+              vec_stu(*(v16u8 *) &r_tmp, (unsigned char *) (r + i));
+            } else {
+              vec_st(r_tmp, 0, r + i);
+            }
+
+            if (unalign_theta) {
+              vec_stu(*(v16u8 *) &theta_tmp, (unsigned char *) (theta + i));
+            } else {
+              vec_st(theta_tmp, 0, theta + i);
+            }
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
         r[i] = sqrtf(x[i] * x[i] + (y[i] * y[i]));
         theta[i] = atan2f(y[i], x[i]);
+    }
+}
+
+static inline void sigmoid128f(float *src, float *dst, int len)
+{
+    int stop_len = len / ALTIVEC_LEN_FLOAT;
+    stop_len *= ALTIVEC_LEN_FLOAT;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp = vec_ld(0, src + i);
+            v4sf tmp = vec_add(*(v4sf *) _ps_1, exp_ps_alternate(vec_xor(*(v4sf *) _ps_neg_sign_mask, src_tmp)));
+            v4sf tmp2 = vec_div_precise(*(v4sf *) _ps_1, tmp);
+            vec_st(tmp2, 0, dst + i); 
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+              src_tmp = vec_ld(0,src + i);
+            }
+            v4sf tmp = vec_add(*(v4sf *) _ps_1, exp_ps_alternate(vec_xor(*(v4sf *) _ps_neg_sign_mask, src_tmp)));
+            v4sf tmp2 = vec_div_precise(*(v4sf *) _ps_1, tmp);
+ 
+            if (unalign_dst) {
+              vec_stu(*(v16u8 *) &tmp2, (unsigned char *) (dst + i));
+            } else {
+              vec_st(tmp2, 0, dst + i);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = 1.0f / (1.0f + expf(-src[i]));
+    }
+}
+
+static inline void softmax128f(float *src, float *dst, int len)
+{
+    int stop_len = len / (ALTIVEC_LEN_FLOAT);
+    stop_len *= (ALTIVEC_LEN_FLOAT);
+
+    __attribute__((aligned(ALTIVEC_LEN_BYTES))) float accumulate[ALTIVEC_LEN_FLOAT];
+    float acc = 0.0f;
+
+    v4sf vec_acc1 = *(v4sf*)_ps_0;  // initialize the vector accumulator
+
+    int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+    
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp = vec_ld(0, src + i);
+            v4sf dst_tmp = exp_ps_alternate(src_tmp);
+            vec_acc1 = vec_add(vec_acc1, dst_tmp);
+            vec_st(dst_tmp, 0, dst + i);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+            } else {
+              src_tmp = vec_ld(0,src + i);
+            }
+            
+            v4sf dst_tmp = exp_ps_alternate(src_tmp);
+            vec_acc1 = vec_add(vec_acc1, dst_tmp);
+            
+            if (unalign_dst) {
+              vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+            } else {
+              vec_st(dst_tmp, 0, dst + i);
+            }
+        }
+    }
+
+    vec_st(vec_acc1, 0, accumulate);
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = expf(src[i]);
+        acc += dst[i];
+    }
+
+    acc = acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3];
+    vec_acc1 = vec_splats(acc);
+
+    if (unalign_dst==0) {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf dst_tmp = vec_ld(0, dst + i);
+            v4sf tmp = vec_div_precise(dst_tmp, vec_acc1);
+            vec_st(tmp, 0, dst + i);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += ALTIVEC_LEN_FLOAT) {
+            v4sf dst_tmp = (v4sf) vec_ldu((unsigned char *) (dst + i));
+            v4sf tmp = vec_div_precise(dst_tmp, vec_acc1);
+            vec_stu(*(v16u8 *) &tmp, (unsigned char *) (dst + i));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] /= acc;
     }
 }
