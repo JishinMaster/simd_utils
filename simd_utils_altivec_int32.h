@@ -526,7 +526,7 @@ static inline void threshold128_gtabs_s(int32_t *src, int32_t *dst, int len, int
                 src_tmp = vec_ld(0, src + i);
                 src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_INT32);
             }
-            
+
             v4si src_abs = vec_abs(src_tmp);  // take absolute value
             v4si src_abs2 = vec_abs(src_tmp2);
             v4ui eqmask = vec_cmpeq(src_abs, src_tmp);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
@@ -744,8 +744,8 @@ static inline v8ss vec_absdiff(v8ss a, v8ss b)
     cmp = vec_cmpgt(a, b);
     difab = vec_sub(a, b);
     difba = vec_sub(b, a);
-    difab = vec_and(*(v8ss*)&cmp, difab);
-    difba = vec_andc(difba, *(v8ss*)&cmp);
+    difab = vec_and(*(v8ss *) &cmp, difab);
+    difba = vec_andc(difba, *(v8ss *) &cmp);
     return vec_or(difab, difba);
 }
 
@@ -807,8 +807,8 @@ static inline void sum16s32s128(int16_t *src, int len, int32_t *dst, int scale_f
     int32_t tmp_acc = 0;
     int16_t scale = 1 << scale_factor;
     v8ss one = vec_splats(1);
-    v4si vec_acc1 = *(v4si*)_ps_0;  // initialize the vector accumulator
-    v4si vec_acc2 = *(v4si*)_ps_0;   // initialize the vector accumulator
+    v4si vec_acc1 = *(v4si *) _ps_0;  // initialize the vector accumulator
+    v4si vec_acc2 = *(v4si *) _ps_0;  // initialize the vector accumulator
 
     if (isAligned((uintptr_t) (src), ALTIVEC_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_INT16) {
@@ -816,10 +816,10 @@ static inline void sum16s32s128(int16_t *src, int len, int32_t *dst, int scale_f
             v8ss vec_src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_INT16);
             v8ss vec_src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_INT16);
             v8ss vec_src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_INT16);
-            v4si vec_src_tmpi = vec_msum(vec_src_tmp, one, *(v4si*)_ps_0);
-            v4si vec_src_tmp2i = vec_msum(vec_src_tmp2, one, *(v4si*)_ps_0);
-            v4si vec_src_tmp3i = vec_msum(vec_src_tmp3, one, *(v4si*)_ps_0);
-            v4si vec_src_tmp4i = vec_msum(vec_src_tmp4, one, *(v4si*)_ps_0);
+            v4si vec_src_tmpi = vec_msum(vec_src_tmp, one, *(v4si *) _ps_0);
+            v4si vec_src_tmp2i = vec_msum(vec_src_tmp2, one, *(v4si *) _ps_0);
+            v4si vec_src_tmp3i = vec_msum(vec_src_tmp3, one, *(v4si *) _ps_0);
+            v4si vec_src_tmp4i = vec_msum(vec_src_tmp4, one, *(v4si *) _ps_0);
             vec_src_tmpi = vec_add(vec_src_tmpi, vec_src_tmp2i);
             vec_src_tmp3i = vec_add(vec_src_tmp3i, vec_src_tmp4i);
             vec_acc1 = vec_add(vec_src_tmpi, vec_acc1);
@@ -827,14 +827,14 @@ static inline void sum16s32s128(int16_t *src, int len, int32_t *dst, int scale_f
         }
     } else {
         for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_INT16) {
-            v8ss vec_src_tmp  = (v8ss) vec_ldu((unsigned char *) (src + i));
+            v8ss vec_src_tmp = (v8ss) vec_ldu((unsigned char *) (src + i));
             v8ss vec_src_tmp2 = (v8ss) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_INT16));
             v8ss vec_src_tmp3 = (v8ss) vec_ldu((unsigned char *) (src + i + 2 * ALTIVEC_LEN_INT16));
             v8ss vec_src_tmp4 = (v8ss) vec_ldu((unsigned char *) (src + i + 3 * ALTIVEC_LEN_INT16));
-            v4si vec_src_tmpi = vec_msum(vec_src_tmp, one, *(v4si*)_ps_0);
-            v4si vec_src_tmp2i = vec_msum(vec_src_tmp2, one, *(v4si*)_ps_0);
-            v4si vec_src_tmp3i = vec_msum(vec_src_tmp3, one, *(v4si*)_ps_0);
-            v4si vec_src_tmp4i = vec_msum(vec_src_tmp4, one, *(v4si*)_ps_0);
+            v4si vec_src_tmpi = vec_msum(vec_src_tmp, one, *(v4si *) _ps_0);
+            v4si vec_src_tmp2i = vec_msum(vec_src_tmp2, one, *(v4si *) _ps_0);
+            v4si vec_src_tmp3i = vec_msum(vec_src_tmp3, one, *(v4si *) _ps_0);
+            v4si vec_src_tmp4i = vec_msum(vec_src_tmp4, one, *(v4si *) _ps_0);
             vec_src_tmpi = vec_add(vec_src_tmpi, vec_src_tmp2i);
             vec_src_tmp3i = vec_add(vec_src_tmp3i, vec_src_tmp4i);
             vec_acc1 = vec_add(vec_src_tmpi, vec_acc1);

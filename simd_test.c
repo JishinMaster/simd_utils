@@ -788,7 +788,7 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
-#if defined(SSE) || defined (ALTIVEC)
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     copy128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3087,8 +3087,8 @@ printf("\n");
     printf("cplxvecmul128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     l2_err(inout_ref, inout2_ref, 2 * len);
-    
-    /*for(int i = 0; i < 2*len; i+=2){ 
+
+    /*for(int i = 0; i < 2*len; i+=2){
       printf("%f %f %f %f ||| %f %f || %f %f\n", inout[i], inout[i+1],inout2[i], inout2[i+1],\
               inout_ref[i], inout2_ref[i], inout_ref[i+1], inout2_ref[i+1]);
     }*/
@@ -6536,8 +6536,8 @@ printf("\n");
     /////////////////////////////////////////////////////////// SQRTF //////////////////////////////////////////////////////////////////////////////
     printf("SQRTF\n");
 
-    for(int i = 0; i < len; i++)
-      inout[i] = (float)(rand()/123456)/3.55555f;
+    for (int i = 0; i < len; i++)
+        inout[i] = (float) (rand() / 123456) / 3.55555f;
 
     clock_gettime(CLOCK_REALTIME, &start);
     sqrtf_C(inout, inout_ref, len);
@@ -9559,7 +9559,7 @@ for (int i = 0; i < len; i++){
 
 #endif
 
-#if defined(SSE) || defined (ALTIVEC)
+#if defined(SSE) || defined(ALTIVEC)
 #ifndef __MACH__
     clock_gettime(CLOCK_REALTIME, &start);
     convertFloat32ToU8_128(inout, inout_u1, len, RndZero, 4);
@@ -10113,7 +10113,7 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sigmoidf_C %d %lf\n", len, elapsed);
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     sigmoid128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -10128,6 +10128,7 @@ for (int i = 0; i < len; i++){
     printf("sigmoid128f %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
 
+#ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
     sigmoid128f_(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -10141,6 +10142,7 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sigmoid128f_ %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
+#endif
 #endif
 
 #ifdef AVX
@@ -10266,7 +10268,7 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("softmaxf_C %d %lf\n", len, elapsed);
 
-#ifdef SSE
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     softmax128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -10281,6 +10283,7 @@ for (int i = 0; i < len; i++){
     printf("softmax128f %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
 
+#ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
     softmax128f_dualacc(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -10294,6 +10297,7 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("softmax128f_dualacc %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
+#endif
 #endif
 
 #ifdef AVX
@@ -11267,6 +11271,76 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("flip512s %d %lf\n", len, elapsed);
     l2_err_i32(inout_iref, inout_i2, len);
+#endif
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// FLIPS //////////////////////////////////////////////////////////////////////////////
+    printf("MULS\n");
+
+    for (int i = 0; i < len; i++) {
+        inout_i1[i] = (-32000) + rand() % 65000;
+        inout_i2[i] = (65000) + -3 * (rand() % 22000);
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    muls_c(inout_i1, inout_i2, inout_iref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("muls_c %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        muls_c(inout_i1, inout_i2, inout_iref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("muls_c %d %lf\n", len, elapsed);
+
+#if defined(SSE) || defined(ALTIVEC)
+    clock_gettime(CLOCK_REALTIME, &start);
+    mul128s(inout_i1, inout_i2, inout_i3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("mul128s %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        mul128s(inout_i1, inout_i2, inout_i3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("mul128s %d %lf\n", len, elapsed);
+    l2_err_i32(inout_iref, inout_i3, len);
+#endif
+
+#if defined(AVX)
+    clock_gettime(CLOCK_REALTIME, &start);
+    mul256s(inout_i1, inout_i2, inout_i3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("mul256s %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        mul256s(inout_i1, inout_i2, inout_i3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("mul256s %d %lf\n", len, elapsed);
+    l2_err_i32(inout_iref, inout_i3, len);
+#endif
+
+#if defined(AVX512)
+    clock_gettime(CLOCK_REALTIME, &start);
+    mul512s(inout_i1, inout_i2, inout_i3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("mul512s %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        mul512s(inout_i1, inout_i2, inout_i3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("mul512s %d %lf\n", len, elapsed);
+    l2_err_i32(inout_iref, inout_i3, len);
 #endif
 
     printf("\n");

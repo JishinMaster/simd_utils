@@ -32,20 +32,33 @@ static inline void add256s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     }
 }
 
-#if 0
-//Work in progress
+// Works only for Integers stored on 32bits smaller than 16bits
 static inline void mul256s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {
-    int stop_len = len / AVX_LEN_INT32;
-    stop_len *= AVX_LEN_INT32;
+    int stop_len = len / (2 * AVX_LEN_INT32);
+    stop_len *= (2 * AVX_LEN_INT32);
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
-            _mm256_store_si256((__m256i *) (dst + i), _mm256_mul_epi32(_mm256_load_si256((__m256i *) (src1 + i)), _mm256_load_si256((__m256i *) (src2 + i))));
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_INT32) {
+            v8si src1_tmp = _mm256_load_si256((__m256i *) (src1 + i));
+            v8si src2_tmp = _mm256_load_si256((__m256i *) (src2 + i));
+            v8si src1_tmp2 = _mm256_load_si256((__m256i *) (src1 + i + AVX_LEN_INT32));
+            v8si src2_tmp2 = _mm256_load_si256((__m256i *) (src2 + i + AVX_LEN_INT32));
+            v8si tmp = _mm256_mullo_epi32(src1_tmp, src2_tmp);
+            v8si tmp2 = _mm256_mullo_epi32(src1_tmp2, src2_tmp2);
+            _mm256_store_si256((__m256i *) (dst + i), tmp);
+            _mm256_store_si256((__m256i *) (dst + i + AVX_LEN_INT32), tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += AVX_LEN_INT32) {
-            _mm256_storeu_si256((__m256i *) (dst + i), _mm256_mul_epi32(_mm256_loadu_si256((__m256i *) (src1 + i)), _mm256_loadu_si256((__m256i *) (src2 + i))));
+        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_INT32) {
+            v8si src1_tmp = _mm256_loadu_si256((__m256i *) (src1 + i));
+            v8si src2_tmp = _mm256_loadu_si256((__m256i *) (src2 + i));
+            v8si src1_tmp2 = _mm256_loadu_si256((__m256i *) (src1 + i + AVX_LEN_INT32));
+            v8si src2_tmp2 = _mm256_loadu_si256((__m256i *) (src2 + i + AVX_LEN_INT32));
+            v8si tmp = _mm256_mullo_epi32(src1_tmp, src2_tmp);
+            v8si tmp2 = _mm256_mullo_epi32(src1_tmp2, src2_tmp2);
+            _mm256_storeu_si256((__m256i *) (dst + i), tmp);
+            _mm256_storeu_si256((__m256i *) (dst + i + AVX_LEN_INT32), tmp2);
         }
     }
 
@@ -53,7 +66,6 @@ static inline void mul256s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
         dst[i] = src1[i] * src2[i];
     }
 }
-#endif
 
 static inline void sub256s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {

@@ -31,20 +31,33 @@ static inline void add512s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     }
 }
 
-// Work in progress
-#if 0 
+// Works only for Integers stored on 32bits smaller than 16bits
 static inline void mul512s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {
-    int stop_len = len / AVX512_LEN_INT32;
-    stop_len *= AVX512_LEN_INT32;
+    int stop_len = len / (2 * AVX512_LEN_INT32);
+    stop_len *= (2 * AVX512_LEN_INT32);
 
-    if (areAligned3((uintptr_t)(src1), (uintptr_t)(src2), (uintptr_t)(dst), AVX512_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
-            _mm512_store_si512(dst + i, _mm512_mul_epi32(_mm512_load_si512(src1 + i), _mm512_load_si512(src2 + i)));
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_INT32) {
+            v16si src1_tmp = _mm512_load_si512((__m512i *) (src1 + i));
+            v16si src2_tmp = _mm512_load_si512((__m512i *) (src2 + i));
+            v16si src1_tmp2 = _mm512_load_si512((__m512i *) (src1 + i + AVX512_LEN_INT32));
+            v16si src2_tmp2 = _mm512_load_si512((__m512i *) (src2 + i + AVX512_LEN_INT32));
+            v16si tmp = _mm512_mullo_epi32(src1_tmp, src2_tmp);
+            v16si tmp2 = _mm512_mullo_epi32(src1_tmp2, src2_tmp2);
+            _mm512_store_si512((__m512i *) (dst + i), tmp);
+            _mm512_store_si512((__m512i *) (dst + i + AVX512_LEN_INT32), tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += AVX512_LEN_INT32) {
-            _mm512_storeu_si512(dst + i, _mm512_mul_epi32(_mm512_loadu_si512(src1 + i), _mm512_loadu_si512(src2 + i)));
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_INT32) {
+            v16si src1_tmp = _mm512_loadu_si512((__m512i *) (src1 + i));
+            v16si src2_tmp = _mm512_loadu_si512((__m512i *) (src2 + i));
+            v16si src1_tmp2 = _mm512_loadu_si512((__m512i *) (src1 + i + AVX512_LEN_INT32));
+            v16si src2_tmp2 = _mm512_loadu_si512((__m512i *) (src2 + i + AVX512_LEN_INT32));
+            v16si tmp = _mm512_mullo_epi32(src1_tmp, src2_tmp);
+            v16si tmp2 = _mm512_mullo_epi32(src1_tmp2, src2_tmp2);
+            _mm512_storeu_si512((__m512i *) (dst + i), tmp);
+            _mm512_storeu_si512((__m512i *) (dst + i + AVX512_LEN_INT32), tmp2);
         }
     }
 
@@ -52,7 +65,6 @@ static inline void mul512s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
         dst[i] = src1[i] * src2[i];
     }
 }
-#endif
 
 static inline void sub512s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {

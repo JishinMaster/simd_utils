@@ -36,21 +36,33 @@ static inline void add128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
     }
 }
 
-
-// result is wrong, the instruction casts to 64bit
-#if 0
+// Works only for Integers stored on 32bits smaller than 16bits
 static inline void mul128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {
-    int stop_len = len / SSE_LEN_INT32;
-    stop_len *= SSE_LEN_INT32;
+    int stop_len = len / (2 * SSE_LEN_INT32);
+    stop_len *= (2 * SSE_LEN_INT32);
 
     if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), SSE_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
-            _mm_store_si128((__m128i *) dst + i, _mm_mul_epi32(_mm_load_si128((__m128i *) (src1 + i)), _mm_load_si128((__m128i *) (src2 + i))));
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src1_tmp = _mm_load_si128((__m128i *) (src1 + i));
+            v4si src2_tmp = _mm_load_si128((__m128i *) (src2 + i));
+            v4si src1_tmp2 = _mm_load_si128((__m128i *) (src1 + i + SSE_LEN_INT32));
+            v4si src2_tmp2 = _mm_load_si128((__m128i *) (src2 + i + SSE_LEN_INT32));
+            v4si tmp = _mm_mullo_epi32(src1_tmp, src2_tmp);
+            v4si tmp2 = _mm_mullo_epi32(src1_tmp2, src2_tmp2);
+            _mm_store_si128((__m128i *) (dst + i), tmp);
+            _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
-            _mm_storeu_si128((__m128i *) dst + i, _mm_mul_epi32(_mm_loadu_si128((__m128i *) (src1 + i)), _mm_loadu_si128((__m128i *) (src2 + i))));
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            v4si src1_tmp = _mm_loadu_si128((__m128i *) (src1 + i));
+            v4si src2_tmp = _mm_loadu_si128((__m128i *) (src2 + i));
+            v4si src1_tmp2 = _mm_loadu_si128((__m128i *) (src1 + i + SSE_LEN_INT32));
+            v4si src2_tmp2 = _mm_loadu_si128((__m128i *) (src2 + i + SSE_LEN_INT32));
+            v4si tmp = _mm_mullo_epi32(src1_tmp, src2_tmp);
+            v4si tmp2 = _mm_mullo_epi32(src1_tmp2, src2_tmp2);
+            _mm_storeu_si128((__m128i *) (dst + i), tmp);
+            _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
         }
     }
 
@@ -58,7 +70,6 @@ static inline void mul128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
         dst[i] = src1[i] * src2[i];
     }
 }
-#endif
 
 static inline void sub128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {

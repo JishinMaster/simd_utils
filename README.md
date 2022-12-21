@@ -201,12 +201,12 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | copyXs  (a)                                           | copys_C                     | ippsCopy_32s                   | copys_vec                     |
 | ?                                                     | ?                           | ?                              | mulcs_vec                     |
 | absdiff16s_Xs (a)                                     | absdiff16s_c                | ?                              | ?                             |
-| sum16s32sX (a)                                           | sum16s32s_C                 | ippsSum_16s32s_Sfs             | ?                             |
+| sum16s32sX (a)                                        | sum16s32s_C                 | ippsSum_16s32s_Sfs             | ?                             |
 | ?                                                     | ors_c                       | ippsOr_32u                     | ?                             |
 | ?                                                     | ands_c                      | ippsAnd_32u                    | ?                             |
-| sigmoidXf                                             | sigmoidf_C                  | ?                              | ?                             |
+| sigmoidXf  (a)                                        | sigmoidf_C                  | ?                              | ?                             |
 | PReluXf    (a)                                        | PReluf_C                    | ?                              | ?                             |
-| softmaxXf                                             | softmaxf_C                  | ?                              | ?                             |
+| softmaxXf  (a)                                        | softmaxf_C                  | ?                              | ?                             |
 | pol2cart2DXf (a)                                      | pol2cart2Df_C               | ?                              | ?                             |
 | cart2pol2DXf (a)                                      | cart2pol2Df_C               | ?                              | ?                             |
 | gatheri_256/512s                                      | gatheri_C                   | ?                              | ?                             |

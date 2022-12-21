@@ -4443,7 +4443,7 @@ static inline void softmax128f(float *src, float *dst, int len)
     acc = acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3];
     vec_acc1 = _mm_set1_ps(acc);
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+    if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf dst_tmp = _mm_load_ps(dst + i);
             _mm_store_ps(dst + i, _mm_div_ps(dst_tmp, vec_acc1));
