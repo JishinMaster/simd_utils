@@ -1,13 +1,13 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.4
+ * Version : 0.2.5
  * Author  : JishinMaster
  * Licence : BSD-2
  */
 
 #pragma once
 
-// JishinMaster : DTCollab sse2neon.h commit : a387dd5ccc84cabf850a90ddc3e06d31c6ff9db4
+// JishinMaster : DTCollab sse2neon.h commit : 6fd46b60468709404b802338090d48251de229f4
 #include "sse2neon.h"
 
 
@@ -106,7 +106,7 @@ inline __m128 _mm_blend_ps(__m128 a, __m128 b, const int i32)
 }
 #endif
 
-FORCE_INLINE void _mm_lfence(void)
+/*FORCE_INLINE void _mm_lfence(void)
 {
     __sync_synchronize();
 }
@@ -114,8 +114,13 @@ FORCE_INLINE void _mm_lfence(void)
 FORCE_INLINE void _mm_mfence(void)
 {
     __sync_synchronize();
-}
+}*/
 
+
+#ifndef __aarch64__
+#define _MM_SHUFFLE2(fp1,fp0) \
+ (((fp1) << 1) | (fp0))
+#endif
 
 // Computes the fused multiple add product of 32-bit floating point numbers.
 //

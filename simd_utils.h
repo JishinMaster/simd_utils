@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.4
+ * Version : 0.2.5
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -273,7 +273,7 @@ static inline void _mm_store2u_ps(float *mem_addr, v4sfx2 a)
 
 static inline v2sdx2 _mm_load2_pd(double const *mem_addr)
 {
-#ifdef ARM
+#if defined(__aarch64__) 
     return vld2q_f64(mem_addr);
 #else
     v2sd tmp1 = _mm_load_pd(mem_addr);
@@ -287,7 +287,7 @@ static inline v2sdx2 _mm_load2_pd(double const *mem_addr)
 
 static inline v2sdx2 _mm_load2u_pd(double const *mem_addr)
 {
-#ifdef ARM
+#if defined(__aarch64__) 
     return vld2q_f64(mem_addr);
 #else
     v2sd tmp1 = _mm_loadu_pd(mem_addr);
@@ -301,7 +301,7 @@ static inline v2sdx2 _mm_load2u_pd(double const *mem_addr)
 
 static inline void _mm_store2_pd(double *mem_addr, v2sdx2 a)
 {
-#ifdef ARM
+#if defined(__aarch64__) 
     vst2q_f64(mem_addr, a);
 #else
     v2sd tmp1 = _mm_unpacklo_pd(a.val[0], a.val[1]);
@@ -313,7 +313,7 @@ static inline void _mm_store2_pd(double *mem_addr, v2sdx2 a)
 
 static inline void _mm_store2u_pd(double *mem_addr, v2sdx2 a)
 {
-#ifdef ARM
+#if defined(__aarch64__) 
     vst2q_f64(mem_addr, a);
 #else
     v2sd tmp1 = _mm_unpacklo_pd(a.val[0], a.val[1]);

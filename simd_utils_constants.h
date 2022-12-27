@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.4
+ * Version : 0.2.5
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -9,6 +9,12 @@
 #ifndef ARM
 #include <immintrin.h>
 #else
+
+#if !defined(__aarch64__)
+#define SSE2NEON_PRECISE_SQRT 1
+#define SSE2NEON_PRECISE_DIV 1
+#endif
+
 // Also includes arm_neon.h
 #include "sse2neon_wrapper.h"
 #endif
@@ -219,7 +225,13 @@ typedef float32x4x2_t v4sfx2;  // vector of 4 float
 typedef uint32x4_t v4su;       // vector of 4 uint32
 typedef int32x4_t v4si;        // vector of 4 uint32
 typedef float32x4x2_t v4sfx2;
+
+#if defined(__aarch64__)
 typedef float64x2x2_t v2sdx2;
+#else
+typedef float32x4x2_t v2sdx2;
+#endif
+
 
 typedef int8x16_t v8ss;
 typedef uint8x16_t v8us;

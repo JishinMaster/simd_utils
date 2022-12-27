@@ -1,6 +1,6 @@
 /*
  * Project : SIMD_Utils
- * Version : 0.2.4
+ * Version : 0.2.5
  * Author  : JishinMaster
  * Licence : BSD-2
  */
@@ -11433,7 +11433,7 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("muls_c %d %lf\n", len, elapsed);
 
-#if defined(SSE) || defined(ALTIVEC)
+#if defined(SSE) // || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     mul128s(inout_i1, inout_i2, inout_i3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
