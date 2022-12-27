@@ -12,6 +12,76 @@
 #include <stdint.h>
 #include <string.h>
 
+
+#if 0  // work in progress
+
+// https://gist.github.com/cxd4/8137986
+#define SWAP(d3, d2, d1, d0) ((d3 << 6) | (d2 << 4) | (d1 << 2) | (d0 << 0))
+
+static v4si vec_mullo(v4si a, v4si b)
+{
+#if 0
+    v8ss prod_m; /* alternating FFFFFFFF00000000FFFFFFFF00000000 */
+    v8ss prod_n; /* alternating 00000000FFFFFFFF00000000FFFFFFFF */
+
+    //static const v16u8 swap_mask = {0, 1, 4, 5, 8, 9, 12, 13, 0, 1, 4, 5, 8, 9, 12, 13};
+    //static const v16u8 swap_mask = {0, 1, 4, 5, 8, 9, 12, 13, 0, 1, 4, 5, 8, 9, 12, 13};
+    
+    prod_n = (v8ss)vec_mulo(*(v8us*)&a, *(v8us*)&b);
+    //a = vec_perm(a, SWAP(2,3,0,1)); /* old SWAP(3,2,1,0) */
+    //b = vec_perm(b, SWAP(2,3,0,1)); /* old SWAP(3,2,1,0) */
+    prod_m = (v8ss)vec_mule(*(v8ss*)&a, *(v8ss*)&b);
+/*
+ * prod_m = { a[0] * b[0], a[2] * b[2] }
+ * prod_n = { a[1] * b[1], a[3] * b[3] }
+ */
+
+    a = vec_unpackh(prod_n, prod_m);
+    a = vec_sll(a, 64/8);
+    a = vec_srl(a, 64/8);
+    b = vec_unpackl(prod_n, prod_m);
+    b = vec_sll(b, 64/8);
+    b = vec_or(b, a); /* Ans = (hi << 64) | (lo & 0x00000000FFFFFFFF) */
+    return (b);
+#else
+    v4si a13 = vec_perm(a, a, 0xF5);                        // (-,a3,-,a1)
+    v4si b13 = vec_perm(b, b, 0xF5);                        // (-,b3,-,b1)
+    v4si prod02 = (v4si) vec_mule((v4ui) a, (v4ui) b);      // (-,a2*b2,-,a0*b0)
+    v4si prod13 = (v4si) vec_mule((v4ui) a13, (v4ui) b13);  // (-,a3*b3,-,a1*b1)
+    v4si prod01 = vec_mergeh(prod02, prod13);               // (-,-,a1*b1,a0*b0)
+    v4si prod23 = vec_mergel(prod02, prod13);               // (-,-,a3*b3,a2*b2)
+    v4si prod = vec_mergeh((__vector long long) prod01, (__vector long long) prod23);
+    (, );  // (ab3,ab2,ab1,ab0)
+#endif
+}
+
+static inline void mul128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
+{
+    int stop_len = len / (2 * ALTIVEC_LEN_INT32);
+    stop_len *= (2 * ALTIVEC_LEN_INT32);
+
+    if (areAligned3((uintptr_t) (src1), (uintptr_t) (src2), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_INT32) {
+            v4si src1_tmp = vec_ld(0, src1 + i);
+            v4si src2_tmp = vec_ld(0, src2 + i);
+            v4si src1_tmp2 = vec_ld(0, src1 + i + ALTIVEC_LEN_INT32);
+            v4si src2_tmp2 = vec_ld(0, src2 + i + ALTIVEC_LEN_INT32);
+            v4si tmp = vec_mullo(src1_tmp, src2_tmp);
+            v4si tmp2 = vec_mullo(src1_tmp2, src2_tmp2);
+            vec_st(tmp, 0, dst + i);
+            vec_st(tmp2, 0, dst + i + ALTIVEC_LEN_INT32);
+        }
+    } else {
+        // TODO
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src1[i] * src2[i];
+    }
+}
+
+#endif
+
 static inline void copy128s(int32_t *src, int32_t *dst, int len)
 {
     int stop_len = len / (2 * ALTIVEC_LEN_INT32);

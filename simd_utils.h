@@ -93,6 +93,7 @@ static inline void simd_utils_get_version(void)
 #ifdef SSE
 
 #ifdef NO_SSE3
+#define NO_SSE4
 static inline __m128 _mm_movehdup_ps(__m128 __X)
 {
     return _mm_shuffle_ps(__X, __X, 0xF5);
@@ -171,6 +172,45 @@ static inline __m128i _mm_packus_epi32(__m128i a, __m128i b)
 {
     return _mm_packs_epi32(a, b);
 }
+
+// https://gist.github.com/cxd4/8137986
+#define SWAP(d3, d2, d1, d0) ((d3 << 6) | (d2 << 4) | (d1 << 2) | (d0 << 0))
+
+static __m128i _mm_mullo_epi32(__m128i a, __m128i b)
+{
+    __m128i prod_m; /* alternating FFFFFFFF00000000FFFFFFFF00000000 */
+    __m128i prod_n; /* alternating 00000000FFFFFFFF00000000FFFFFFFF */
+
+    prod_n = _mm_mul_epu32(a, b);
+    a = _mm_shuffle_epi32(a, SWAP(2, 3, 0, 1)); /* old SWAP(3,2,1,0) */
+    b = _mm_shuffle_epi32(b, SWAP(2, 3, 0, 1)); /* old SWAP(3,2,1,0) */
+    prod_m = _mm_mul_epu32(a, b);
+    /*
+     * prod_m = { a[0] * b[0], a[2] * b[2] }
+     * prod_n = { a[1] * b[1], a[3] * b[3] }
+     */
+
+    a = _mm_unpacklo_epi32(prod_n, prod_m);
+    a = _mm_slli_si128(a, 64 / 8);
+    a = _mm_srli_si128(a, 64 / 8);
+    b = _mm_unpackhi_epi32(prod_n, prod_m);
+    b = _mm_slli_si128(b, 64 / 8);
+    b = _mm_or_si128(b, a); /* Ans = (hi << 64) | (lo & 0x00000000FFFFFFFF) */
+    return (b);
+}
+
+// Or : https://stackoverflow.com/questions/17264399/fastest-way-to-multiply-two-vectors-of-32bit-integers-in-c-with-sse
+//  Vec4i operator * (Vec4i const & a, Vec4i const & b) {
+/*
+__m128i a13    = _mm_shuffle_epi32(a, 0xF5);          // (-,a3,-,a1)
+__m128i b13    = _mm_shuffle_epi32(b, 0xF5);          // (-,b3,-,b1)
+__m128i prod02 = _mm_mul_epu32(a, b);                 // (-,a2*b2,-,a0*b0)
+__m128i prod13 = _mm_mul_epu32(a13, b13);             // (-,a3*b3,-,a1*b1)
+__m128i prod01 = _mm_unpacklo_epi32(prod02,prod13);   // (-,-,a1*b1,a0*b0)
+__m128i prod23 = _mm_unpackhi_epi32(prod02,prod13);   // (-,-,a3*b3,a2*b2)
+__m128i prod   = _mm_unpacklo_epi64(prod01,prod23);   // (ab3,ab2,ab1,ab0)
+*/
+
 #endif
 
 #ifndef ARM
