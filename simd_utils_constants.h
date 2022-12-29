@@ -55,8 +55,61 @@ fmadd vs fmacc, load stride vs segment, etc
 #define vfcvt_rtz_x_f_v_i32m8 vfcvt_x_f_v_i32m8
 #endif
 
+#ifndef vfcvt_rtz_x_f_v_i64m4
+#define NO_RTZ
+#define vfcvt_rtz_x_f_v_i64m4 vfcvt_x_f_v_i64m4
+#endif
+
+#ifndef vfcvt_rtz_x_f_v_i32m4
+#define NO_RTZ
+#define vfcvt_rtz_x_f_v_i32m4 vfcvt_x_f_v_i32m4
+#endif
+
 // load vector float32, 8
 // "1" in name means either vector scalar instructions, or load/store scalar to vector
+
+/* 
+# FP multiply-accumulate, overwrites addend
+vfmacc.vv vd, vs1, vs2, vm
+# vd[i] = +(vs1[i] * vs2[i]) + vd[i]
+vfmacc.vf vd, rs1, vs2, vm
+# vd[i] = +(f[rs1] * vs2[i]) + vd[i]
+# FP negate-(multiply-accumulate), overwrites subtrahend
+vfnmacc.vv vd, vs1, vs2, vm
+# vd[i] = -(vs1[i] * vs2[i]) - vd[i]
+vfnmacc.vf vd, rs1, vs2, vm
+# vd[i] = -(f[rs1] * vs2[i]) - vd[i]
+# FP multiply-subtract-accumulator, overwrites subtrahend
+vfmsac.vv vd, vs1, vs2, vm
+# vd[i] = +(vs1[i] * vs2[i]) - vd[i]
+vfmsac.vf vd, rs1, vs2, vm
+# vd[i] = +(f[rs1] * vs2[i]) - vd[i]
+# FP negate-(multiply-subtract-accumulator), overwrites minuend
+vfnmsac.vv vd, vs1, vs2, vm
+# vd[i] = -(vs1[i] * vs2[i]) + vd[i]
+vfnmsac.vf vd, rs1, vs2, vm
+# vd[i] = -(f[rs1] * vs2[i]) + vd[i]
+# FP multiply-add, overwrites multiplicand
+vfmadd.vv vd, vs1, vs2, vm
+# vd[i] = +(vs1[i] * vd[i]) + vs2[i]
+vfmadd.vf vd, rs1, vs2, vm
+# vd[i] = +(f[rs1] * vd[i]) + vs2[i]
+# FP negate-(multiply-add), overwrites multiplicand
+vfnmadd.vv vd, vs1, vs2, vm
+# vd[i] = -(vs1[i] * vd[i]) - vs2[i]
+vfnmadd.vf vd, rs1, vs2, vm
+# vd[i] = -(f[rs1] * vd[i]) - vs2[i]
+# FP multiply-sub, overwrites multiplicand
+vfmsub.vv vd, vs1, vs2, vm
+# vd[i] = +(vs1[i] * vd[i]) - vs2[i]
+vfmsub.vf vd, rs1, vs2, vm
+# vd[i] = +(f[rs1] * vd[i]) - vs2[i]
+# FP negate-(multiply-sub), overwrites multiplicand
+vfnmsub.vv vd, vs1, vs2, vm
+# vd[i] = -(vs1[i] * vd[i]) + vs2[i]
+vfnmsub.vf vd, rs1, vs2, vm
+# vd[i] = -(f[rs1] * vd[i]) + vs2[i]
+*/
 
 ///////////////////// FULL VECTOR  M8 //////////////
 #define VSETVL32 vsetvl_e32m8
@@ -74,8 +127,10 @@ fmadd vs fmacc, load stride vs segment, etc
 #define VMUL_FLOAT vfmul_vv_f32m8
 #define VMUL1_FLOAT vfmul_vf_f32m8
 #define VDIV_FLOAT vfdiv_vv_f32m8
-#define VFMA_FLOAT vfmacc_vv_f32m8  // d = a + b*c
-#define VFMA1_FLOAT vfmacc_vf_f32m8
+#define VFMACC_FLOAT vfmacc_vv_f32m8  // vd[i] = +(vs1[i] * vs2[i]) + vd[i]
+#define VFMACC1_FLOAT vfmacc_vf_f32m8
+#define VFMADD_FLOAT vfmadd_vv_f32m8 // vd[i] = +(vs1[i] * vd[i]) + vs2[i]
+#define VFMADD1_FLOAT vfmadd_vf_f32m8
 #define VFMSUB_FLOAT vfmsub_vv_f32m8  // d = a*b - c
 #define VREDSUM_FLOAT vfredosum_vs_f32m8_f32m1
 #define VREDMAX_FLOAT vfredmax_vs_f32m8_f32m1
@@ -93,15 +148,14 @@ fmadd vs fmacc, load stride vs segment, etc
 #define VMUL1_FLOAT_MASK vfmul_vf_f32m8_m
 #define VSQRT_FLOAT vfsqrt_v_f32m8
 #define VLE_FLOAT_STRIDE vlse32_v_f32m8
-#define VEQ1_FLOAT_B4 vmfeq_vf_f32m8_b4
-#define VEQ_FLOAT_B4 vmfeq_vv_f32m8_b4
-#define VGT1_FLOAT_B4 vmfgt_vf_f32m8_b4
-#define VNE1_FLOAT_B4 vmfne_vf_f32m8_b4
-#define VLT1_FLOAT_B4 vmflt_vf_f32m8_b4
-#define VLE1_FLOAT_B4 vmfle_vf_f32m8_b4
+#define VEQ1_FLOAT_BOOL vmfeq_vf_f32m8_b4
+#define VEQ_FLOAT_BOOL vmfeq_vv_f32m8_b4
+#define VGT1_FLOAT_BOOL vmfgt_vf_f32m8_b4
+#define VNE1_FLOAT_BOOL vmfne_vf_f32m8_b4
+#define VLT1_FLOAT_BOOL vmflt_vf_f32m8_b4
+#define VLE1_FLOAT_BOOL vmfle_vf_f32m8_b4
 #define VABS_FLOAT vfabs_v_f32m8
 #define VMERGE1_FLOAT vfmerge_vfm_f32m8
-#define VFMADD1_FLOAT vfmadd_vf_f32m8
 #define VGATHER_FLOAT vrgather_vv_f32m8
 
 //// DOUBLE
@@ -151,10 +205,10 @@ fmadd vs fmacc, load stride vs segment, etc
 #define VAND_INT vand_vv_i32m8
 #define VXOR_INT vxor_vv_i32m8
 #define VSLL1_INT vsll_vx_i32m8
-#define VEQ1_INT_B4 vmseq_vx_i32m8_b4
-#define VGT1_INT_B4 vmsgt_vx_i32m8_b4
-#define VNE1_INT_B4 vmsne_vx_i32m8_b4
-#define VLT1_INT_B4 vmflt_vf_f32m8_b4
+#define VEQ1_INT_BOOL vmseq_vx_i32m8_b4
+#define VGT1_INT_BOOL vmsgt_vx_i32m8_b4
+#define VNE1_INT_BOOL vmsne_vx_i32m8_b4
+#define VLT1_INT_BOOL vmflt_vf_f32m8_b4
 #define VADD1_INT_MASK vadd_vx_i32m8_m
 #define VSUB1_INT_MASK vsub_vx_i32m8_m
 #define VSUB1_INT vsub_vx_i32m8
@@ -164,6 +218,13 @@ fmadd vs fmacc, load stride vs segment, etc
 //// UINT
 #define VLOAD_UINT vle32_v_u32m8
 #define V_ELT_UINT vuint32m8_t
+
+//// BOOL
+#define V_ELT_BOOL vbool4_t
+#define VNOT_BOOL vmnot_m_b4
+#define VCLEAR_BOOL vmclr_m_b4
+#define VXOR_BOOL vmxor_mm_b4
+#define VOR_BOOL vmor_mm_b4
 
 /////////////////////////// HALF VECTOR, M4 ///////////////
 #define VSETVL32H vsetvl_e32m4
@@ -188,8 +249,10 @@ fmadd vs fmacc, load stride vs segment, etc
 #define VMUL1_FLOATH vfmul_vf_f32m4
 #define VMUL1_FLOATH_MASK vfmul_vf_f32m4_m
 #define VDIV_FLOATH vfdiv_vv_f32m4
-#define VFMA_FLOATH vfmacc_vv_f32m4  // d = a + b*c
-#define VFMA1_FLOATH vfmacc_vf_f32m4
+#define VFMACC_FLOATH vfmacc_vv_f32m4  // d = a + b*c
+#define VFMACC1_FLOATH vfmacc_vf_f32m4
+#define VFMADD_FLOATH vfmadd_vv_f32m4 // vd[i] = +(vs1[i] * vd[i]) + vs2[i]
+#define VFMADD1_FLOATH vfmadd_vf_f32m4
 #define VFMSUB_FLOATH vfmsub_vv_f32m4  // d = a*b - c
 #define VREDSUM_FLOATH vfredosum_vs_f32m4_f32m1
 #define VREDMAX_FLOATH vfredmax_vs_f32m4_f32m1
@@ -205,15 +268,14 @@ fmadd vs fmacc, load stride vs segment, etc
 #define VCVT_INTH_FLOATH vfcvt_f_x_v_f32m4
 #define VMERGE_FLOATH vmerge_vvm_f32m4
 #define VSQRT_FLOATH vfsqrt_v_f32m4
-#define VEQ1_FLOATH_B4 vmfeq_vf_f32m4_b4
-#define VEQ_FLOATH_B4 vmfeq_vv_f32m4_b4
-#define VGT1_FLOATH_B4 vmfgt_vf_f32m4_b4
-#define VNE1_FLOATH_B4 vmfne_vf_f32m4_b4
-#define VLT1_FLOATH_B4 vmflt_vf_f32m4_b4
-#define VLOAD1_FLOATH_B4 vmfle_vf_f32m4_b4
+#define VEQ1_FLOATH_BOOLH vmfeq_vf_f32m4_b8
+#define VEQ_FLOATH_BOOLH vmfeq_vv_f32m4_b8
+#define VGT1_FLOATH_BOOLH vmfgt_vf_f32m4_b8
+#define VNE1_FLOATH_BOOLH vmfne_vf_f32m4_b8
+#define VLT1_FLOATH_BOOLH vmflt_vf_f32m4_b8
+#define VLE1_FLOATH_BOOLH vmfle_vf_f32m4_b8
 #define VABS_FLOATH vfabs_v_f32m4
 #define VMERGE1_FLOATH vfmerge_vfm_f32m4
-#define VFMADD1_FLOATH vfmadd_vf_f32m4
 #define VGATHER_FLOATH vrgather_vv_f32m4
 
 //// DOUBLEH
@@ -266,16 +328,23 @@ fmadd vs fmacc, load stride vs segment, etc
 #define VAND_INTH vand_vv_i32m4
 #define VXOR_INTH vxor_vv_i32m4
 #define VSLL1_INTH vsll_vx_i32m4
-#define VEQ1_INTH_B4 vmseq_vx_i32m4_b4
-#define VGT1_INTH_B4 vmsgt_vx_i32m4_b4
-#define VNE1_INTH_B4 vmsne_vx_i32m4_b4
-#define VLT1_INTH_B4 vmflt_vf_f32m4_b4
+#define VEQ1_INTH_BOOLH vmseq_vx_i32m4_b8
+#define VGT1_INTH_BOOLH vmsgt_vx_i32m4_b8
+#define VNE1_INTH_BOOLH vmsne_vx_i32m4_b8
+#define VLT1_INTH_BOOLH vmflt_vf_f32m4_b8
 #define VOR1_INTH vor_vx_i32m4
 #define VSRA1_INTH vsra_vx_i32m4
 
 //// UINTH
 #define VLOAD_UINTH vle32_v_u32m4
 #define V_ELT_UINTH vuint32m4_t
+
+//// BOOLH
+#define V_ELT_BOOLH vbool8_t
+#define VNOT_BOOLH vmnot_m_b8
+#define VCLEAR_BOOLH vmclr_m_b8
+#define VXOR_BOOLH vmxor_mm_b8
+#define VOR_BOOLH vmor_mm_b8
 
 #endif
 
