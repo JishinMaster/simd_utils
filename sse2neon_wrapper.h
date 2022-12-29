@@ -118,8 +118,8 @@ FORCE_INLINE void _mm_mfence(void)
 
 
 #ifndef __aarch64__
-#define _MM_SHUFFLE2(fp1,fp0) \
- (((fp1) << 1) | (fp0))
+#define _MM_SHUFFLE2(fp1, fp0) \
+    (((fp1) << 1) | (fp0))
 #endif
 
 // Computes the fused multiple add product of 32-bit floating point numbers.

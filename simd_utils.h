@@ -273,7 +273,7 @@ static inline void _mm_store2u_ps(float *mem_addr, v4sfx2 a)
 
 static inline v2sdx2 _mm_load2_pd(double const *mem_addr)
 {
-#if defined(__aarch64__) 
+#if defined(__aarch64__)
     return vld2q_f64(mem_addr);
 #else
     v2sd tmp1 = _mm_load_pd(mem_addr);
@@ -287,7 +287,7 @@ static inline v2sdx2 _mm_load2_pd(double const *mem_addr)
 
 static inline v2sdx2 _mm_load2u_pd(double const *mem_addr)
 {
-#if defined(__aarch64__) 
+#if defined(__aarch64__)
     return vld2q_f64(mem_addr);
 #else
     v2sd tmp1 = _mm_loadu_pd(mem_addr);
@@ -301,7 +301,7 @@ static inline v2sdx2 _mm_load2u_pd(double const *mem_addr)
 
 static inline void _mm_store2_pd(double *mem_addr, v2sdx2 a)
 {
-#if defined(__aarch64__) 
+#if defined(__aarch64__)
     vst2q_f64(mem_addr, a);
 #else
     v2sd tmp1 = _mm_unpacklo_pd(a.val[0], a.val[1]);
@@ -313,7 +313,7 @@ static inline void _mm_store2_pd(double *mem_addr, v2sdx2 a)
 
 static inline void _mm_store2u_pd(double *mem_addr, v2sdx2 a)
 {
-#if defined(__aarch64__) 
+#if defined(__aarch64__)
     vst2q_f64(mem_addr, a);
 #else
     v2sd tmp1 = _mm_unpacklo_pd(a.val[0], a.val[1]);
@@ -650,7 +650,58 @@ static inline void _mm512_store2u_pd(double *mem_addr, v8sdx2 a)
 #endif
 
 #ifdef RISCV /* RISCV */
-#include "simd_utils_riscv.h"
+
+#ifndef __linux__
+/* Get current value of CLOCK and store it in TP.  */
+int clock_gettime(clockid_t clock_id, struct timespec *tp)
+{
+    struct timeval tv;
+    int retval = gettimeofday(&tv, NULL);
+    if (retval == 0)
+        /* Convert into `timespec'.  */
+        TIMEVAL_TO_TIMESPEC(&tv, tp);
+    return retval;
+}
+#endif
+static inline uint32_t _MM_GET_ROUNDING_MODE()
+{
+    uint32_t reg;
+    asm volatile("frrm %0"
+                 : "=r"(reg));
+    return reg;
+}
+
+static inline void _MM_SET_ROUNDING_MODE(uint32_t mode)
+{
+    uint32_t reg;
+
+    switch (mode) {
+    case _MM_ROUND_NEAREST:
+        asm volatile("fsrmi %0,0"
+                     : "=r"(reg));
+        break;
+    case _MM_ROUND_TOWARD_ZERO:  // trunc
+        asm volatile("fsrmi %0,1"
+                     : "=r"(reg));
+        break;
+    case _MM_ROUND_DOWN:
+        asm volatile("fsrmi %0,2"
+                     : "=r"(reg));
+        break;
+    case _MM_ROUND_UP:
+        asm volatile("fsrmi %0,3"
+                     : "=r"(reg));
+        break;
+    default:
+        printf("_MM_SET_ROUNDING_MODE wrong mod requested %d\n", mode);
+    }
+}
+
+
+#include "simd_utils_riscv_double.h"
+#include "simd_utils_riscv_float.h"
+#include "simd_utils_riscv_int.h"
+
 #endif /* RISCV */
 
 #ifdef ALTIVEC
