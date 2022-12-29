@@ -644,7 +644,7 @@ static inline void sumf_vec(float *src, float *dst, int len)
     acc = VREDSUM_FLOAT(acc, vacc, acc, i_last);
     vse32_v_f32m1(dst, acc, 1);
 #else
-    float acc[32];
+    float acc[MAX_ELTS32];
     int len_ori = len;
     for (; (i = VSETVL32(len)) > 0; len -= i) {
         V_ELT_FLOAT va = VLOAD_FLOAT(src_tmp, i);
@@ -1449,15 +1449,15 @@ static inline void vectorSlopef_vec(float *dst, int len, float offset, float slo
     size_t i;
     float *dst_tmp = dst;
 
-    float coef_max[32];
+    float coef_max[MAX_ELTS32];
 
     // to be improved!
-    for (int s = 0; s < 32; s++) {
+    for (int s = 0; s < MAX_ELTS32; s++) {
         coef_max[s] = (float) (s) *slope;
     }
 
     i = VSETVL32(len);
-
+    
     V_ELT_FLOAT coef = VLOAD_FLOAT(coef_max, i);
     V_ELT_FLOAT slope_vec = VLOAD1_FLOAT((float) (i) *slope, i);
     V_ELT_FLOAT curVal = VADD1_FLOAT(coef, offset, i);
@@ -1579,12 +1579,18 @@ static inline void flipf_vec(float *src, float *dst, int len)
     float *src_tmp = src + len - i;
     float *dst_tmp = dst;
 
+#if MAX_ELTS32==32
     // max vector size is 1024bits, but could be less (128bits on C906 core)
     uint32_t index[32] = {31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20,
                           19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7,
                           6, 5, 4, 3, 2, 1, 0};
+#else
+    uint32_t index[MAX_ELTS32];
+    for(int l = 0; l < MAX_ELTS32; l++)
+      index[l] = MAX_ELTS32 - l - 1;
+#endif
 
-    V_ELT_UINT index_vec = VLOAD_UINT(index + 32 - vec_size, i);
+    V_ELT_UINT index_vec = VLOAD_UINT(index + MAX_ELTS32 - vec_size, i);
     V_ELT_FLOAT a, b;
     for (; (i = VSETVL32(len)) >= vec_size; len -= i) {
         a = VLOAD_FLOAT(src_tmp, i);
@@ -1596,7 +1602,7 @@ static inline void flipf_vec(float *src, float *dst, int len)
     }
 
     if (i_last) {
-        index_vec = VLOAD_UINT(index + 32 - i_last, i_last);
+        index_vec = VLOAD_UINT(index + MAX_ELTS32 - i_last, i_last);
         a = VLOAD_FLOAT(src_tmp, i_last);
         b = VGATHER_FLOAT(a, index_vec, i_last);
         VSTORE_FLOAT(dst_tmp, b, i_last);
@@ -1613,12 +1619,19 @@ static inline void flipf_vec(float *src, float *dst, int len)
     float *src_tmp = src + len - i;
     float *dst_tmp = dst;
 
+#if MAX_ELTS32==32
     // max vector size is 1024bits, but could be less (128bits on C906 core)
     uint32_t index[32] = {31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20,
                           19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7,
                           6, 5, 4, 3, 2, 1, 0};
+#else
+    uint32_t index[MAX_ELTS32];
+    for(int l = 0; l < MAX_ELTS32; l++)
+      index[l] = MAX_ELTS32 - l - 1;
+#endif
 
-    vuint32m2_t index_vec = vle32_v_u32m2(index + 32 - vec_size, i);
+
+    vuint32m2_t index_vec = vle32_v_u32m2(index + MAX_ELTS32 - vec_size, i);
     for (; (i = vsetvl_e32m2(len)) >= vec_size; len -= i) {
         vfloat32m2_t a = vle32_v_f32m2(src_tmp, i);
         vfloat32m2_t b = vrgather_vv_f32m2(a, index_vec, i);

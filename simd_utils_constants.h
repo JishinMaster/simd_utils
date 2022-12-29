@@ -45,6 +45,18 @@ fmadd vs fmacc, load stride vs segment, etc
 #define _MM_ROUND_DOWN 2
 #define _MM_ROUND_UP 3
 
+#ifndef VECTOR_LENGTH
+#define MAX_ELTS8 1024 // 1024bits*8 registers(m8) => 1024 int8
+#define MAX_ELTS32 256 // 1024bits*8 registers(m8) => 256 float/int32
+#define MAX_ELTS64 128 // 1024bits*8 registers(m8) => 128 double/int64
+#define VECTOR_LENGTH 1024
+#else
+#define MAX_ELTS8 VECTOR_LENGTH 
+#define MAX_ELTS32 VECTOR_LENGTH/4
+#define MAX_ELTS64 VECTOR_LENGTH/8
+#endif
+
+
 #ifndef vfcvt_rtz_x_f_v_i64m8
 #define NO_RTZ
 #define vfcvt_rtz_x_f_v_i64m8 vfcvt_x_f_v_i64m8

@@ -342,10 +342,10 @@ static inline void vectorSloped_vec(double *dst, int len, double offset, double 
     size_t i;
     double *dst_tmp = dst;
 
-    double coef_max[32];
+    double coef_max[MAX_ELTS64];
 
     // to be improved!
-    for (int s = 0; s < 32; s++) {
+    for (int s = 0; s < MAX_ELTS64; s++) {
         coef_max[s] = (double) (s) *slope;
     }
 
