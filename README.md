@@ -123,7 +123,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | thresholdX_ltabs_f    (a)                             | threshold_ltabs_f_C         | ippsThreshold_LTAbs_32f        | threshold_ltabs_f_vec         |
 | thresholdX_ltval_gtval_f (a)                          | threshold_ltval_gtval_f_C   | ippsThreshold_LTValGTVal_32f   | threshold_ltval_gtval_f_vec   |
 | sinXf                                                 | sinf_C                      | ippsSin_32f_A24                | sinf_vec                      |
-| cosXf                                                 | cosf_C                      | ippsCos_32f_A24                | ?                             |
+| cosXf                                                 | cosf_C                      | ippsCos_32f_A24                | cosf_vec                      |
 | sincosXf (a)                                          | sincosf_C                   | ippsSinCos_32f_A24             | sincosf_vec                   |
 | sincosXf_interleaved (a)                              | sincosf_C_interleaved       | ippsCIS_32fc_A24               | ?                             |
 | coshXf  (a)                                           | coshf_C                     | ippsCosh_32f_A24               | ?                             |
@@ -189,15 +189,15 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | subXs   (a)                                           | subs_c                      | ?                              | subs_vec                      |
 | addcXs  (a)                                           | addcs_C                     | ?                              | addcs_vec                     |
 | vectorSlopeXs (a)                                     | vectorSlopes_C              | ippsVectorSlope_32s            | vectorSlopes_vec              |
-| flipXs  (a)                                           | flips_C                     | ?                              | ?                             |
-| maxeveryXs (a)                                        | maxeverys_c                 | ?                              | ?                             |
-| mineveryXs (a)                                        | mineverys_c                 | ?                              | ?                             |
-| minmaxXs   (a)                                        | minmaxs_c                   | ippsMinMax_32s                 | ?                             |
-| thresholdX_gt_s  (a)                                  | threshold_gt_s_C            | ippsThreshold_GT_32s           | ?                             |
-| thresholdX_gtabs_s (a)                                | threshold_gtabs_s_C         | ippsThreshold_GTAbs_32s        | ?                             |
-| thresholdX_lt_s     (a)                               | threshold_lt_s_C            | ippsThreshold_LT_32s           | ?                             |
-| thresholdX_ltabs_s  (a)                               | threshold_ltabs_s_C         | ippsThreshold_LTAbs_32s        | ?                             |
-| thresholdX_ltval_gtval_s (a)                          | threshold_ltval_gtval_s_C   | ippsThreshold_LTValGTVal_32s   | ?                             |
+| flipXs  (a)                                           | flips_C                     | ?                              | flips_vec                     |
+| maxeveryXs (a)                                        | maxeverys_c                 | ?                              | maxeverys_vec                 |
+| mineveryXs (a)                                        | mineverys_c                 | ?                              | mineverys_vec                 |
+| minmaxXs   (a)                                        | minmaxs_c                   | ippsMinMax_32s                 | minmaxs_vec                   |
+| thresholdX_gt_s  (a)                                  | threshold_gt_s_C            | ippsThreshold_GT_32s           | thresholdX_gt_s_vec           |
+| thresholdX_gtabs_s (a)                                | threshold_gtabs_s_C         | ippsThreshold_GTAbs_32s        | thresholdX_gtabs_s_vec        |
+| thresholdX_lt_s     (a)                               | threshold_lt_s_C            | ippsThreshold_LT_32s           | thresholdX_lt_s_vec           |
+| thresholdX_ltabs_s  (a)                               | threshold_ltabs_s_C         | ippsThreshold_LTAbs_32s        | thresholdX_ltabs_s_vec        |
+| thresholdX_ltval_gtval_s (a)                          | threshold_ltval_gtval_s_C   | ippsThreshold_LTValGTVal_32s   | threshold_ltval_gtval_s_vec   |
 | copyXs  (a)                                           | copys_C                     | ippsCopy_32s                   | copys_vec                     |
 | ?                                                     | ?                           | ?                              | mulcs_vec                     |
 | absdiff16s_Xs (a)                                     | absdiff16s_c                | ?                              | ?                             |

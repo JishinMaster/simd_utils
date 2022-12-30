@@ -1518,6 +1518,24 @@ int main(int argc, char **argv)
     l2_err_i32(inout_i2, inout_iref, len);
 #endif
 
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_ltval_gtval_s_vec(inout_i1, inout_i2, len, 80, 10, 100, 90);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_ltval_gtval_s_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold_ltval_gtval_s_vec(inout_i1, inout_i2, len, 80, 10, 100, 90);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold_ltval_gtval_s_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err_i32(inout_i2, inout_iref, len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// MAXEVERY //////////////////////////////////////////////////////////////////////////////
     printf("MAXEVERY\n");
@@ -10870,6 +10888,24 @@ for (int i = 0; i < len; i++){
     printf("%d %d || %d %d\n", mins_ref, mins, maxs_ref, maxs);
 #endif
 
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    minmaxs_vec(inout_i1, len, &mins, &maxs);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("minmaxs_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        minmaxs_vec(inout_i1, len, &mins, &maxs);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("minmaxs_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    printf("%d %d || %d %d\n", mins_ref, mins, maxs_ref, maxs);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// MAXEVERYS //////////////////////////////////////////////////////////////////////////////
     printf("MAXEVERYS\n");
@@ -10943,6 +10979,24 @@ for (int i = 0; i < len; i++){
     l2_err_i32(inout_i3, inout_iref, len);
 #endif
 
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    maxeverys_vec(inout_i1, inout_i2, inout_i3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("maxeverys_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        maxeverys_vec(inout_i1, inout_i2, inout_i3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("maxeverys_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err_i32(inout_i3, inout_iref, len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// MINEVERYS //////////////////////////////////////////////////////////////////////////////
     printf("MINEVERYS\n");
@@ -11012,6 +11066,24 @@ for (int i = 0; i < len; i++){
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("minevery512s %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err_i32(inout_i3, inout_iref, len);
+#endif
+
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    mineverys_vec(inout_i1, inout_i2, inout_i3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("mineverys_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        mineverys_vec(inout_i1, inout_i2, inout_i3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("mineverys_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     l2_err_i32(inout_i3, inout_iref, len);
 #endif
@@ -11111,6 +11183,24 @@ for (int i = 0; i < len; i++){
     l2_err_i32(inout_i2, inout_iref, len);
 #endif
 
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_lt_s_vec(inout_i1, inout_i2, len, 700);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_lt_s_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold_lt_s_vec(inout_i1, inout_i2, len, 500);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold_lt_s_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err_i32(inout_i2, inout_iref, len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// THRESHOLD_GTS //////////////////////////////////////////////////////////////////////////////
     printf("THRESHOLD_GTS\n");
@@ -11202,6 +11292,24 @@ for (int i = 0; i < len; i++){
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("threshold512_gt_s %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err_i32(inout_i2, inout_iref, len);
+#endif
+
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_gt_s_vec(inout_i1, inout_i2, len, 700);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_gt_s_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold_gt_s_vec(inout_i1, inout_i2, len, 500);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold_gt_s_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     l2_err_i32(inout_i2, inout_iref, len);
 #endif
@@ -11301,6 +11409,26 @@ for (int i = 0; i < len; i++){
     printf("threshold512_gtabs_s %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     l2_err_i32(inout_i2, inout_iref, len);
+#endif
+
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_gtabs_s_vec(inout_i1, inout_i2, len, 700);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_gtabs_s_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold_gtabs_s_vec(inout_i1, inout_i2, len, 500);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold_gtabs_s_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err_i32(inout_i2, inout_iref, len);
+
+    // for(int i = 0; i < len; i++) printf("%d %d %d\n", inout_i1[i], inout_i2[i], inout_iref[i]);
 #endif
 
     printf("\n");
@@ -11403,6 +11531,26 @@ for (int i = 0; i < len; i++){
         printf("%d %d %d\n",inout_i1[i],inout_i2[i],inout_iref[i]);
     }*/
 
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_ltabs_s_vec(inout_i1, inout_i2, len, 700);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_ltabs_s_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold_ltabs_s_vec(inout_i1, inout_i2, len, 500);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold_ltabs_s_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err_i32(inout_i2, inout_iref, len);
+
+    // for(int i = 0; i < len; i++) printf("%d %d %d\n", inout_i1[i], inout_i2[i], inout_iref[i]);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// FLIPS //////////////////////////////////////////////////////////////////////////////
     printf("FLIPS\n");
@@ -11465,6 +11613,22 @@ for (int i = 0; i < len; i++){
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("flip512s %d %lf\n", len, elapsed);
+    l2_err_i32(inout_iref, inout_i2, len);
+#endif
+
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    flips_vec(inout_i1, inout_i2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("flips_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        flips_vec(inout_i1, inout_i2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("flips_vec %d %lf\n", len, elapsed);
     l2_err_i32(inout_iref, inout_i2, len);
 #endif
 

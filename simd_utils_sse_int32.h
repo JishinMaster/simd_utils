@@ -690,12 +690,12 @@ static inline void threshold128_gtabs_s(int32_t *src, int32_t *dst, int len, int
             v4si src_abs2 = _mm_abs_epi32(src_tmp2);
             v4si eqmask = _mm_cmpeq_epi32(src_abs, src_tmp);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
             v4si eqmask2 = _mm_cmpeq_epi32(src_abs2, src_tmp2);
-            v4si max = _mm_min_epi32(src_tmp, pval);
-            v4si max2 = _mm_min_epi32(src_tmp2, pval);
-            v4si min = _mm_max_epi32(src_tmp, mval);
-            v4si min2 = _mm_max_epi32(src_tmp2, mval);
-            v4si dst_tmp = _mm_blendv_epi8(min, max, eqmask);
-            v4si dst_tmp2 = _mm_blendv_epi8(min2, max2, eqmask2);
+            v4si min = _mm_min_epi32(src_tmp, pval);
+            v4si min2 = _mm_min_epi32(src_tmp2, pval);
+            v4si max = _mm_max_epi32(src_tmp, mval);
+            v4si max2 = _mm_max_epi32(src_tmp2, mval);
+            v4si dst_tmp = _mm_blendv_epi8(max, min, eqmask);
+            v4si dst_tmp2 = _mm_blendv_epi8(max2, min2, eqmask2);
             _mm_store_si128((__m128i *) (dst + i), dst_tmp);
             _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), dst_tmp2);
         }
@@ -707,12 +707,12 @@ static inline void threshold128_gtabs_s(int32_t *src, int32_t *dst, int len, int
             v4si src_abs2 = _mm_abs_epi32(src_tmp2);
             v4si eqmask = _mm_cmpeq_epi32(src_abs, src_tmp);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
             v4si eqmask2 = _mm_cmpeq_epi32(src_abs2, src_tmp2);
-            v4si max = _mm_min_epi32(src_tmp, pval);
-            v4si max2 = _mm_min_epi32(src_tmp2, pval);
-            v4si min = _mm_max_epi32(src_tmp, mval);
-            v4si min2 = _mm_max_epi32(src_tmp2, mval);
-            v4si dst_tmp = _mm_blendv_epi8(min, max, eqmask);
-            v4si dst_tmp2 = _mm_blendv_epi8(min2, max2, eqmask2);
+            v4si min = _mm_min_epi32(src_tmp, pval);
+            v4si min2 = _mm_min_epi32(src_tmp2, pval);
+            v4si max = _mm_max_epi32(src_tmp, mval);
+            v4si max2 = _mm_max_epi32(src_tmp2, mval);
+            v4si dst_tmp = _mm_blendv_epi8(max, min, eqmask);
+            v4si dst_tmp2 = _mm_blendv_epi8(max2, min2, eqmask2);
             _mm_storeu_si128((__m128i *) (dst + i), dst_tmp);
             _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), dst_tmp2);
         }
