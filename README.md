@@ -83,9 +83,9 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | SSE/NEON/ALTIVEC (X=128), AVX (X=256), AVX512 (X=512) |           C_REF             |              IPP_REF           |            RISCV              |
 |-------------------------------------------------------|-----------------------------|--------------------------------|-------------------------------|
 |                                                       |                             |                                |                               |
-| log10_Xf/precise (a)                                  | log10f_C                    | ippsLog10_32f_A24              | log10_vec                     |
-| log2_Xf/precise  (a)                                  | log2f_C                     |                                | ?                             |
-| ln_Xf  (a)                                            | lnf_C                       | ippsLn_32f_A24                 | ?                             |
+| log10_Xf/precise (a)                                  | log10f_C                    | ippsLog10_32f_A24              | log10f_vec                    |
+| log2_Xf/precise  (a)                                  | log2f_C                     |                                | log2f_vec                     |
+| ln_Xf  (a)                                            | lnf_C                       | ippsLn_32f_A24                 | lnf_vec                       |
 | exp_Xf (a)                                            | expf_C                      | ippsExp_32f_A24                | ?                             |
 | cbrtXf  (a)                                           | cbrtf_C                     | ?                              | ?                             |
 | fabsXf (a)                                            | fabsf_C                     | ippsAbs_32f                    | fabsf_vec                     |

@@ -253,6 +253,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 
 //// UINT
 #define VLOAD_UINT vle32_v_u32m4
+#define VSTORE_UINT vse32_v_u32m4
 #define V_ELT_UINT vuint32m4_t
 
 //// BOOL
@@ -508,11 +509,11 @@ typedef enum {
 #define c_cephes_L10EA 4.3359375E-1f
 #define c_cephes_L10EB 7.00731903251827651129E-4f
 
-
 #define c_exp_hi 88.3762626647949f
 #define c_exp_lo -88.3762626647949f
 
 #define c_cephes_LOG2EF 1.44269504088896341
+#define c_cephes_LOG2EA 0.44269504088896340735992f
 #define c_cephes_exp_C1 0.693359375
 #define c_cephes_exp_C2 -2.12194440e-4
 
@@ -1681,25 +1682,25 @@ _PD512_CONST(tanlossth, 1.073741824e9);
 
 
 /// PRINT FUNCTIONS */
-#if 0
+#if 1
 
 
 #if defined(RISCV)
 
-static inline void print_vec(V_ELT_FLOAT vec)
+static inline void print_vec(V_ELT_FLOAT vec, int l)
 {
     float observ[32];
-    VSTORE_FLOAT(observ, vec, 32);
-    for (int i = 0; i < 32; i++)
+    VSTORE_FLOAT(observ, vec, l);
+    for (int i = 0; i < l; i++)
         printf("%0.3f ", observ[i]);
     printf("\n");
 }
 
-static inline void print_vec_int(V_ELT_INT vec)
+static inline void print_vec_int(V_ELT_INT vec, int l)
 {
     int observ[32];
-    VSTORE_INT(observ, vec, 32);
-    for (int i = 0; i < 32; i++)
+    VSTORE_INT(observ, vec, l);
+    for (int i = 0; i < l; i++)
         printf("%x ", observ[i]);
     printf("\n");
 }
@@ -1715,11 +1716,11 @@ static inline void print_bool4(vbool4_t vec)
 }
 */
 
-static inline void print_vec_uint(V_ELT_UINT vec)
+static inline void print_vec_uint(V_ELT_UINT vec, int l)
 {
     unsigned int observ[32];
-    vse32_v_u32m8(observ, vec, 32);
-    for (int i = 0; i < 32; i++)
+    vse32_v_u32m4(observ, vec, l);
+    for (int i = 0; i < l; i++)
         printf("%x ", observ[i]);
     printf("\n");
 }
@@ -1737,7 +1738,7 @@ static inline void print4_4digits(v4sf v)
 #endif
 #endif
     printf("[%3.4g, %3.4g, %3.4g, %3.4g]", p[0], p[1], p[2], p[3]);
-    //printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
+    // printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
 }
 
 static inline void print4(v4sf v)
@@ -1749,7 +1750,7 @@ static inline void print4(v4sf v)
 #endif
 #endif
     printf("[%3.24g, %3.24g, %3.24g, %3.24g]", p[0], p[1], p[2], p[3]);
-    //printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
+    // printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
 }
 
 static inline void print4x(v4sf v)
@@ -1761,7 +1762,7 @@ static inline void print4x(v4sf v)
 #endif
 #endif
     printf("[%08x, %08x, %08x, %08x]", p[0], p[1], p[2], p[3]);
-    //printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
+    // printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
 }
 
 static inline void print8xs(v8ss v)
@@ -1772,8 +1773,8 @@ static inline void print8xs(v8ss v)
     _mm_empty();
 #endif
 #endif
-    printf("[%04x, %04x, %04x, %04x, %04x, %04x, %04x, %04x]",\
-              p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+    printf("[%04x, %04x, %04x, %04x, %04x, %04x, %04x, %04x]",
+           p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
 }
 
 static inline void print16xu(v16u8 v)
@@ -1784,9 +1785,9 @@ static inline void print16xu(v16u8 v)
     _mm_empty();
 #endif
 #endif
-    printf("[%02x, %02x, %02x, %02x, %02x, %02x, %02x, %02x,%02x, %02x, %02x, %02x, %02x, %02x, %02x, %02x]",\
-            p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],\
-            p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+    printf("[%02x, %02x, %02x, %02x, %02x, %02x, %02x, %02x,%02x, %02x, %02x, %02x, %02x, %02x, %02x, %02x]",
+           p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+           p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
 }
 
 static inline void print4i(v4si v)
@@ -1809,7 +1810,7 @@ static inline void print4xi(v4si v)
 #endif
 #endif
     printf("[%08x, %08x, %08x, %08x]", p[0], p[1], p[2], p[3]);
-    //printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
+    // printf("[%0.3f, %0.3f, %0.3f, %0.3f]", p[0], p[1], p[2], p[3]);
 }
 #endif
 

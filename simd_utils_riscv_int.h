@@ -186,7 +186,7 @@ static inline void threshold_gtabs_s_vec(int32_t *src, int32_t *dst, int len, in
         V_ELT_BOOL eqmask = VEQ_INT_BOOL(src_abs, src_tmp_vec, i);
         V_ELT_INT min = VMIN1_INT(src_tmp_vec, value, i);
         V_ELT_INT max = VMAX1_INT(src_tmp_vec, -value, i);
-        V_ELT_INT dst_tmp_vec = VMERGE_INT(eqmask, max, min, i);
+        V_ELT_INT dst_tmp_vec = VMERGE_INT(eqmask, min, max, i);
         VSTORE_INT(dst_tmp, dst_tmp_vec, i);
         src_tmp += i;
         dst_tmp += i;
@@ -300,7 +300,7 @@ static inline void threshold_ltval_gtval_s_vec(int32_t *src, int32_t *dst, int l
 
 static inline void flips_vec(int32_t *src, int32_t *dst, int len)
 {
-    size_t i, i_last;
+    size_t i;
     i = VSETVL32(len);
     int vec_size = VSETVL32(4096);
     int32_t *src_tmp = src + len - i;
@@ -325,13 +325,14 @@ static inline void flips_vec(int32_t *src, int32_t *dst, int len)
         VSTORE_INT(dst_tmp, b, i);
         src_tmp -= i;
         dst_tmp += i;
-        i_last = i;
     }
 
-    if (i_last) {
-        index_vec = VLOAD_UINT(index + MAX_ELTS32 - i_last, i_last);
-        a = VLOAD_INT(src_tmp, i_last);
-        b = VGATHER_INT(a, index_vec, i_last);
-        VSTORE_INT(dst_tmp, b, i_last);
+    if (i) {
+        src_tmp = src;
+        index_vec = VLOAD_UINT(index + MAX_ELTS32 - i, i);
+        print_vec_uint(index_vec, i);
+        a = VLOAD_INT(src_tmp, i);
+        b = VGATHER_INT(a, index_vec, i);
+        VSTORE_INT(dst_tmp, b, i);
     }
 }
