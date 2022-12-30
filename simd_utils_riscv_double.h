@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if ELEN >= 64
+
 static inline void roundd_vec(double *src, double *dst, int len)
 {
     size_t i;
@@ -365,3 +367,32 @@ static inline void vectorSloped_vec(double *dst, int len, double offset, double 
         dst_tmp += i;
     }
 }
+
+#else
+
+#warning "No support for double precision functions"
+
+static inline void roundd_vec(double *src, double *dst, int len) {}
+static inline void ceild_vec(double *src, double *dst, int len) {}
+static inline void floord_vec(double *src, double *dst, int len) {}
+static inline void truncd_vec(double *src, double *dst, int len) {}
+void addd_vec(double *a, double *b, double *c, int len) {}
+static inline void addcd_vec(double *src, double value, double *dst, int len) {}
+static inline void muld_vec(double *a, double *b, double *c, int len) {}
+static inline void divd_vec(double *a, double *b, double *c, int len) {}
+static inline void subd_vec(double *a, double *b, double *c, int len) {}
+static inline void muladdd_vec(double *a, double *b, double *c, double *dst, int len) {}
+static inline void mulcaddd_vec(double *a, double b, double *c, double *dst, int len) {}
+static inline void mulcaddcd_vec(double *a, double b, double c, double *dst, int len) {}
+static inline void muladdcd_vec(double *a, double *b, double c, double *dst, int len) {}
+static inline void mulcd_vec(double *src, double value, double *dst, int len) {}
+static inline void setd_vec(double *dst, double value, int len) {}
+static inline void zerod_vec(double *dst, int len) {}
+static inline void copyd_vec(double *src, double *dst, int len) {}
+static inline void sqrtd_vec(double *src, double *dst, int len) {}
+static inline void fabsd_vec(double *src, double *dst, int len) {}
+static inline void sumd_vec(double *src, double *dst, int len) {}
+static inline void meand_vec(double *src, double *dst, int len) {}
+static inline void vectorSloped_vec(double *dst, int len, double offset, double slope) {}
+
+#endif

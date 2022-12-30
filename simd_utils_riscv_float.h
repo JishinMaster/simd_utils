@@ -209,7 +209,7 @@ static inline void mulcf_vec(float *src, float value, float *dst, int len)
     }
 }
 
-//TODO : could be improved with FMA
+// TODO : could be improved with FMA
 static inline void sinf_vec(float *src, float *dst, int len)
 {
     size_t i;
@@ -359,7 +359,7 @@ static inline void cosf_vec(float *src, float *dst, int len)
         sign_cos = VXOR_BOOL(sign_cos, jsup1, i);
 
         j1or2 = VOR_BOOL(VEQ1_INT_BOOL(j, 1, i),
-                           VEQ1_INT_BOOL(j, 2, i), i);
+                         VEQ1_INT_BOOL(j, 2, i), i);
 
         /* The magic pass: "Extended precision modular arithmetic"
         x = ((x - y * DP1) - y * DP2) - y * DP3; */
@@ -424,7 +424,7 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
     V_ELT_FLOATH coscof_2_vec = VLOAD1_FLOATH(coscof[2], i);
     V_ELT_FLOATH sincof_1_vec = VLOAD1_FLOATH(sincof[1], i);
     V_ELT_FLOATH sincof_2_vec = VLOAD1_FLOATH(sincof[2], i);
-    
+
     for (; (i = VSETVL32H(len)) > 0; len -= i) {
         V_ELT_FLOATH x = VLOAD_FLOATH(src_tmp, i);
 
@@ -468,7 +468,7 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
         sign_cos = VXOR_BOOLH(sign_cos, jsup1, i);
 
         j1or2 = VOR_BOOLH(VEQ1_INTH_BOOLH(j, 1, i),
-                           VEQ1_INTH_BOOLH(j, 2, i), i);
+                          VEQ1_INTH_BOOLH(j, 2, i), i);
 
         /* The magic pass: "Extended precision modular arithmetic"
         x = ((x - y * DP1) - y * DP2) - y * DP3; */
@@ -571,7 +571,7 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
         sign_cos = VXOR_BOOL(sign_cos, jsup1, i);
 
         j1or2 = VOR_BOOL(VEQ1_INT_BOOL(j, 1, i),
-                           VEQ1_INT_BOOL(j, 2, i), i);
+                         VEQ1_INT_BOOL(j, 2, i), i);
 
         /* The magic pass: "Extended precision modular arithmetic"
         x = ((x - y * DP1) - y * DP2) - y * DP3; */
@@ -1285,7 +1285,7 @@ static inline void fabsf_vec(float *src, float *dst, int len)
     }
 }
 
-#if 1 // should be faster
+#if 1  // should be faster
 
 static inline void log10_vec(float *src, float *dst, int len)
 {
@@ -1303,7 +1303,7 @@ static inline void log10_vec(float *src, float *dst, int len)
     V_ELT_FLOATH c_cephes_log_p6_vec = VLOAD1_FLOATH(c_cephes_log_p6, i);
     V_ELT_FLOATH c_cephes_log_p7_vec = VLOAD1_FLOATH(c_cephes_log_p7, i);
     V_ELT_FLOATH c_cephes_log_p8_vec = VLOAD1_FLOATH(c_cephes_log_p8, i);
-    
+
     for (; (i = VSETVL32H(len)) > 0; len -= i) {
         V_ELT_FLOATH x = VLOAD_FLOATH(src_tmp, i);
         V_ELT_INTH imm0;
@@ -1354,7 +1354,7 @@ static inline void log10_vec(float *src, float *dst, int len)
         z = VADD_FLOATH(z, tmp2, i);
         tmp2 = VMUL1_FLOATH(e, c_cephes_L102A, i);
         x = VADD_FLOATH(z, tmp2, i);
-        
+
         // print_vec(x);printf("\n");
         // could we use merge function? VMERGE_FLOATH? create a nan vec?
         x = VMERGE1_FLOATH(invalid_mask, x, 0xFFFFFFFF, i);
@@ -1457,7 +1457,7 @@ static inline void vectorSlopef_vec(float *dst, int len, float offset, float slo
     }
 
     i = VSETVL32(len);
-    
+
     V_ELT_FLOAT coef = VLOAD_FLOAT(coef_max, i);
     V_ELT_FLOAT slope_vec = VLOAD1_FLOAT((float) (i) *slope, i);
     V_ELT_FLOAT curVal = VADD1_FLOAT(coef, offset, i);
@@ -1579,15 +1579,15 @@ static inline void flipf_vec(float *src, float *dst, int len)
     float *src_tmp = src + len - i;
     float *dst_tmp = dst;
 
-#if MAX_ELTS32==32
+#if MAX_ELTS32 == 32
     // max vector size is 1024bits, but could be less (128bits on C906 core)
     uint32_t index[32] = {31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20,
                           19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7,
                           6, 5, 4, 3, 2, 1, 0};
 #else
     uint32_t index[MAX_ELTS32];
-    for(int l = 0; l < MAX_ELTS32; l++)
-      index[l] = MAX_ELTS32 - l - 1;
+    for (int l = 0; l < MAX_ELTS32; l++)
+        index[l] = MAX_ELTS32 - l - 1;
 #endif
 
     V_ELT_UINT index_vec = VLOAD_UINT(index + MAX_ELTS32 - vec_size, i);
@@ -1619,15 +1619,15 @@ static inline void flipf_vec(float *src, float *dst, int len)
     float *src_tmp = src + len - i;
     float *dst_tmp = dst;
 
-#if MAX_ELTS32==32
+#if MAX_ELTS32 == 32
     // max vector size is 1024bits, but could be less (128bits on C906 core)
     uint32_t index[32] = {31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20,
                           19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7,
                           6, 5, 4, 3, 2, 1, 0};
 #else
     uint32_t index[MAX_ELTS32];
-    for(int l = 0; l < MAX_ELTS32; l++)
-      index[l] = MAX_ELTS32 - l - 1;
+    for (int l = 0; l < MAX_ELTS32; l++)
+        index[l] = MAX_ELTS32 - l - 1;
 #endif
 
 
@@ -1647,6 +1647,7 @@ static inline void flipf_vec(float *src, float *dst, int len)
 }
 #endif
 
+#if ELEN >= 64
 static inline void convert_32f64f_vec(float *src, double *dst, int len)
 {
     size_t i;
@@ -1672,3 +1673,12 @@ static inline void convert_64f32f_vec(double *src, float *dst, int len)
         dst_tmp += i;
     }
 }
+#else
+
+#warning "No support for double precision functions"
+static inline void convert_32f64f_vec(float *src, double *dst, int len)
+{
+}
+static inline void convert_64f32f_vec(double *src, float *dst, int len) {}
+
+#endif  // ELEN >= 64
