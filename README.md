@@ -201,7 +201,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | copyXs  (a)                                           | copys_C                     | ippsCopy_32s                   | copys_vec                     |
 | ?                                                     | ?                           | ?                              | mulcs_vec                     |
 | absdiff16s_Xs (a)                                     | absdiff16s_c                | ?                              | ?                             |
-| sum16s32sX (a)                                        | sum16s32s_C                 | ippsSum_16s32s_Sfs             | ?                             |
+| sum16s32sX (a)                                        | sum16s32s_C                 | ippsSum_16s32s_Sfs             | sum16s32s_vec                 |
 | ?                                                     | ors_c                       | ippsOr_32u                     | ?                             |
 | ?                                                     | ands_c                      | ippsAnd_32u                    | ?                             |
 | sigmoidXf  (a)                                        | sigmoidf_C                  | ?                              | ?                             |

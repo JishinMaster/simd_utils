@@ -10887,6 +10887,22 @@ for (int i = 0; i < len; i++){
     printf("%d %d\n", inout_iref[0], inout_i1[0]);
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    sum16s32s_vec(inout_s1, len, &inout_i1[0], 3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sum16s32s_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sum16s32s_vec(inout_s1, len, &inout_i1[0], 3);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sum16s32s_vec %d %lf\n", len, elapsed);
+    printf("%d %d\n", inout_iref[0], inout_i1[0]);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// MINMAX //////////////////////////////////////////////////////////////////////////////
     printf("MINMAXS\n");

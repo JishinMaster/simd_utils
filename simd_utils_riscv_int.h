@@ -335,3 +335,23 @@ static inline void flips_vec(int32_t *src, int32_t *dst, int len)
         VSTORE_INT(dst_tmp, b, i);
     }
 }
+
+//Could it be improved? would need proper latency & cpi
+static inline void sum16s32s_vec(int16_t *src, int len, int32_t *dst, int scale_factor)
+{
+    size_t i;
+    int16_t *src_tmp = src;
+    int16_t scale = 1 << scale_factor;
+    *dst = 0;
+    
+    i = VSETVL16(len);
+    vint32m1_t tmp = vmv_v_x_i32m1(0, i);
+        
+    for (; (i = VSETVL16(len)) > 0; len -= i) {
+        V_ELT_SHORT va = VLOAD_SHORT(src_tmp, i);
+        tmp = VREDSUMW_SHORT(tmp, va, tmp, i);
+        src_tmp += i;
+    }
+    vse32_v_i32m1(dst, tmp, 1);
+    *dst /= scale;
+}

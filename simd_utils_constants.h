@@ -130,6 +130,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 
 ///////////////////// FULL VECTOR  m4 //////////////
 #define VSETVL32 vsetvl_e32m4
+#define VSETVL16 vsetvl_e16m4
 
 #if ELEN >= 64
 #define VSETVL64 vsetvl_e64m4
@@ -256,6 +257,14 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VSTORE_UINT vse32_v_u32m4
 #define V_ELT_UINT vuint32m4_t
 
+//// SHORT
+#define V_ELT_SHORT vint16m4_t
+#define VLOAD_SHORT vle16_v_i16m4
+#define VLOAD1_SHORT vmv_v_x_i16m4
+#define VSTORE_SHORT vse16_v_i16m4
+#define VADD_SHORT vadd_vv_i16m4
+#define VREDSUMW_SHORT vwredsum_vs_i16m4_i32m1
+
 //// BOOL
 #define V_ELT_BOOL vbool8_t
 #define VNOT_BOOL vmnot_m_b8
@@ -267,6 +276,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 
 /////////////////////////// HALF VECTOR, m2 ///////////////
 #define VSETVL32H vsetvl_e32m2
+#define VSETVL16H vsetvl_e16m2
 
 #if ELEN >= 64
 #define VSETVL64H vsetvl_e64m2
@@ -386,6 +396,14 @@ vfnmsub.vf vd, rs1, vs2, vm
 //// UINTH
 #define VLOAD_UINTH vle32_v_u32m2
 #define V_ELT_UINTH vuint32m2_t
+
+//// SHORT
+#define V_ELT_SHORTH vint16m2_t
+#define VLOAD_SHORTH vle16_v_i16m2
+#define VLOAD1_SHORTH vmv_v_x_i16m2
+#define VSTORE_SHORTH vse16_v_i16m2
+#define VADD_SHORTH vadd_vv_i16m2
+#define VREDSUMW_SHORTH vwredsum_vs_i16m4_i32m1
 
 //// BOOLH
 #define V_ELT_BOOLH vbool16_t
