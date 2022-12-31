@@ -262,6 +262,8 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VCLEAR_BOOL vmclr_m_b8
 #define VXOR_BOOL vmxor_mm_b8
 #define VOR_BOOL vmor_mm_b8
+#define VAND_BOOL vmand_mm_b8
+#define VANDNOT_BOOL vmandn_mm_b8
 
 /////////////////////////// HALF VECTOR, m2 ///////////////
 #define VSETVL32H vsetvl_e32m2
@@ -391,6 +393,9 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VCLEAR_BOOLH vmclr_m_b16
 #define VXOR_BOOLH vmxor_mm_b16
 #define VOR_BOOLH vmor_mm_b16
+#define VAND_BOOLH vmand_mm_b16
+#define VANDNOT_BOOLH vmandn_mm_b16
+//#define VANDNOT_BOOLH vmnand_mm_b16
 
 #endif  // RISCV
 
@@ -417,6 +422,11 @@ vfnmsub.vf vd, rs1, vs2, vm
 
 static const float FOPI = 1.27323954473516f;
 static const float PIO4F = 0.7853981633974483096f;
+
+#define PIF 3.14159265358979323846f      // PI
+#define mPIF -3.14159265358979323846f    // -PI
+#define PIO2F 1.57079632679489661923f    // PI/2 1.570796326794896619
+#define mPIO2F -1.57079632679489661923f  // -PI/2 1.570796326794896619
 
 /* Note, these constants are for a 32-bit significand: */
 /*
@@ -535,6 +545,64 @@ typedef enum {
 #define c_coscof_p2 4.166664568298827E-002
 #define c_cephes_FOPI 1.27323954473516  // 4 / M_PI
 
+#define ATAN_P0 8.05374449538e-2f
+#define ATAN_P1 -1.38776856032E-1f
+#define ATAN_P2 1.99777106478E-1f
+#define ATAN_P3 -3.33329491539E-1f
+
+#define TAN_P0 9.38540185543E-3f
+#define TAN_P1 3.11992232697E-3f
+#define TAN_P2 2.44301354525E-2f
+#define TAN_P3 5.34112807005E-2f
+#define TAN_P4 1.33387994085E-1f
+#define TAN_P5 3.33331568548E-1f
+
+#define ASIN_P0 4.2163199048E-2f
+#define ASIN_P1 2.4181311049E-2f
+#define ASIN_P2 4.5470025998E-2f
+#define ASIN_P3 7.4953002686E-2f
+#define ASIN_P4 1.6666752422E-1f
+
+#define TANH_P0 -5.70498872745E-3f
+#define TANH_P1 2.06390887954E-2f
+#define TANH_P2 -5.37397155531E-2f
+#define TANH_P3 1.33314422036E-1f
+#define TANH_P4 -3.33332819422E-1f
+
+#define SINH_P0 2.03721912945E-4f
+#define SINH_P1 8.33028376239E-3f
+#define SINH_P2 1.66667160211E-1f
+
+#define ATANH_P0 1.81740078349E-1f
+#define ATANH_P1 8.24370301058E-2f
+#define ATANH_P2 1.46691431730E-1f
+#define ATANH_P3 1.99782164500E-1f
+#define ATANH_P4 3.33337300303E-1f
+
+#define LOGE2F 0.693147180559945309f
+#define ASINH_P0 2.0122003309E-2f
+#define ASINH_P1 -4.2699340972E-2f
+#define ASINH_P2 7.4847586088E-2f
+#define ASINH_P3 -1.6666288134E-1f
+
+#define ACOSH_P0 1.7596881071E-3f
+#define ACOSH_P1 -7.5272886713E-3f
+#define ACOSH_P2 2.6454905019E-2f
+#define ACOSH_P3 -1.1784741703E-1f
+#define ACOSH_P4 1.4142135263E0f
+
+#define cephes_CBRT2 1.25992104989487316477f
+#define cephes_CBRT4 1.58740105196819947475f
+#define cephes_invCBRT2 0.7937005259840997373740956123328f
+#define cephes_invCBRT4 0.6299605249474365823842821870329f
+#define CBRTF_P0 -0.13466110473359520655053f
+#define CBRTF_P1 0.54664601366395524503440f
+#define CBRTF_P2 -0.95438224771509446525043f
+#define CBRTF_P3 1.1399983354717293273738f
+#define CBRTF_P4 0.40238979564544752126924f
+
+#define TANPI8F 0.414213562373095048802f   // tan(pi/8) => 0.4142135623730950
+#define TAN3PI8F 2.414213562373095048802f  // tan(3*pi/8) => 2.414213562373095
 
 #ifdef ALTIVEC
 
@@ -1682,8 +1750,7 @@ _PD512_CONST(tanlossth, 1.073741824e9);
 
 
 /// PRINT FUNCTIONS */
-#if 1
-
+#if 0
 
 #if defined(RISCV)
 
@@ -1691,6 +1758,15 @@ static inline void print_vec(V_ELT_FLOAT vec, int l)
 {
     float observ[32];
     VSTORE_FLOAT(observ, vec, l);
+    for (int i = 0; i < l; i++)
+        printf("%0.3f ", observ[i]);
+    printf("\n");
+}
+
+static inline void print_vech(V_ELT_FLOATH vec, int l)
+{
+    float observ[32];
+    VSTORE_FLOATH(observ, vec, l);
     for (int i = 0; i < l; i++)
         printf("%0.3f ", observ[i]);
     printf("\n");

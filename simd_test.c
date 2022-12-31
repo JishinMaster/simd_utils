@@ -8078,6 +8078,23 @@ int main(int argc, char **argv)
 
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    asinhf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asinhf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        asinhf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("asinhf_vec %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2, len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// ACOSH //////////////////////////////////////////////////////////////////////////////
     printf("ACOSH\n");
@@ -8254,6 +8271,23 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2, len);
 #endif
 
+#endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    acoshf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("acoshf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        acoshf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("acoshf_vec %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2, len);
 #endif
 
     printf("\n");
@@ -8750,6 +8784,26 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2, len);
 #endif
 
+// Work in progress
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    atanf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atanf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atanf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atanf_vec %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+
+    // for(int i = 0; i < len; i++)
+    //   printf("%f %f %f\n", inout[i], inout2[i], inout_ref[i]);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// ATANF2 //////////////////////////////////////////////////////////////////////////////
     printf("ATANF2\n");
@@ -8919,6 +8973,22 @@ for (int i = 0; i < len; i++){
     l2_err(inout2_ref, inout_ref, len);
 #endif
 
+#endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2f_vec(inout, inout2, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2f_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atan2f_vec(inout, inout2, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atan2f_vec %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout_ref, len);
 #endif
 
     printf("\n");

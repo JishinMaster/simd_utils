@@ -2472,7 +2472,6 @@ static inline v4sf atanf_ps(v4sf xx)
     x = _mm_blendv_ps(x, _mm_div_ps(*(v4sf *) _ps_min1, x), suptan3pi8);
     y = _mm_blendv_ps(y, *(v4sf *) _ps_PIO2F, suptan3pi8);
 
-
     inftan3pi8suppi8 = _mm_and_ps(_mm_cmple_ps(x, *(v4sf *) _ps_TAN3PI8F), _mm_cmpgt_ps(x, *(v4sf *) _ps_TANPI8F));  // if( x > tan 3pi/8 )
 
     // To be optimised with RCP?

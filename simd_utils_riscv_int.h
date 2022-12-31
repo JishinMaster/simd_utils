@@ -330,7 +330,6 @@ static inline void flips_vec(int32_t *src, int32_t *dst, int len)
     if (i) {
         src_tmp = src;
         index_vec = VLOAD_UINT(index + MAX_ELTS32 - i, i);
-        print_vec_uint(index_vec, i);
         a = VLOAD_INT(src_tmp, i);
         b = VGATHER_INT(a, index_vec, i);
         VSTORE_INT(dst_tmp, b, i);
