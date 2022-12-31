@@ -128,11 +128,11 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | sincosXf_interleaved (a)                              | sincosf_C_interleaved       | ippsCIS_32fc_A24               | ?                             |
 | coshXf  (a)                                           | coshf_C                     | ippsCosh_32f_A24               | ?                             |
 | sinhXf  (a)                                           | sinhf_C                     | ippsSinh_32f_A24               | ?                             |
-| acoshXf (a)                                           | acoshf_C                    | ippsAcosh_32f_A24              | ?                             |
-| asinhXf (a)                                           | asinhf_C                    | ippsAsinh_32f_A24              | ?                             |
+| acoshXf (a)                                           | acoshf_C                    | ippsAcosh_32f_A24              | acoshf_vec                    |
+| asinhXf (a)                                           | asinhf_C                    | ippsAsinh_32f_A24              | asinhf_vec                    |
 | atanhXf (a)                                           | atanhf_C                    | ippsAtanh_32f_A24              | ?                             |
-| atanXf  (a)                                           | atanf_C                     | ippsAtan_32f_A24               | ?                             |
-| atan2Xf (a)                                           | atan2f_C                    | ippsAtan2_32f_A24              | ?                             |
+| atanXf  (a)                                           | atanf_C                     | ippsAtan_32f_A24               | atanf_vec                     |
+| atan2Xf (a)                                           | atan2f_C                    | ippsAtan2_32f_A24              | atan2f_vec                    |
 | atan2Xf_interleaved (a)                               | atan2f_interleaved_C        | ?                              | ?                             |
 | asinXf (a)                                            | asinf_C                     | ippsAsin_32f_A24               | ?                             |
 | tanhXf (a)                                            | tanhf_C                     | ippsTanh_32f_A24               | ?                             |
