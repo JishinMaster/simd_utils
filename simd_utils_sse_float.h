@@ -2760,7 +2760,7 @@ static inline v4sf tanf_ps(v4sf xx)
     y = _mm_round_ps(tmp, ROUNDTOZERO);
 #endif
 
-    jandone = _mm_cmpgt_epi32(_mm_and_si128(j, *(v4si *) _pi32_1), _mm_setzero_si128());  // Ok?
+    jandone = _mm_cmpgt_epi32(_mm_and_si128(j, *(v4si *) _pi32_1), _mm_setzero_si128());
     tmp = _mm_and_ps(*(v4sf *) _ps_1, _mm_castsi128_ps(jandone));
     y = _mm_add_ps(y, tmp);
     tmpi = _mm_and_si128(*(v4si *) _pi32_1, jandone);
@@ -2781,7 +2781,7 @@ static inline v4sf tanf_ps(v4sf xx)
     tmp = _mm_fmadd_ps_custom(tmp, zz, *(v4sf *) _ps_TAN_P5);
     tmp = _mm_mul_ps(zz, tmp);
 
-#if 1  // _mm_fmadd_ps_custom(tmp, z, z) has to been optimised to tmp*z and the + z is merged after
+#if 1  // _mm_fmadd_ps_custom(tmp, z, z) has been optimised to tmp*z and the + z is merged after.
        // some targets, with no FMA or slow blendv should see improvements
     tmp = _mm_mul_ps(tmp, z);
     xsupem4 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1em4);  // if( x > 1.0e-4 )

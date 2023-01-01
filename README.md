@@ -86,7 +86,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | log10_Xf/precise (a)                                  | log10f_C                    | ippsLog10_32f_A24              | log10f_vec                    |
 | log2_Xf/precise  (a)                                  | log2f_C                     |                                | log2f_vec                     |
 | ln_Xf  (a)                                            | lnf_C                       | ippsLn_32f_A24                 | lnf_vec                       |
-| exp_Xf (a)                                            | expf_C                      | ippsExp_32f_A24                | ?                             |
+| exp_Xf (a)                                            | expf_C                      | ippsExp_32f_A24                | expf_vec                      |
 | cbrtXf  (a)                                           | cbrtf_C                     | ?                              | ?                             |
 | fabsXf (a)                                            | fabsf_C                     | ippsAbs_32f                    | fabsf_vec                     |
 | setXf  (a)                                            | setf_C                      | ippsSet_32f                    | setf_vec                      |
@@ -126,11 +126,11 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | cosXf                                                 | cosf_C                      | ippsCos_32f_A24                | cosf_vec                      |
 | sincosXf (a)                                          | sincosf_C                   | ippsSinCos_32f_A24             | sincosf_vec                   |
 | sincosXf_interleaved (a)                              | sincosf_C_interleaved       | ippsCIS_32fc_A24               | ?                             |
-| coshXf  (a)                                           | coshf_C                     | ippsCosh_32f_A24               | ?                             |
-| sinhXf  (a)                                           | sinhf_C                     | ippsSinh_32f_A24               | ?                             |
+| coshXf  (a)                                           | coshf_C                     | ippsCosh_32f_A24               | coshf_vec                     |
+| sinhXf  (a)                                           | sinhf_C                     | ippsSinh_32f_A24               | sinhf_vec                     |
 | acoshXf (a)                                           | acoshf_C                    | ippsAcosh_32f_A24              | acoshf_vec                    |
 | asinhXf (a)                                           | asinhf_C                    | ippsAsinh_32f_A24              | asinhf_vec                    |
-| atanhXf (a)                                           | atanhf_C                    | ippsAtanh_32f_A24              | ?                             |
+| atanhXf (a)                                           | atanhf_C                    | ippsAtanh_32f_A24              | atanh_vec                     |
 | atanXf  (a)                                           | atanf_C                     | ippsAtan_32f_A24               | atanf_vec                     |
 | atan2Xf (a)                                           | atan2f_C                    | ippsAtan2_32f_A24              | atan2f_vec                    |
 | atan2Xf_interleaved (a)                               | atan2f_interleaved_C        | ?                              | ?                             |

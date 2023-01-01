@@ -6047,6 +6047,22 @@ int main(int argc, char **argv)
 
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    expf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("expf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        expf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("expf_vec %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
     /*for(int i = 0; i < len; i++)
           printf("%f %f %f\n",inout[i],inout2_ref[i], inout2[i]);
         printf("\n\n");*/
@@ -7061,6 +7077,23 @@ int main(int argc, char **argv)
 
 #endif
 
+    /*
+    #ifdef RISCV
+        clock_gettime(CLOCK_REALTIME, &start);
+        tanf_vec(inout, inout2, len);
+        clock_gettime(CLOCK_REALTIME, &stop);
+        elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+        printf("tanf_vec %d %lf\n", len, elapsed);
+
+        clock_gettime(CLOCK_REALTIME, &start);
+        for (l = 0; l < loop; l++)
+            tanf_vec(inout, inout2, len);
+        clock_gettime(CLOCK_REALTIME, &stop);
+        elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+        printf("tanf_vec %d %lf\n", len, elapsed);
+        l2_err(inout_ref, inout2, len);
+    #endif
+    */
     printf("\n");
     /////////////////////////////////////////////////////////// TAN //////////////////////////////////////////////////////////////////////////////
     printf("TAN\n");
@@ -7556,6 +7589,23 @@ int main(int argc, char **argv)
 
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    sinhf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sinhf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sinhf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sinhf_vec %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2, len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// COSH //////////////////////////////////////////////////////////////////////////////
     printf("COSH\n");
@@ -7724,6 +7774,23 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2, len);
 #endif
 
+#endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    coshf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("coshf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        coshf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("coshf_vec %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2, len);
 #endif
 
     printf("\n");
@@ -7900,6 +7967,23 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2, len);
 #endif
 
+#endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    atanhf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atanhf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atanhf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atanhf_vec %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2, len);
 #endif
 
     printf("\n");

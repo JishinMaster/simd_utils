@@ -148,6 +148,8 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VMUL_FLOAT vfmul_vv_f32m4
 #define VMUL1_FLOAT vfmul_vf_f32m4
 #define VDIV_FLOAT vfdiv_vv_f32m4
+#define VDIV1_FLOAT vfdiv_vf_f32m4
+#define VRDIV1_FLOAT vfrdiv_vf_f32m4
 #define VFMACC_FLOAT vfmacc_vv_f32m4  // vd[i] = +(vs1[i] * vs2[i]) + vd[i]
 #define VFMACC1_FLOAT vfmacc_vf_f32m4
 #define VFMADD_FLOAT vfmadd_vv_f32m4  // vd[i] = +(vs1[i] * vd[i]) + vs2[i]
@@ -251,6 +253,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VREDMAX_INT vredmax_vs_i32m4_i32m1
 #define VREDMIN_INT vredmin_vs_i32m4_i32m1
 #define VGATHER_INT vrgather_vv_i32m4
+#define VNOT_INT vnot_v_i32m4
 
 //// UINT
 #define VLOAD_UINT vle32_v_u32m4
@@ -296,11 +299,14 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VADD_FLOATH vfadd_vv_f32m2
 #define VADD1_FLOATH vfadd_vf_f32m2
 #define VSUB_FLOATH vfsub_vv_f32m2
-#define VSUB1_FLOATH vfsub_vf_f32m2
+#define VSUB1_FLOATH vfsub_vf_f32m2    // v2 = v1 - f
+#define VRSUB1_FLOATH vfrsub_vf_f32m2  // v2 = f - v1
 #define VMUL_FLOATH vfmul_vv_f32m2
 #define VMUL1_FLOATH vfmul_vf_f32m2
 #define VMUL1_FLOATH_MASK vfmul_vf_f32m2_m
 #define VDIV_FLOATH vfdiv_vv_f32m2
+#define VDIV1_FLOATH vfdiv_vf_f32m2
+#define VRDIV1_FLOATH vfrdiv_vf_f32m2
 #define VFMACC_FLOATH vfmacc_vv_f32m2  // d = a + b*c
 #define VFMACC1_FLOATH vfmacc_vf_f32m2
 #define VFMADD_FLOATH vfmadd_vv_f32m2  // vd[i] = +(vs1[i] * vd[i]) + vs2[i]
@@ -322,6 +328,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VSQRT_FLOATH vfsqrt_v_f32m2
 #define VEQ1_FLOATH_BOOLH vmfeq_vf_f32m2_b16
 #define VEQ_FLOATH_BOOLH vmfeq_vv_f32m2_b16
+#define VGE1_FLOATH_BOOLH vmfge_vf_f32m2_b16
 #define VGT1_FLOATH_BOOLH vmfgt_vf_f32m2_b16
 #define VNE1_FLOATH_BOOLH vmfne_vf_f32m2_b16
 #define VLT1_FLOATH_BOOLH vmflt_vf_f32m2_b16
@@ -392,6 +399,8 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VMIN1_INTH vmin_vx_i32m2
 #define VMAX_INTH vmax_vv_i32m2
 #define VMAX1_INTH vmax_vx_i32m2
+#define VNOT_INTH vnot_v_i32m2
+#define VMERGE_INTH vmerge_vvm_i32m2
 
 //// UINTH
 #define VLOAD_UINTH vle32_v_u32m2
@@ -469,6 +478,7 @@ static const float coscof[] = {2.443315711809948E-5f, -1.388731625493765E-3f,
 #define SIGN_MASK 0x80000000
 static const int32_t sign_mask = SIGN_MASK;
 static const int32_t inv_sign_mask = ~SIGN_MASK;
+#define neg_sign_mask ~0x7FFFFFFF
 #define min_norm_pos 0x00800000
 #define INVLN10 0.4342944819032518f  // 0.4342944819f
 #define INVLN2 1.4426950408889634f   // 1.44269504089f
@@ -540,28 +550,30 @@ typedef enum {
 #define c_exp_hi 88.3762626647949f
 #define c_exp_lo -88.3762626647949f
 
-#define c_cephes_LOG2EF 1.44269504088896341
+#define c_cephes_LOG2EF 1.44269504088896341f
 #define c_cephes_LOG2EA 0.44269504088896340735992f
-#define c_cephes_exp_C1 0.693359375
-#define c_cephes_exp_C2 -2.12194440e-4
+#define c_cephes_exp_C1 0.693359375f
+#define c_cephes_exp_C2 -2.12194440e-4f
 
-#define c_cephes_exp_p0 1.9875691500E-4
-#define c_cephes_exp_p1 1.3981999507E-3
-#define c_cephes_exp_p2 8.3334519073E-3
-#define c_cephes_exp_p3 4.1665795894E-2
-#define c_cephes_exp_p4 1.6666665459E-1
-#define c_cephes_exp_p5 5.0000001201E-1
+#define c_cephes_exp_p0 1.9875691500E-4f
+#define c_cephes_exp_p1 1.3981999507E-3f
+#define c_cephes_exp_p2 8.3334519073E-3f
+#define c_cephes_exp_p3 4.1665795894E-2f
+#define c_cephes_exp_p4 1.6666665459E-1f
+#define c_cephes_exp_p5 5.0000001201E-1f
 
-#define c_minus_cephes_DP1 -0.78515625
-#define c_minus_cephes_DP2 -2.4187564849853515625e-4
-#define c_minus_cephes_DP3 -3.77489497744594108e-8
-#define c_sincof_p0 -1.9515295891E-4
-#define c_sincof_p1 8.3321608736E-3
-#define c_sincof_p2 -1.6666654611E-1
-#define c_coscof_p0 2.443315711809948E-005
-#define c_coscof_p1 -1.388731625493765E-003
-#define c_coscof_p2 4.166664568298827E-002
-#define c_cephes_FOPI 1.27323954473516  // 4 / M_PI
+// TODO redundant with previous static float definitions, one should be removed
+#define c_minus_cephes_DP1 -0.78515625f
+#define c_minus_cephes_DP2 -2.4187564849853515625e-4f
+#define c_minus_cephes_DP3 -3.77489497744594108e-8f
+
+#define c_sincof_p0 -1.9515295891E-4f
+#define c_sincof_p1 8.3321608736E-3f
+#define c_sincof_p2 -1.6666654611E-1f
+#define c_coscof_p0 2.443315711809948E-005f
+#define c_coscof_p1 -1.388731625493765E-003f
+#define c_coscof_p2 4.166664568298827E-002f
+#define c_cephes_FOPI 1.27323954473516f  // 4 / M_PI
 
 #define ATAN_P0 8.05374449538e-2f
 #define ATAN_P1 -1.38776856032E-1f
@@ -621,6 +633,11 @@ typedef enum {
 
 #define TANPI8F 0.414213562373095048802f   // tan(pi/8) => 0.4142135623730950
 #define TAN3PI8F 2.414213562373095048802f  // tan(3*pi/8) => 2.414213562373095
+
+static const float MAXNUMF = 3.4028234663852885981170418348451692544e38f;
+
+#define MAXLOGF 88.72283905206835f
+#define MINLOGF -103.278929903431851103f
 
 #ifdef ALTIVEC
 

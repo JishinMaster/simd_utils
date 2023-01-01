@@ -309,7 +309,6 @@ static inline void sinf_vec(float *src, float *dst, int len)
 #endif
 }
 
-// TODO : could be improved
 static inline void cosf_vec(float *src, float *dst, int len)
 {
     size_t i;
@@ -322,78 +321,70 @@ static inline void cosf_vec(float *src, float *dst, int len)
     _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
 #endif
 
-    for (; (i = VSETVL32(len)) > 0; len -= i) {
-        V_ELT_FLOAT x = VLOAD_FLOAT(src_tmp, i);
+    i = VSETVL32H(len);
+    V_ELT_FLOATH c_coscof_p1_vec = VLOAD1_FLOATH(c_coscof_p1, i);
+    V_ELT_FLOATH c_coscof_p2_vec = VLOAD1_FLOATH(c_coscof_p2, i);
+    V_ELT_FLOATH c_sincof_p1_vec = VLOAD1_FLOATH(c_sincof_p1, i);
+    V_ELT_FLOATH c_sincof_p2_vec = VLOAD1_FLOATH(c_sincof_p2, i);
 
-        V_ELT_FLOAT y;
-        V_ELT_INT j;
-        V_ELT_BOOL jandone, jsup3, jsup1, j1or2;
-        V_ELT_BOOL sign_cos;
+    for (; (i = VSETVL32H(len)) > 0; len -= i) {
+        V_ELT_FLOATH x = VLOAD_FLOATH(src_tmp, i);
+        V_ELT_FLOATH xmm3, y;
 
-        sign_cos = VCLEAR_BOOL(i);
+        V_ELT_INTH emm0, emm2;
 
         /* take the absolute value */
-        x = VINTERP_INT_FLOAT(VAND1_INT(VINTERP_FLOAT_INT(x), inv_sign_mask, i));
+        x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(x), inv_sign_mask, i));
 
         /* scale by 4/Pi */
-        y = VMUL1_FLOAT(x, FOPI, i);
+        y = VMUL1_FLOATH(x, FOPI, i);
 
-        /* store the integer part of y in mm2 */
-        j = VCVT_RTZ_FLOAT_INT(y, i);
+        /* store the integer part of y in mm0 */
+        emm2 = VCVT_FLOATH_INTH(y, i);
+        /* j=(j+1) & (~1) (see the cephes sources) */
+        emm2 = VADD1_INTH(emm2, 1, i);
+        emm2 = VAND1_INTH(emm2, ~1, i);
+        y = VCVT_INTH_FLOATH(emm2, i);
 
-        // if (j&1))
-        jandone = VNE1_INT_BOOL(VAND1_INT(j, 1, i), 0, i);
-        j = VADD1_INT_MASK(jandone, j, j, 1, i);
-        y = VCVT_INT_FLOAT(j, i);
+        emm2 = VSUB1_INTH(emm2, 2, i);
 
-        // j&=7
-        j = VAND1_INT(j, 7, i);
-
-        // if (j > 3)
-        jsup3 = VGT1_INT_BOOL(j, 3, i);
-        sign_cos = VXOR_BOOL(sign_cos, jsup3, i);
-        j = VSUB1_INT_MASK(jsup3, j, j, 4, i);
-
-        // if (j > 1)
-        jsup1 = VGT1_INT_BOOL(j, 1, i);
-        sign_cos = VXOR_BOOL(sign_cos, jsup1, i);
-
-        j1or2 = VOR_BOOL(VEQ1_INT_BOOL(j, 1, i),
-                         VEQ1_INT_BOOL(j, 2, i), i);
+        /* get the swap sign flag */
+        emm0 = VAND1_INTH(VNOT_INTH(emm2, i), 4, i);
+        emm0 = VSLL1_INTH(emm0, 29, i);
+        /* get the polynom selection mask */
+        emm2 = VAND1_INTH(emm2, 2, i);
+        V_ELT_BOOLH poly_mask = VEQ1_INTH_BOOLH(emm2, 0, i);
 
         /* The magic pass: "Extended precision modular arithmetic"
-        x = ((x - y * DP1) - y * DP2) - y * DP3; */
-        x = VFMACC1_FLOAT(x, minus_cephes_DP1, y, i);
-        x = VFMACC1_FLOAT(x, minus_cephes_DP2, y, i);
-        x = VFMACC1_FLOAT(x, minus_cephes_DP3, y, i);
+         x = ((x - y * DP1) - y * DP2) - y * DP3; */
+        x = VFMACC1_FLOATH(x, minus_cephes_DP1, y, i);
+        x = VFMACC1_FLOATH(x, minus_cephes_DP2, y, i);
+        x = VFMACC1_FLOATH(x, minus_cephes_DP3, y, i);
 
         /* Evaluate the first polynom  (0 <= x <= Pi/4) */
-        V_ELT_FLOAT z = VMUL_FLOAT(x, x, i);
-        y = VMUL1_FLOAT(z, coscof[0], i);
-        y = VADD1_FLOAT(y, coscof[1], i);
-        y = VMUL_FLOAT(y, z, i);
-        y = VADD1_FLOAT(y, coscof[2], i);
-        y = VMUL_FLOAT(y, z, i);
-        y = VMUL_FLOAT(y, z, i);
-        V_ELT_FLOAT tmp = VMUL1_FLOAT(z, 0.5f, i);
-        y = VSUB_FLOAT(y, tmp, i);
-        y = VADD1_FLOAT(y, 1.0f, i);
+        V_ELT_FLOATH z = VMUL_FLOATH(x, x, i);
+
+        y = z;
+        y = VFMADD1_FLOATH(y, c_coscof_p0, c_coscof_p1_vec, i);
+        y = VFMADD_FLOATH(y, z, c_coscof_p2_vec, i);
+        y = VMUL_FLOATH(y, z, i);
+        y = VMUL_FLOATH(y, z, i);
+        y = VFMACC1_FLOATH(y, -0.5f, z, i);  // y = y -0.5*z
+        y = VADD1_FLOATH(y, 1.0f, i);
 
         /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
-        V_ELT_FLOAT y2;
-        y2 = VMUL1_FLOAT(z, sincof[0], i);
-        y2 = VADD1_FLOAT(y2, sincof[1], i);
-        y2 = VMUL_FLOAT(y2, z, i);
-        y2 = VADD1_FLOAT(y2, sincof[2], i);
-        y2 = VMUL_FLOAT(y2, z, i);
-        y2 = VMUL_FLOAT(y2, x, i);
-        y2 = VADD_FLOAT(y2, x, i);
+        V_ELT_FLOATH y2 = z;
+        y2 = VFMADD1_FLOATH(y2, c_sincof_p0, c_sincof_p1_vec, i);
+        y2 = VFMADD_FLOATH(y2, z, c_sincof_p2_vec, i);
+        y2 = VMUL_FLOATH(y2, z, i);
+        y2 = VFMADD_FLOATH(y2, x, x, i);
 
         /* select the correct result from the two polynoms */
-        V_ELT_FLOAT y_cos = VMERGE_FLOAT(j1or2, y, y2, i);
-        y_cos = VMUL1_FLOAT_MASK(sign_cos, y_cos, y_cos, -1.0f, i);
-        VSTORE_FLOAT(dst_tmp, y_cos, i);
+        y = VMERGE_FLOATH(poly_mask, y, y2, i);
 
+        /* update the sign */
+        y = VINTERP_INTH_FLOATH(VXOR_INTH(VINTERP_FLOATH_INTH(y), emm0, i));
+        VSTORE_FLOATH(dst_tmp, y, i);
         src_tmp += i;
         dst_tmp += i;
     }
@@ -402,7 +393,6 @@ static inline void cosf_vec(float *src, float *dst, int len)
     _MM_SET_ROUNDING_MODE(reg_ori);
 #endif
 }
-
 
 #if 1  // should be faster
 
@@ -622,6 +612,90 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
 }
 #endif
 
+// Work in progress
+/*
+static inline void tanf_vec(float *src, float *dst, int len)
+{
+    size_t i;
+    float *src_tmp = src;
+    float *dst_tmp = dst;
+
+#ifdef NO_RTZ
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+#endif
+
+    i = VSETVL32H(len);
+    V_ELT_FLOATH TAN_P1_vec = VLOAD1_FLOATH(TAN_P1, i);
+    V_ELT_FLOATH TAN_P2_vec = VLOAD1_FLOATH(TAN_P2, i);
+    V_ELT_FLOATH TAN_P3_vec = VLOAD1_FLOATH(TAN_P3, i);
+    V_ELT_FLOATH TAN_P4_vec = VLOAD1_FLOATH(TAN_P4, i);
+    V_ELT_FLOATH TAN_P5_vec = VLOAD1_FLOATH(TAN_P5, i);
+
+    for (; (i = VSETVL32H(len)) > 0; len -= i) {
+        V_ELT_FLOATH xx = VLOAD_FLOATH(src_tmp, i);
+
+        V_ELT_FLOATH x, y, z, zz;
+        V_ELT_INTH j;
+        V_ELT_INTH sign;
+        V_ELT_FLOATH tmp;
+        V_ELT_INTH tmpi;
+        V_ELT_BOOLH jandone, jandtwo, xsupem4;
+
+        x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(xx), inv_sign_mask, i));
+        sign = VAND1_INTH(VINTERP_FLOATH_INTH(xx), sign_mask, i);
+
+        // compute x mod PIO4
+        tmp = VMUL1_FLOATH(x, FOPI, i);
+        j = VCVT_FLOATH_INTH(tmp, i);
+        y = VCVT_INTH_FLOATH(j, i);
+
+        jandone = VGT1_INTH_BOOLH(VAND1_INTH(j, 1, i), 0, i);
+
+        //TODO : could it be improved like X86 (replace add and merge with and and and add)?
+        tmp = VADD1_FLOATH(y, 1.0f, i);
+        y = VMERGE_FLOATH(jandone, tmp, y, i);
+        tmpi = VADD1_INTH(j, 1, i);
+        j = VMERGE_INTH(jandone, tmpi, j, i);
+
+        z = x;
+        z = VFMACC1_FLOATH(z, -minus_cephes_DP1, y, i);
+        z = VFMACC1_FLOATH(z, -minus_cephes_DP2, y, i);
+        z = VFMACC1_FLOATH(z, -minus_cephes_DP3, y, i);
+
+        zz = VMUL_FLOATH(z, z, i);  // z*z
+
+        // TODO : should not be computed if X < 10e-4
+        // 1.7e-8 relative error in [-pi/4, +pi/4]
+        tmp = zz;
+        tmp = VFMADD1_FLOATH(tmp, TAN_P0, TAN_P1_vec, i);
+        tmp = VFMADD_FLOATH(tmp, zz, TAN_P2_vec, i);
+        tmp = VFMADD_FLOATH(tmp, zz, TAN_P3_vec, i);
+        tmp = VFMADD_FLOATH(tmp, zz, TAN_P4_vec, i);
+        tmp = VFMADD_FLOATH(tmp, zz, TAN_P5_vec, i);
+        tmp = VMUL_FLOATH(zz, tmp, i);
+
+        tmp = VFMADD_FLOATH(tmp, z, z, i);
+        xsupem4 = VGT1_FLOATH_BOOLH(x, 1e-4f, i);
+        y = VMERGE_FLOATH(xsupem4, z, tmp, i);
+
+        jandtwo = VGT1_INTH_BOOLH(VAND1_INTH(j, 2, i), 0, i);
+
+        // xor(rcp(y)) gives not good enough result
+        tmp = VRDIV1_FLOATH(y, -1.0f, i);
+        y = VMERGE_FLOATH(jandtwo, y, tmp, i);
+        y = VINTERP_INTH_FLOATH(VXOR_INTH(VINTERP_FLOATH_INTH(y), sign, i));
+        VSTORE_FLOATH(dst_tmp, y, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+
+#ifdef NO_RTZ
+    _MM_SET_ROUNDING_MODE(reg_ori);
+#endif
+}
+*/
 
 static inline void sumf_vec(float *src, float *dst, int len)
 {
@@ -1872,6 +1946,273 @@ static inline void asinhf_vec(float *src, float *dst, int len)
         tmp = VADD1_FLOATH(tmp, LOGE2F, i);
         z = VMERGE_FLOATH(xsup1500, z, tmp, i);
         z = VINTERP_INTH_FLOATH(VXOR_INTH(VINTERP_FLOATH_INTH(z), xxinf0, i));
+
+        VSTORE_FLOATH(dst_tmp, z, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+}
+
+static inline void atanhf_vec(float *src, float *dst, int len)
+{
+    size_t i;
+    float *src_tmp = src;
+    float *dst_tmp = dst;
+
+    i = VSETVL32H(len);
+    V_ELT_FLOATH zero_vec = VLOAD1_FLOATH(0.0f, i);
+    V_ELT_FLOATH c_cephes_log_p1_vec = VLOAD1_FLOATH(c_cephes_log_p1, i);
+    V_ELT_FLOATH c_cephes_log_p2_vec = VLOAD1_FLOATH(c_cephes_log_p2, i);
+    V_ELT_FLOATH c_cephes_log_p3_vec = VLOAD1_FLOATH(c_cephes_log_p3, i);
+    V_ELT_FLOATH c_cephes_log_p4_vec = VLOAD1_FLOATH(c_cephes_log_p4, i);
+    V_ELT_FLOATH c_cephes_log_p5_vec = VLOAD1_FLOATH(c_cephes_log_p5, i);
+    V_ELT_FLOATH c_cephes_log_p6_vec = VLOAD1_FLOATH(c_cephes_log_p6, i);
+    V_ELT_FLOATH c_cephes_log_p7_vec = VLOAD1_FLOATH(c_cephes_log_p7, i);
+    V_ELT_FLOATH c_cephes_log_p8_vec = VLOAD1_FLOATH(c_cephes_log_p8, i);
+
+    V_ELT_FLOATH ATANH_P1_vec = VLOAD1_FLOATH(ATANH_P1, i);
+    V_ELT_FLOATH ATANH_P2_vec = VLOAD1_FLOATH(ATANH_P2, i);
+    V_ELT_FLOATH ATANH_P3_vec = VLOAD1_FLOATH(ATANH_P3, i);
+    V_ELT_FLOATH ATANH_P4_vec = VLOAD1_FLOATH(ATANH_P4, i);
+    V_ELT_FLOATH one_vec = VLOAD1_FLOATH(1.0f, i);
+
+    for (; (i = VSETVL32H(len)) > 0; len -= i) {
+        V_ELT_FLOATH x = VLOAD_FLOATH(src_tmp, i);
+        V_ELT_FLOATH z, tmp, tmp2, z_first_branch, z_second_branch;
+        V_ELT_BOOLH xsup1, xinfmin1, zinf1emin4, zinf0p5;
+
+        z = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(x), inv_sign_mask, i));
+
+        xsup1 = VGE1_FLOATH_BOOLH(x, 1.0f, i);
+        xinfmin1 = VLE1_FLOATH_BOOLH(x, -1.0f, i);
+        zinf1emin4 = VLT1_FLOATH_BOOLH(z, -1e-4f, i);
+        zinf0p5 = VLT1_FLOATH_BOOLH(z, 0.5f, i);
+
+        // First branch
+        tmp = VMUL_FLOATH(x, x, i);
+        z_first_branch = tmp;
+        z_first_branch = VFMADD1_FLOATH(z_first_branch, ATANH_P0, ATANH_P1_vec, i);
+        z_first_branch = VFMADD_FLOATH(z_first_branch, tmp, ATANH_P2_vec, i);
+        z_first_branch = VFMADD_FLOATH(z_first_branch, tmp, ATANH_P3_vec, i);
+        z_first_branch = VFMADD_FLOATH(z_first_branch, tmp, ATANH_P4_vec, i);
+        z_first_branch = VMUL_FLOATH(z_first_branch, tmp, i);
+        z_first_branch = VFMADD_FLOATH(z_first_branch, x, x, i);
+
+        // Second branch
+        // RISCV, could be replace with rcp equivalent vfrec?
+        // only 7 bits precision vs rcp 12bits (out of 24)
+        tmp = VRSUB1_FLOATH(x, 1.0f, i);  // 1 -x
+        tmp2 = VDIV_FLOATH(one_vec, tmp, i);
+        tmp = VFMADD_FLOATH(tmp2, x, tmp2, i);
+        z_second_branch = log_ps(tmp, zero_vec, c_cephes_log_p1_vec,
+                                 c_cephes_log_p2_vec, c_cephes_log_p3_vec,
+                                 c_cephes_log_p4_vec, c_cephes_log_p5_vec,
+                                 c_cephes_log_p6_vec, c_cephes_log_p7_vec,
+                                 c_cephes_log_p8_vec, i);
+        z_second_branch = VMUL1_FLOATH(z_second_branch, 0.5f, i);
+
+        z = VMERGE_FLOATH(zinf0p5, z_second_branch, z_first_branch, i);
+        z = VMERGE_FLOATH(zinf1emin4, z, x, i);
+
+        z = VMERGE1_FLOATH(xsup1, z, MAXNUMF, i);
+        z = VMERGE1_FLOATH(xinfmin1, z, -MAXNUMF, i);
+
+        VSTORE_FLOATH(dst_tmp, z, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+}
+
+static inline V_ELT_FLOATH exp_ps(V_ELT_FLOATH x,
+                                  V_ELT_FLOATH Op5_vec,
+                                  V_ELT_FLOATH cephes_exp_p1_vec,
+                                  V_ELT_FLOATH cephes_exp_p2_vec,
+                                  V_ELT_FLOATH cephes_exp_p3_vec,
+                                  V_ELT_FLOATH cephes_exp_p4_vec,
+                                  V_ELT_FLOATH cephes_exp_p5_vec,
+                                  size_t i)
+{
+    V_ELT_FLOATH z_tmp, z, fx;
+    V_ELT_INTH n;
+    V_ELT_BOOLH xsupmaxlogf, xinfminglogf;
+
+    xsupmaxlogf = VGT1_FLOATH_BOOLH(x, MAXLOGF, i);
+    xinfminglogf = VLT1_FLOATH_BOOLH(x, MINLOGF, i);
+
+    /* Express e**x = e**g 2**n
+     *   = e**g e**( n loge(2) )
+     *   = e**( g + n loge(2) )
+     */
+    fx = x;
+    fx = VFMADD1_FLOATH(x, c_cephes_LOG2EF, Op5_vec, i);
+    z = VCVT_INTH_FLOATH(VCVT_FLOATH_INTH(fx, i), i);
+
+    x = VFMACC1_FLOATH(x, -c_cephes_exp_C1, z, i);
+    x = VFMACC1_FLOATH(x, -c_cephes_exp_C2, z, i);
+
+    n = VCVT_FLOATH_INTH(z, i);
+    n = VADD1_INTH(n, 0x7f, i);
+    n = VSLL1_INTH(n, 23, i);
+    V_ELT_FLOATH pow2n = VINTERP_INTH_FLOATH(n);
+
+    z = VMUL_FLOATH(x, x, i);
+
+    z_tmp = x;
+    z_tmp = VFMADD1_FLOATH(z_tmp, c_cephes_exp_p0, cephes_exp_p1_vec, i);
+    z_tmp = VFMADD_FLOATH(z_tmp, x, cephes_exp_p2_vec, i);
+    z_tmp = VFMADD_FLOATH(z_tmp, x, cephes_exp_p3_vec, i);
+    z_tmp = VFMADD_FLOATH(z_tmp, x, cephes_exp_p4_vec, i);
+    z_tmp = VFMADD_FLOATH(z_tmp, x, cephes_exp_p5_vec, i);
+    z_tmp = VFMADD_FLOATH(z_tmp, z, x, i);
+
+    /* build 2^n */
+    z_tmp = VFMADD_FLOATH(z_tmp, pow2n, pow2n, i);
+
+    z = VMERGE1_FLOATH(xsupmaxlogf, z_tmp, MAXNUMF, i);
+
+#if 0  // not ported on RISCV yey
+  z = _mm_andnot_ps(xinfminglogf, z);
+#else
+    z = VMERGE1_FLOATH(xinfminglogf, z, 0.0f, i);
+#endif
+
+    return z;
+}
+
+static inline void expf_vec(float *src, float *dst, int len)
+{
+    size_t i;
+    float *src_tmp = src;
+    float *dst_tmp = dst;
+
+    i = VSETVL32H(len);
+
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
+
+    V_ELT_FLOATH cephes_exp_p1_vec = VLOAD1_FLOATH(c_cephes_exp_p1, i);
+    V_ELT_FLOATH cephes_exp_p2_vec = VLOAD1_FLOATH(c_cephes_exp_p2, i);
+    V_ELT_FLOATH cephes_exp_p3_vec = VLOAD1_FLOATH(c_cephes_exp_p3, i);
+    V_ELT_FLOATH cephes_exp_p4_vec = VLOAD1_FLOATH(c_cephes_exp_p4, i);
+    V_ELT_FLOATH cephes_exp_p5_vec = VLOAD1_FLOATH(c_cephes_exp_p5, i);
+    V_ELT_FLOATH Op5_vec = VLOAD1_FLOATH(0.5f, i);
+
+    for (; (i = VSETVL32H(len)) > 0; len -= i) {
+        V_ELT_FLOATH x = VLOAD_FLOATH(src_tmp, i);
+        x = exp_ps(x, Op5_vec, cephes_exp_p1_vec,
+                   cephes_exp_p2_vec, cephes_exp_p3_vec,
+                   cephes_exp_p4_vec, cephes_exp_p5_vec, i);
+        VSTORE_FLOATH(dst_tmp, x, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+
+    _MM_SET_ROUNDING_MODE(reg_ori);
+}
+
+static inline void coshf_vec(float *src, float *dst, int len)
+{
+    size_t i;
+    float *src_tmp = src;
+    float *dst_tmp = dst;
+
+    i = VSETVL32H(len);
+
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
+
+    V_ELT_FLOATH cephes_exp_p1_vec = VLOAD1_FLOATH(c_cephes_exp_p1, i);
+    V_ELT_FLOATH cephes_exp_p2_vec = VLOAD1_FLOATH(c_cephes_exp_p2, i);
+    V_ELT_FLOATH cephes_exp_p3_vec = VLOAD1_FLOATH(c_cephes_exp_p3, i);
+    V_ELT_FLOATH cephes_exp_p4_vec = VLOAD1_FLOATH(c_cephes_exp_p4, i);
+    V_ELT_FLOATH cephes_exp_p5_vec = VLOAD1_FLOATH(c_cephes_exp_p5, i);
+    V_ELT_FLOATH Op5_vec = VLOAD1_FLOATH(0.5f, i);
+
+    for (; (i = VSETVL32H(len)) > 0; len -= i) {
+        V_ELT_FLOATH xx = VLOAD_FLOATH(src_tmp, i);
+
+        V_ELT_FLOATH x, tmp;
+        V_ELT_BOOLH xsupmaxlogf;
+
+        x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(xx), inv_sign_mask, i));
+        xsupmaxlogf = VGT1_FLOATH_BOOLH(x, MAXLOGF, i);
+
+        tmp = exp_ps(x, Op5_vec, cephes_exp_p1_vec,
+                     cephes_exp_p2_vec, cephes_exp_p3_vec,
+                     cephes_exp_p4_vec, cephes_exp_p5_vec, i);
+        x = VRDIV1_FLOATH(tmp, 0.5f, i);  // or 1/(2*y)
+        x = VFMACC1_FLOATH(x, 0.5f, tmp, i);
+        x = VMERGE1_FLOATH(xsupmaxlogf, x, MAXNUMF, i);
+        VSTORE_FLOATH(dst_tmp, x, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+
+    _MM_SET_ROUNDING_MODE(reg_ori);
+}
+
+static inline void sinhf_vec(float *src, float *dst, int len)
+{
+    size_t i;
+    float *src_tmp = src;
+    float *dst_tmp = dst;
+
+    i = VSETVL32H(len);
+
+    V_ELT_FLOATH SINH_P1_vec = VLOAD1_FLOATH(SINH_P1, i);
+    V_ELT_FLOATH SINH_P2_vec = VLOAD1_FLOATH(SINH_P2, i);
+    V_ELT_FLOATH cephes_exp_p1_vec = VLOAD1_FLOATH(c_cephes_exp_p1, i);
+    V_ELT_FLOATH cephes_exp_p2_vec = VLOAD1_FLOATH(c_cephes_exp_p2, i);
+    V_ELT_FLOATH cephes_exp_p3_vec = VLOAD1_FLOATH(c_cephes_exp_p3, i);
+    V_ELT_FLOATH cephes_exp_p4_vec = VLOAD1_FLOATH(c_cephes_exp_p4, i);
+    V_ELT_FLOATH cephes_exp_p5_vec = VLOAD1_FLOATH(c_cephes_exp_p5, i);
+    V_ELT_FLOATH Op5_vec = VLOAD1_FLOATH(0.5f, i);
+
+    for (; (i = VSETVL32H(len)) > 0; len -= i) {
+        V_ELT_FLOATH x = VLOAD_FLOATH(src_tmp, i);
+        V_ELT_FLOATH z, z_first_branch, z_second_branch, tmp;
+        V_ELT_BOOLH xsupmaxlogf, zsup1;
+        V_ELT_INTH sign;
+
+        // x = xx; if x < 0, z = -x, else x
+        z = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(x), inv_sign_mask, i));
+        sign = VAND1_INTH(VINTERP_FLOATH_INTH(x), sign_mask, i);
+
+        xsupmaxlogf = VGT1_FLOATH_BOOLH(z, MAXLOGF, i);
+
+        // First branch
+        zsup1 = VGT1_FLOATH_BOOLH(z, 1.0f, i);
+        tmp = exp_ps(z, Op5_vec, cephes_exp_p1_vec,
+                     cephes_exp_p2_vec, cephes_exp_p3_vec,
+                     cephes_exp_p4_vec, cephes_exp_p5_vec, i);
+        z_first_branch = VRDIV1_FLOATH(tmp, -0.5f, i);
+        z_first_branch = VFMACC1_FLOATH(z_first_branch, 0.5f, tmp, i);
+
+#if 0  // not ported on RISCV yet
+      z_first_branch = _mm_xor_ps(z_first_branch, sign);
+#else
+        V_ELT_BOOLH xinf0 = VLT1_FLOATH_BOOLH(x, 0.0f, i);
+        V_ELT_FLOATH tmp2 = VINTERP_INTH_FLOATH(VXOR1_INTH(VINTERP_FLOATH_INTH(z_first_branch), neg_sign_mask, i));
+        z_first_branch = VMERGE_FLOATH(xinf0, z_first_branch, tmp2, i);
+#endif
+
+        // Second branch
+        tmp = VMUL_FLOATH(x, x, i);
+        z_second_branch = tmp;
+        z_second_branch = VFMADD1_FLOATH(z_second_branch, SINH_P0, SINH_P1_vec, i);
+        z_second_branch = VFMADD_FLOATH(z_second_branch, tmp, SINH_P2_vec, i);
+        z_second_branch = VMUL_FLOATH(z_second_branch, tmp, i);
+        z_second_branch = VFMADD_FLOATH(z_second_branch, x, x, i);
+
+        // Choose between first and second branch
+        z = VMERGE_FLOATH(zsup1, z_second_branch, z_first_branch, i);
+
+        // Set value to MAXNUMF if abs(x) > MAGLOGF
+        // Set value to -MAXNUMF if abs(x) > MAGLOGF and x < 0
+        tmp = VINTERP_INTH_FLOATH(VXOR1_INTH(sign, *(int32_t *) &MAXNUMF, i));
+        z = VMERGE_FLOATH(xsupmaxlogf, z, tmp, i);
 
         VSTORE_FLOATH(dst_tmp, z, i);
         src_tmp += i;

@@ -566,7 +566,6 @@ static inline void minevery128s(int32_t *src1, int32_t *src2, int32_t *dst, int 
     }
 }
 
-
 static inline void minmax128s(int32_t *src, int len, int32_t *min_value, int32_t *max_value)
 {
     int stop_len = (len - SSE_LEN_INT32) / (2 * SSE_LEN_INT32);
@@ -639,7 +638,6 @@ static inline void minmax128s(int32_t *src, int len, int32_t *min_value, int32_t
     *max_value = max_tmp;
     *min_value = min_tmp;
 }
-
 
 static inline void threshold128_gt_s(int32_t *src, int32_t *dst, int len, int32_t value)
 {
