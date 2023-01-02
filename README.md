@@ -125,7 +125,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | sinXf                                                 | sinf_C                      | ippsSin_32f_A24                | sinf_vec                      |
 | cosXf                                                 | cosf_C                      | ippsCos_32f_A24                | cosf_vec                      |
 | sincosXf (a)                                          | sincosf_C                   | ippsSinCos_32f_A24             | sincosf_vec                   |
-| sincosXf_interleaved (a)                              | sincosf_C_interleaved       | ippsCIS_32fc_A24               | ?                             |
+| sincosXf_interleaved (a)                              | sincosf_C_interleaved       | ippsCIS_32fc_A24               | sincosf_interleaved_vec       |
 | coshXf  (a)                                           | coshf_C                     | ippsCosh_32f_A24               | coshf_vec                     |
 | sinhXf  (a)                                           | sinhf_C                     | ippsSinh_32f_A24               | sinhf_vec                     |
 | acoshXf (a)                                           | acoshf_C                    | ippsAcosh_32f_A24              | acoshf_vec                    |
@@ -133,10 +133,10 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | atanhXf (a)                                           | atanhf_C                    | ippsAtanh_32f_A24              | atanh_vec                     |
 | atanXf  (a)                                           | atanf_C                     | ippsAtan_32f_A24               | atanf_vec                     |
 | atan2Xf (a)                                           | atan2f_C                    | ippsAtan2_32f_A24              | atan2f_vec                    |
-| atan2Xf_interleaved (a)                               | atan2f_interleaved_C        | ?                              | ?                             |
-| asinXf (a)                                            | asinf_C                     | ippsAsin_32f_A24               | ?                             |
-| tanhXf (a)                                            | tanhf_C                     | ippsTanh_32f_A24               | ?                             |
-| tanXf  (a)                                            | tanf_C                      | ippsTan_32f_A24                | ?                             |
+| atan2Xf_interleaved (a)                               | atan2f_interleaved_C        | ?                              | atan2f_interleaved_vec        |
+| asinXf (a)                                            | asinf_C                     | ippsAsin_32f_A24               | asinf_vec                     |
+| tanhXf (a)                                            | tanhf_C                     | ippsTanh_32f_A24               | tanhf_vec                     |
+| tanXf  (a)                                            | tanf_C                      | ippsTan_32f_A24                | tanf_vec                      |
 | magnitudeXf_split  (a)                                | magnitudef_C_split          | ippsMagnitude_32f              | magnitudef_split_vec          |
 | powerspectXf_split (a)                                | powerspectf_C_split         | ippsPowerSpectr_32f            | powerspectf_split_vec         |
 | magnitudeXf_interleaved                               | magnitudef_C_interleaved    | ippsMagnitude_32fc             | ?                             |

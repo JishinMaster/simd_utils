@@ -2625,6 +2625,7 @@ static inline v4sf asinf_ps(v4sf xx)
     ainfem4 = _mm_cmplt_ps(a, _mm_set1_ps(1.0e-4));  // if( a < 1.0e-4f )
 
     asup0p5 = _mm_cmpgt_ps(a, *(v4sf *) _ps_0p5);  // if( a > 0.5f ) flag = 1 else 0
+    // TODO : optimise with fmsub?
     z_tmp = _mm_sub_ps(*(v4sf *) _ps_1, a);
     z_tmp = _mm_mul_ps(*(v4sf *) _ps_0p5, z_tmp);
     z = _mm_blendv_ps(_mm_mul_ps(a, a), z_tmp, asup0p5);
@@ -2769,7 +2770,6 @@ static inline v4sf tanf_ps(v4sf xx)
     z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP1, x);
     z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP2, z);
     z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP3, z);
-
     zz = _mm_mul_ps(z, z);  // z*z
 
     // TODO : should not be computed if X < 10e-4
