@@ -259,6 +259,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VLOAD_UINT vle32_v_u32m4
 #define VSTORE_UINT vse32_v_u32m4
 #define V_ELT_UINT vuint32m4_t
+#define VCVT_FLOAT_UINT vfcvt_xu_f_v_u32m4
 
 //// SHORT
 #define V_ELT_SHORT vint16m4_t
@@ -405,14 +406,34 @@ vfnmsub.vf vd, rs1, vs2, vm
 //// UINTH
 #define VLOAD_UINTH vle32_v_u32m2
 #define V_ELT_UINTH vuint32m2_t
+#define VCVT_FLOATH_UINTH vfcvt_xu_f_v_u32m2
 
-//// SHORT
+//// SHORTH
 #define V_ELT_SHORTH vint16m2_t
 #define VLOAD_SHORTH vle16_v_i16m2
 #define VLOAD1_SHORTH vmv_v_x_i16m2
 #define VSTORE_SHORTH vse16_v_i16m2
 #define VADD_SHORTH vadd_vv_i16m2
 #define VREDSUMW_SHORTH vwredsum_vs_i16m4_i32m1
+#define VCVT_INT_SHORTH vnclip_wx_i16m2
+
+#if __riscv_v != 7000
+#define VCVT_SHORTH_INT vsext_vf2_i32m4
+#else
+#define VCVT_SHORTH_INT(a, b) vwmul_vx_i32m4((a), 1, (b))
+#endif
+
+//// USHORTH
+#define V_ELT_USHORTH vuint16m2_t
+#define VLOAD_USHORTH vle16_v_u16m2
+#define VSTORE_USHORTH vse16_v_u16m2
+#define VCVT_UINT_USHORTH vnclipu_wx_u16m2
+
+//// UBYTEHH
+#define V_ELT_UBYTEHH vuint8m1_t
+#define VLOAD_UBYTEHH vle8_v_u8m1
+#define VSTORE_UBYTEHH vse8_v_u8m1
+#define VCVT_USHORTH_UBYTEHH vnclipu_wx_u8m1
 
 //// BOOLH
 #define V_ELT_BOOLH vbool16_t

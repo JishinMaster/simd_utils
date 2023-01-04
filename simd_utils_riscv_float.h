@@ -2628,6 +2628,139 @@ static inline void flipf_vec(float *src, float *dst, int len)
 }
 #endif
 
+static inline void convertInt16ToFloat32_vec(int16_t *src, float *dst, int len, int scale_factor)
+{
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    size_t i;
+    int16_t *src_tmp = src;
+    float *dst_tmp = dst;
+
+    for (; (i = VSETVL16H(len)) > 0; len -= i) {
+        V_ELT_SHORTH src_short;
+        V_ELT_INT src_int;
+        V_ELT_FLOAT dst_float;
+        src_short = VLOAD_SHORTH(src_tmp, i);
+        src_int = VCVT_SHORTH_INT(src_short, i);
+        dst_float = VMUL1_FLOAT(VCVT_INT_FLOAT(src_int, i), scale_fact_mult, i);
+        VSTORE_FLOAT(dst_tmp, dst_float, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+}
+
+// TODO: specific case for RISCV RndFinancial?
+static inline void convertFloat32ToI16_vec(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+
+    if (rounding_mode == RndZero) {
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+    } else if (rounding_mode == RndFinancial) {
+    } else {
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
+    }
+
+    size_t i;
+    float *src_tmp = src;
+    int16_t *dst_tmp = dst;
+
+    for (; (i = VSETVL32(len)) > 0; len -= i) {
+        V_ELT_SHORTH dst_short;
+        V_ELT_INT dst_int;
+        V_ELT_FLOAT src_float;
+        V_ELT_FLOAT tmp;
+
+        src_float = VLOAD_FLOAT(src_tmp, i);
+        tmp = VMUL1_FLOAT(src_float, scale_fact_mult, i);
+        dst_int = VCVT_FLOAT_INT(tmp, i);
+        dst_short = VCVT_INT_SHORTH(dst_int, 0, i);
+        VSTORE_SHORTH(dst_tmp, dst_short, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+
+    _MM_SET_ROUNDING_MODE(reg_ori);
+}
+
+// TODO: specific case for RISCV RndFinancial?
+//  could scale factor come directly from VCVT_UINT_USHORTH? (shift parameter)
+static inline void convertFloat32ToU16_vec(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+
+    if (rounding_mode == RndZero) {
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+    } else if (rounding_mode == RndFinancial) {
+    } else {
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
+    }
+
+    size_t i;
+    float *src_tmp = src;
+    uint16_t *dst_tmp = dst;
+
+    for (; (i = VSETVL32(len)) > 0; len -= i) {
+        V_ELT_USHORTH dst_short;
+        V_ELT_UINT dst_int;
+        V_ELT_FLOAT src_float;
+        V_ELT_FLOAT tmp;
+
+        src_float = VLOAD_FLOAT(src_tmp, i);
+        tmp = VMUL1_FLOAT(src_float, scale_fact_mult, i);
+        dst_int = VCVT_FLOAT_UINT(tmp, i);
+        dst_short = VCVT_UINT_USHORTH(dst_int, 0, i);
+        VSTORE_USHORTH(dst_tmp, dst_short, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+
+    _MM_SET_ROUNDING_MODE(reg_ori);
+}
+
+static inline void convertFloat32ToU8_vec(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+
+    if (rounding_mode == RndZero) {
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
+    } else if (rounding_mode == RndFinancial) {
+    } else {
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
+    }
+
+    size_t i;
+    float *src_tmp = src;
+    uint8_t *dst_tmp = dst;
+
+    for (; (i = VSETVL32(len)) > 0; len -= i) {
+        V_ELT_UBYTEHH dst_ubyte;
+        V_ELT_USHORTH dst_short;
+        V_ELT_UINT dst_int;
+        V_ELT_FLOAT src_float;
+        V_ELT_FLOAT tmp;
+
+        src_float = VLOAD_FLOAT(src_tmp, i);
+        tmp = VMUL1_FLOAT(src_float, scale_fact_mult, i);
+        dst_int = VCVT_FLOAT_UINT(tmp, i);
+        dst_short = VCVT_UINT_USHORTH(dst_int, 0, i);
+        dst_ubyte = VCVT_USHORTH_UBYTEHH(dst_short, 0, i);
+        VSTORE_UBYTEHH(dst_tmp, dst_ubyte, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+
+    _MM_SET_ROUNDING_MODE(reg_ori);
+}
+
 #if ELEN >= 64
 static inline void convert_32f64f_vec(float *src, double *dst, int len)
 {

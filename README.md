@@ -105,10 +105,10 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | dotXf  (a)                                            | dotf_C                      | ippsDotProd_32f                | dotf_vec                      |
 | dotcXf (a)                                            | dotcf_C                     | ippsDotProd_32fc               | dotcf_vec                     |
 | vectorSlopeXf    (a)                                  | vectorSlopef_C              | ippsVectorSlope_32f            | vectorSlopef_vec              |
-| convertFloat32ToU8_X  (a)                             | convertFloat32ToU8_C        | ippsConvert_32f8u_Sfs          | ?                             |
-| convertFloat32ToU16_X (a)                             | convertFloat32ToI16_C       | ippsConvert_32f16u_Sfs         | ?                             |
-| convertFloat32ToI16_X  (a)                            | convertFloat32ToI16_C       | ippsConvert_32f16s_Sfs         | ?                             |
-| convertInt16ToFloat32_X  (a)                          | convertInt16ToFloat32_C     | ippsConvert_16s32f_Sfs         | ?                             |
+| convertFloat32ToU8_X  (a)                             | convertFloat32ToU8_C        | ippsConvert_32f8u_Sfs          | convertFloat32ToU8_vec        |
+| convertFloat32ToU16_X (a)                             | convertFloat32ToI16_C       | ippsConvert_32f16u_Sfs         | convertFloat32ToU16_vec       |
+| convertFloat32ToI16_X  (a)                            | convertFloat32ToI16_C       | ippsConvert_32f16s_Sfs         | convertFloat32ToI16_vec       |
+| convertInt16ToFloat32_X  (a)                          | convertInt16ToFloat32_C     | ippsConvert_16s32f_Sfs         | convertInt16ToFloat32_vec     |
 | cplxtorealXf   (a)                                    | cplxtorealf_C               | ippsCplxToReal_32fc            | cplxtorealf_vec               |
 | realtocplxXf   (a)                                    | realtocplx_C                | ippsRealToCplx_32f             | realtocplxf_vec               |
 | convertX_64f32f                                       | convert_64f32f_C            | ippsConvert_64f32f             | convert_64f32f_vec            |
