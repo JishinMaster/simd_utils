@@ -294,10 +294,14 @@ static inline v8sf sin256_ps(v8sf x)
     y2 = _mm256_add_ps(y2, x);
 
     /* select the correct result from the two polynoms */
-    xmm3 = poly_mask;
-    y2 = _mm256_and_ps(xmm3, y2);  //, xmm3);
-    y = _mm256_andnot_ps(xmm3, y);
+#if 1
+    y = _mm256_blendv_ps(y, y2, poly_mask);
+#else
+    y2 = _mm256_and_ps(poly_mask, y2);  //, xmm3);
+    y = _mm256_andnot_ps(poly_mask, y);
     y = _mm256_add_ps(y, y2);
+#endif
+
     /* update the sign */
     y = _mm256_xor_ps(y, sign_bit);
 
@@ -411,10 +415,13 @@ static inline v8sf cos256_ps(v8sf x)
     y2 = _mm256_add_ps(y2, x);
 
     /* select the correct result from the two polynoms */
-    xmm3 = poly_mask;
-    y2 = _mm256_and_ps(xmm3, y2);  //, xmm3);
-    y = _mm256_andnot_ps(xmm3, y);
+#if 1
+    y = _mm256_blendv_ps(y, y2, poly_mask);
+#else
+    y2 = _mm256_and_ps(poly_mask, y2);  //, xmm3);
+    y = _mm256_andnot_ps(poly_mask, y);
     y = _mm256_add_ps(y, y2);
+#endif
     /* update the sign */
     y = _mm256_xor_ps(y, sign_bit);
 
@@ -425,7 +432,7 @@ static inline v8sf cos256_ps(v8sf x)
    it is almost as fast, and gives you a free cosine with your sine */
 static inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c)
 {
-    v8sf xmm1, xmm2, xmm3 = _mm256_setzero_ps(), sign_bit_sin, y;
+    v8sf xmm1, xmm2, sign_bit_sin, y;
     v8si imm0, imm2, imm4;
 
 #ifndef __AVX2__
@@ -557,14 +564,17 @@ static inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c)
     y2 = _mm256_add_ps(y2, x);
 
     /* select the correct result from the two polynoms */
-    xmm3 = poly_mask;
-    v8sf ysin2 = _mm256_and_ps(xmm3, y2);
-    v8sf ysin1 = _mm256_andnot_ps(xmm3, y);
+#if 1
+    xmm1 = _mm256_blendv_ps(y, y2, poly_mask);
+    xmm2 = _mm256_blendv_ps(y2, y, poly_mask);
+#else
+    v8sf ysin2 = _mm256_and_ps(poly_mask, y2);
+    v8sf ysin1 = _mm256_andnot_ps(poly_mask, y);
     y2 = _mm256_sub_ps(y2, ysin2);
     y = _mm256_sub_ps(y, ysin1);
-
     xmm1 = _mm256_add_ps(ysin1, ysin2);
     xmm2 = _mm256_add_ps(y, y2);
+#endif
 
     /* update the sign */
     *s = _mm256_xor_ps(xmm1, sign_bit_sin);
@@ -786,10 +796,13 @@ static inline v8sf sin256_ps(v8sf x)
     y2 = _mm256_fmadd_ps(y2, x, x);
 
     /* select the correct result from the two polynoms */
-    xmm3 = poly_mask;
-    y2 = _mm256_and_ps(xmm3, y2);  //, xmm3);
-    y = _mm256_andnot_ps(xmm3, y);
+#if 1
+    y = _mm256_blendv_ps(y, y2, poly_mask);
+#else
+    y2 = _mm256_and_ps(poly_mask, y2);  //, xmm3);
+    y = _mm256_andnot_ps(poly_mask, y);
     y = _mm256_add_ps(y, y2);
+#endif
     /* update the sign */
     y = _mm256_xor_ps(y, sign_bit);
 
@@ -889,10 +902,13 @@ static inline v8sf cos256_ps(v8sf x)
     y2 = _mm256_fmadd_ps(y2, x, x);
 
     /* select the correct result from the two polynoms */
-    xmm3 = poly_mask;
-    y2 = _mm256_and_ps(xmm3, y2);  //, xmm3);
-    y = _mm256_andnot_ps(xmm3, y);
+#if 1
+    y = _mm256_blendv_ps(y, y2, poly_mask);
+#else
+    y2 = _mm256_and_ps(poly_mask, y2);  //, xmm3);
+    y = _mm256_andnot_ps(poly_mask, y);
     y = _mm256_add_ps(y, y2);
+#endif
     /* update the sign */
     y = _mm256_xor_ps(y, sign_bit);
 
@@ -903,7 +919,7 @@ static inline v8sf cos256_ps(v8sf x)
    it is almost as fast, and gives you a free cosine with your sine */
 static inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c)
 {
-    v8sf xmm1, xmm2, xmm3 = _mm256_setzero_ps(), sign_bit_sin, y;
+    v8sf xmm1, xmm2, sign_bit_sin, y;
     v8si imm0, imm2, imm4;
 
 #ifndef __AVX2__
@@ -1020,17 +1036,18 @@ static inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c)
     y2 = _mm256_mul_ps(y2, z);
     y2 = _mm256_fmadd_ps(y2, x, x);
 
-
-
     /* select the correct result from the two polynoms */
-    xmm3 = poly_mask;
-    v8sf ysin2 = _mm256_and_ps(xmm3, y2);
-    v8sf ysin1 = _mm256_andnot_ps(xmm3, y);
+#if 1
+    xmm1 = _mm256_blendv_ps(y, y2, poly_mask);
+    xmm2 = _mm256_blendv_ps(y2, y, poly_mask);
+#else
+    v8sf ysin2 = _mm256_and_ps(poly_mask, y2);
+    v8sf ysin1 = _mm256_andnot_ps(poly_mask, y);
     y2 = _mm256_sub_ps(y2, ysin2);
     y = _mm256_sub_ps(y, ysin1);
-
     xmm1 = _mm256_add_ps(ysin1, ysin2);
     xmm2 = _mm256_add_ps(y, y2);
+#endif
 
     /* update the sign */
     *s = _mm256_xor_ps(xmm1, sign_bit_sin);

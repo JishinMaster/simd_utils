@@ -145,7 +145,14 @@ static inline v16sf sin512_ps(v16sf x)
 
 
     v16sf swap_sign_bit = _mm512_castsi512_ps(imm0);
+    
+#if 1
+    //Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?  
+    __mmask16 poly_mask = _mm512_cmplt_epi32_mask(imm2, _mm512_setzero_si512());
+#else
     v16sf poly_mask = _mm512_castsi512_ps(imm2);
+#endif
+
     sign_bit = _mm512_xor_ps(sign_bit, swap_sign_bit);
 
     /* The magic pass: "Extended precision modular arithmetic"
@@ -172,10 +179,14 @@ static inline v16sf sin512_ps(v16sf x)
     y2 = _mm512_fmadd_ps(y2, x, x);
 
     /* select the correct result from the two polynoms */
-    xmm3 = poly_mask;
-    y2 = _mm512_and_ps(xmm3, y2);  //, xmm3);
-    y = _mm512_andnot_ps(xmm3, y);
+#if 1
+    y = _mm512_mask_blend_ps(poly_mask, y, y2);
+#else
+    y2 = _mm512_and_ps(poly_mask, y2);  //, xmm3);
+    y = _mm512_andnot_ps(poly_mask, y);
     y = _mm512_add_ps(y, y2);
+#endif
+
     /* update the sign */
     y = _mm512_xor_ps(y, sign_bit);
 
@@ -185,7 +196,7 @@ static inline v16sf sin512_ps(v16sf x)
 /* almost the same as sin_ps */
 static inline v16sf cos512_ps(v16sf x)
 {  // any x
-    v16sf xmm3, y;
+    v16sf y;
     v16si imm0, imm2;
 
     /* take the absolute value */
@@ -210,7 +221,13 @@ static inline v16sf cos512_ps(v16sf x)
     imm2 = (__m512i) _mm512_maskz_set1_epi32(_mm512_cmpeq_epi32_mask(imm2, *(v16si *) _pi32_512_0), -1);
 
     v16sf sign_bit = _mm512_castsi512_ps(imm0);
+    
+#if 1
+    //Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?  
+    __mmask16 poly_mask = _mm512_cmplt_epi32_mask(imm2, _mm512_setzero_si512());
+#else
     v16sf poly_mask = _mm512_castsi512_ps(imm2);
+#endif
 
     /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
@@ -236,10 +253,14 @@ static inline v16sf cos512_ps(v16sf x)
     y2 = _mm512_fmadd_ps(y2, x, x);
 
     /* select the correct result from the two polynoms */
-    xmm3 = poly_mask;
-    y2 = _mm512_and_ps(xmm3, y2);  //, xmm3);
-    y = _mm512_andnot_ps(xmm3, y);
+#if 1
+    y = _mm512_mask_blend_ps(poly_mask, y, y2);
+#else
+    y2 = _mm512_and_ps(poly_mask, y2);  //, xmm3);
+    y = _mm512_andnot_ps(poly_mask, y);
     y = _mm512_add_ps(y, y2);
+#endif
+
     /* update the sign */
     y = _mm512_xor_ps(y, sign_bit);
 
@@ -248,7 +269,7 @@ static inline v16sf cos512_ps(v16sf x)
 
 static inline void sincos512_ps(v16sf x, v16sf *s, v16sf *c)
 {
-    v16sf xmm1, xmm2, xmm3 = _mm512_setzero_ps(), sign_bit_sin, y;
+    v16sf xmm1, xmm2, sign_bit_sin, y;
     v16si imm0, imm2, imm4;
 
     sign_bit_sin = x;
@@ -281,7 +302,13 @@ static inline void sincos512_ps(v16sf x, v16sf *s, v16sf *c)
     // v16sf poly_mask = _mm512_castsi512_ps(imm2);
 
     v16sf swap_sign_bit_sin = _mm512_castsi512_ps(imm0);
+    
+#if 1
+    //Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?  
+    __mmask16 poly_mask = _mm512_cmplt_epi32_mask(imm2, _mm512_setzero_si512());
+#else
     v16sf poly_mask = _mm512_castsi512_ps(imm2);
+#endif
 
     /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
@@ -314,14 +341,17 @@ static inline void sincos512_ps(v16sf x, v16sf *s, v16sf *c)
     y2 = _mm512_fmadd_ps(y2, x, x);
 
     /* select the correct result from the two polynoms */
-    xmm3 = poly_mask;
-    v16sf ysin2 = _mm512_and_ps(xmm3, y2);
-    v16sf ysin1 = _mm512_andnot_ps(xmm3, y);
+#if 1
+    xmm1 = _mm512_mask_blend_ps(poly_mask, y, y2);
+    xmm2 = _mm512_mask_blend_ps(poly_mask, y2, y);
+#else
+    v16sf ysin2 = _mm512_and_ps(poly_mask, y2);
+    v16sf ysin1 = _mm512_andnot_ps(poly_mask, y);
     y2 = _mm512_sub_ps(y2, ysin2);
     y = _mm512_sub_ps(y, ysin1);
-
     xmm1 = _mm512_add_ps(ysin1, ysin2);
     xmm2 = _mm512_add_ps(y, y2);
+#endif
 
     /* update the sign */
     *s = _mm512_xor_ps(xmm1, sign_bit_sin);

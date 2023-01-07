@@ -804,8 +804,7 @@ static inline v4sd _mm256_cvtepi64_pd_custom(v4sid x)
 
 static inline void sincos256_pd(v4sd x, v4sd *s, v4sd *c)
 {
-    v4sd xmm1, xmm2, xmm3 = _mm256_setzero_pd(), sign_bit_sin, y;
-
+    v4sd xmm1, xmm2, sign_bit_sin, y;
     v4sid emm0, emm2, emm4;
 
     sign_bit_sin = x;
@@ -872,13 +871,17 @@ static inline void sincos256_pd(v4sd x, v4sd *s, v4sd *c)
     y2 = _mm256_fmadd_pd_custom(y2, x, x);
 
     /* select the correct result from the two polynoms */
-    xmm3 = poly_mask;
-    v4sd ysin2 = _mm256_and_pd(xmm3, y2);
-    v4sd ysin1 = _mm256_andnot_pd(xmm3, y);
+#if 1
+    xmm1 = _mm256_blendv_pd(y, y2, poly_mask);
+    xmm2 = _mm256_blendv_pd(y2, y, poly_mask);
+#else
+    v4sd ysin2 = _mm256_and_pd(poly_mask, y2);
+    v4sd ysin1 = _mm256_andnot_pd(poly_mask, y);
     y2 = _mm256_sub_pd(y2, ysin2);
     y = _mm256_sub_pd(y, ysin1);
     xmm1 = _mm256_add_pd(ysin1, ysin2);
     xmm2 = _mm256_add_pd(y, y2);
+#endif
 
     /* update the sign */
     *s = _mm256_xor_pd(xmm1, sign_bit_sin);

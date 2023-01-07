@@ -565,7 +565,7 @@ static inline v2sid _mm_cvttpd_epi64_custom(v2sd x)
 
 static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
 {
-    v2sd xmm1, xmm2, xmm3 = _mm_setzero_pd(), sign_bit_sin, y;
+    v2sd xmm1, xmm2, sign_bit_sin, y;
 
     v2sid emm0, emm2, emm4;
 
@@ -645,15 +645,18 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     y2 = _mm_mul_pd(y2, z);
     y2 = _mm_fmadd_pd_custom(y2, x, x);
 
-
     /* select the correct result from the two polynoms */
-    xmm3 = poly_mask;
-    v2sd ysin2 = _mm_and_pd(xmm3, y2);
-    v2sd ysin1 = _mm_andnot_pd(xmm3, y);
+#if 1
+    xmm1 = _mm_blendv_pd(y, y2, poly_mask);
+    xmm2 = _mm_blendv_pd(y2, y, poly_mask);
+#else
+    v2sd ysin2 = _mm_and_pd(poly_mask, y2);
+    v2sd ysin1 = _mm_andnot_pd(poly_mask, y);
     y2 = _mm_sub_pd(y2, ysin2);
     y = _mm_sub_pd(y, ysin1);
     xmm1 = _mm_add_pd(ysin1, ysin2);
     xmm2 = _mm_add_pd(y, y2);
+#endif
 
     /* update the sign */
     *s = _mm_xor_pd(xmm1, sign_bit_sin);

@@ -281,7 +281,7 @@ int main(int argc, char **argv)
     int len = atoi(argv[1]);
 
 #ifndef USE_MALLOC
-    int ret;
+    int ret = 0;
     ret |= posix_memalign((void **) &inout, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout == NULL) {
         printf("posix_memalign inout failed\n");

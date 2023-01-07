@@ -2406,8 +2406,14 @@ static inline void flip128f(float *src, float *dst, int len)
 
 static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
 {
-    v4sf xmm1, xmm2, xmm3 = *(v4sf *) _ps_0, sign_bit_sin, y;
+    v4sf xmm1, xmm2, sign_bit_sin, y;
     v4si emm0, emm2, emm4;
+
+#if 1
+    v4bi xmm3;
+#else
+    v4sf xmm3 = *(v4sf *) _ps_0;
+#endif
 
     sign_bit_sin = x;
     /* take the absolute value */
@@ -2470,14 +2476,19 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
     y2 = vec_madd(y2, x, x);
 
     /* select the correct result from the two polynoms */
+#if 1
+    xmm3 = *(v4bi *) poly_mask;
+    xmm1 = vec_sel(y, y2, xmm3);
+    xmm2 = vec_sel(y2, y, xmm3);
+#else
     xmm3 = *(v4sf *) poly_mask;
     v4sf ysin2 = vec_and(xmm3, y2);
     v4sf ysin1 = vec_andc(y, xmm3);
     y2 = vec_sub(y2, ysin2);
     y = vec_sub(y, ysin1);
-
     xmm1 = vec_add(ysin1, ysin2);
     xmm2 = vec_add(y, y2);
+#endif
 
     /* update the sign */
     *s = vec_xor(xmm1, sign_bit_sin);

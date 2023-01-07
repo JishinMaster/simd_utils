@@ -805,7 +805,6 @@ static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
     v8sd xmm1, xmm2, xmm3 = _mm512_setzero_pd(), sign_bit_sin, y;
     v8sid emm0, emm2, emm4;
     __mmask8 cmpeq_mask;
-    v8sd poly_mask;
 
     sign_bit_sin = x;
     /* take the absolute value */
@@ -835,7 +834,14 @@ static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
     cmpeq_mask = _mm512_cmpeq_epi64_mask(emm2, _mm512_setzero_si512());
     v8sid ffff = _mm512_set1_epi64(0xFFFFFFFFFFFFFFFF);
     emm2 = _mm512_mask_blend_epi64(cmpeq_mask, _mm512_setzero_si512(), ffff);
-    poly_mask = _mm512_castsi512_pd(emm2);
+
+#if 1
+    //Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?  
+    __mmask8 poly_mask = _mm512_cmplt_epi64_mask(emm2, _mm512_setzero_si512());
+#else
+    v8sd poly_mask = _mm512_castsi512_pd(emm2);
+#endif
+
 
 
     /* The magic pass: "Extended precision modular arithmetic"
@@ -873,16 +879,17 @@ static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
     y2 = _mm512_fmadd_pd_custom(y2, x, x);
 
     /* select the correct result from the two polynoms */
-
-    // TODO : to be improved, converts the poly mask to double
-    xmm3 = poly_mask;
-
-    v8sd ysin2 = _mm512_and_pd(xmm3, y2);
-    v8sd ysin1 = _mm512_andnot_pd(xmm3, y);
+#if 1
+    xmm1 = _mm512_mask_blend_pd(poly_mask, y, y2);
+    xmm2 = _mm512_mask_blend_pd(poly_mask, y2, y);
+#else
+    v8sd ysin2 = _mm512_and_pd(poly_mask, y2);
+    v8sd ysin1 = _mm512_andnot_pd(poly_mask, y);
     y2 = _mm512_sub_pd(y2, ysin2);
     y = _mm512_sub_pd(y, ysin1);
     xmm1 = _mm512_add_pd(ysin1, ysin2);
     xmm2 = _mm512_add_pd(y, y2);
+#endif
 
     /* update the sign */
     *s = _mm512_xor_pd(xmm1, sign_bit_sin);
