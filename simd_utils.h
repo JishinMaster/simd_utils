@@ -492,7 +492,7 @@ static inline void _mm256_store2u_ps(float *mem_addr, v8sfx2 a)
 static inline v4sdx2 _mm256_load2_pd(double const *mem_addr)
 {
     v2sdx2 src_1 = _mm_load2_pd(mem_addr);
-    v2sdx2 src_2 = _mm_load2_pd(mem_addr + 2 * AVX_LEN_DOUBLE);
+    v2sdx2 src_2 = _mm_load2_pd(mem_addr + 2 * SSE_LEN_DOUBLE);
     v4sdx2 ret;
     ret.val[0] = _mm256_set_m128d(src_2.val[0], src_1.val[0]);
     ret.val[1] = _mm256_set_m128d(src_2.val[1], src_1.val[1]);
@@ -502,7 +502,7 @@ static inline v4sdx2 _mm256_load2_pd(double const *mem_addr)
 static inline v4sdx2 _mm256_load2u_pd(double const *mem_addr)
 {
     v2sdx2 src_1 = _mm_load2u_pd(mem_addr);
-    v2sdx2 src_2 = _mm_load2u_pd(mem_addr + 2 * AVX_LEN_DOUBLE);
+    v2sdx2 src_2 = _mm_load2u_pd(mem_addr + 2 * SSE_LEN_DOUBLE);
     v4sdx2 ret;
     ret.val[0] = _mm256_set_m128d(src_2.val[0], src_1.val[0]);
     ret.val[1] = _mm256_set_m128d(src_2.val[1], src_1.val[1]);
