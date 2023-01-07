@@ -508,7 +508,10 @@ static const int32_t inv_sign_mask = ~SIGN_MASK;
 #define IMM8_FLIP_VEC 0x1B              // change m128 from abcd to dcba
 #define IMM8_LO_HI_VEC 0x1E             // change m128 from abcd to cdab
 #define IMM8_PERMUTE_128BITS_LANES 0x1  // reverse abcd efgh to efgh abcd
+
+#ifndef M_PI
 #define M_PI 3.14159265358979323846264338327950288
+#endif
 
 typedef union {
     struct {

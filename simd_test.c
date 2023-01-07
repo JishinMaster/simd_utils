@@ -49,34 +49,66 @@
 #include <mkl_vml.h>
 #endif
 
-#if 0
-typedef ALIGN16_BEG union {
-    float f[4];
-    int i[4];
-    v4sf v;
-} ALIGN16_END V4SF;
+//Does not take care of NAN and INF
+int32_t ulpsDistance32(const float a, const float b)
+{
+  if(a==b) return 0;
+  int32_t ia, ib;
+  memcpy(&ia, &a, sizeof(float));
+  memcpy(&ib, &b, sizeof(float));
 
-typedef ALIGN32_BEG union {
-    float f[8];
-    int i[8];
-    v8sf v;
-} ALIGN32_END V8SF;
-#endif
+  if((ia < 0) != (ib < 0)) return -1;
+  
+  int32_t dist = abs(ia - ib);
+  return dist;
+}
+
+//Does not take care of NAN and INF
+int64_t ulpsDistance64(const double a, const double b)
+{
+  if(a==b) return 0;
+  int64_t ia, ib;
+  memcpy(&ia, &a, sizeof(double));
+  memcpy(&ib, &b, sizeof(double));
+
+  if((ia < 0) != (ib < 0)) return -1;
+  
+  int64_t dist = abs(ia - ib);
+  return dist;
+}
+
 
 float l2_err(float *test, float *ref, int len)
 {
-    float l2_err = 0.0f;
-
+    float l2_err = 0.0;
+    int sup3ulps = 0;
+    float sup3ulps_percent = 0.0f;
+    
     for (int i = 0; i < len; i++) {
         l2_err += (ref[i] - test[i]) * (ref[i] - test[i]);
+        int32_t dist = ulpsDistance32(ref[i], test[i]);
+        if(dist > 3) sup3ulps++;
     }
 
-#ifdef RELEASE
-    if (l2_err > 0.0000001f)
-        printf("L2 ERR %0.9f\n", l2_err);
-#else
-    printf("L2 ERR %0.9f\n", l2_err);
-#endif
+    sup3ulps_percent = (float)sup3ulps/(float)len * 100.0f;
+    printf("L2 ERR %0.9g SUP_3ULPS %2.4g %% \n", l2_err, sup3ulps_percent);
+    return l2_err;
+}
+
+double l2_errd(double *test, double *ref, int len)
+{
+    double l2_err = 0.0;
+    int sup3ulps = 0;
+    float sup3ulps_percent = 0.0f;
+    
+    for (int i = 0; i < len; i++) {
+        l2_err += (ref[i] - test[i]) * (ref[i] - test[i]);
+        int64_t dist = ulpsDistance64(ref[i], test[i]);
+        if(dist > 3) sup3ulps++;
+    }
+    
+    sup3ulps_percent = (float)sup3ulps/(float)len * 100.0f;
+    printf("L2 ERR %0.13g SUP_3ULPS %2.4g %% \n", l2_err, sup3ulps_percent);
     return l2_err;
 }
 
@@ -88,30 +120,7 @@ float l2_err_u8(uint8_t *test, uint8_t *ref, int len)
         l2_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
     }
 
-#ifdef RELEASE
-    if (l2_err > 0.0000001f)
-        printf("L2 ERR %0.9f\n", l2_err);
-#else
-    printf("L2 ERR %0.9f\n", l2_err);
-#endif
-    return l2_err;
-}
-
-float l2_err_i32(int32_t *test, int32_t *ref, int len)
-{
-    float l2_err = 0.0f;
-
-    for (int i = 0; i < len; i++) {
-        l2_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
-    }
-
-#ifdef RELEASE
-    if (l2_err > 0.000001f)
-        printf("L2 ERR %0.9f\n", l2_err);
-#else
-    printf("L2 ERR %0.9f\n", l2_err);
-#endif
-
+    printf("L2 ERR %0.9g\n", l2_err);
     return l2_err;
 }
 
@@ -123,31 +132,19 @@ float l2_err_i16(int16_t *test, int16_t *ref, int len)
         l2_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
     }
 
-#ifdef RELEASE
-    if (l2_err > 0.000001f)
-        printf("L2 ERR %0.9f\n", l2_err);
-#else
-    printf("L2 ERR %0.9f\n", l2_err);
-#endif
-
+    printf("L2 ERR %0.9g\n", l2_err);
     return l2_err;
 }
 
-float l2_errd(double *test, double *ref, int len)
+float l2_err_i32(int32_t *test, int32_t *ref, int len)
 {
-    double l2_err = 0.0;
+    float l2_err = 0.0f;
 
     for (int i = 0; i < len; i++) {
-        l2_err += (ref[i] - test[i]) * (ref[i] - test[i]);
+        l2_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
     }
 
-#ifdef RELEASE
-    if (l2_err > 0.000000001)
-        printf("L2 ERR %0.13f\n", l2_err);
-#else
-    printf("L2 ERR %0.13f\n", l2_err);
-#endif
-
+    printf("L2 ERR %0.9g\n", l2_err);
     return l2_err;
 }
 
@@ -155,10 +152,8 @@ float l2_errd(double *test, double *ref, int len)
 int main(int argc, char **argv)
 {
 #ifdef IPP
-
     IppStatus status;
     Ipp64u mask, emask;
-
 #if defined(AVX512)
     mask = AVX512_MASK;
 #elif defined(__AVX2__)
@@ -286,123 +281,128 @@ int main(int argc, char **argv)
     int len = atoi(argv[1]);
 
 #ifndef USE_MALLOC
-    posix_memalign((void **) &inout, atoi(argv[2]), 2 * len * sizeof(float));
+    int ret;
+    ret |= posix_memalign((void **) &inout, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout == NULL) {
         printf("posix_memalign inout failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout2, atoi(argv[2]), 2 * len * sizeof(float));
+    ret |= posix_memalign((void **) &inout2, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout2 == NULL) {
         printf("posix_memalign inout2 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout3, atoi(argv[2]), len * sizeof(float));
+    ret |= posix_memalign((void **) &inout3, atoi(argv[2]), len * sizeof(float));
     if (inout3 == NULL) {
         printf("posix_memalign inout3 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout4, atoi(argv[2]), len * sizeof(float));
+    ret |= posix_memalign((void **) &inout4, atoi(argv[2]), len * sizeof(float));
     if (inout4 == NULL) {
         printf("posix_memalign inout4 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout5, atoi(argv[2]), len * sizeof(float));
+    ret |= posix_memalign((void **) &inout5, atoi(argv[2]), len * sizeof(float));
     if (inout3 == NULL) {
         printf("posix_memalign inout5 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout6, atoi(argv[2]), len * sizeof(float));
+    ret |= posix_memalign((void **) &inout6, atoi(argv[2]), len * sizeof(float));
     if (inout4 == NULL) {
         printf("posix_memalign inout6 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_ref, atoi(argv[2]), 2 * len * sizeof(float));
+    ret |= posix_memalign((void **) &inout_ref, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout_ref == NULL) {
         printf("posix_memalign inout_ref failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout2_ref, atoi(argv[2]), 2 * len * sizeof(float));
+    ret |= posix_memalign((void **) &inout2_ref, atoi(argv[2]), 2 * len * sizeof(float));
     if (inout2_ref == NULL) {
         printf("posix_memalign inout2_ref failed\n");
         return -1;
     }
-    posix_memalign((void **) &inoutd, atoi(argv[2]), 2 * len * sizeof(double));
+    ret |= posix_memalign((void **) &inoutd, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd == NULL) {
         printf("posix_memalign inoutd failed\n");
         return -1;
     }
-    posix_memalign((void **) &inoutd2, atoi(argv[2]), 2 * len * sizeof(double));
+    ret |= posix_memalign((void **) &inoutd2, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd == NULL) {
         printf("posix_memalign inoutd2 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inoutd3, atoi(argv[2]), 2 * len * sizeof(double));
+    ret |= posix_memalign((void **) &inoutd3, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd == NULL) {
         printf("posix_memalign inoutd3 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inoutd_ref, atoi(argv[2]), 2 * len * sizeof(double));
+    ret |= posix_memalign((void **) &inoutd_ref, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd_ref == NULL) {
         printf("posix_memalign inoutd_ref failed\n");
         return -1;
     }
-    posix_memalign((void **) &inoutd2_ref, atoi(argv[2]), 2 * len * sizeof(double));
+    ret |= posix_memalign((void **) &inoutd2_ref, atoi(argv[2]), 2 * len * sizeof(double));
     if (inoutd_ref == NULL) {
         printf("posix_memalign inoutd2_ref failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_u1, atoi(argv[2]), len * sizeof(uint8_t));
+    ret |= posix_memalign((void **) &inout_u1, atoi(argv[2]), len * sizeof(uint8_t));
     if (inout_u1 == NULL) {
         printf("posix_memalign inout_u1 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_u2, atoi(argv[2]), len * sizeof(uint8_t));
+    ret |= posix_memalign((void **) &inout_u2, atoi(argv[2]), len * sizeof(uint8_t));
     if (inout_u2 == NULL) {
         printf("posix_memalign inout_u2 failed\n");
         return -1;
     }
 
-    posix_memalign((void **) &inout_s1, atoi(argv[2]), 2 * len * sizeof(int16_t));
+    ret |= posix_memalign((void **) &inout_s1, atoi(argv[2]), 2 * len * sizeof(int16_t));
     if (inout_s1 == NULL) {
         printf("posix_memalign inout_s1 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_s2, atoi(argv[2]), 2 * len * sizeof(int16_t));
+    ret |= posix_memalign((void **) &inout_s2, atoi(argv[2]), 2 * len * sizeof(int16_t));
     if (inout_s2 == NULL) {
         printf("posix_memalign inout_s2 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_s3, atoi(argv[2]), 2 * len * sizeof(int16_t));
+    ret |= posix_memalign((void **) &inout_s3, atoi(argv[2]), 2 * len * sizeof(int16_t));
     if (inout_s3 == NULL) {
         printf("posix_memalign inout_s3 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_sref, atoi(argv[2]), 2 * len * sizeof(int16_t));
+    ret |= posix_memalign((void **) &inout_sref, atoi(argv[2]), 2 * len * sizeof(int16_t));
     if (inout_sref == NULL) {
         printf("posix_memalign inout_sref failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_i1, atoi(argv[2]), len * sizeof(int32_t));
+    ret |= posix_memalign((void **) &inout_i1, atoi(argv[2]), len * sizeof(int32_t));
     if (inout_i1 == NULL) {
         printf("posix_memalign inout_i1 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_i2, atoi(argv[2]), len * sizeof(int32_t));
+    ret |= posix_memalign((void **) &inout_i2, atoi(argv[2]), len * sizeof(int32_t));
     if (inout_i2 == NULL) {
         printf("posix_memalign inout_i2 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_i3, atoi(argv[2]), len * sizeof(int32_t));
+    ret |= posix_memalign((void **) &inout_i3, atoi(argv[2]), len * sizeof(int32_t));
     if (inout_i3 == NULL) {
         printf("posix_memalign inout_i3 failed\n");
         return -1;
     }
-    posix_memalign((void **) &inout_iref, atoi(argv[2]), len * sizeof(int32_t));
+    ret |= posix_memalign((void **) &inout_iref, atoi(argv[2]), len * sizeof(int32_t));
     if (inout_iref == NULL) {
         printf("posix_memalign inout_iref failed\n");
         return -1;
     }
 
+    if(ret){
+      printf("Error in posix_memalign calls");
+      return -1;
+    }
 #else /* USE_MALLOC */
     // TODO : add missing new arrays
     inout = (float *) malloc(2 * len * sizeof(float));
@@ -2151,6 +2151,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("meanf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    meanf_C_precise(inout_ref, &mean_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("meanf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
 
     clock_gettime(CLOCK_REALTIME, &start);
@@ -2167,7 +2173,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsMean_32f %d %lf\n", len, elapsed);
 
-    printf("mean %f ref %f\n", mean, mean_ref);
+    printf("mean %f ref %f ULPS %d\n", mean, mean_ref, ulpsDistance32(mean,mean_ref));
 #endif
 
 #if defined(SSE) || defined(ALTIVEC)
@@ -2184,7 +2190,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("mean128f %d %lf\n", len, elapsed);
 
-    printf("mean %f ref %f\n", mean, mean_ref);
+    printf("mean %f ref %f ULPS %d\n", mean, mean_ref, ulpsDistance32(mean,mean_ref));
 
 #ifndef ALTIVEC
     clock_gettime(CLOCK_REALTIME, &start);
@@ -2200,7 +2206,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("meankahan128f %d %lf\n", len, elapsed);
 
-    printf("mean %f ref %f\n", mean, mean_ref);
+    printf("mean %f ref %f ULPS %d\n", mean, mean_ref, ulpsDistance32(mean,mean_ref));
 #endif
 #endif
 
@@ -2218,7 +2224,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("mean256f %d %lf\n", len, elapsed);
 
-    printf("mean %f ref %f\n", mean, mean_ref);
+    printf("mean %f ref %f ULPS %d\n", mean, mean_ref, ulpsDistance32(mean,mean_ref));
 #endif
 
 #ifdef AVX512
@@ -2235,7 +2241,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("mean512f %d %lf\n", len, elapsed);
 
-    printf("mean %f ref %f\n", mean, mean_ref);
+    printf("mean %f ref %f ULPS %d\n", mean, mean_ref, ulpsDistance32(mean,mean_ref));
 #endif
 
 #ifdef RISCV
@@ -2244,7 +2250,6 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("meanf_vec %d %lf\n", len, elapsed);
-    printf("mean %f ref %f\n", mean, mean_ref);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++) {
@@ -2254,7 +2259,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("meanf_vec %d %lf\n", len, elapsed);
 
-    printf("mean %f ref %f\n", mean, mean_ref);
+    printf("mean %f ref %f ULPS %d\n", mean, mean_ref, ulpsDistance32(mean,mean_ref));
 #endif
 
 
@@ -3794,7 +3799,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsDotProd_32f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    printf("%f %f\n", inout_ref[0], inout3[0]);
+    printf("%f %f ULPS %d\n", inout_ref[0], inout3[0], ulpsDistance32(inout_ref[0], inout3[0]));
 #endif
 
 #if defined(SSE) || defined(ALTIVEC)
@@ -3811,7 +3816,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("dot128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    printf("%f %f\n", inout_ref[0], inout3[0]);
+    printf("%f %f ULPS %d\n", inout_ref[0], inout3[0], ulpsDistance32(inout_ref[0], inout3[0]));
 #endif
 
 #ifdef AVX
@@ -3828,7 +3833,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("dot256f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    printf("%f %f\n", inout_ref[0], inout3[0]);
+    printf("%f %f ULPS %d\n", inout_ref[0], inout3[0], ulpsDistance32(inout_ref[0], inout3[0]));
 #endif
 
 #ifdef AVX512
@@ -3845,7 +3850,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("dot512f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    printf("%f %f\n", inout_ref[0], inout3[0]);
+    printf("%f %f ULPS %d\n", inout_ref[0], inout3[0], ulpsDistance32(inout_ref[0], inout3[0]));
 #endif
 
 #ifdef RISCV
@@ -3862,7 +3867,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("dotf_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    printf("%f %f\n", inout_ref[0], inout3[0]);
+    printf("%f %f ULPS %d\n", inout_ref[0], inout3[0], ulpsDistance32(inout_ref[0], inout3[0]));
 #endif
 
     printf("\n");
@@ -3907,8 +3912,8 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsDotProd_32fc %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    printf("%f %f\n", inout_ref[0], inout3[0]);
-    printf("%f %f\n", inout_ref[1], inout3[1]);
+    printf("%f %f ULPS %d\n", inout_ref[0], inout3[0], ulpsDistance32(inout_ref[0], inout3[0]));
+    printf("%f %f ULPS %d\n", inout_ref[1], inout3[1], ulpsDistance32(inout_ref[1], inout3[1]));
 #endif
 
 #if defined(SSE) || defined(ALTIVEC)
@@ -3925,8 +3930,8 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("dotc128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    printf("%f %f\n", inout_ref[0], inout3[0]);
-    printf("%f %f\n", inout_ref[1], inout3[1]);
+    printf("%f %f ULPS %d\n", inout_ref[0], inout3[0], ulpsDistance32(inout_ref[0], inout3[0]));
+    printf("%f %f ULPS %d\n", inout_ref[1], inout3[1], ulpsDistance32(inout_ref[1], inout3[1]));
 #endif
 
 #ifdef AVX
@@ -3943,8 +3948,8 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("dotc256f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    printf("%f %f\n", inout_ref[0], inout3[0]);
-    printf("%f %f\n", inout_ref[1], inout3[1]);
+    printf("%f %f ULPS %d\n", inout_ref[0], inout3[0], ulpsDistance32(inout_ref[0], inout3[0]));
+    printf("%f %f ULPS %d\n", inout_ref[1], inout3[1], ulpsDistance32(inout_ref[1], inout3[1]));
 #endif
 
 #ifdef AVX512
@@ -3961,8 +3966,8 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("dotc512f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    printf("%f %f\n", inout_ref[0], inout3[0]);
-    printf("%f %f\n", inout_ref[1], inout3[1]);
+    printf("%f %f ULPS %d\n", inout_ref[0], inout3[0], ulpsDistance32(inout_ref[0], inout3[0]));
+    printf("%f %f ULPS %d\n", inout_ref[1], inout3[1], ulpsDistance32(inout_ref[1], inout3[1]));
 #endif
 
 #ifdef RISCV
@@ -3979,8 +3984,8 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("dotcf_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
-    printf("%f %f\n", inout_ref[0], inout3[0]);
-    printf("%f %f\n", inout_ref[1], inout3[1]);
+    printf("%f %f ULPS %d\n", inout_ref[0], inout3[0], ulpsDistance32(inout_ref[0], inout3[0]));
+    printf("%f %f ULPS %d\n", inout_ref[1], inout3[1], ulpsDistance32(inout_ref[1], inout3[1]));
 #endif
 
     printf("\n");
@@ -4432,6 +4437,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sinf_C %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    sinf_C_precise(inout, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sinf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsSin_32f_A24(inout, inout2, len);
@@ -4583,7 +4594,7 @@ int main(int argc, char **argv)
 
     printf("\n");
     /////////////////////////////////////////////////////////// COS //////////////////////////////////////////////////////////////////////////////
-    printf("COS\n");
+    printf("COSF\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     cosf_C(inout, inout2_ref, len);
@@ -4597,6 +4608,12 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cosf_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    cosf_C_precise(inout, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cosf_C_precise %d %lf\n", len, elapsed);
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
@@ -4766,6 +4783,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sincosf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincosf_C_precise(inout, inout_ref, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincosf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsSinCos_32f_A24(inout, inout2, inout3, len);
@@ -4952,20 +4975,20 @@ int main(int argc, char **argv)
         inoutd[i] = -1.0 + (double) i / 10.0;
         inout[i] = -1.0f + (float) i / 10.0f;
     }
-
+    
     clock_gettime(CLOCK_REALTIME, &start);
     sincosd_C(inoutd, inoutd_ref, inoutd2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("sincosd_C %d %lf\n", len, elapsed);
-
+    
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
         sincosd_C(inoutd, inoutd_ref, inoutd2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sincosd_C %d %lf\n", len, elapsed);
-
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsSinCos_64f_A53(inoutd, inoutd2, inoutd3, len);
@@ -5110,6 +5133,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sincosf_C_interleaved %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincosf_C_interleaved_precise(inout, (complex32_t *) inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincosf_C_interleaved_precise %d %lf\n", len, elapsed);
+    
 #if defined(IPP)
     clock_gettime(CLOCK_REALTIME, &start);
     ippsCIS_32fc_A24(inout, (Ipp32fc *) inout2, len);
@@ -5278,7 +5307,7 @@ int main(int argc, char **argv)
 
     printf("\n");
     /////////////////////////////////////////////////////////// LOGN //////////////////////////////////////////////////////////////////////////////
-    printf("LOGN\n");
+    printf("LOGNF\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (1.0f * i + 1.0f) / 1.82f;
@@ -5298,6 +5327,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("lnf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    lnf_C_precise(inout, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("lnf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsLn_32f_A24(inout, inout2, len);
@@ -5462,7 +5497,7 @@ int main(int argc, char **argv)
 
     printf("\n");
     /////////////////////////////////////////////////////////// LOG2 //////////////////////////////////////////////////////////////////////////////
-    printf("LOG2\n");
+    printf("LOG2F\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (1.0f * i + 0.000001f) / 1.82f;
@@ -5482,6 +5517,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("log2f_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    log2f_C_precise(inout, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("log2f_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef MKL
     clock_gettime(CLOCK_REALTIME, &start);
     vsLog2(len, inout, inout2);
@@ -5657,7 +5698,7 @@ int main(int argc, char **argv)
 
     printf("\n");
     /////////////////////////////////////////////////////////// LOG10 //////////////////////////////////////////////////////////////////////////////
-    printf("LOG10\n");
+    printf("LOG10F\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (1.0f * i + 0.000001f) / 1.82f;
@@ -5677,6 +5718,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("log10f_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    log10f_C_precise(inout, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("log10f_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsLog10_32f_A24(inout, inout2, len);
@@ -5888,7 +5935,7 @@ int main(int argc, char **argv)
 
     printf("\n");
     /////////////////////////////////////////////////////////// EXP //////////////////////////////////////////////////////////////////////////////
-    printf("EXP\n");
+    printf("EXPF\n");
 
     /*for (int i = 0; i < len; i++) {
         inout[i] = (float) (1.0f * i + 1.0f) / 10000.0f;
@@ -5914,6 +5961,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("expf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    expf_C_precise(inout, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("expf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsExp_32f_A24(inout, inout2, len);
@@ -6823,7 +6876,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sqrtf_C %d %lf\n", len, elapsed);
 
-
+    clock_gettime(CLOCK_REALTIME, &start);
+    sqrtf_C_precise(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sqrtf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsSqrt_32f(inout, inout2, len);
@@ -6906,7 +6964,7 @@ int main(int argc, char **argv)
 
     printf("\n");
     /////////////////////////////////////////////////////////// TAN //////////////////////////////////////////////////////////////////////////////
-    printf("TAN\n");
+    printf("TANF\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (rand() % 8000) / 1000.0f;
@@ -6928,6 +6986,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("tanf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    tanf_C_precise(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("tanf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsTan_32f_A24(inout, inout2, len);
@@ -7257,7 +7321,7 @@ int main(int argc, char **argv)
 
     printf("\n");
     /////////////////////////////////////////////////////////// TANH //////////////////////////////////////////////////////////////////////////////
-    printf("TANH\n");
+    printf("TANHF\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (rand() % 2000) / 1000.0f;
@@ -7277,6 +7341,13 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("tanhf_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    tanhf_C_precise(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("tanhf_C_precise %d %lf\n", len, elapsed);
+
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
@@ -7451,7 +7522,7 @@ int main(int argc, char **argv)
 
     printf("\n");
     /////////////////////////////////////////////////////////// SINH //////////////////////////////////////////////////////////////////////////////
-    printf("SINH\n");
+    printf("SINHF\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     sinhf_C(inout, inout_ref, len);
@@ -7466,6 +7537,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sinhf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    sinhf_C_precise(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sinhf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsSinh_32f_A24(inout, inout2, len);
@@ -7639,7 +7716,7 @@ int main(int argc, char **argv)
 
     printf("\n");
     /////////////////////////////////////////////////////////// COSH //////////////////////////////////////////////////////////////////////////////
-    printf("COSH\n");
+    printf("COSHF\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
     coshf_C(inout, inout_ref, len);
@@ -7654,6 +7731,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("coshf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    coshf_C_precise(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("coshf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsCosh_32f_A24(inout, inout2, len);
@@ -7847,6 +7930,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("atanhf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    atanhf_C_precise(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atanhf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsAtanh_32f_A24(inout, inout2, len);
@@ -8019,7 +8108,7 @@ int main(int argc, char **argv)
 
     printf("\n");
     /////////////////////////////////////////////////////////// ASINH //////////////////////////////////////////////////////////////////////////////
-    printf("ASINH\n");
+    printf("ASINHF\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (rand() % 2000) / 10000.0f;
@@ -8040,6 +8129,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("asinhf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    asinhf_C_precise(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asinhf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsAsinh_32f_A24(inout, inout2, len);
@@ -8212,7 +8307,7 @@ int main(int argc, char **argv)
 
     printf("\n");
     /////////////////////////////////////////////////////////// ACOSH //////////////////////////////////////////////////////////////////////////////
-    printf("ACOSH\n");
+    printf("ACOSHF\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (rand() % 2000) / 1000.0f + 1.0f;
@@ -8231,6 +8326,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("acoshf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    acoshf_C_precise(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("acoshf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsAcosh_32f_A24(inout, inout2, len);
@@ -8426,6 +8527,12 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("asinf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    asinf_C_precise(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asinf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsAsin_32f_A24(inout, inout2, len);
@@ -8784,6 +8891,12 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("atanf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    atanf_C_precise(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atanf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsAtan_32f_A24(inout, inout2, len);
@@ -8934,8 +9047,8 @@ for (int i = 0; i < len; i++){
 #endif
 
     printf("\n");
-    /////////////////////////////////////////////////////////// ATANF2 //////////////////////////////////////////////////////////////////////////////
-    printf("ATANF2\n");
+    /////////////////////////////////////////////////////////// ATAN2F //////////////////////////////////////////////////////////////////////////////
+    printf("ATAN2F\n");
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (-1.0f * i + 0.15f) / 2.5f / (float) (5 * len);
@@ -8957,6 +9070,12 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("atan2f_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2f_C_precise(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2f_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsAtan2_32f_A24(inout, inout2, inout_ref, len);
@@ -9122,7 +9241,7 @@ for (int i = 0; i < len; i++){
 
     printf("\n");
     /////////////////////////////////////////////////////////// ATANF2_INTERLEAVED /////////////////////////////////////////////////////
-    printf("ATANF2_INTERLEAVED\n");
+    printf("ATAN2F_INTERLEAVED\n");
 
     for (int i = 0; i < 2 * len; i++) {
         inout[i] = (float) (-1.0f * i + 0.15f) / 2.5f / (float) (5 * len);
@@ -9143,6 +9262,12 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("atan2f_interleaved_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2f_interleaved_C_precise((complex32_t *) inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2f_interleaved_C_precise %d %lf\n", len, elapsed);
+    
 #if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     atan2128f_interleaved((complex32_t *) inout, inout2_ref, len);
@@ -12386,6 +12511,12 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cbrtf_C %d %lf\n", len, elapsed);
 
+    clock_gettime(CLOCK_REALTIME, &start);
+    cbrtf_C_precise(inout, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cbrtf_C_precise %d %lf\n", len, elapsed);
+    
 #ifdef MKL
     clock_gettime(CLOCK_REALTIME, &start);
     vsCbrt(len, inout, inout2);

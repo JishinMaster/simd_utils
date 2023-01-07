@@ -816,7 +816,8 @@ static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
 
     /* scale by 4/Pi */
     y = _mm512_mul_pd(x, *(v8sd *) _pd512_cephes_FOPI);
-
+    y = _mm512_roundscale_pd(y, ROUNDTOFLOOR);
+    
     /* store the integer part of y in emm2 */
     emm2 = _mm512_cvttpd_epi64_custom(y);
     /* j=(j+1) & (~1) (see the cephes sources) */
@@ -1098,7 +1099,8 @@ static inline v8sd tan512_pd(v8sd xx)
     zzsup1m14 = _mm512_cmp_pd_mask(zz, *(v8sd *) _pd512_1m14, _CMP_GT_OS);
     tmp = _mm512_fmadd_pd_custom(zz, *(v8sd *) _pd512_TAN_P0, *(v8sd *) _pd512_TAN_P1);
     tmp = _mm512_fmadd_pd_custom(zz, tmp, *(v8sd *) _pd512_TAN_P2);
-    tmp2 = _mm512_fmadd_pd_custom(zz, *(v8sd *) _pd512_TAN_Q0, *(v8sd *) _pd512_TAN_Q1);
+    tmp2 = _mm512_add_pd(zz, *(v8sd *) _pd512_TAN_Q0);
+    tmp2 = _mm512_fmadd_pd_custom(zz, tmp2, *(v8sd *) _pd512_TAN_Q1);
     tmp2 = _mm512_fmadd_pd_custom(zz, tmp2, *(v8sd *) _pd512_TAN_Q2);
     tmp2 = _mm512_fmadd_pd_custom(zz, tmp2, *(v8sd *) _pd512_TAN_Q3);
     tmp2 = _mm512_div_pd(tmp, tmp2);

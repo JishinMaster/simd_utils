@@ -578,6 +578,15 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
 
     /* scale by 4/Pi */
     y = _mm_mul_pd(x, *(v2sd *) _pd_cephes_FOPI);
+    y = _mm_round_pd(y, ROUNDTOFLOOR);
+    /* strip high bits of integer part to prevent integer overflow */
+    //v2sd ldexpmin4 = _mm_set1_pd(1.0/(16.0));
+    //v2sd ldexp4 = _mm_set1_pd(16.0);
+    v2sd z;
+    /*z = _mm_mul_pd( y,  ldexpmin4);
+    z = _mm_round_pd(z, ROUNDTOFLOOR);
+    z = _mm_mul_pd(z, ldexp4);
+    z = _mm_sub_pd(y, z); */
 
     /* store the integer part of y in emm2 */
     emm2 = _mm_cvttpd_epi64_custom(y);
@@ -615,7 +624,7 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     sign_bit_sin = _mm_xor_pd(sign_bit_sin, swap_sign_bit_sin);
 
     /* Evaluate the first polynom  (0 <= x <= Pi/4) */
-    v2sd z = _mm_mul_pd(x, x);
+    z = _mm_mul_pd(x, x);
 
     y = _mm_fmadd_pd_custom(*(v2sd *) _pd_coscof_p0, z, *(v2sd *) _pd_coscof_p1);
     y = _mm_fmadd_pd_custom(y, z, *(v2sd *) _pd_coscof_p2);
@@ -1295,13 +1304,14 @@ static inline v2sd tan_pd(v2sd xx)
 
     /* compute x mod PIO4 */
     y = _mm_mul_pd(x, *(v2sd *) _pd_cephes_FOPI);
+
     // useful?
-    y = _mm_round_pd(y, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+    y = _mm_round_pd(y, ROUNDTOFLOOR);
 
     /* strip high bits of integer part */
     z = _mm_mul_pd(y, *(v2sd *) _pd_0p125);
     // useful?
-    z = _mm_round_pd(z, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+    z = _mm_round_pd(z, ROUNDTOFLOOR);
     z = _mm_fmadd_pd_custom(z, *(v2sd *) _pd_min8, y);
 
     /* integer and fractional part modulo one octant */
@@ -1330,7 +1340,8 @@ static inline v2sd tan_pd(v2sd xx)
     zzsup1m14 = _mm_cmpgt_pd(zz, *(v2sd *) _pd_1m14);
     tmp = _mm_fmadd_pd_custom(zz, *(v2sd *) _pd_TAN_P0, *(v2sd *) _pd_TAN_P1);
     tmp = _mm_fmadd_pd_custom(zz, tmp, *(v2sd *) _pd_TAN_P2);
-    tmp2 = _mm_fmadd_pd_custom(zz, *(v2sd *) _pd_TAN_Q0, *(v2sd *) _pd_TAN_Q1);
+    tmp2 = _mm_add_pd(zz, *(v2sd *) _pd_TAN_Q0);
+    tmp2 = _mm_fmadd_pd_custom(zz, tmp2, *(v2sd *) _pd_TAN_Q1);
     tmp2 = _mm_fmadd_pd_custom(zz, tmp2, *(v2sd *) _pd_TAN_Q2);
     tmp2 = _mm_fmadd_pd_custom(zz, tmp2, *(v2sd *) _pd_TAN_Q3);
     tmp2 = _mm_div_pd(tmp, tmp2);

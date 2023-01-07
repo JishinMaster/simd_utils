@@ -817,6 +817,7 @@ static inline void sincos256_pd(v4sd x, v4sd *s, v4sd *c)
 
     /* scale by 4/Pi */
     y = _mm256_mul_pd(x, *(v4sd *) _pd256_cephes_FOPI);
+    y = _mm256_round_pd(y, ROUNDTOFLOOR);
 
     /* store the integer part of y in emm2 */
     emm2 = _mm256_cvttpd_epi64_custom(y);
@@ -1092,7 +1093,8 @@ static inline v4sd tan256_pd(v4sd xx)
     zzsup1m14 = _mm256_cmp_pd(zz, *(v4sd *) _pd256_1m14, _CMP_GT_OS);
     tmp = _mm256_fmadd_pd_custom(zz, *(v4sd *) _pd256_TAN_P0, *(v4sd *) _pd256_TAN_P1);
     tmp = _mm256_fmadd_pd_custom(zz, tmp, *(v4sd *) _pd256_TAN_P2);
-    tmp2 = _mm256_fmadd_pd_custom(zz, *(v4sd *) _pd256_TAN_Q0, *(v4sd *) _pd256_TAN_Q1);
+    tmp2 = _mm256_add_pd(zz, *(v4sd *) _pd256_TAN_Q0);
+    tmp2 = _mm256_fmadd_pd_custom(zz, tmp2, *(v4sd *) _pd256_TAN_Q1);
     tmp2 = _mm256_fmadd_pd_custom(zz, tmp2, *(v4sd *) _pd256_TAN_Q2);
     tmp2 = _mm256_fmadd_pd_custom(zz, tmp2, *(v4sd *) _pd256_TAN_Q3);
     tmp2 = _mm256_div_pd(tmp, tmp2);
