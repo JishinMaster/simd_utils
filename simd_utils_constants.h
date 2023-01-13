@@ -145,6 +145,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VADD1_FLOAT vfadd_vf_f32m4
 #define VSUB_FLOAT vfsub_vv_f32m4
 #define VSUB1_FLOAT vfsub_vf_f32m4
+#define VRSUB1_FLOAT vfrsub_vf_f32m4  // v2 = f - v1
 #define VMUL_FLOAT vfmul_vv_f32m4
 #define VMUL1_FLOAT vfmul_vf_f32m4
 #define VDIV_FLOAT vfdiv_vv_f32m4
@@ -394,6 +395,8 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VGT1_INTH_BOOLH vmsgt_vx_i32m2_b16
 #define VNE1_INTH_BOOLH vmsne_vx_i32m2_b16
 #define VLT1_INTH_BOOLH vmflt_vf_f32m2_b16
+#define VLE1_INTH_BOOLH vmsle_vx_i32m2_b16
+#define VEQ_INTH_BOOLH vmseq_vv_i32m2_b16
 #define VOR1_INTH vor_vx_i32m2
 #define VSRA1_INTH vsra_vx_i32m2
 #define VMIN_INTH vmin_vv_i32m2
@@ -794,6 +797,7 @@ _PI32_CONST(1, 1);
 _PI32_CONST(inv1, ~1);
 _PI32_CONST(2, 2);
 _PI32_CONST(4, 4);
+_PI32_CONST(0x7e, 0x7e);
 _PI32_CONST(0x7f, 0x7f);
 
 /////////////// SINGLE //////////////////
@@ -1218,6 +1222,7 @@ _PI32_CONST256(1, 1);
 _PI32_CONST256(inv1, ~1);
 _PI32_CONST256(2, 2);
 _PI32_CONST256(4, 4);
+_PI32_CONST256(0x7e, 0x7e);
 _PI32_CONST256(0x7f, 0x7f);
 
 _PI256_64_CONST(1, 1);
@@ -1526,6 +1531,7 @@ _PI32_CONST512(1, 1);
 _PI32_CONST512(inv1, ~1);
 _PI32_CONST512(2, 2);
 _PI32_CONST512(4, 4);
+_PI32_CONST512(0x7e, 0x7e);
 _PI32_CONST512(0x7f, 0x7f);
 _PI512_64_CONST(1, 1);
 _PI512_64_CONST(inv1, ~1);
@@ -1840,6 +1846,16 @@ static inline void print_vec_int(V_ELT_INT vec, int l)
         printf("%x ", observ[i]);
     printf("\n");
 }
+
+static inline void print_vec_inth(V_ELT_INTH vec, int l)
+{
+    int observ[32];
+    VSTORE_INTH(observ, vec, l);
+    for (int i = 0; i < l; i++)
+        printf("%x ", observ[i]);
+    printf("\n");
+}
+
 
 /*
 static inline void print_bool4(vbool4_t vec)

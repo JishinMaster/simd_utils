@@ -277,9 +277,8 @@ static inline v16sf cbrt512f_ps(v16sf xx)
     v16si emm0 = _mm512_srli_epi32(_mm512_castps_si512(x), 23);
     x = _mm512_and_ps(x, *(v16sf *) _ps512_inv_mant_mask);
     x = _mm512_or_ps(x, *(v16sf *) _ps512_0p5);
-    emm0 = _mm512_sub_epi32(emm0, *(v16si *) _pi32_512_0x7f);
+    emm0 = _mm512_sub_epi32(emm0, *(v16si *) _pi32_512_0x7e);
     e = _mm512_cvtepi32_ps(emm0);
-    e = _mm512_add_ps(e, *(v16sf *) _ps512_1);
 
     /* Approximate cube root of number between .5 and 1,
      * peak relative error = 9.2e-6

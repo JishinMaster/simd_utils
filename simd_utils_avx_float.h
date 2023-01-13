@@ -371,9 +371,8 @@ static inline v8sf cbrt256f_ps(v8sf xx)
     v8si emm0 = _mm256_srli_epi32(_mm256_castps_si256(x), 23);
     x = _mm256_and_ps(x, *(v8sf *) _ps256_inv_mant_mask);
     x = _mm256_or_ps(x, *(v8sf *) _ps256_0p5);
-    emm0 = _mm256_sub_epi32(emm0, *(v8si *) _pi32_256_0x7f);
+    emm0 = _mm256_sub_epi32(emm0, *(v8si *) _pi32_256_0x7e);
     e = _mm256_cvtepi32_ps(emm0);
-    e = _mm256_add_ps(e, *(v8sf *) _ps256_1);
 
     /* Approximate cube root of number between .5 and 1,
      * peak relative error = 9.2e-6

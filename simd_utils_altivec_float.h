@@ -3605,9 +3605,8 @@ static inline v4sf cbrtf_ps(v4sf xx)
     v4si emm0 = vec_sr(*(v4si *) &x, shift_bits);
     x = vec_and(x, *(v4sf *) _ps_inv_mant_mask);
     x = vec_or(x, *(v4sf *) _ps_0p5);
-    emm0 = vec_sub(emm0, *(v4si *) _pi32_0x7f);
+    emm0 = vec_sub(emm0, *(v4si *) _pi32_0x7e); // -7f + 1
     e = vec_ctf(emm0, 0);
-    e = vec_add(e, *(v4sf *) _ps_1);
     tmp = vec_madd(*(v4sf *) _ps_CBRTF_P0, x, *(v4sf *) _ps_CBRTF_P1);
     tmp = vec_madd(x, tmp, *(v4sf *) _ps_CBRTF_P2);
     tmp = vec_madd(x, tmp, *(v4sf *) _ps_CBRTF_P3);
