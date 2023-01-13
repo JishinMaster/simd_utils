@@ -1,7 +1,7 @@
 # simd_utils
 
 A header only library implementing common mathematical functions using SIMD intrinsics.
-This library is C/C++ compatible (tested with GCC7.5/9.3 and clang 9).
+This library is C/C++ compatible (tested with GCC7.5/9.3/10.2/11.3/12.0, clang 9 and icc 2021).
 
 Thanks to Julien Pommier and Giovanni Garberoglio for their work on sin,cos,log, and exp functions in SSE, AVX, and NEON intrinsics.
 Thanks to the DLTcollab team for their work on sse2neon.
@@ -87,7 +87,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | log2_Xf/precise  (a)                                  | log2f_C                     |                                | log2f_vec                     |
 | ln_Xf  (a)                                            | lnf_C                       | ippsLn_32f_A24                 | lnf_vec                       |
 | exp_Xf (a)                                            | expf_C                      | ippsExp_32f_A24                | expf_vec                      |
-| cbrtXf  (a)                                           | cbrtf_C                     | ?                              | ?                             |
+| cbrtXf  (a)                                           | cbrtf_C                     | ?                              | cbrtf_vec                     |
 | fabsXf (a)                                            | fabsf_C                     | ippsAbs_32f                    | fabsf_vec                     |
 | setXf  (a)                                            | setf_C                      | ippsSet_32f                    | setf_vec                      |
 | zeroXf (a)                                            | zerof_C                     | ippsZero_32f                   | zerof_vec                     |
@@ -139,9 +139,9 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | tanXf  (a)                                            | tanf_C                      | ippsTan_32f_A24                | tanf_vec                      |
 | magnitudeXf_split  (a)                                | magnitudef_C_split          | ippsMagnitude_32f              | magnitudef_split_vec          |
 | powerspectXf_split (a)                                | powerspectf_C_split         | ippsPowerSpectr_32f            | powerspectf_split_vec         |
-| magnitudeXf_interleaved                               | magnitudef_C_interleaved    | ippsMagnitude_32fc             | ?                             |
-| powerspectXf_interleaved                              | powerspectf_C_interleaved   | ippsPowerSpectr_32fc           | ?                             |
-| subcrevXf (a)                                         | subcrevf_C                  | ippsSubCRev_32f                | ?                             |
+| magnitudeXf_interleaved                               | magnitudef_C_interleaved    | ippsMagnitude_32fc             | magnitudef_interleaved_vec    |
+| powerspectXf_interleaved                              | powerspectf_C_interleaved   | ippsPowerSpectr_32fc           | powerspectf_interleaved_vec   |
+| subcrevXf (a)                                         | subcrevf_C                  | ippsSubCRev_32f                | subcrevf_vec                  |
 | sumXf    (a)                                          | sumf_C                      | ippsSum_32f                    | sumf_vec                      |
 | meanXf   (a)                                          | meanf_C                     | ippsMean_32f                   | meanf_vec                     |
 | sqrtXf   (a)                                          | sqrtf_C                     | ippsSqrt_32f                   | sqrtf_vec                     |

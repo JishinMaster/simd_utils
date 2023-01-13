@@ -54,6 +54,7 @@ static v4si vec_mullo(v4si a, v4si b)
     (, );  // (ab3,ab2,ab1,ab0)
 #endif
 }
+#endif
 
 static inline void mul128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {

@@ -112,6 +112,20 @@ static inline void subf_vec(float *a, float *b, float *c, int len)
     }
 }
 
+static inline void subcrevf_vec(float *src, float value, float *dst, int len)
+{
+    size_t i;
+    float *src_tmp = src;
+    float *dst_tmp = dst;
+    for (; (i = VSETVL32(len)) > 0; len -= i) {
+        V_ELT_FLOAT va;
+        va = VLOAD_FLOAT(src_tmp, i);
+        VSTORE_FLOAT(dst_tmp, VRSUB1_FLOAT(va, value, i), i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+}
+
 static inline void muladdf_vec(float *a, float *b, float *c, float *dst, int len)
 {
     size_t i;
@@ -2287,6 +2301,7 @@ static inline void coshf_vec(float *src, float *dst, int len)
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
+//TODO : ULP bigger than X86?
 static inline void sinhf_vec(float *src, float *dst, int len)
 {
     size_t i;
@@ -2625,6 +2640,123 @@ static inline void flipf_vec(float *src, float *dst, int len)
     for (; j >= 0; j--) {
         dst[len_ori - j - 1] = src[j];
     }
+}
+#endif
+
+// Work in progress
+#if 1
+static inline V_ELT_FLOATH power_of_twof(V_ELT_INTH b, size_t i)
+{
+    V_ELT_INTH exp = VADD1_INTH(b, 127, i);
+    V_ELT_FLOATH f = VINTERP_INTH_FLOATH(VSLL1_INTH(exp, 23, i));
+    return f;
+}
+
+static inline void cbrtf_vec(float *src, float *dst, int len)
+{
+
+#ifdef NO_RTZ
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+#endif
+
+    size_t i;
+    float *src_tmp = src;
+    float *dst_tmp = dst;
+
+    i = VSETVL32H(len);
+    V_ELT_FLOATH invCBRT2_vec = VLOAD1_FLOATH(cephes_invCBRT2, i);
+    V_ELT_FLOATH invCBRT4_vec = VLOAD1_FLOATH(cephes_invCBRT4, i);
+    V_ELT_FLOATH CBRTF_P1_vec = VLOAD1_FLOATH(CBRTF_P1, i);
+    V_ELT_FLOATH CBRTF_P2_vec = VLOAD1_FLOATH(CBRTF_P2, i);
+    V_ELT_FLOATH CBRTF_P3_vec = VLOAD1_FLOATH(CBRTF_P3, i);
+    V_ELT_FLOATH CBRTF_P4_vec = VLOAD1_FLOATH(CBRTF_P4, i);
+
+    const float Op5 = 0.5f;
+
+    for (; (i = VSETVL32H(len)) > 0; len -= i) {
+        V_ELT_FLOATH xx = VLOAD_FLOATH(src_tmp, i);
+
+        V_ELT_INTH sign;
+        V_ELT_FLOATH x, z, e, rem;
+        V_ELT_FLOATH tmp, tmp2;
+
+        x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(xx), inv_sign_mask, i));
+        sign = VAND1_INTH(VINTERP_FLOATH_INTH(xx), sign_mask, i);
+
+        z = x;
+        /* extract power of 2, leaving
+         * mantissa between 0.5 and 1
+         */
+        // x = frexpf(x, &e);
+        // solve problem for zero
+        V_ELT_INTH emm0 = VSRA1_INTH(VINTHERP_FLOATH_INTH(x), 23, i);
+        x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTHERP_FLOATH_INTH(x), c_inv_mant_mask, i));
+        x = VINTERP_INTH_FLOATH(VOR1_INTH(VINTHERP_FLOATH_INTH(x), *(int32_t*)&Op5, i));
+        emm0 = VSUB1_INTH(emm0, 0x7e, i);
+        e = VCVT_INTH_FLOATH(emm0, i);
+
+        /* Approximate cube root of number between .5 and 1,
+         * peak relative error = 9.2e-6
+         */
+        tmp= x;
+        tmp = VFMADD1_FLOATH(tmp, CBRTF_P0, CBRTF_P1_vec, i);
+        tmp = VFMADD_FLOATH(tmp, x, CBRTF_P2_vec, i);
+        tmp = VFMADD_FLOATH(tmp, x, CBRTF_P3_vec, i);
+        x = VFMADD_FLOATH(x, tmp, CBRTF_P4_vec, i);
+        
+        /* exponent divided by 3 */
+        V_ELT_BOOLH e_sign = VGE1_FLOATH_BOOLH(e, 0.0f, i);
+        e = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(e), inv_sign_mask, i));
+        rem = e;
+        e = VMUL1_FLOATH(e, 0.333333333333f, i);
+        V_ELT_INTH e_int = VCVT_RTZ_FLOATH_INTH(e, i);
+        e = VCVT_INTH_FLOATH(e_int, i);
+        V_ELT_FLOATH e_tmp = VMUL1_FLOATH(e, 3.0f, i);
+        rem = VSUB_FLOATH(rem, e_tmp, i);
+
+        V_ELT_FLOATH mul1, mul2;
+        V_ELT_FLOATH mul_cst1 = VMERGE1_FLOATH(e_sign, invCBRT2_vec, cephes_CBRT2, i);
+        V_ELT_FLOATH mul_cst2 = VMERGE1_FLOATH(e_sign, invCBRT4_vec, cephes_CBRT4, i);
+        mul1 = VMUL_FLOATH(x, mul_cst1, i);
+        mul2 = VMUL_FLOATH(x, mul_cst2, i);
+
+        V_ELT_INTH remi = VCVT_FLOATH_INTH(rem, i);  // rem integer
+        V_ELT_BOOLH rem1 = VEQ1_INTH_BOOLH(remi, 1, i);
+        V_ELT_BOOLH rem2 = VEQ1_INTH_BOOLH(remi, 2, i);
+
+        x = VMERGE_FLOATH(rem1, x, mul1, i);  // rem==1
+        x = VMERGE_FLOATH(rem2, x, mul2, i);  // rem==2
+
+        /* multiply by power of 2 */
+        //  x = ldexpf(x, e);
+        // x= x* (1 >> e)
+        V_ELT_FLOATH cst = power_of_twof(e_int, i);
+
+        // blend sign of e
+        tmp =  VMUL_FLOATH(x, cst, i);
+        tmp2 = VDIV_FLOATH(x, cst, i);
+        x = VMERGE_FLOATH(e_sign, tmp2, tmp, i);
+
+        /* Newton iteration */
+        // x -= (x - (z / (x * x))) * 0.333333333333;
+        tmp2 = VMUL_FLOATH(x, x, i);
+        tmp2 = VDIV_FLOATH(z, tmp2, i);
+        tmp2 = VSUB_FLOATH(x, tmp2, i);
+        tmp2 = VMUL1_FLOATH(tmp2, 0.333333333333f, i);
+        x = VSUB_FLOATH(x, tmp2, i);
+        x = VINTERP_INTH_FLOATH(VXOR_INTH(VINTERP_FLOATH_INTH(x), sign, i));
+
+        VSTORE_FLOATH(dst_tmp, x, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+
+#ifdef NO_RTZ
+    _MM_SET_ROUNDING_MODE(reg_ori);
+#endif
+
 }
 #endif
 

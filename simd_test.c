@@ -1076,6 +1076,25 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    threshold_gt_f_vec(inout, inout2, len, 0.07f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("threshold_gt_f_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        threshold_gt_f_vec(inout, inout2, len, 0.02f);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("threshold_gt_f_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2, inout2_ref, len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// threshold_gt_f //////////////////////////////////////////////////////////////////////////////
     printf("THRESHOLD_GTABS\n");
@@ -2650,6 +2669,23 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    powerspectf_split_vec(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("powerspectf_split_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powerspectf_split_vec(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powerspectf_split_vec %d %lf\n", len, elapsed);
+
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// POWERSPECT_INTERLEAVE //////////////////////////////////////////////////////////////////////////////
     printf("POWERSPECT_INTERLEAVE\n");
@@ -4177,6 +4213,107 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("addcf_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// SUBCREVF //////////////////////////////////////////////////////////////////////////////
+    printf("SUBCREVF\n");
+
+    flops = len;
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    subcrevf_C(inout, 6.3f, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("subcrevf_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        subcrevf_C(inout, 6.3f, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("subcrevf_C %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsSubCRev_32f(inout, 5.7f, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsSubCRev_32f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsSubCRev_32f(inout, 6.3f, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsSubCRev_32f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+#endif
+
+#if defined(SSE) || defined(ALTIVEC)
+    clock_gettime(CLOCK_REALTIME, &start);
+    subcrev128f(inout, 5.7f, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("subcrev128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        subcrev128f(inout, 6.3f, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("subcrev128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    subcrev256f(inout, 5.7f, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("subcrev256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        subcrev256f(inout, 6.3f, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("subcrev256f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    subcrev512f(inout, 5.7f, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("subcrev512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        subcrev512f(inout, 6.3f, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("subcrev512f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    subcrevf_vec(inout, 5.7f, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("subcrevf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        subcrevf_vec(inout, 6.3f, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("subcrevf_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     l2_err(inout2_ref, inout2, len);
 #endif
@@ -12590,6 +12727,24 @@ for (int i = 0; i < len; i++){
 
     l2_err(inout2, inout_ref, len);
 #endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    cbrtf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cbrtf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cbrtf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cbrtf_vec %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout_ref, len);
+#endif
+
 
     printf("\n");
     ////////////////////////////////////////////////// POL2CART2DF ////////////////////////////////////////////////////////////////////
