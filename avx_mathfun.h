@@ -432,7 +432,7 @@ static inline v8sf cos256_ps(v8sf x)
    it is almost as fast, and gives you a free cosine with your sine */
 static inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c)
 {
-    v8sf xmm1, xmm2, sign_bit_sin, y;
+    v8sf xmm1, xmm2, xmm3, sign_bit_sin, y;
     v8si imm0, imm2, imm4;
 
 #ifndef __AVX2__

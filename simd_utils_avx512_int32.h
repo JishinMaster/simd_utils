@@ -282,44 +282,59 @@ static inline void fast_copy512s_4(int32_t *src, int32_t *dst, int len)
     }
 }
 
-// to be improved?
 static inline __m512i _mm512_absdiff_epi16(__m512i a, __m512i b)
 {
     __m512i cmp, difab, difba;
-    __m512i zero = _mm512_setzero_epi32();
-    __mmask64 cmp_mask = _mm512_cmpgt_epi16_mask(a, b);
-    cmp = _mm512_mask_set1_epi16(zero, cmp_mask, 0xFFFF);
+    __mmask32 cmp_mask = _mm512_cmpgt_epi16_mask(a, b);
+
     difab = _mm512_sub_epi16(a, b);
     difba = _mm512_sub_epi16(b, a);
+#if 1 // should be faster
+    return _mm512_mask_blend_epi16(cmp_mask, difba, difab);
+#else
+    __m512i zero = _mm512_setzero_epi32();
+    cmp = _mm512_mask_set1_epi16(zero, cmp_mask, 0xFFFF);
     difab = _mm512_and_si512(cmp, difab);
     difba = _mm512_andnot_si512(cmp, difba);
     return _mm512_or_si512(difab, difba);
+#endif
+
 }
 
 static inline __m512i _mm512_absdiff_epi32(__m512i a, __m512i b)
 {
     __m512i cmp, difab, difba;
-    __m512i zero = _mm512_setzero_epi32();
-    __mmask64 cmp_mask = _mm512_cmpgt_epi32_mask(a, b);
-    cmp = _mm512_mask_set1_epi32(zero, cmp_mask, 0xFFFFFFFF);
+    __mmask16 cmp_mask = _mm512_cmpgt_epi32_mask(a, b);
+
     difab = _mm512_sub_epi32(a, b);
     difba = _mm512_sub_epi32(b, a);
+#if 1 // should be faster
+    return _mm512_mask_blend_epi32(cmp_mask, difba, difab);
+#else
+    __m512i zero = _mm512_setzero_epi32();
+    cmp = _mm512_mask_set1_epi32(zero, cmp_mask, 0xFFFFFFFF);
     difab = _mm512_and_si512(cmp, difab);
     difba = _mm512_andnot_si512(cmp, difba);
     return _mm512_or_si512(difab, difba);
+#endif
 }
 
 static inline __m512i _mm512_absdiff_epi8(__m512i a, __m512i b)
 {
     __m512i cmp, difab, difba;
-    __m512i zero = _mm512_setzero_epi32();
     __mmask64 cmp_mask = _mm512_cmpgt_epi8_mask(a, b);
-    cmp = _mm512_mask_set1_epi8(zero, cmp_mask, 0xFF);
+
     difab = _mm512_sub_epi8(a, b);
     difba = _mm512_sub_epi8(b, a);
+#if 1 // should be faster
+    return _mm512_mask_blend_epi32(cmp_mask, difba, difab);
+#else
+    __m512i zero = _mm512_setzero_epi32();
+    cmp = _mm512_mask_set1_epi8(zero, cmp_mask, 0xFF);
     difab = _mm512_and_si512(cmp, difab);
     difba = _mm512_andnot_si512(cmp, difba);
     return _mm512_or_si512(difab, difba);
+#endif
 }
 
 static inline void absdiff16s_512s(int16_t *src1, int16_t *src2, int16_t *dst, int len)

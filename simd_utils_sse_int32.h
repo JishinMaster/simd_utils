@@ -305,9 +305,14 @@ static inline __m128i _mm_absdiff_epi16(__m128i a, __m128i b)
     cmp = _mm_cmpgt_epi16(a, b);
     difab = _mm_sub_epi16(a, b);
     difba = _mm_sub_epi16(b, a);
+#if 1 // should be faster
+    return _mm_blendv_epi8(difba, difab, cmp);
+#else
     difab = _mm_and_si128(cmp, difab);
     difba = _mm_andnot_si128(cmp, difba);
     return _mm_or_si128(difab, difba);
+#endif
+
 #else
     return vreinterpretq_m128i_s16(vabdq_s16(vreinterpretq_s16_m128i(a), vreinterpretq_s16_m128i(b)));
 #endif

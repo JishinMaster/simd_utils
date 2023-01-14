@@ -282,9 +282,14 @@ static inline __m256i _mm256_absdiff_epi16(__m256i a, __m256i b)
     cmp = _mm256_cmpgt_epi16(a, b);
     difab = _mm256_sub_epi16(a, b);
     difba = _mm256_sub_epi16(b, a);
+#if 1 // should be faster
+    return _mm256_blendv_epi8(difba, difab, cmp);
+#else
     difab = _mm256_and_si256(cmp, difab);
     difba = _mm256_andnot_si256(cmp, difba);
     return _mm256_or_si256(difab, difba);
+#endif
+ 
 }
 
 static inline __m256i _mm256_absdiff_epi32(__m256i a, __m256i b)
@@ -293,9 +298,13 @@ static inline __m256i _mm256_absdiff_epi32(__m256i a, __m256i b)
     cmp = _mm256_cmpgt_epi32(a, b);
     difab = _mm256_sub_epi32(a, b);
     difba = _mm256_sub_epi32(b, a);
+#if 1 // should be faster
+    return _mm256_blendv_epi8(difba, difab, cmp);
+#else
     difab = _mm256_and_si256(cmp, difab);
     difba = _mm256_andnot_si256(cmp, difba);
     return _mm256_or_si256(difab, difba);
+#endif
 }
 
 static inline __m256i _mm256_absdiff_epi8(__m256i a, __m256i b)
@@ -304,9 +313,13 @@ static inline __m256i _mm256_absdiff_epi8(__m256i a, __m256i b)
     cmp = _mm256_cmpgt_epi8(a, b);
     difab = _mm256_sub_epi8(a, b);
     difba = _mm256_sub_epi8(b, a);
+#if 1 // should be faster
+    return _mm256_blendv_epi8(difba, difab, cmp);
+#else
     difab = _mm256_and_si256(cmp, difab);
     difba = _mm256_andnot_si256(cmp, difba);
     return _mm256_or_si256(difab, difba);
+#endif
 }
 
 static inline void absdiff16s_256s(int16_t *src1, int16_t *src2, int16_t *dst, int len)
