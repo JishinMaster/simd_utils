@@ -355,3 +355,25 @@ static inline void sum16s32s_vec(int16_t *src, int len, int32_t *dst, int scale_
     vse32_v_i32m1(dst, tmp, 1);
     *dst /= scale;
 }
+
+static inline void absdiff16s_vec(int16_t *src1, int16_t *src2, int16_t *dst, int len)
+{
+    size_t i;
+    int16_t *src1_tmp = src1;
+    int16_t *src2_tmp = src2;
+    int16_t *dst_tmp = dst;
+    for (; (i = VSETVL32(len)) > 0; len -= i) {
+        V_ELT_SHORT va, vb, vc;
+        va = VLOAD_SHORT(src1_tmp, i);
+        vb = VLOAD_SHORT(src2_tmp, i);
+
+        V_ELT_BOOLD cmp = VGT_SHORT_BOOL(va, vb, i);
+        V_ELT_SHORT difab = VSUB_SHORT(va, vb, i);
+        V_ELT_SHORT difba = VSUB_SHORT(vb, va, i);
+        vc = VMERGE_SHORT(cmp, difba, difab, i);
+        VSTORE_SHORT(dst_tmp, vc, i);
+        src1_tmp += i;
+        src2_tmp += i;
+        dst_tmp += i;
+    }
+}

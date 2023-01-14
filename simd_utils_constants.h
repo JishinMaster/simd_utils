@@ -268,7 +268,13 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VLOAD1_SHORT vmv_v_x_i16m4
 #define VSTORE_SHORT vse16_v_i16m4
 #define VADD_SHORT vadd_vv_i16m4
+#define VSUB_SHORT vsub_vv_i16m4
 #define VREDSUMW_SHORT vwredsum_vs_i16m4_i32m1
+#define VGT_SHORT_BOOL vmsgt_vv_i16m4_b4
+#define VMERGE_SHORT vmerge_vvm_i16m4
+
+//// BOOL Double
+#define V_ELT_BOOLD vbool4_t
 
 //// BOOL
 #define V_ELT_BOOL vbool8_t

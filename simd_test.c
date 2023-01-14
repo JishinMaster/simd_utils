@@ -11197,6 +11197,23 @@ for (int i = 0; i < len; i++){
     printf("absdiff16s_512s %d %lf\n", len, elapsed);
     l2_err_i16(inout_sref, inout_s3, len);
 #endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    absdiff16s_vec(inout_s1, inout_s2, inout_s3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("absdiff16s_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        absdiff16s_vec(inout_s1, inout_s2, inout_s3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("absdiff16s_vec %d %lf\n", len, elapsed);
+    l2_err_i16(inout_sref, inout_s3, len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// POWERSPECT_S16_INTERLEAVED //////////////////////////////////////////////////////////////////////////////
     printf("POWERSPECT_S16_INTERLEAVED\n");
