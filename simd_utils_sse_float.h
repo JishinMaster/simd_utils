@@ -2784,12 +2784,12 @@ static inline v4sf tanf_ps(v4sf xx)
 #if 1  // _mm_fmadd_ps_custom(tmp, z, z) has been optimised to tmp*z and the + z is merged after.
        // some targets, with no FMA or slow blendv should see improvements
     tmp = _mm_mul_ps(tmp, z);
-    xsupem4 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1em4);  // if( x > 1.0e-4 )
+    xsupem4 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1emin4);  // if( x > 1.0e-4 )
     tmp = _mm_and_ps(tmp, xsupem4);
     y = _mm_add_ps(z, tmp);
 #else
     tmp = _mm_fmadd_ps_custom(tmp, z, z);
-    xsupem4 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1em4);  // if( x > 1.0e-4 )
+    xsupem4 = _mm_cmpgt_ps(x, *(v4sf *) _ps_1emin4);  // if( x > 1.0e-4 )
     y = _mm_blendv_ps(z, tmp, xsupem4);
 #endif
 

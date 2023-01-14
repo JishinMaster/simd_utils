@@ -301,21 +301,20 @@ static inline v16sf cbrt512f_ps(v16sf xx)
     v16sf mul1, mul2;
     v16sf mul_cst1 = _mm512_mask_blend_ps(e_sign, *(v16sf *) _ps512_cephes_invCBRT2, *(v16sf *) _ps512_cephes_CBRT2);
     v16sf mul_cst2 = _mm512_mask_blend_ps(e_sign, *(v16sf *) _ps512_cephes_invCBRT4, *(v16sf *) _ps512_cephes_CBRT4);
-    mul1 = _mm512_mul_ps(x, mul_cst1);
-    mul2 = _mm512_mul_ps(x, mul_cst2);
 
     v16si remi = _mm512_cvtps_epi32(rem);  // rem integer
     __mmask16 rem1 = _mm512_cmpeq_epi32_mask(remi, _mm512_set1_epi32(1));
     __mmask16 rem2 = _mm512_cmpeq_epi32_mask(remi, _mm512_set1_epi32(2));
 
-    x = _mm512_mask_blend_ps(rem1, x, mul1);  // rem==1
-    x = _mm512_mask_blend_ps(rem2, x, mul2);  // rem==2
+    x = _mm512_mask_mul_ps(x, rem1, x, mul_cst1);  // rem==1
+    x = _mm512_mask_mul_ps(x, rem2, x, mul_cst2);  // rem==2
 
     /* multiply by power of 2 */
     //  x = ldexpf(x, e);
     v16sf cst = power_of_two512f(_mm512_cvtps_epi32(e));
     // blend sign of e
-    x = _mm512_mask_blend_ps(e_sign, _mm512_div_ps(x, cst), _mm512_mul_ps(x, cst));
+    tmp = _mm512_div_ps(x, cst);
+    x= _mm512_mask_mul_ps(tmp, e_sign, x, cst);
 
     /* Newton iteration */
     // x -= (x - (z / (x * x))) * 0.333333333333;
@@ -1870,7 +1869,7 @@ static inline void sincos512f_interleaved(float *src, complex32_t *dst, int len)
 
 static inline v16sf acosh512f_ps(v16sf x)
 {
-    v16sf z, z_first_branch, z_second_branch;
+    v16sf z, z_first_branch, z_second_branch, tmp, tmp2;
     __mmask16 xsup1500, zinf0p5, xinf1;
 
     xsup1500 = _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_1500, _CMP_GT_OS);  // return  (logf(x) + LOGE2F)
@@ -1880,19 +1879,21 @@ static inline v16sf acosh512f_ps(v16sf x)
 
     zinf0p5 = _mm512_cmp_ps_mask(z, *(v16sf *) _ps512_0p5, _CMP_LT_OS);  // first and second branch
 
+    tmp2 = log512_ps(x);
+    
     // First Branch (z < 0.5)
     z_first_branch = _mm512_fmadd_ps_custom(*(v16sf *) _ps512_ACOSH_P0, z, *(v16sf *) _ps512_ACOSH_P1);
     z_first_branch = _mm512_fmadd_ps_custom(z_first_branch, z, *(v16sf *) _ps512_ACOSH_P2);
     z_first_branch = _mm512_fmadd_ps_custom(z_first_branch, z, *(v16sf *) _ps512_ACOSH_P3);
     z_first_branch = _mm512_fmadd_ps_custom(z_first_branch, z, *(v16sf *) _ps512_ACOSH_P4);
-    z_first_branch = _mm512_mul_ps(z_first_branch, _mm512_sqrt_ps(z));
-
+    tmp = _mm512_sqrt_ps(z);
+    
     // Second Branch
     z_second_branch = _mm512_sqrt_ps(_mm512_fmadd_ps_custom(z, x, z));
     z_second_branch = log512_ps(_mm512_add_ps(x, z_second_branch));
 
-    z = _mm512_mask_blend_ps(zinf0p5, z_second_branch, z_first_branch);
-    z = _mm512_mask_blend_ps(xsup1500, z, _mm512_add_ps(log512_ps(x), *(v16sf *) _ps512_LOGE2F));
+    z = _mm512_mask_mul_ps(z_second_branch, zinf0p5, z_first_branch, tmp);
+    z = _mm512_mask_add_ps(z, xsup1500, tmp2, *(v16sf *) _ps512_LOGE2F);
     z = _mm512_mask_blend_ps(xinf1, z, _mm512_setzero_ps());
 
     return z;
@@ -1922,7 +1923,7 @@ static inline void acosh512f(float *src, float *dst, int len)
 
 static inline v16sf asinh512f_ps(v16sf xx)
 {
-    v16sf x, tmp, z, z_first_branch, z_second_branch;
+    v16sf x, tmp, tmp2, z, z_first_branch, z_second_branch;
     __mmask16 xxinf0, xsup1500, xinf0p5;
 
     x = _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, xx);
@@ -1931,6 +1932,8 @@ static inline v16sf asinh512f_ps(v16sf xx)
     xxinf0 = _mm512_cmp_ps_mask(xx, _mm512_setzero_ps(), _CMP_LT_OS);
 
     tmp = _mm512_mul_ps(x, x);
+    tmp2 = log512_ps(x);
+    
     // First Branch (x < 0.5)
     z_first_branch = _mm512_fmadd_ps_custom(*(v16sf *) _ps512_ASINH_P0, tmp, *(v16sf *) _ps512_ASINH_P1);
     z_first_branch = _mm512_fmadd_ps_custom(z_first_branch, tmp, *(v16sf *) _ps512_ASINH_P2);
@@ -1941,10 +1944,10 @@ static inline v16sf asinh512f_ps(v16sf xx)
     // Second Branch
     z_second_branch = _mm512_sqrt_ps(_mm512_add_ps(tmp, *(v16sf *) _ps512_1));
     z_second_branch = log512_ps(_mm512_add_ps(z_second_branch, x));
-
+    
     z = _mm512_mask_blend_ps(xinf0p5, z_second_branch, z_first_branch);
-    z = _mm512_mask_blend_ps(xsup1500, z, _mm512_add_ps(log512_ps(x), *(v16sf *) _ps512_LOGE2F));
-    z = _mm512_mask_blend_ps(xxinf0, z, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, z));
+    z = _mm512_mask_add_ps(z, xsup1500, tmp2, *(v16sf *) _ps512_LOGE2F);
+    z = _mm512_mask_xor_ps(z, xxinf0, *(v16sf *) _ps512_neg_sign_mask, z);
 
     return z;
 }
@@ -2089,8 +2092,7 @@ static inline v16sf sinh512f_ps(v16sf x)
     z_first_branch = exp512_ps(z);
     tmp = _mm512_div_ps(*(v16sf *) _ps512_min0p5, z_first_branch);
     z_first_branch = _mm512_fmadd_ps_custom(*(v16sf *) _ps512_0p5, z_first_branch, tmp);
-
-    z_first_branch = _mm512_mask_blend_ps(xinf0, z_first_branch, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, z_first_branch));
+    z_first_branch = _mm512_mask_xor_ps(z_first_branch, xinf0, *(v16sf *) _ps512_neg_sign_mask, z_first_branch);
 
     // Second branch
     tmp = _mm512_mul_ps(x, x);
@@ -2137,7 +2139,7 @@ static inline v16sf atan512f_ps(v16sf xx)
     v16sf x, y, z;
     //__mmask16 sign2;
     __mmask16 suptan3pi8, inftan3pi8suppi8;
-    v16sf tmp;
+    v16sf tmp, tmp2, tmp3;
     v16sf sign;
 
     x = _mm512_and_ps(*(v16sf *) _ps512_pos_sign_mask, xx);
@@ -2145,15 +2147,16 @@ static inline v16sf atan512f_ps(v16sf xx)
     sign = _mm512_and_ps(xx, *(v16sf *) _ps512_sign_mask);
 
     /* range reduction */
-
     y = _mm512_setzero_ps();
     suptan3pi8 = _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_TAN3PI8F, _CMP_GT_OS);  // if( x > tan 3pi/8 )
-    x = _mm512_mask_blend_ps(suptan3pi8, x, _mm512_div_ps(*(v16sf *) _ps512_min1, x));
+    x = _mm512_mask_div_ps(x, suptan3pi8, *(v16sf *) _ps512_min1, x);
     y = _mm512_mask_blend_ps(suptan3pi8, y, *(v16sf *) _ps512_PIO2F);
 
 
     inftan3pi8suppi8 = _kand_mask64(_mm512_cmp_ps_mask(x, *(v16sf *) _ps512_TAN3PI8F, _CMP_LT_OS), _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_TANPI8F, _CMP_GT_OS));  // if( x > tan 3pi/8 )
-    x = _mm512_mask_blend_ps(inftan3pi8suppi8, x, _mm512_div_ps(_mm512_sub_ps(x, *(v16sf *) _ps512_1), _mm512_add_ps(x, *(v16sf *) _ps512_1)));
+    tmp2 = _mm512_add_ps(x, *(v16sf *) _ps512_1);
+    tmp3 = _mm512_sub_ps(x, *(v16sf *) _ps512_1);
+    x = _mm512_mask_div_ps(x, inftan3pi8suppi8, tmp3, tmp2);
     y = _mm512_mask_blend_ps(inftan3pi8suppi8, y, *(v16sf *) _ps512_PIO4F);
 
     z = _mm512_mul_ps(x, x);
@@ -2164,8 +2167,6 @@ static inline v16sf atan512f_ps(v16sf xx)
     tmp = _mm512_fmadd_ps_custom(tmp, x, x);
 
     y = _mm512_add_ps(y, tmp);
-
-    // y = _mm512_mask_blend_ps(sign2, y, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, y));
     y = _mm512_xor_ps(y, sign);
     return (y);
 }
@@ -2194,7 +2195,7 @@ static inline void atan512f(float *src, float *dst, int len)
 
 static inline v16sf atan2512f_ps(v16sf y, v16sf x)
 {
-    v16sf z, w;
+    v16sf z, w, tmp;
     __mmask16 xinfzero, yinfzero, xeqzero, yeqzero;
     __mmask16 xeqzeroandyinfzero, yeqzeroandxinfzero;
     __mmask16 specialcase;
@@ -2220,7 +2221,9 @@ static inline v16sf atan2512f_ps(v16sf y, v16sf x)
     w = _mm512_mask_blend_ps(_kandn_mask16(yinfzero, xinfzero), w, *(v16sf *) _ps512_PIF);  // y >= 0 && x<0
     w = _mm512_mask_blend_ps(_kand_mask16(yinfzero, xinfzero), w, *(v16sf *) _ps512_mPIF);  // y < 0 && x<0
 
-    z = _mm512_mask_blend_ps(specialcase, _mm512_add_ps(w, atan512f_ps(_mm512_div_ps(y, x))), z);  // atanf(y/x) if not in special case
+    tmp = _mm512_div_ps(y, x);
+    tmp = atan512f_ps(tmp);
+    z = _mm512_mask_blend_ps(specialcase, _mm512_add_ps(w, tmp), z);  // atanf(y/x) if not in special case
 
     return (z);
 }
@@ -2291,15 +2294,13 @@ static inline v16sf asin512f_ps(v16sf xx)
     {
         return( 0.0f );
     }*/
-
-
     ainfem4 = _mm512_cmp_ps_mask(a, _mm512_set1_ps(1.0e-4), _CMP_LT_OS);  // if( a < 1.0e-4f )
 
     asup0p5 = _mm512_cmp_ps_mask(a, *(v16sf *) _ps512_0p5, _CMP_GT_OS);  // if( a > 0.5f ) flag = 1 else 0
     z_tmp = _mm512_sub_ps(*(v16sf *) _ps512_1, a);
     z_tmp = _mm512_mul_ps(*(v16sf *) _ps512_0p5, z_tmp);
     z = _mm512_mask_blend_ps(asup0p5, _mm512_mul_ps(a, a), z_tmp);
-    x = _mm512_mask_blend_ps(asup0p5, a, _mm512_sqrt_ps(z));
+    x = _mm512_mask_sqrt_ps(a, asup0p5, z);
 
     tmp = _mm512_fmadd_ps_custom(*(v16sf *) _ps512_ASIN_P0, z, *(v16sf *) _ps512_ASIN_P1);
     tmp = _mm512_fmadd_ps_custom(z, tmp, *(v16sf *) _ps512_ASIN_P2);
@@ -2311,12 +2312,10 @@ static inline v16sf asin512f_ps(v16sf xx)
     z = tmp;
 
     z_tmp = _mm512_add_ps(z, z);
-    z_tmp = _mm512_sub_ps(*(v16sf *) _ps512_PIO2F, z_tmp);
-    z = _mm512_mask_blend_ps(asup0p5, z, z_tmp);
+    z = _mm512_mask_sub_ps(z, asup0p5, *(v16sf *) _ps512_PIO2F, z_tmp);
 
     // done:
     z = _mm512_mask_blend_ps(ainfem4, z, a);
-    // z = _mm512_mask_blend_ps(sign, z, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, z));
     z = _mm512_xor_ps(z, sign);
 
     return (z);
@@ -2428,7 +2427,7 @@ static inline v16sf tan512f_ps(v16sf xx)
     y = _mm512_cvtepi32_ps(j);
 
     jandone = _mm512_cmpgt_epi32_mask(_mm512_and_si512(j, *(v16si *) _pi32_512_1), _mm512_setzero_si512());
-    y = _mm512_mask_blend_ps(jandone, y, _mm512_add_ps(y, *(v16sf *) _ps512_1));
+    y = _mm512_mask_add_ps(y, jandone, y, *(v16sf *) _ps512_1);
     j = _mm512_cvttps_epi32(y);  // no need to round again
 
     // z = ((x - y * DP1) - y * DP2) - y * DP3;
@@ -2445,17 +2444,16 @@ static inline v16sf tan512f_ps(v16sf xx)
     tmp = _mm512_fmadd_ps_custom(tmp, zz, *(v16sf *) _ps512_TAN_P4);
     tmp = _mm512_fmadd_ps_custom(tmp, zz, *(v16sf *) _ps512_TAN_P5);
     tmp = _mm512_mul_ps(zz, tmp);
-    tmp = _mm512_fmadd_ps_custom(tmp, z, z);
 
-    xsupem4 = _mm512_cmp_ps_mask(x, _mm512_set1_ps(1.0e-4), _CMP_GT_OS);  // if( x > 1.0e-4 )
-    y = _mm512_mask_blend_ps(xsupem4, z, tmp);
+    xsupem4 = _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_1emin4, _CMP_GT_OS);  // if( x > 1.0e-4 )
+    y = _mm512_mask_fmadd_ps(z, xsupem4, tmp, z);
 
     jandtwo = _mm512_cmpgt_epi32_mask(_mm512_and_si512(j, *(v16si *) _pi32_512_2), _mm512_setzero_si512());
 
-    y = _mm512_mask_blend_ps(jandtwo, y, _mm512_div_ps(_mm512_set1_ps(-1.0f), y));
+    y = _mm512_mask_div_ps(y, jandtwo, *(v16sf *) _ps512_min1, y);
 
     sign = _mm512_cmp_ps_mask(xx, _mm512_setzero_ps(), _CMP_LT_OS);  // 0xFFFFFFFF if xx < 0.0
-    y = _mm512_mask_blend_ps(sign, y, _mm512_xor_ps(*(v16sf *) _ps512_neg_sign_mask, y));
+    y = _mm512_mask_xor_ps(y, sign, *(v16sf *) _ps512_neg_sign_mask, y);
 #ifdef LLVMMCA
     __asm volatile("# LLVM-MCA-END tan512f_ps" ::
                        : "memory");
