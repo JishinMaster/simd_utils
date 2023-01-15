@@ -815,7 +815,7 @@ static inline v8ss vec_absdiff(v8ss a, v8ss b)
     cmp = vec_cmpgt(a, b);
     difab = vec_sub(a, b);
     difba = vec_sub(b, a);
-#if 1 // should be faster
+#if 1  // should be faster
     return vec_sel(difba, difab, cmp);
 #else
     difab = vec_and(*(v8ss *) &cmp, difab);

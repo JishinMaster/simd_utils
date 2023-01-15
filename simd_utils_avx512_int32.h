@@ -289,7 +289,7 @@ static inline __m512i _mm512_absdiff_epi16(__m512i a, __m512i b)
 
     difab = _mm512_sub_epi16(a, b);
     difba = _mm512_sub_epi16(b, a);
-#if 1 // should be faster
+#if 1  // should be faster
     return _mm512_mask_blend_epi16(cmp_mask, difba, difab);
 #else
     __m512i zero = _mm512_setzero_epi32();
@@ -298,7 +298,6 @@ static inline __m512i _mm512_absdiff_epi16(__m512i a, __m512i b)
     difba = _mm512_andnot_si512(cmp, difba);
     return _mm512_or_si512(difab, difba);
 #endif
-
 }
 
 static inline __m512i _mm512_absdiff_epi32(__m512i a, __m512i b)
@@ -308,7 +307,7 @@ static inline __m512i _mm512_absdiff_epi32(__m512i a, __m512i b)
 
     difab = _mm512_sub_epi32(a, b);
     difba = _mm512_sub_epi32(b, a);
-#if 1 // should be faster
+#if 1  // should be faster
     return _mm512_mask_blend_epi32(cmp_mask, difba, difab);
 #else
     __m512i zero = _mm512_setzero_epi32();
@@ -326,7 +325,7 @@ static inline __m512i _mm512_absdiff_epi8(__m512i a, __m512i b)
 
     difab = _mm512_sub_epi8(a, b);
     difba = _mm512_sub_epi8(b, a);
-#if 1 // should be faster
+#if 1  // should be faster
     return _mm512_mask_blend_epi32(cmp_mask, difba, difab);
 #else
     __m512i zero = _mm512_setzero_epi32();

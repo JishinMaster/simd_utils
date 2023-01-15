@@ -406,9 +406,9 @@ static inline v4sf cbrtf_ps(v4sf xx)
     v4si emm0 = _mm_srli_epi32(_mm_castps_si128(x), 23);
     x = _mm_and_ps(x, *(v4sf *) _ps_inv_mant_mask);
     x = _mm_or_ps(x, *(v4sf *) _ps_0p5);
-    emm0 = _mm_sub_epi32(emm0, *(v4si *) _pi32_0x7e); // -7f + 1
+    emm0 = _mm_sub_epi32(emm0, *(v4si *) _pi32_0x7e);  // -7f + 1
     e = _mm_cvtepi32_ps(emm0);
-    
+
     /* Approximate cube root of number between .5 and 1,
      * peak relative error = 9.2e-6
      */

@@ -580,8 +580,8 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     y = _mm_mul_pd(x, *(v2sd *) _pd_cephes_FOPI);
     y = _mm_round_pd(y, ROUNDTOFLOOR);
     /* strip high bits of integer part to prevent integer overflow */
-    //v2sd ldexpmin4 = _mm_set1_pd(1.0/(16.0));
-    //v2sd ldexp4 = _mm_set1_pd(16.0);
+    // v2sd ldexpmin4 = _mm_set1_pd(1.0/(16.0));
+    // v2sd ldexp4 = _mm_set1_pd(16.0);
     v2sd z;
     /*z = _mm_mul_pd( y,  ldexpmin4);
     z = _mm_round_pd(z, ROUNDTOFLOOR);

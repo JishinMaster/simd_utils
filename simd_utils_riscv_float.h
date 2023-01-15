@@ -274,7 +274,7 @@ static inline void sinf_vec(float *src, float *dst, int len)
         emm2 = VAND1_INT(emm2, 2, i);
 
         /// emm2 == 0 ? 0xFFFFFFFF : 0x00000000
-        V_ELT_BOOL poly_mask = VEQ1_INT_BOOL(emm2, 0, i);
+        V_ELT_BOOL32 poly_mask = VEQ1_INT_BOOL(emm2, 0, i);
 
         sign_bit_int = VXOR_INT(sign_bit_int, emm0, i);  // emm0 is swap_sign_bit
 
@@ -367,7 +367,7 @@ static inline void cosf_vec(float *src, float *dst, int len)
         emm0 = VSLL1_INTH(emm0, 29, i);
         /* get the polynom selection mask */
         emm2 = VAND1_INTH(emm2, 2, i);
-        V_ELT_BOOLH poly_mask = VEQ1_INTH_BOOLH(emm2, 0, i);
+        V_ELT_BOOL32H poly_mask = VEQ1_INTH_BOOLH(emm2, 0, i);
 
         /* The magic pass: "Extended precision modular arithmetic"
          x = ((x - y * DP1) - y * DP2) - y * DP3; */
@@ -419,8 +419,8 @@ static inline void sincosf_ps(V_ELT_FLOATH x,
 {
     V_ELT_FLOATH y;
     V_ELT_INTH j;
-    V_ELT_BOOLH jandone, jsup3, jsup1, j1or2, xinf0;
-    V_ELT_BOOLH sign_sin, sign_cos;
+    V_ELT_BOOL32H jandone, jsup3, jsup1, j1or2, xinf0;
+    V_ELT_BOOL32H sign_sin, sign_cos;
 
     sign_sin = VCLEAR_BOOLH(i);
     sign_cos = VCLEAR_BOOLH(i);
@@ -585,8 +585,8 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
 
         V_ELT_FLOAT y;
         V_ELT_INT j;
-        V_ELT_BOOL jandone, jsup3, jsup1, j1or2, xinf0;
-        V_ELT_BOOL sign_sin, sign_cos;
+        V_ELT_BOOL32 jandone, jsup3, jsup1, j1or2, xinf0;
+        V_ELT_BOOL32 sign_sin, sign_cos;
 
         sign_sin = VCLEAR_BOOL(i);
         sign_cos = VCLEAR_BOOL(i);
@@ -701,7 +701,7 @@ static inline void tanf_vec(float *src, float *dst, int len)
         V_ELT_INTH sign;
         V_ELT_FLOATH tmp;
         V_ELT_INTH tmpi;
-        V_ELT_BOOLH jandone, jandtwo, xsupem4;
+        V_ELT_BOOL32H jandone, jandtwo, xsupem4;
 
         x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(xx), inv_sign_mask, i));
         sign = VAND1_INTH(VINTERP_FLOATH_INTH(xx), sign_mask, i);
@@ -913,7 +913,7 @@ static inline void realtocplxf_vec(float *srcRe, float *srcIm, complex32_t *dst,
 
 // Work in progress
 // We work on m4 instead of m8 in order to use load/store interleaved
-static inline void cplxvecmul_vec(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+static inline void cplxvecmulf_vec(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
     size_t i;
     float *src1_tmp = (float *) src1;
@@ -950,7 +950,7 @@ static inline void cplxvecmul_vec(complex32_t *src1, complex32_t *src2, complex3
     }
 }
 
-static inline void cplxvecmul_vec_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+static inline void cplxvecmulf_vec_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
 {
     size_t i;
     float *src1Re_tmp = src1Re;
@@ -982,7 +982,7 @@ static inline void cplxvecmul_vec_split(float *src1Re, float *src1Im, float *src
     }
 }
 
-static inline void cplxvecdiv_vec(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+static inline void cplxvecdivf_vec(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
     size_t i;
     float *src1_tmp = (float *) src1;
@@ -1027,7 +1027,7 @@ static inline void cplxvecdiv_vec(complex32_t *src1, complex32_t *src2, complex3
     }
 }
 
-static inline void cplxvecdiv_vec_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+static inline void cplxvecdivf_vec_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
 {
     size_t i;
     float *src1Re_tmp = src1Re;
@@ -1090,6 +1090,73 @@ static inline void cplxconjf_vec(complex32_t *src, complex32_t *dst, int len)
     for (; i < len; i++) {
         dst[i].re = src[i].re;
         dst[i].im = -src[i].im;
+    }
+}
+
+static inline void cplxconjvecmulf_vec(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+{
+    size_t i;
+    float *src1_tmp = (float *) src1;
+    float *src2_tmp = (float *) src2;
+    float *dst_tmp = (float *) dst;
+    int cplx_len = 2 * len;
+
+    int vec_size = VSETVL32(4096);
+    int nb_elts = 0;
+
+    for (; (i = VSETVL32(cplx_len)) >= vec_size; cplx_len -= i) {
+        V_ELT_FLOATH src1Re_vec;
+        V_ELT_FLOATH src1Im_vec;
+        V_ELT_FLOATH src2Re_vec;
+        V_ELT_FLOATH src2Im_vec;
+        VLOAD_FLOATH2(&src1Re_vec, &src1Im_vec, src1_tmp, i);
+        VLOAD_FLOATH2(&src2Re_vec, &src2Im_vec, src2_tmp, i);
+        V_ELT_FLOATH tmp1 = VMUL_FLOATH(src1Im_vec, src2Im_vec, i);
+        V_ELT_FLOATH dstRe_vec = VFMACC_FLOATH(tmp1, src1Re_vec, src2Re_vec, i);
+        V_ELT_FLOATH tmp2 = VMUL_FLOATH(src1Re_vec, src2Im_vec, i);
+        V_ELT_FLOATH dstIm_vec = VFMSUB_FLOATH(src2Re_vec, src1Im_vec, tmp2, i);  // vs1*vd - vs2
+        VSTORE_FLOATH2(dst_tmp, dstRe_vec, dstIm_vec, i);
+        src1_tmp += i;
+        src2_tmp += i;
+        dst_tmp += i;
+        nb_elts += vec_size;
+    }
+
+    i = nb_elts / 2;
+    for (; i < len; i++) {
+        dst[i].re = src1[i].re * src2[i].re + (src1[i].im * src2[i].im);
+        dst[i].im = -src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
+    }
+}
+
+static inline void cplxconjvecmulf_vec_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+{
+    size_t i;
+    float *src1Re_tmp = src1Re;
+    float *src1Im_tmp = src1Im;
+    float *src2Re_tmp = src2Re;
+    float *src2Im_tmp = src2Im;
+    float *dstRe_tmp = dstRe;
+    float *dstIm_tmp = dstIm;
+
+    for (; (i = VSETVL32(len)) > 0; len -= i) {
+        V_ELT_FLOAT src1Re_vec = VLOAD_FLOAT(src1Re_tmp, i);
+        V_ELT_FLOAT src1Im_vec = VLOAD_FLOAT(src1Im_tmp, i);
+        V_ELT_FLOAT src2Re_vec = VLOAD_FLOAT(src2Re_tmp, i);
+        V_ELT_FLOAT src2Im_vec = VLOAD_FLOAT(src2Im_tmp, i);
+        V_ELT_FLOAT tmp1 = VMUL_FLOAT(src1Re_vec, src2Re_vec, i);
+        V_ELT_FLOAT dstRe_vec = VFMACC_FLOAT(tmp1, src1Im_vec, src2Im_vec, i);
+        V_ELT_FLOAT tmp2 = VMUL_FLOAT(src1Re_vec, src2Im_vec, i);
+        V_ELT_FLOAT dstIm_vec = VFMSUB_FLOAT(src2Re_vec, src1Im_vec, tmp2, i);  // vs1*vd - vs2
+        VSTORE_FLOAT(dstRe_tmp, dstRe_vec, i);
+        VSTORE_FLOAT(dstIm_tmp, dstIm_vec, i);
+
+        src1Re_tmp += i;
+        src1Im_tmp += i;
+        src2Re_tmp += i;
+        src2Im_tmp += i;
+        dstRe_tmp += i;
+        dstIm_tmp += i;
     }
 }
 
@@ -1325,8 +1392,8 @@ static inline void threshold_gtabs_f_vec(float *src, float *dst, int len, float 
         VSTORE_FLOAT(dst_tmp, sval, i);
 #else  // should be removed?
         V_ELT_FLOAT va_abs = VINTERP_INT_FLOAT(VAND1_INT(VINTERP_FLOAT_INT(va), inv_sign_mask, i));
-        V_ELT_BOOL eqmask = VEQ_FLOAT_BOOL(va, va_abs, i);
-        V_ELT_BOOL gtmask = VGT1_FLOAT_BOOL(va_abs, value, i);
+        V_ELT_BOOL32 eqmask = VEQ_FLOAT_BOOL(va, va_abs, i);
+        V_ELT_BOOL32 gtmask = VGT1_FLOAT_BOOL(va_abs, value, i);
 
         V_ELT_FLOAT sval;
         sval = VMERGE1_FLOAT(VNOT_BOOL(eqmask, i), sval, -value, i);
@@ -1365,8 +1432,8 @@ static inline void threshold_ltval_gtval_f_vec(float *src, float *dst, int len, 
 
     for (; (i = VSETVL32(len)) > 0; len -= i) {
         V_ELT_FLOAT va = VLOAD_FLOAT(src_tmp, i);
-        V_ELT_BOOL lt_mask = VLT1_FLOAT_BOOL(va, ltlevel, i);
-        V_ELT_BOOL gt_mask = VGT1_FLOAT_BOOL(va, gtlevel, i);
+        V_ELT_BOOL32 lt_mask = VLT1_FLOAT_BOOL(va, ltlevel, i);
+        V_ELT_BOOL32 gt_mask = VGT1_FLOAT_BOOL(va, gtlevel, i);
         V_ELT_FLOAT tmp = VMERGE1_FLOAT(lt_mask, va, ltvalue, i);
         tmp = VMERGE1_FLOAT(gt_mask, tmp, gtvalue, i);
         VSTORE_FLOAT(dst_tmp, tmp, i);
@@ -1431,7 +1498,7 @@ static inline void log10f_vec(float *src, float *dst, int len)
         V_ELT_FLOATH x = VLOAD_FLOATH(src_tmp, i);
         V_ELT_INTH imm0;
 
-        V_ELT_BOOLH invalid_mask = VLE1_FLOATH_BOOLH(x, 0.0f, i);
+        V_ELT_BOOL32H invalid_mask = VLE1_FLOATH_BOOLH(x, 0.0f, i);
         x = VMAX1_FLOATH(x, 1.17549e-38f, i); /* cut off denormalized stuff */
         imm0 = VSRA1_INTH(VINTHERP_FLOATH_INTH(x), 23, i);
 
@@ -1444,7 +1511,7 @@ static inline void log10f_vec(float *src, float *dst, int len)
         e = VADD1_FLOATH(e, 1.0f, i);
 
         // could lead to errors since we take the inverted mask after?
-        V_ELT_BOOLH mask = VLT1_FLOATH_BOOLH(x, c_cephes_SQRTHF, i);
+        V_ELT_BOOL32H mask = VLT1_FLOATH_BOOLH(x, c_cephes_SQRTHF, i);
 
         V_ELT_FLOATH tmp = VMERGE1_FLOATH(VNOT_BOOLH(mask, i), x, 0.0f, i);
         x = VSUB1_FLOATH(x, 1.0f, i);  // x ok
@@ -1502,7 +1569,7 @@ static inline void log10f_vec(float *src, float *dst, int len)
         V_ELT_FLOAT x = VLOAD_FLOAT(src_tmp, i);
         V_ELT_INT imm0;
 
-        V_ELT_BOOL invalid_mask = VLE1_FLOAT_BOOL(x, 0.0f, i);
+        V_ELT_BOOL32 invalid_mask = VLE1_FLOAT_BOOL(x, 0.0f, i);
         x = VMAX1_FLOAT(x, 1.17549e-38f, i); /* cut off denormalized stuff */
         imm0 = VSRA1_INT(VINTERP_FLOAT_INT(x), 23, i);
 
@@ -1515,7 +1582,7 @@ static inline void log10f_vec(float *src, float *dst, int len)
         e = VADD1_FLOAT(e, 1.0f, i);
 
         // could lead to errors since we take the inverted mask after?
-        V_ELT_BOOL mask = VLT1_FLOAT_BOOL(x, c_cephes_SQRTHF, i);
+        V_ELT_BOOL32 mask = VLT1_FLOAT_BOOL(x, c_cephes_SQRTHF, i);
 
         V_ELT_FLOAT tmp = VMERGE1_FLOAT(VNOT_BOOL(mask, i), x, 0.0f, i);
         x = VSUB1_FLOAT(x, 1.0f, i);  // x ok
@@ -1580,7 +1647,7 @@ static inline V_ELT_FLOATH log_ps(V_ELT_FLOATH x,
                                   size_t i)
 {
     V_ELT_INTH imm0;
-    V_ELT_BOOLH invalid_mask = VLE1_FLOATH_BOOLH(x, 0.0f, i);
+    V_ELT_BOOL32H invalid_mask = VLE1_FLOATH_BOOLH(x, 0.0f, i);
     x = VMAX1_FLOATH(x, 1.17549e-38f, i); /* cut off denormalized stuff */
     imm0 = VSRA1_INTH(VINTHERP_FLOATH_INTH(x), 23, i);
 
@@ -1593,7 +1660,7 @@ static inline V_ELT_FLOATH log_ps(V_ELT_FLOATH x,
     e = VADD1_FLOATH(e, 1.0f, i);
 
     // could lead to errors since we take the inverted mask after?
-    V_ELT_BOOLH mask = VLT1_FLOATH_BOOLH(x, c_cephes_SQRTHF, i);
+    V_ELT_BOOL32H mask = VLT1_FLOATH_BOOLH(x, c_cephes_SQRTHF, i);
 
     V_ELT_FLOATH tmp = VMERGE1_FLOATH(VNOT_BOOLH(mask, i), x, 0.0f, i);
     x = VSUB1_FLOATH(x, 1.0f, i);  // x ok
@@ -1676,7 +1743,7 @@ static inline void log2f_vec(float *src, float *dst, int len)
         V_ELT_FLOATH x = VLOAD_FLOATH(src_tmp, i);
         V_ELT_INTH imm0;
 
-        V_ELT_BOOLH invalid_mask = VLE1_FLOATH_BOOLH(x, 0.0f, i);
+        V_ELT_BOOL32H invalid_mask = VLE1_FLOATH_BOOLH(x, 0.0f, i);
         x = VMAX1_FLOATH(x, 1.17549e-38f, i); /* cut off denormalized stuff */
         imm0 = VSRA1_INTH(VINTHERP_FLOATH_INTH(x), 23, i);
 
@@ -1689,7 +1756,7 @@ static inline void log2f_vec(float *src, float *dst, int len)
         e = VADD1_FLOATH(e, 1.0f, i);
 
         // could lead to errors since we take the inverted mask after?
-        V_ELT_BOOLH mask = VLT1_FLOATH_BOOLH(x, c_cephes_SQRTHF, i);
+        V_ELT_BOOL32H mask = VLT1_FLOATH_BOOLH(x, c_cephes_SQRTHF, i);
 
         V_ELT_FLOATH tmp = VMERGE1_FLOATH(VNOT_BOOLH(mask, i), x, 0.0f, i);
         x = VSUB1_FLOATH(x, 1.0f, i);  // x ok
@@ -1738,9 +1805,9 @@ static inline V_ELT_FLOATH atanf_ps(V_ELT_FLOATH xx,
 {
     V_ELT_FLOATH x, y, z;
     V_ELT_INTH sign;
-    V_ELT_BOOLH suptan3pi8, inftan3pi8suppi8;
+    V_ELT_BOOL32H suptan3pi8, inftan3pi8suppi8;
     V_ELT_FLOATH tmp, tmp2;
-    V_ELT_BOOLH tmpb1, tmpb2;
+    V_ELT_BOOL32H tmpb1, tmpb2;
 
     x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(xx), inv_sign_mask, i));
     sign = VAND1_INTH(VINTERP_FLOATH_INTH(xx), sign_mask, i);
@@ -1800,9 +1867,9 @@ static inline void atanf_vec(float *src, float *dst, int len)
 static inline V_ELT_FLOATH atan2f_ps(V_ELT_FLOATH y, V_ELT_FLOATH x, V_ELT_FLOATH ATAN_P1_vec, V_ELT_FLOATH ATAN_P2_vec, V_ELT_FLOATH ATAN_P3_vec, V_ELT_FLOATH min1_vec, size_t i)
 {
     V_ELT_FLOATH z, w;
-    V_ELT_BOOLH xinfzero, yinfzero, xeqzero, yeqzero;
-    V_ELT_BOOLH xeqzeroandyinfzero, yeqzeroandxinfzero;
-    V_ELT_BOOLH specialcase;
+    V_ELT_BOOL32H xinfzero, yinfzero, xeqzero, yeqzero;
+    V_ELT_BOOL32H xeqzeroandyinfzero, yeqzeroandxinfzero;
+    V_ELT_BOOL32H specialcase;
     V_ELT_FLOATH tmp, tmp2;
 
     xinfzero = VLT1_FLOATH_BOOLH(x, 0.0f, i);  // code =2
@@ -1921,7 +1988,7 @@ static inline void asinf_vec(float *src, float *dst, int len)
         V_ELT_FLOATH x = VLOAD_FLOATH(src_tmp, i);
         V_ELT_FLOATH a, z, z_tmp;
         V_ELT_INTH sign;
-        V_ELT_BOOLH ainfem4, asup0p5, xsup1;
+        V_ELT_BOOL32H ainfem4, asup0p5, xsup1;
         V_ELT_FLOATH tmp;
 
         a = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(x), inv_sign_mask, i));
@@ -1987,7 +2054,7 @@ static inline void acoshf_vec(float *src, float *dst, int len)
     for (; (i = VSETVL32H(len)) > 0; len -= i) {
         V_ELT_FLOATH x = VLOAD_FLOATH(src_tmp, i);
         V_ELT_FLOATH z, z_first_branch, z_second_branch;
-        V_ELT_BOOLH xsup1500, zinf0p5, xinf1;
+        V_ELT_BOOL32H xsup1500, zinf0p5, xinf1;
         V_ELT_FLOATH tmp;
 
         xsup1500 = VGT1_FLOATH_BOOLH(x, 1500.0f, i);  // return  (logf(x) + LOGE2F)
@@ -2059,7 +2126,7 @@ static inline void asinhf_vec(float *src, float *dst, int len)
         V_ELT_FLOATH xx = VLOAD_FLOATH(src_tmp, i);
 
         V_ELT_FLOATH x, tmp, z, z_first_branch, z_second_branch;
-        V_ELT_BOOLH xsup1500, xinf0p5;
+        V_ELT_BOOL32H xsup1500, xinf0p5;
         V_ELT_INTH xxinf0;
 
         x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(xx), inv_sign_mask, i));
@@ -2127,7 +2194,7 @@ static inline void atanhf_vec(float *src, float *dst, int len)
     for (; (i = VSETVL32H(len)) > 0; len -= i) {
         V_ELT_FLOATH x = VLOAD_FLOATH(src_tmp, i);
         V_ELT_FLOATH z, tmp, tmp2, z_first_branch, z_second_branch;
-        V_ELT_BOOLH xsup1, xinfmin1, zinf1emin4, zinf0p5;
+        V_ELT_BOOL32H xsup1, xinfmin1, zinf1emin4, zinf0p5;
 
         z = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(x), inv_sign_mask, i));
 
@@ -2182,7 +2249,7 @@ static inline V_ELT_FLOATH exp_ps(V_ELT_FLOATH x,
 {
     V_ELT_FLOATH z_tmp, z, fx;
     V_ELT_INTH n;
-    V_ELT_BOOLH xsupmaxlogf, xinfminglogf;
+    V_ELT_BOOL32H xsupmaxlogf, xinfminglogf;
 
     xsupmaxlogf = VGT1_FLOATH_BOOLH(x, MAXLOGF, i);
     xinfminglogf = VLT1_FLOATH_BOOLH(x, MINLOGF, i);
@@ -2282,7 +2349,7 @@ static inline void coshf_vec(float *src, float *dst, int len)
         V_ELT_FLOATH xx = VLOAD_FLOATH(src_tmp, i);
 
         V_ELT_FLOATH x, tmp;
-        V_ELT_BOOLH xsupmaxlogf;
+        V_ELT_BOOL32H xsupmaxlogf;
 
         x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(xx), inv_sign_mask, i));
         xsupmaxlogf = VGT1_FLOATH_BOOLH(x, MAXLOGF, i);
@@ -2301,7 +2368,7 @@ static inline void coshf_vec(float *src, float *dst, int len)
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
-//TODO : ULP bigger than X86?
+// TODO : ULP bigger than X86?
 static inline void sinhf_vec(float *src, float *dst, int len)
 {
     size_t i;
@@ -2322,7 +2389,7 @@ static inline void sinhf_vec(float *src, float *dst, int len)
     for (; (i = VSETVL32H(len)) > 0; len -= i) {
         V_ELT_FLOATH x = VLOAD_FLOATH(src_tmp, i);
         V_ELT_FLOATH z, z_first_branch, z_second_branch, tmp;
-        V_ELT_BOOLH xsupmaxlogf, zsup1;
+        V_ELT_BOOL32H xsupmaxlogf, zsup1;
         V_ELT_INTH sign;
 
         // x = xx; if x < 0, z = -x, else x
@@ -2342,7 +2409,7 @@ static inline void sinhf_vec(float *src, float *dst, int len)
 #if 0  // not ported on RISCV yet
       z_first_branch = _mm_xor_ps(z_first_branch, sign);
 #else
-        V_ELT_BOOLH xinf0 = VLT1_FLOATH_BOOLH(x, 0.0f, i);
+        V_ELT_BOOL32H xinf0 = VLT1_FLOATH_BOOLH(x, 0.0f, i);
         V_ELT_FLOATH tmp2 = VINTERP_INTH_FLOATH(VXOR1_INTH(VINTERP_FLOATH_INTH(z_first_branch), neg_sign_mask, i));
         z_first_branch = VMERGE_FLOATH(xinf0, z_first_branch, tmp2, i);
 #endif
@@ -2395,7 +2462,7 @@ static inline void tanhf_vec(float *src, float *dst, int len)
     for (; (i = VSETVL32H(len)) > 0; len -= i) {
         V_ELT_FLOATH xx = VLOAD_FLOATH(src_tmp, i);
         V_ELT_FLOATH x, z, z_first_branch, z_second_branch, tmp;
-        V_ELT_BOOLH xxsup0, xsupmaxlogfdiv2, xsup0p625;
+        V_ELT_BOOL32H xxsup0, xsupmaxlogfdiv2, xsup0p625;
         xxsup0 = VGT1_FLOATH_BOOLH(xx, 0.0f, i);
         xsupmaxlogfdiv2 = VGT1_FLOATH_BOOLH(xx, MAXLOGFDIV2, i);
 
@@ -2654,7 +2721,6 @@ static inline V_ELT_FLOATH power_of_twof(V_ELT_INTH b, size_t i)
 
 static inline void cbrtf_vec(float *src, float *dst, int len)
 {
-
 #ifdef NO_RTZ
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
@@ -2693,21 +2759,21 @@ static inline void cbrtf_vec(float *src, float *dst, int len)
         // solve problem for zero
         V_ELT_INTH emm0 = VSRA1_INTH(VINTHERP_FLOATH_INTH(x), 23, i);
         x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTHERP_FLOATH_INTH(x), c_inv_mant_mask, i));
-        x = VINTERP_INTH_FLOATH(VOR1_INTH(VINTHERP_FLOATH_INTH(x), *(int32_t*)&Op5, i));
+        x = VINTERP_INTH_FLOATH(VOR1_INTH(VINTHERP_FLOATH_INTH(x), *(int32_t *) &Op5, i));
         emm0 = VSUB1_INTH(emm0, 0x7e, i);
         e = VCVT_INTH_FLOATH(emm0, i);
 
         /* Approximate cube root of number between .5 and 1,
          * peak relative error = 9.2e-6
          */
-        tmp= x;
+        tmp = x;
         tmp = VFMADD1_FLOATH(tmp, CBRTF_P0, CBRTF_P1_vec, i);
         tmp = VFMADD_FLOATH(tmp, x, CBRTF_P2_vec, i);
         tmp = VFMADD_FLOATH(tmp, x, CBRTF_P3_vec, i);
         x = VFMADD_FLOATH(x, tmp, CBRTF_P4_vec, i);
-        
+
         /* exponent divided by 3 */
-        V_ELT_BOOLH e_sign = VGE1_FLOATH_BOOLH(e, 0.0f, i);
+        V_ELT_BOOL32H e_sign = VGE1_FLOATH_BOOLH(e, 0.0f, i);
         e = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(e), inv_sign_mask, i));
         rem = e;
         e = VMUL1_FLOATH(e, 0.333333333333f, i);
@@ -2723,8 +2789,8 @@ static inline void cbrtf_vec(float *src, float *dst, int len)
         mul2 = VMUL_FLOATH(x, mul_cst2, i);
 
         V_ELT_INTH remi = VCVT_FLOATH_INTH(rem, i);  // rem integer
-        V_ELT_BOOLH rem1 = VEQ1_INTH_BOOLH(remi, 1, i);
-        V_ELT_BOOLH rem2 = VEQ1_INTH_BOOLH(remi, 2, i);
+        V_ELT_BOOL32H rem1 = VEQ1_INTH_BOOLH(remi, 1, i);
+        V_ELT_BOOL32H rem2 = VEQ1_INTH_BOOLH(remi, 2, i);
 
         x = VMERGE_FLOATH(rem1, x, mul1, i);  // rem==1
         x = VMERGE_FLOATH(rem2, x, mul2, i);  // rem==2
@@ -2735,7 +2801,7 @@ static inline void cbrtf_vec(float *src, float *dst, int len)
         V_ELT_FLOATH cst = power_of_twof(e_int, i);
 
         // blend sign of e
-        tmp =  VMUL_FLOATH(x, cst, i);
+        tmp = VMUL_FLOATH(x, cst, i);
         tmp2 = VDIV_FLOATH(x, cst, i);
         x = VMERGE_FLOATH(e_sign, tmp2, tmp, i);
 
@@ -2756,7 +2822,6 @@ static inline void cbrtf_vec(float *src, float *dst, int len)
 #ifdef NO_RTZ
     _MM_SET_ROUNDING_MODE(reg_ori);
 #endif
-
 }
 #endif
 
@@ -2891,6 +2956,93 @@ static inline void convertFloat32ToU8_vec(float *src, uint8_t *dst, int len, int
     }
 
     _MM_SET_ROUNDING_MODE(reg_ori);
+}
+
+static inline void pol2cart2Df_vec(float *r, float *theta, float *x, float *y, int len)
+{
+    float *r_tmp = r;
+    float *theta_tmp = theta;
+    float *x_tmp = x;
+    float *y_tmp = y;
+    size_t i;
+
+#ifdef NO_RTZ
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+#endif
+
+    i = VSETVL32H(len);
+    V_ELT_FLOATH coscof_1_vec = VLOAD1_FLOATH(coscof[1], i);
+    V_ELT_FLOATH coscof_2_vec = VLOAD1_FLOATH(coscof[2], i);
+    V_ELT_FLOATH sincof_1_vec = VLOAD1_FLOATH(sincof[1], i);
+    V_ELT_FLOATH sincof_2_vec = VLOAD1_FLOATH(sincof[2], i);
+
+    for (; (i = VSETVL32H(len)) > 0; len -= i) {
+        V_ELT_FLOATH r_vec = VLOAD_FLOATH(r_tmp, i);
+        V_ELT_FLOATH theta_vec = VLOAD_FLOATH(theta_tmp, i);
+        V_ELT_FLOATH sin_vec, cos_vec;
+        sincosf_ps(theta_vec, &sin_vec, &cos_vec,
+                   coscof_1_vec, coscof_2_vec,
+                   sincof_1_vec, sincof_2_vec, i);
+        V_ELT_FLOATH x_vec = VMUL_FLOATH(r_vec, cos_vec, i);
+        V_ELT_FLOATH y_vec = VMUL_FLOATH(r_vec, sin_vec, i);
+        VSTORE_FLOATH(x_tmp, x_vec, i);
+        VSTORE_FLOATH(y_tmp, y_vec, i);
+
+        r_tmp += i;
+        theta_tmp += i;
+        x_tmp += i;
+        y_tmp += i;
+    }
+
+#ifdef NO_RTZ
+    _MM_SET_ROUNDING_MODE(reg_ori);
+#endif
+}
+
+static inline void cart2pol2Df_vec(float *x, float *y, float *r, float *theta, int len)
+{
+    float *r_tmp = r;
+    float *theta_tmp = theta;
+    float *x_tmp = x;
+    float *y_tmp = y;
+    size_t i;
+
+#ifdef NO_RTZ
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+#endif
+
+    i = VSETVL32H(len);
+    V_ELT_FLOATH ATAN_P1_vec = VLOAD1_FLOATH(ATAN_P1, i);
+    V_ELT_FLOATH ATAN_P2_vec = VLOAD1_FLOATH(ATAN_P2, i);
+    V_ELT_FLOATH ATAN_P3_vec = VLOAD1_FLOATH(ATAN_P3, i);
+    V_ELT_FLOATH min1_vec = VLOAD1_FLOATH(-1.0f, i);
+
+    for (; (i = VSETVL32H(len)) > 0; len -= i) {
+        V_ELT_FLOATH x_vec = VLOAD_FLOATH(x_tmp, i);
+        V_ELT_FLOATH y_vec = VLOAD_FLOATH(y_tmp, i);
+        V_ELT_FLOATH y_square = VMUL_FLOATH(y_vec, y_vec, i);
+        V_ELT_FLOATH r_vec = x_vec;
+        r_vec = VFMADD_FLOATH(r_vec, x_vec, y_square, i);
+        r_vec = VSQRT_FLOATH(r_vec, i);
+        V_ELT_FLOATH theta_vec = atan2f_ps(y_vec, x_vec,
+                                           ATAN_P1_vec, ATAN_P2_vec,
+                                           ATAN_P3_vec, min1_vec, i);
+        VSTORE_FLOATH(r_tmp, r_vec, i);
+        VSTORE_FLOATH(theta_tmp, theta_vec, i);
+
+        r_tmp += i;
+        theta_tmp += i;
+        x_tmp += i;
+        y_tmp += i;
+    }
+
+#ifdef NO_RTZ
+    _MM_SET_ROUNDING_MODE(reg_ori);
+#endif
 }
 
 #if ELEN >= 64

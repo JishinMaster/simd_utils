@@ -150,13 +150,13 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | floorXf  (a)                                          | floorf_C                    | ippsFloor_32f                  | floorf_vec                    |
 | truncXf  (a)                                          | truncf_C                    | ippsTrunc_32f                  | truncf_vec                    |
 | modfXf  (a)                                           | modff_C                     | ippsModf_32f                   | modf_vec                      |
-| cplxvecmulXf  (a)                                     | cplxvecmul_C/precise        | ippsMul_32fc_A11/24            | cplxvecmul_vec                |
-| cplxvecmulXf_split  (a)                               | cplxvecmul_C_split/precise  | ?                              | cplxvecmul_vec_split          |
-| cplxconjvecmulXf   (a)                                | cplxconjvecmul_C            | ippsMulByConj_32fc_A24         | ?                             |
-| cplxconjvecmulXf_split                                | cplxconjvecmul_C_split      | ?                              | ?                             |
+| cplxvecmulXf  (a)                                     | cplxvecmul_C/precise        | ippsMul_32fc_A11/24            | cplxvecmulf_vec               |
+| cplxvecmulXf_split  (a)                               | cplxvecmul_C_split/precise  | ?                              | cplxvecmulf_vec_split         |
+| cplxconjvecmulXf   (a)                                | cplxconjvecmul_C            | ippsMulByConj_32fc_A24         | cplxconjvecmulf_vec           |
+| cplxconjvecmulXf_split                                | cplxconjvecmul_C_split      | ?                              | cplxconjvecmulf_vec_split     |
 | cplxconjXf          (a)                               | cplxconj_C                  | ippsConj_32fc_A24              | cplxconjf_vec                 |
-| cplxvecdivXf        (a)                               | cplxvecdiv_C                | ?                              | cplxvecdiv_vec                |
-| cplxvecdivXf_split  (a)                               | cplxvecdiv_C_split          | ?                              | cplxvecdiv_vec_split          |
+| cplxvecdivXf        (a)                               | cplxvecdiv_C                | ?                              | cplxvecdivf_vec               |
+| cplxvecdivXf_split  (a)                               | cplxvecdiv_C_split          | ?                              | cplxvecdivf_vec_split         |
 | setXd                                                 | setd_C                      | ippsSet_64f                    | setd_vec                      |
 | zeroXd                                                | zerod_C                     | ippsZero_64f                   | zerod_vec                     |
 | copyXd                                                | copyd_C                     | ippsCopy_64f                   | copyd_vec                     |
@@ -207,8 +207,8 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | sigmoidXf  (a)                                        | sigmoidf_C                  | ?                              | ?                             |
 | PReluXf    (a)                                        | PReluf_C                    | ?                              | ?                             |
 | softmaxXf  (a)                                        | softmaxf_C                  | ?                              | ?                             |
-| pol2cart2DXf (a)                                      | pol2cart2Df_C               | ?                              | ?                             |
-| cart2pol2DXf (a)                                      | cart2pol2Df_C               | ?                              | ?                             |
+| pol2cart2DXf (a)                                      | pol2cart2Df_C               | ?                              | pol2cart2Df_vec               |
+| cart2pol2DXf (a)                                      | cart2pol2Df_C               | ?                              | cart2pol2Df_vec               |
 | gatheri_256/512s                                      | gatheri_C                   | ?                              | ?                             |
 
 

@@ -180,10 +180,10 @@ static inline void threshold_gtabs_s_vec(int32_t *src, int32_t *dst, int len, in
 
     for (; (i = VSETVL32(len)) > 0; len -= i) {
         V_ELT_INT src_tmp_vec = VLOAD_INT(src_tmp, i);
-        V_ELT_BOOL srcsup0 = VGT1_INT_BOOL(src_tmp_vec, 0, i);
+        V_ELT_BOOL32 srcsup0 = VGT1_INT_BOOL(src_tmp_vec, 0, i);
         V_ELT_INT src_tmp_neg_vec = VNEG_INT(src_tmp_vec, i);
         V_ELT_INT src_abs = VMERGE_INT(srcsup0, src_tmp_vec, src_tmp_neg_vec, i);
-        V_ELT_BOOL eqmask = VEQ_INT_BOOL(src_abs, src_tmp_vec, i);
+        V_ELT_BOOL32 eqmask = VEQ_INT_BOOL(src_abs, src_tmp_vec, i);
         V_ELT_INT min = VMIN1_INT(src_tmp_vec, value, i);
         V_ELT_INT max = VMAX1_INT(src_tmp_vec, -value, i);
         V_ELT_INT dst_tmp_vec = VMERGE_INT(eqmask, min, max, i);
@@ -201,10 +201,10 @@ static inline void threshold_ltabs_s_vec(int32_t *src, int32_t *dst, int len, in
 
     for (; (i = VSETVL32(len)) > 0; len -= i) {
         V_ELT_INT src_tmp_vec = VLOAD_INT(src_tmp, i);
-        V_ELT_BOOL srcsup0 = VGT1_INT_BOOL(src_tmp_vec, 0, i);
+        V_ELT_BOOL32 srcsup0 = VGT1_INT_BOOL(src_tmp_vec, 0, i);
         V_ELT_INT src_tmp_neg_vec = VNEG_INT(src_tmp_vec, i);
         V_ELT_INT src_abs = VMERGE_INT(srcsup0, src_tmp_vec, src_tmp_neg_vec, i);
-        V_ELT_BOOL eqmask = VEQ_INT_BOOL(src_abs, src_tmp_vec, i);
+        V_ELT_BOOL32 eqmask = VEQ_INT_BOOL(src_abs, src_tmp_vec, i);
         V_ELT_INT max = VMAX1_INT(src_tmp_vec, value, i);
         V_ELT_INT min = VMIN1_INT(src_tmp_vec, -value, i);
         V_ELT_INT dst_tmp_vec = VMERGE_INT(eqmask, max, min, i);
@@ -287,8 +287,8 @@ static inline void threshold_ltval_gtval_s_vec(int32_t *src, int32_t *dst, int l
 
     for (; (i = VSETVL32(len)) > 0; len -= i) {
         V_ELT_INT va = VLOAD_INT(src_tmp, i);
-        V_ELT_BOOL lt_mask = VLT1_INT_BOOL(va, ltlevel, i);
-        V_ELT_BOOL gt_mask = VGT1_INT_BOOL(va, gtlevel, i);
+        V_ELT_BOOL32 lt_mask = VLT1_INT_BOOL(va, ltlevel, i);
+        V_ELT_BOOL32 gt_mask = VGT1_INT_BOOL(va, gtlevel, i);
         V_ELT_INT tmp = VMERGE1_INT(lt_mask, va, ltvalue, i);
         tmp = VMERGE1_INT(gt_mask, tmp, gtvalue, i);
         VSTORE_INT(dst_tmp, tmp, i);
@@ -367,7 +367,7 @@ static inline void absdiff16s_vec(int16_t *src1, int16_t *src2, int16_t *dst, in
         va = VLOAD_SHORT(src1_tmp, i);
         vb = VLOAD_SHORT(src2_tmp, i);
 
-        V_ELT_BOOLD cmp = VGT_SHORT_BOOL(va, vb, i);
+        V_ELT_BOOL16 cmp = VGT_SHORT_BOOL(va, vb, i);
         V_ELT_SHORT difab = VSUB_SHORT(va, vb, i);
         V_ELT_SHORT difba = VSUB_SHORT(vb, va, i);
         vc = VMERGE_SHORT(cmp, difba, difab, i);

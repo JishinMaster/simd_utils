@@ -273,11 +273,11 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VGT_SHORT_BOOL vmsgt_vv_i16m4_b4
 #define VMERGE_SHORT vmerge_vvm_i16m4
 
-//// BOOL Double
-#define V_ELT_BOOLD vbool4_t
+//// BOOL for 16 bits elements
+#define V_ELT_BOOL16 vbool4_t
 
-//// BOOL
-#define V_ELT_BOOL vbool8_t
+//// BOOL for 32 bits elements
+#define V_ELT_BOOL32 vbool8_t
 #define VNOT_BOOL vmnot_m_b8
 #define VCLEAR_BOOL vmclr_m_b8
 #define VXOR_BOOL vmxor_mm_b8
@@ -444,8 +444,8 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VSTORE_UBYTEHH vse8_v_u8m1
 #define VCVT_USHORTH_UBYTEHH vnclipu_wx_u8m1
 
-//// BOOLH
-#define V_ELT_BOOLH vbool16_t
+//// BOOL for Half length vector 32 bits elements
+#define V_ELT_BOOL32H vbool16_t
 #define VNOT_BOOLH vmnot_m_b16
 #define VCLEAR_BOOLH vmclr_m_b16
 #define VXOR_BOOLH vmxor_mm_b16

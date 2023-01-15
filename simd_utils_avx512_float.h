@@ -314,7 +314,7 @@ static inline v16sf cbrt512f_ps(v16sf xx)
     v16sf cst = power_of_two512f(_mm512_cvtps_epi32(e));
     // blend sign of e
     tmp = _mm512_div_ps(x, cst);
-    x= _mm512_mask_mul_ps(tmp, e_sign, x, cst);
+    x = _mm512_mask_mul_ps(tmp, e_sign, x, cst);
 
     /* Newton iteration */
     // x -= (x - (z / (x * x))) * 0.333333333333;
@@ -1880,14 +1880,14 @@ static inline v16sf acosh512f_ps(v16sf x)
     zinf0p5 = _mm512_cmp_ps_mask(z, *(v16sf *) _ps512_0p5, _CMP_LT_OS);  // first and second branch
 
     tmp2 = log512_ps(x);
-    
+
     // First Branch (z < 0.5)
     z_first_branch = _mm512_fmadd_ps_custom(*(v16sf *) _ps512_ACOSH_P0, z, *(v16sf *) _ps512_ACOSH_P1);
     z_first_branch = _mm512_fmadd_ps_custom(z_first_branch, z, *(v16sf *) _ps512_ACOSH_P2);
     z_first_branch = _mm512_fmadd_ps_custom(z_first_branch, z, *(v16sf *) _ps512_ACOSH_P3);
     z_first_branch = _mm512_fmadd_ps_custom(z_first_branch, z, *(v16sf *) _ps512_ACOSH_P4);
     tmp = _mm512_sqrt_ps(z);
-    
+
     // Second Branch
     z_second_branch = _mm512_sqrt_ps(_mm512_fmadd_ps_custom(z, x, z));
     z_second_branch = log512_ps(_mm512_add_ps(x, z_second_branch));
@@ -1933,7 +1933,7 @@ static inline v16sf asinh512f_ps(v16sf xx)
 
     tmp = _mm512_mul_ps(x, x);
     tmp2 = log512_ps(x);
-    
+
     // First Branch (x < 0.5)
     z_first_branch = _mm512_fmadd_ps_custom(*(v16sf *) _ps512_ASINH_P0, tmp, *(v16sf *) _ps512_ASINH_P1);
     z_first_branch = _mm512_fmadd_ps_custom(z_first_branch, tmp, *(v16sf *) _ps512_ASINH_P2);
@@ -1944,7 +1944,7 @@ static inline v16sf asinh512f_ps(v16sf xx)
     // Second Branch
     z_second_branch = _mm512_sqrt_ps(_mm512_add_ps(tmp, *(v16sf *) _ps512_1));
     z_second_branch = log512_ps(_mm512_add_ps(z_second_branch, x));
-    
+
     z = _mm512_mask_blend_ps(xinf0p5, z_second_branch, z_first_branch);
     z = _mm512_mask_add_ps(z, xsup1500, tmp2, *(v16sf *) _ps512_LOGE2F);
     z = _mm512_mask_xor_ps(z, xxinf0, *(v16sf *) _ps512_neg_sign_mask, z);

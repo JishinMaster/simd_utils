@@ -145,9 +145,9 @@ static inline v16sf sin512_ps(v16sf x)
 
 
     v16sf swap_sign_bit = _mm512_castsi512_ps(imm0);
-    
+
 #if 1
-    //Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?  
+    // Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?
     __mmask16 poly_mask = _mm512_cmplt_epi32_mask(imm2, _mm512_setzero_si512());
 #else
     v16sf poly_mask = _mm512_castsi512_ps(imm2);
@@ -221,9 +221,9 @@ static inline v16sf cos512_ps(v16sf x)
     imm2 = (__m512i) _mm512_maskz_set1_epi32(_mm512_cmpeq_epi32_mask(imm2, *(v16si *) _pi32_512_0), -1);
 
     v16sf sign_bit = _mm512_castsi512_ps(imm0);
-    
+
 #if 1
-    //Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?  
+    // Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?
     __mmask16 poly_mask = _mm512_cmplt_epi32_mask(imm2, _mm512_setzero_si512());
 #else
     v16sf poly_mask = _mm512_castsi512_ps(imm2);
@@ -302,9 +302,9 @@ static inline void sincos512_ps(v16sf x, v16sf *s, v16sf *c)
     // v16sf poly_mask = _mm512_castsi512_ps(imm2);
 
     v16sf swap_sign_bit_sin = _mm512_castsi512_ps(imm0);
-    
+
 #if 1
-    //Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?  
+    // Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?
     __mmask16 poly_mask = _mm512_cmplt_epi32_mask(imm2, _mm512_setzero_si512());
 #else
     v16sf poly_mask = _mm512_castsi512_ps(imm2);

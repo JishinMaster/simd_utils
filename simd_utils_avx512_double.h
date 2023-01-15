@@ -637,13 +637,13 @@ static inline v8sd atan512_pd(v8sd xx)
     /* range reduction */
 
     y = _mm512_setzero_pd();
-    suptan3pi8 = _mm512_cmp_pd_mask(x, *(v8sd *) _pd512_TAN3PI8, _CMP_GT_OS);          // if( x > tan 3pi/8 )
-    x = _mm512_mask_div_pd(x, suptan3pi8, *(v8sd *) _pd512_min1, x);  // if( x > tan 3pi/8 ) then x = -1.0/x
-    y = _mm512_mask_blend_pd(suptan3pi8, y, *(v8sd *) _pd512_PIO2);                    // if( x > tan 3pi/8 ) then y = PI/2
-    flag = _mm512_mask_blend_pd(suptan3pi8, flag, *(v8sd *) _pd512_1);                 // if( x > tan 3pi/8 ) then flag = 1
+    suptan3pi8 = _mm512_cmp_pd_mask(x, *(v8sd *) _pd512_TAN3PI8, _CMP_GT_OS);  // if( x > tan 3pi/8 )
+    x = _mm512_mask_div_pd(x, suptan3pi8, *(v8sd *) _pd512_min1, x);           // if( x > tan 3pi/8 ) then x = -1.0/x
+    y = _mm512_mask_blend_pd(suptan3pi8, y, *(v8sd *) _pd512_PIO2);            // if( x > tan 3pi/8 ) then y = PI/2
+    flag = _mm512_mask_blend_pd(suptan3pi8, flag, *(v8sd *) _pd512_1);         // if( x > tan 3pi/8 ) then flag = 1
 
     inftan3pi8inf0p66 = _kand_mask8(_mm512_cmp_pd_mask(x, *(v8sd *) _pd512_TAN3PI8, _CMP_LE_OS), _mm512_cmp_pd_mask(x, zerop66, _CMP_LE_OS));  // if( x <= tan 3pi/8 ) && (x <= 0.66)
-    y = _mm512_mask_blend_pd(inftan3pi8inf0p66, *(v8sd *) _pd512_PIO4, y); // y = 0 or PIO4
+    y = _mm512_mask_blend_pd(inftan3pi8inf0p66, *(v8sd *) _pd512_PIO4, y);                                                                     // y = 0 or PIO4
     tmp2 = _mm512_add_pd(x, *(v8sd *) _pd512_1);
     tmp3 = _mm512_sub_pd(x, *(v8sd *) _pd512_1);
     x = _mm512_mask_blend_pd(inftan3pi8inf0p66, _mm512_div_pd(tmp3, tmp2), x);
@@ -670,11 +670,11 @@ static inline v8sd atan512_pd(v8sd xx)
     z = _mm512_fmadd_pd_custom(x, z, x);
     flagand1 = _mm512_cmp_pd_mask(flag, *(v8sd *) _pd512_1, _CMP_EQ_OS);
     flagand2 = _mm512_cmp_pd_mask(flag, *(v8sd *) _pd512_2, _CMP_EQ_OS);
-    
-    //TODO : could we compute 0.5*MOREBITS?
+
+    // TODO : could we compute 0.5*MOREBITS?
     tmp = _mm512_fmadd_pd_custom(*(v8sd *) _pd512_0p5, *(v8sd *) _pd512_MOREBITS, z);
-    z = _mm512_mask_blend_pd(flagand2, z, tmp);  // if (flag == 2) then z += 0.5 * MOREBITS
-    z = _mm512_mask_add_pd(z, flagand1, z, *(v8sd *) _pd512_MOREBITS); // if (flag == 1) then z +=  MOREBITS
+    z = _mm512_mask_blend_pd(flagand2, z, tmp);                         // if (flag == 2) then z += 0.5 * MOREBITS
+    z = _mm512_mask_add_pd(z, flagand1, z, *(v8sd *) _pd512_MOREBITS);  // if (flag == 1) then z +=  MOREBITS
 
     y = _mm512_add_pd(y, z);
     y = _mm512_xor_pd(y, sign);
@@ -709,7 +709,7 @@ static inline v8sd atan2512_pd(v8sd y, v8sd x)
     w = _mm512_setzero_pd();
     w = _mm512_mask_blend_pd(_kandn_mask8(yinfzero, xinfzero), w, *(v8sd *) _pd512_PIF);  // y >= 0 && x<0
     w = _mm512_mask_blend_pd(_kand_mask8(yinfzero, xinfzero), w, *(v8sd *) _pd512_mPIF);  // y < 0 && x<0
-    
+
     tmp = atan512_pd(_mm512_div_pd(y, x));
     z = _mm512_mask_blend_pd(specialcase, _mm512_add_pd(w, tmp), z);  // atanf(y/x) if not in special case
 
@@ -818,7 +818,7 @@ static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
     /* scale by 4/Pi */
     y = _mm512_mul_pd(x, *(v8sd *) _pd512_cephes_FOPI);
     y = _mm512_roundscale_pd(y, ROUNDTOFLOOR);
-    
+
     /* store the integer part of y in emm2 */
     emm2 = _mm512_cvttpd_epi64_custom(y);
     /* j=(j+1) & (~1) (see the cephes sources) */
@@ -838,7 +838,7 @@ static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
     emm2 = _mm512_mask_blend_epi64(cmpeq_mask, _mm512_setzero_si512(), ffff);
 
 #if 1
-    //Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?  
+    // Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?
     __mmask8 poly_mask = _mm512_cmplt_epi64_mask(emm2, _mm512_setzero_si512());
 #else
     v8sd poly_mask = _mm512_castsi512_pd(emm2);
