@@ -3265,6 +3265,11 @@ int main(int argc, char **argv)
     printf("cplxvecmulf_vec %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
 
     l2_err(inout_ref, inout2_ref, 2 * len);
+    
+    /*for(int i = 0; i < len; i+=2){
+        printf("%0.6g %0.6g  // %0.6g  %0.6g  // %0.6g  %0.6g  || %0.6g  %0.6g \n",inout[i],inout[i+1],\
+                inout2[i],inout2[i+1],inout_ref[i],inout_ref[i+1], inout2_ref[i], inout2_ref[i+1]);
+     }*/
 #endif
 
     printf("\n");
@@ -11004,6 +11009,22 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2, len);
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    sigmoidf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sigmoidf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sigmoidf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sigmoidf_vec %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
     /*for(int i = 0; i < len; i++)
       printf("%f %f %f\n",inout[i], inout_ref[i],inout2[i]);*/
 
@@ -11069,6 +11090,22 @@ for (int i = 0; i < len; i++){
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("PRelu512f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    PReluf_vec(inout, inout2, 0.05f, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("PReluf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        PReluf_vec(inout, inout2, 0.05f, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("PReluf_vec %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
 #endif
 
@@ -11158,6 +11195,23 @@ for (int i = 0; i < len; i++){
     printf("softmax512f %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
 #endif
+
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    softmaxf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("softmaxf_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        softmaxf_vec(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("softmaxf_vec %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
     /*for(int i = 0; i < len; i++)
           printf("%f %f %f\n",inout[i],inout_ref[i], inout2[i]);
         printf("\n\n");*/

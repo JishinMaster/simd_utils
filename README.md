@@ -204,9 +204,9 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | sum16s32sX (a)                                        | sum16s32s_C                 | ippsSum_16s32s_Sfs             | sum16s32s_vec                 |
 | ?                                                     | ors_c                       | ippsOr_32u                     | ?                             |
 | ?                                                     | ands_c                      | ippsAnd_32u                    | ?                             |
-| sigmoidXf  (a)                                        | sigmoidf_C                  | ?                              | ?                             |
-| PReluXf    (a)                                        | PReluf_C                    | ?                              | ?                             |
-| softmaxXf  (a)                                        | softmaxf_C                  | ?                              | ?                             |
+| sigmoidXf  (a)                                        | sigmoidf_C                  | ?                              | sigmoidf_vec                  |
+| PReluXf    (a)                                        | PReluf_C                    | ?                              | PReluf_vec                    |
+| softmaxXf  (a)                                        | softmaxf_C                  | ?                              | softmaxf_vec                  |
 | pol2cart2DXf (a)                                      | pol2cart2Df_C               | ?                              | pol2cart2Df_vec               |
 | cart2pol2DXf (a)                                      | cart2pol2Df_C               | ?                              | cart2pol2Df_vec               |
 | gatheri_256/512s                                      | gatheri_C                   | ?                              | ?                             |
