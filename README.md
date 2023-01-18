@@ -25,7 +25,7 @@ Supported targets are :
 - AVX (AVX and AVX2)
 - AVX512
 - ARM Neon (through sse2neon plus some optimized functions).
-- RISC-V Vector extension 1.0 (experimental)
+- RISC-V Vector extension 1.0
 - PowerPC Alitivec (no double precision suppport)
 
 128 bit functions (SSE, NEON, ALTIVEC) are name function128type, such as asin128f, which computes the arcsinus function on an float32 array. Float64 functions have the "d" suffix.
@@ -43,6 +43,7 @@ The project has been tested on :
 - Cortex-a53 (Raspberry Pi 3B)
 - Cortex-a9 (ZYBO)
 - PowerPC G5 (iMac G5)
+- RISCV Ox64 (C906 core)
 
 ## Building
 
