@@ -2897,10 +2897,10 @@ static inline void dotc512f(complex32_t *src1, complex32_t *src2, int len, compl
                  accumulateRe[4] + accumulateRe[5] + accumulateRe[6] + accumulateRe[7] +
                  accumulateRe[8] + accumulateRe[9] + accumulateRe[10] + accumulateRe[11] +
                  accumulateRe[12] + accumulateRe[13] + accumulateRe[14] + accumulateRe[15];
-    dst_tmp.im = dst_tmp.im + accumulateRe[0] + accumulateRe[1] + accumulateRe[2] + accumulateRe[3] +
-                 accumulateRe[4] + accumulateRe[5] + accumulateRe[6] + accumulateRe[7] +
-                 accumulateRe[8] + accumulateRe[9] + accumulateRe[10] + accumulateRe[11] +
-                 accumulateRe[12] + accumulateRe[13] + accumulateRe[14] + accumulateRe[15];
+    dst_tmp.im = dst_tmp.im + accumulateIm[0] + accumulateIm[1] + accumulateIm[2] + accumulateIm[3] +
+                 accumulateIm[4] + accumulateIm[5] + accumulateIm[6] + accumulateIm[7] +
+                 accumulateIm[8] + accumulateIm[9] + accumulateIm[10] + accumulateIm[11] +
+                 accumulateIm[12] + accumulateIm[13] + accumulateIm[14] + accumulateIm[15];
 
 
     dst->re = dst_tmp.re;

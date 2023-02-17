@@ -3191,8 +3191,8 @@ static inline void dotc256f(complex32_t *src1, complex32_t *src2, int len, compl
 
     dst_tmp.re = dst_tmp.re + accumulateRe[0] + accumulateRe[1] + accumulateRe[2] + accumulateRe[3] +
                  accumulateRe[4] + accumulateRe[5] + accumulateRe[6] + accumulateRe[7];
-    dst_tmp.im = dst_tmp.im + accumulateRe[0] + accumulateRe[1] + accumulateRe[2] + accumulateRe[3] +
-                 accumulateRe[4] + accumulateRe[5] + accumulateRe[6] + accumulateRe[7];
+    dst_tmp.im = dst_tmp.im + accumulateIm[0] + accumulateIm[1] + accumulateIm[2] + accumulateIm[3] +
+                 accumulateIm[4] + accumulateIm[5] + accumulateIm[6] + accumulateIm[7];
 
 
     dst->re = dst_tmp.re;
