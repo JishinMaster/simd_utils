@@ -458,6 +458,17 @@ static inline __m256d _mm256_fnmadd_pd_custom(__m256d a, __m256d b, __m256d c)
 #endif /* FMA */
 }
 
+//_PD_CONST does not work... _mm_set1_pd could be optimized
+// https://stackoverflow.com/questions/41144668/how-to-efficiently-perform-double-int64-conversions-with-sse-avx
+//  Only works for inputs in the range: [-2^51, 2^51]
+static inline __m256i _mm256_cvtpd_epi64_custom(__m256d x)
+{
+    x = _mm256_add_pd(x, _mm256_set1_pd(0x0018000000000000));
+    return _mm256_sub_epi64(
+        _mm256_castpd_si256(x),
+        _mm256_castpd_si256(_mm256_set1_pd(0x0018000000000000)));
+}
+
 #include "avx_mathfun.h"
 
 static inline v8sfx2 _mm256_load2_ps(float const *mem_addr)

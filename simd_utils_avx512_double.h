@@ -1127,6 +1127,71 @@ static inline v8sd tan512_pd(v8sd xx)
     return y;
 }
 
+// This version does not check for Nan, infinity, min and max!
+// From Cephes :
+/**                      Relative error:
+ * arithmetic   domain     # trials      peak         rms
+ *    DEC       +- 88       50000       2.8e-17     7.0e-18
+ *    IEEE      +- 708      40000       2.0e-16     5.6e-17
+ **/
+static inline v8sd exp512_pd(v8sd x)
+{
+    v8sd px, xx, tmp, tmp2;
+    v8sid n;
+
+    px = _mm512_fmadd_pd(*(v8sd *) _pd512_cephes_LOG2E, x, *(v8sd *) _pd512_0p5);
+    px = _mm512_roundscale_pd(px, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+    n = _mm512_cvtpd_epi64(px);  // n = px;
+    x = _mm512_fmadd_pd(*(v8sd *) _pd512_cephes_exp_minC1, px, x);
+    x = _mm512_fmadd_pd(*(v8sd *) _pd512_cephes_exp_minC2, px, x);
+
+    /* rational approximation for exponential
+     * of the fractional part:
+     * e**x = 1 + 2x P(x**2)/( Q(x**2) - P(x**2) )
+     */
+    xx = _mm512_mul_pd(x, x);
+    tmp = _mm512_fmadd_pd(xx, *(v8sd *) _pd512_cephes_exp_p0, *(v8sd *) _pd512_cephes_exp_p1);
+    tmp = _mm512_fmadd_pd(xx, tmp, *(v8sd *) _pd512_cephes_exp_p2);
+    px = _mm512_mul_pd(tmp, x);
+    tmp2 = _mm512_fmadd_pd(xx, *(v8sd *) _pd512_cephes_exp_q0, *(v8sd *) _pd512_cephes_exp_q1);
+    tmp2 = _mm512_fmadd_pd(xx, tmp2, *(v8sd *) _pd512_cephes_exp_q2);
+    tmp2 = _mm512_fmadd_pd(xx, tmp2, *(v8sd *) _pd512_cephes_exp_q3);
+    tmp2 = _mm512_sub_pd(tmp2, px);
+    x = _mm512_div_pd(px, tmp2);
+    x = _mm512_fmadd_pd(x, *(v8sd *) _pd512_2, *(v8sd *) _pd512_1);
+
+    /* build 2^n */
+    n = _mm512_add_epi64(n, *(v8sid *) _pi512_64_1023);
+    n = _mm512_slli_epi64(n, 52);
+    v8sd pow2n = _mm512_castsi512_pd(n);
+
+    /* multiply by power of 2 */
+    x = _mm512_mul_pd(x, pow2n);
+    return (x);
+}
+
+static inline void exp512d(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_DOUBLE;
+    stop_len *= AVX512_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_load_pd(src + i);
+            _mm512_store_pd(dst + i, exp512_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_loadu_pd(src + i);
+            _mm512_storeu_pd(dst + i, exp512_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = exp(src[i]);
+    }
+}
+
 static inline void tan512d(double *src, double *dst, int len)
 {
     int stop_len = len / AVX512_LEN_DOUBLE;

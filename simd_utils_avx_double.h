@@ -1049,6 +1049,71 @@ static inline void cart2pol2D256f_precise(float *x, float *y, float *r, float *t
     }
 }
 
+// This version does not check for Nan, infinity, min and max!
+// From Cephes :
+/**                      Relative error:
+ * arithmetic   domain     # trials      peak         rms
+ *    DEC       +- 88       50000       2.8e-17     7.0e-18
+ *    IEEE      +- 708      40000       2.0e-16     5.6e-17
+ **/
+static inline v4sd exp256_pd(v4sd x)
+{
+    v4sd px, xx, tmp, tmp2;
+    v4sid n;
+
+    px = _mm256_fmadd_pd_custom(*(v4sd *) _pd256_cephes_LOG2E, x, *(v4sd *) _pd256_0p5);
+    px = _mm256_round_pd(px, ROUNDTOFLOOR);
+    n = _mm256_cvtpd_epi64_custom(px);  // n = px;
+    x = _mm256_fmadd_pd_custom(*(v4sd *) _pd256_cephes_exp_minC1, px, x);
+    x = _mm256_fmadd_pd_custom(*(v4sd *) _pd256_cephes_exp_minC2, px, x);
+
+    /* rational approximation for exponential
+     * of the fractional part:
+     * e**x = 1 + 2x P(x**2)/( Q(x**2) - P(x**2) )
+     */
+    xx = _mm256_mul_pd(x, x);
+    tmp = _mm256_fmadd_pd_custom(xx, *(v4sd *) _pd256_cephes_exp_p0, *(v4sd *) _pd256_cephes_exp_p1);
+    tmp = _mm256_fmadd_pd_custom(xx, tmp, *(v4sd *) _pd256_cephes_exp_p2);
+    px = _mm256_mul_pd(tmp, x);
+    tmp2 = _mm256_fmadd_pd_custom(xx, *(v4sd *) _pd256_cephes_exp_q0, *(v4sd *) _pd256_cephes_exp_q1);
+    tmp2 = _mm256_fmadd_pd_custom(xx, tmp2, *(v4sd *) _pd256_cephes_exp_q2);
+    tmp2 = _mm256_fmadd_pd_custom(xx, tmp2, *(v4sd *) _pd256_cephes_exp_q3);
+    tmp2 = _mm256_sub_pd(tmp2, px);
+    x = _mm256_div_pd(px, tmp2);
+    x = _mm256_fmadd_pd_custom(x, *(v4sd *) _pd256_2, *(v4sd *) _pd256_1);
+
+    /* build 2^n */
+    n = _mm256_add_epi64(n, *(v4sid *) _pi256_64_1023);
+    n = _mm256_slli_epi64(n, 52);
+    v4sd pow2n = _mm256_castsi256_pd(n);
+
+    /* multiply by power of 2 */
+    x = _mm256_mul_pd(x, pow2n);
+    return (x);
+}
+
+static inline void exp256d(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX_LEN_DOUBLE;
+    stop_len *= AVX_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_load_pd(src + i);
+            _mm256_store_pd(dst + i, exp256_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_loadu_pd(src + i);
+            _mm256_storeu_pd(dst + i, exp256_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = exp(src[i]);
+    }
+}
+
 static inline v4sd tan256_pd(v4sd xx)
 {
     v4sd xxeqzero, zzsup1m14, ysup1m14;
