@@ -3090,7 +3090,7 @@ static inline void sigmoidf_vec(float *src, float *dst, int len)
                    cephes_exp_p2_vec, cephes_exp_p3_vec,
                    cephes_exp_p4_vec, cephes_exp_p5_vec, i);
         x = VADD1_FLOATH(x, 1.0f, i);
-        x = VRDIV1_FLOATH(x, 1.0f, i); // 1/x
+        x = VRDIV1_FLOATH(x, 1.0f, i);  // 1/x
         VSTORE_FLOATH(dst_tmp, x, i);
         src_tmp += i;
         dst_tmp += i;
@@ -3106,7 +3106,7 @@ static inline void softmaxf_vec(float *src, float *dst, int len)
     float *src_tmp = src;
     float *dst_tmp = dst;
     size_t len_ori = len;
-    
+
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
     _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
@@ -3118,18 +3118,18 @@ static inline void softmaxf_vec(float *src, float *dst, int len)
     V_ELT_FLOATH cephes_exp_p4_vec = VLOAD1_FLOATH(c_cephes_exp_p4, i);
     V_ELT_FLOATH cephes_exp_p5_vec = VLOAD1_FLOATH(c_cephes_exp_p5, i);
     V_ELT_FLOATH Op5_vec = VLOAD1_FLOATH(0.5f, i);
-    
+
     V_ELT_FLOATH vacc = VLOAD1_FLOATH(0.0f, i);
     vfloat32m1_t acc = vfmv_v_f_f32m1(0.0f, i);
     float acc_scalar = 0.0f;
-    
+
     vse32_v_f32m1(&acc_scalar, acc, 1);
 
     for (; (i = VSETVL32H(len)) > 0; len -= i) {
         V_ELT_FLOATH va = VLOAD_FLOATH(src_tmp, i);
         va = exp_ps(va, Op5_vec, cephes_exp_p1_vec,
-                   cephes_exp_p2_vec, cephes_exp_p3_vec,
-                   cephes_exp_p4_vec, cephes_exp_p5_vec, i);
+                    cephes_exp_p2_vec, cephes_exp_p3_vec,
+                    cephes_exp_p4_vec, cephes_exp_p5_vec, i);
         vacc = VADD_FLOATH(vacc, va, i);
         VSTORE_FLOATH(dst_tmp, va, i);
         src_tmp += i;
@@ -3138,7 +3138,7 @@ static inline void softmaxf_vec(float *src, float *dst, int len)
     }
     acc = VREDSUM_FLOATH(acc, vacc, acc, i_last);
     vse32_v_f32m1(&acc_scalar, acc, 1);
-    
+
     len = len_ori;
     dst_tmp = dst;
     for (; (i = VSETVL32(len)) > 0; len -= i) {

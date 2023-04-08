@@ -382,6 +382,17 @@ static inline __m128d _mm_fnmadd_pd_custom(__m128d a, __m128d b, __m128d c)
 #endif /* FMA */
 }
 
+//_PD_CONST does not work... _mm_set1_pd could be optimized
+// https://stackoverflow.com/questions/41144668/how-to-efficiently-perform-double-int64-conversions-with-sse-avx
+//  Only works for inputs in the range: [-2^51, 2^51]
+static inline __m128i _mm_cvtpd_epi64_custom(__m128d x)
+{
+    x = _mm_add_pd(x, _mm_set1_pd(0x0018000000000000));
+    return _mm_sub_epi64(
+        _mm_castpd_si128(x),
+        _mm_castpd_si128(_mm_set1_pd(0x0018000000000000)));
+}
+
 #include "simd_utils_sse_double.h"
 
 #include "simd_utils_sse_float.h"
@@ -889,6 +900,16 @@ static inline void expf_C_precise(float *src, float *dst, int len)
     for (int i = 0; i < len; i++) {
         double tmp = (double) src[i];
         dst[i] = (float) exp(tmp);
+    }
+}
+
+static inline void exp_C(double *src, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = exp(src[i]);
     }
 }
 

@@ -1176,58 +1176,50 @@ static inline void cart2pol2D128f_precise(float *x, float *y, float *r, float *t
     }
 }
 
-// To be tested
-#if 0
+// This version does not check for Nan, infinity, min and max!
+// From Cephes :
+/**                      Relative error:
+ * arithmetic   domain     # trials      peak         rms
+ *    DEC       +- 88       50000       2.8e-17     7.0e-18
+ *    IEEE      +- 708      40000       2.0e-16     5.6e-17
+ **/
 static inline v2sd exp_pd(v2sd x)
 {
-    v2sd tmp = _mm_setzero_pd(), fx;
+    v2sd px, xx, tmp, tmp2;
+    v2sid n;
 
-    v2sid emm0;
+    px = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_LOG2E, x, *(v2sd *) _pd_0p5);
+    px = _mm_round_pd(px, ROUNDTOFLOOR);
+    n = _mm_cvtpd_epi64_custom(px);  // n = px;
+    x = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_exp_minC1, px, x);
+    x = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_exp_minC2, px, x);
 
-    v2sd one = *(v2sd *) _pd_1;
-    v2sd two = *(v2sd *) _pd_2;
-
-    x = _mm_min_pd(x, *(v2sd *) _pd_exp_hi);
-    x = _mm_max_pd(x, *(v2sd *) _pd_exp_lo);
-
-    /* express exp(x) as exp(g + n*log(2)) */
-    fx = _mm_fmadd_pd_custom(x, *(v2sd *) _pd_cephes_LOG2EF, *(v2sd *) _pd_0p5);
-
-    /* how to perform a floorf with SSE: just below */
-    //emm0 = _mm_cvttpd_epi64_custom(fx);
-    //tmp = _mm_cvtepi64_pd_custom(emm0);
-    tmp = _mm_round_pd(fx, ROUNDTOFLOOR);
-
-    /* if greater, substract 1 */
-    v2sd mask = _mm_cmpgt_pd(tmp, fx);
-    mask = _mm_and_pd(mask, one);
-    fx = _mm_sub_pd(tmp, mask);
-
-    x = _mm_fnmadd_pd_custom(fx, *(v2sd *) _pd_cephes_exp_C1, x);
-    x = _mm_fnmadd_pd_custom(fx, *(v2sd *) _pd_cephes_exp_C2, x);
-
-    v2sd z = _mm_mul_pd(x, x);
-
-    v2sd y = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_exp_p0, z, *(v2sd *) _pd_cephes_exp_p1);
-    y = _mm_fmadd_pd_custom(y, z, *(v2sd *) _pd_cephes_exp_p2);
-    y = _mm_mul_pd(y,x);
-    v2sd k = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_exp_q0, z, *(v2sd *) _pd_cephes_exp_q1);
-    k = _mm_fmadd_pd_custom(k, z, *(v2sd *) _pd_cephes_exp_q2);
-    k = _mm_fmadd_pd_custom(k, z, *(v2sd *) _pd_cephes_exp_q3);
-    k = _mm_sub_pd(k,y);
-    k = _mm_div_pd(y,k);
-    k = _mm_fmadd_pd_custom(k, two, one);
+    /* rational approximation for exponential
+     * of the fractional part:
+     * e**x = 1 + 2x P(x**2)/( Q(x**2) - P(x**2) )
+     */
+    xx = _mm_mul_pd(x, x);
+    tmp = _mm_fmadd_pd_custom(xx, *(v2sd *) _pd_cephes_exp_p0, *(v2sd *) _pd_cephes_exp_p1);
+    tmp = _mm_fmadd_pd_custom(xx, tmp, *(v2sd *) _pd_cephes_exp_p2);
+    px = _mm_mul_pd(tmp, x);
+    tmp2 = _mm_fmadd_pd_custom(xx, *(v2sd *) _pd_cephes_exp_q0, *(v2sd *) _pd_cephes_exp_q1);
+    tmp2 = _mm_fmadd_pd_custom(xx, tmp2, *(v2sd *) _pd_cephes_exp_q2);
+    tmp2 = _mm_fmadd_pd_custom(xx, tmp2, *(v2sd *) _pd_cephes_exp_q3);
+    tmp2 = _mm_sub_pd(tmp2, px);
+    x = _mm_div_pd(px, tmp2);
+    x = _mm_fmadd_pd_custom(x, *(v2sd *) _pd_2, *(v2sd *) _pd_1);
 
     /* build 2^n */
-    emm0 = _mm_cvttpd_epi64_custom(fx);
-    emm0 = _mm_add_epi64(emm0, *(v2sid *) _pi64_0x7f);
-    emm0 = _mm_slli_epi64(emm0, 52);
-    v2sd pow2n = _mm_castsi128_pd(emm0);
+    n = _mm_add_epi64(n, *(v2sid *) _pi64_1023);
+    n = _mm_slli_epi64(n, 52);
+    v2sd pow2n = _mm_castsi128_pd(n);
 
-    k = _mm_mul_pd(k, pow2n);
-    return y;
+    /* multiply by power of 2 */
+    x = _mm_mul_pd(x, pow2n);
+    return (x);
 }
 
+#if 0
 static inline v2sd log_pd(v2sd x)
 {
     v2sid emm0;
@@ -1284,6 +1276,28 @@ static inline v2sd log_pd(v2sd x)
     return x;
 }
 #endif
+
+static inline void exp128d(double *src, double *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_load_pd(src + i);
+            _mm_store_pd(dst + i, exp_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_loadu_pd(src + i);
+            _mm_storeu_pd(dst + i, exp_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = exp(src[i]);
+    }
+}
 
 static inline v2sd tan_pd(v2sd xx)
 {
