@@ -118,7 +118,7 @@ static inline v16sf log2512_ps(v16sf x)
     return x;
 }
 
-static inline void log10_512f(float *src, float *dst, int len)
+static inline void log10512f(float *src, float *dst, int len)
 {
     const v16sf invln10f = _mm512_set1_ps((float) INVLN10);  //_mm512_broadcast_ss(&invln10f_mask);
 
@@ -142,7 +142,7 @@ static inline void log10_512f(float *src, float *dst, int len)
     }
 }
 
-static inline void log10_512f_precise(float *src, float *dst, int len)
+static inline void log10512f_precise(float *src, float *dst, int len)
 {
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
@@ -164,7 +164,7 @@ static inline void log10_512f_precise(float *src, float *dst, int len)
     }
 }
 
-static inline void log2_512f(float *src, float *dst, int len)
+static inline void log2512f(float *src, float *dst, int len)
 {
     const v16sf invln2f = _mm512_set1_ps((float) INVLN2);  //_mm512_broadcast_ss(&invln10f_mask);
 
@@ -188,7 +188,7 @@ static inline void log2_512f(float *src, float *dst, int len)
     }
 }
 
-static inline void log2_512f_precise(float *src, float *dst, int len)
+static inline void log2512f_precise(float *src, float *dst, int len)
 {
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
@@ -210,7 +210,7 @@ static inline void log2_512f_precise(float *src, float *dst, int len)
     }
 }
 
-static inline void ln_512f(float *src, float *dst, int len)
+static inline void ln512f(float *src, float *dst, int len)
 {
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
@@ -230,7 +230,7 @@ static inline void ln_512f(float *src, float *dst, int len)
     }
 }
 
-static inline void exp_512f(float *src, float *dst, int len)
+static inline void exp512f(float *src, float *dst, int len)
 {
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;

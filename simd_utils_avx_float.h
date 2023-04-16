@@ -163,7 +163,7 @@ static inline v8sf log2256_ps(v8sf x)
 }
 
 
-static inline void log10_256f(float *src, float *dst, int len)
+static inline void log10256f(float *src, float *dst, int len)
 {
     const v8sf invln10f = _mm256_set1_ps((float) INVLN10);  //_mm256_broadcast_ss(&invln10f_mask);
 
@@ -187,7 +187,7 @@ static inline void log10_256f(float *src, float *dst, int len)
     }
 }
 
-static inline void log10_256f_precise(float *src, float *dst, int len)
+static inline void log10256f_precise(float *src, float *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
@@ -209,7 +209,7 @@ static inline void log10_256f_precise(float *src, float *dst, int len)
     }
 }
 
-static inline void log2_256f(float *src, float *dst, int len)
+static inline void log2256f(float *src, float *dst, int len)
 {
     const v8sf invln2f = _mm256_set1_ps((float) INVLN2);  //_mm256_broadcast_ss(&invln10f_mask);
 
@@ -233,7 +233,7 @@ static inline void log2_256f(float *src, float *dst, int len)
     }
 }
 
-static inline void log2_256f_precise(float *src, float *dst, int len)
+static inline void log2256f_precise(float *src, float *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
@@ -255,7 +255,7 @@ static inline void log2_256f_precise(float *src, float *dst, int len)
     }
 }
 
-static inline void ln_256f(float *src, float *dst, int len)
+static inline void ln256f(float *src, float *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
@@ -275,7 +275,7 @@ static inline void ln_256f(float *src, float *dst, int len)
     }
 }
 
-static inline void exp_256f(float *src, float *dst, int len)
+static inline void exp256f(float *src, float *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;

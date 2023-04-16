@@ -871,7 +871,7 @@ static inline v4sf exp_ps_alternate(v4sf x)
     return z;
 }
 
-static inline void exp_128f(float *src, float *dst, int len)
+static inline void exp128f(float *src, float *dst, int len)
 {
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
@@ -907,7 +907,7 @@ static inline void exp_128f(float *src, float *dst, int len)
     }
 }
 
-static inline void log2_128f(float *src, float *dst, int len)
+static inline void log2128f(float *src, float *dst, int len)
 {
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
@@ -988,7 +988,7 @@ static inline v4sf log2_ps(v4sf x)
     return x;
 }
 
-static inline void log2_128f_precise(float *src, float *dst, int len)
+static inline void log2128f_precise(float *src, float *dst, int len)
 {
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
@@ -1025,7 +1025,7 @@ static inline void log2_128f_precise(float *src, float *dst, int len)
 }
 
 // less precise
-static inline void ln_128f_less_precise(float *src, float *dst, int len)
+static inline void ln128f_less_precise(float *src, float *dst, int len)
 {
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
@@ -1063,7 +1063,7 @@ static inline void ln_128f_less_precise(float *src, float *dst, int len)
     }
 }
 
-static inline void log10_128f(float *src, float *dst, int len)
+static inline void log10128f(float *src, float *dst, int len)
 {
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
@@ -1159,7 +1159,7 @@ static inline v4sf log10_ps(v4sf x)
     return x;
 }
 
-static inline void log10_128f_precise(float *src, float *dst, int len)
+static inline void log10128f_precise(float *src, float *dst, int len)
 {
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;
@@ -1245,7 +1245,7 @@ static inline v4sf log_ps(v4sf x)
     return x;
 }
 
-static inline void ln_128f(float *src, float *dst, int len)
+static inline void ln128f(float *src, float *dst, int len)
 {
     int stop_len = len / ALTIVEC_LEN_FLOAT;
     stop_len *= ALTIVEC_LEN_FLOAT;

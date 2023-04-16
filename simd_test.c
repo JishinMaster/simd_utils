@@ -5549,32 +5549,32 @@ int main(int argc, char **argv)
 
 #if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
-    ln_128f(inout, inout2, len);
+    ln128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("ln_128f %d %lf\n", len, elapsed);
+    printf("ln128f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        ln_128f(inout, inout2, len);
+        ln128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("ln_128f %d %lf\n", len, elapsed);
+    printf("ln128f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
-    ln_128f_svml(inout, inout2, len);
+    ln128f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("ln_128f_svml %d %lf\n", len, elapsed);
+    printf("ln128f_svml %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        ln_128f_svml(inout, inout2, len);
+        ln128f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("ln_128f_svml %d %lf\n", len, elapsed);
+    printf("ln128f_svml %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -5598,32 +5598,32 @@ int main(int argc, char **argv)
 
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
-    ln_256f(inout, inout2, len);
+    ln256f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("ln_256f %d %lf\n", len, elapsed);
+    printf("ln256f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        ln_256f(inout, inout2, len);
+        ln256f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("ln_256f %d %lf\n", len, elapsed);
+    printf("ln256f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
-    ln_256f_svml(inout, inout2, len);
+    ln256f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("ln_256f_svml %d %lf\n", len, elapsed);
+    printf("ln256f_svml %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        ln_256f_svml(inout, inout2, len);
+        ln256f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("ln_256f_svml %d %lf\n", len, elapsed);
+    printf("ln256f_svml %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -5631,32 +5631,32 @@ int main(int argc, char **argv)
 
 #ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
-    ln_512f(inout, inout2, len);
+    ln512f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("ln_512f %d %lf\n", len, elapsed);
+    printf("ln512f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        ln_512f(inout, inout2, len);
+        ln512f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("ln_512f %d %lf\n", len, elapsed);
+    printf("ln512f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
-    ln_512f_svml(inout, inout2, len);
+    ln512f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("ln_512f_svml %d %lf\n", len, elapsed);
+    printf("ln512f_svml %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        ln_512f_svml(inout, inout2, len);
+        ln512f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("ln_512f_svml %d %lf\n", len, elapsed);
+    printf("ln512f_svml %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -5724,46 +5724,46 @@ int main(int argc, char **argv)
 
 #if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
-    log2_128f(inout, inout2, len);
+    log2128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log2_128f %d %lf\n", len, elapsed);
+    printf("log2128f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log2_128f(inout, inout2, len);
+        log2128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log2_128f %d %lf\n", len, elapsed);
+    printf("log2128f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    log2_128f_precise(inout, inout2, len);
+    log2128f_precise(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log2_128f_precise %d %lf\n", len, elapsed);
+    printf("log2128f_precise %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log2_128f_precise(inout, inout2, len);
+        log2128f_precise(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log2_128f_precise %d %lf\n", len, elapsed);
+    printf("log2128f_precise %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
-    log2_128f_svml(inout, inout2, len);
+    log2128f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log2_128f_svml %d %lf\n", len, elapsed);
+    printf("log2128f_svml %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log2_128f_svml(inout, inout2, len);
+        log2128f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log2_128f_svml %d %lf\n", len, elapsed);
+    printf("log2128f_svml %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -5771,46 +5771,46 @@ int main(int argc, char **argv)
 
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
-    log2_256f(inout, inout2, len);
+    log2256f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log2_256f %d %lf\n", len, elapsed);
+    printf("log2256f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log2_256f(inout, inout2, len);
+        log2256f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log2_256f %d %lf\n", len, elapsed);
+    printf("log2256f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    log2_256f_precise(inout, inout2, len);
+    log2256f_precise(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log2_256f_precise %d %lf\n", len, elapsed);
+    printf("log2256f_precise %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log2_256f_precise(inout, inout2, len);
+        log2256f_precise(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log2_256f_precise %d %lf\n", len, elapsed);
+    printf("log2256f_precise %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
-    log2_256f_svml(inout, inout2, len);
+    log2256f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log2_256f_svml %d %lf\n", len, elapsed);
+    printf("log2256f_svml %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log2_256f_svml(inout, inout2, len);
+        log2256f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log2_256f_svml %d %lf\n", len, elapsed);
+    printf("log2256f_svml %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -5818,46 +5818,46 @@ int main(int argc, char **argv)
 
 #ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
-    log2_512f(inout, inout2, len);
+    log2512f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log2_512f %d %lf\n", len, elapsed);
+    printf("log2512f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log2_512f(inout, inout2, len);
+        log2512f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log2_512f %d %lf\n", len, elapsed);
+    printf("log2512f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    log2_512f_precise(inout, inout2, len);
+    log2512f_precise(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log2_512f_precise %d %lf\n", len, elapsed);
+    printf("log2512f_precise %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log2_512f_precise(inout, inout2, len);
+        log2512f_precise(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log2_512f_precise %d %lf\n", len, elapsed);
+    printf("log2512f_precise %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
-    log2_512f_svml(inout, inout2, len);
+    log2512f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log2_512f_svml %d %lf\n", len, elapsed);
+    printf("log2512f_svml %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log2_512f_svml(inout, inout2, len);
+        log2512f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log2_512f_svml %d %lf\n", len, elapsed);
+    printf("log2512f_svml %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -5941,46 +5941,46 @@ int main(int argc, char **argv)
 
 #if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
-    log10_128f(inout, inout2, len);
+    log10128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log10_128f %d %lf\n", len, elapsed);
+    printf("log10128f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log10_128f(inout, inout2, len);
+        log10128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log10_128f %d %lf\n", len, elapsed);
+    printf("log10128f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    log10_128f_precise(inout, inout2, len);
+    log10128f_precise(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log10_128f_precise %d %lf\n", len, elapsed);
+    printf("log10128f_precise %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log10_128f_precise(inout, inout2, len);
+        log10128f_precise(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log10_128f_precise %d %lf\n", len, elapsed);
+    printf("log10128f_precise %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
-    log10_128f_svml(inout, inout2, len);
+    log10128f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log10_128f_svml %d %lf\n", len, elapsed);
+    printf("log10128f_svml %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log10_128f_svml(inout, inout2, len);
+        log10128f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log10_128f_svml %d %lf\n", len, elapsed);
+    printf("log10128f_svml %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -6004,46 +6004,46 @@ int main(int argc, char **argv)
 
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
-    log10_256f(inout, inout2, len);
+    log10256f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log10_256f %d %lf\n", len, elapsed);
+    printf("log10256f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log10_256f(inout, inout2, len);
+        log10256f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log10_256f %d %lf\n", len, elapsed);
+    printf("log10256f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    log10_256f_precise(inout, inout2, len);
+    log10256f_precise(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log10_256f_precise %d %lf\n", len, elapsed);
+    printf("log10256f_precise %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log10_256f_precise(inout, inout2, len);
+        log10256f_precise(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log10_256f_precise %d %lf\n", len, elapsed);
+    printf("log10256f_precise %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
-    log10_256f_svml(inout, inout2, len);
+    log10256f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log10_256f_svml %d %lf\n", len, elapsed);
+    printf("log10256f_svml %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log10_256f_svml(inout, inout2, len);
+        log10256f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log10_256f_svml %d %lf\n", len, elapsed);
+    printf("log10256f_svml %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -6051,46 +6051,46 @@ int main(int argc, char **argv)
 
 #ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
-    log10_512f(inout, inout2, len);
+    log10512f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log10_512f %d %lf\n", len, elapsed);
+    printf("log10512f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log10_512f(inout, inout2, len);
+        log10512f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log10_512f %d %lf\n", len, elapsed);
+    printf("log10512f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    log10_512f_precise(inout, inout2, len);
+    log10512f_precise(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log10_512f_precise %d %lf\n", len, elapsed);
+    printf("log10512f_precise %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log10_512f_precise(inout, inout2, len);
+        log10512f_precise(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log10_512f_precise %d %lf\n", len, elapsed);
+    printf("log10512f_precise %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
-    log10_512f_svml(inout, inout2, len);
+    log10512f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("log10_512f_svml %d %lf\n", len, elapsed);
+    printf("log10512f_svml %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        log10_512f_svml(inout, inout2, len);
+        log10512f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("log10_512f_svml %d %lf\n", len, elapsed);
+    printf("log10512f_svml %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -6184,48 +6184,48 @@ int main(int argc, char **argv)
 
 #if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
-    exp_128f(inout, inout2, len);
+    exp128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("exp_128f %d %lf\n", len, elapsed);
+    printf("exp128f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        exp_128f(inout, inout2, len);
+        exp128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("exp_128f %d %lf\n", len, elapsed);
+    printf("exp128f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
 #ifndef ALTIVEC
     clock_gettime(CLOCK_REALTIME, &start);
-    exp_128f_(inout, inout2, len);
+    exp128f_(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("exp_128f_ %d %lf\n", len, elapsed);
+    printf("exp128f_ %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        exp_128f_(inout, inout2, len);
+        exp128f_(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("exp_128f_ %d %lf\n", len, elapsed);
+    printf("exp128f_ %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
-    exp_128f_svml(inout, inout2, len);
+    exp128f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("exp_128f_svml %d %lf\n", len, elapsed);
+    printf("exp128f_svml %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        exp_128f_svml(inout, inout2, len);
+        exp128f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("exp_128f_svml %d %lf\n", len, elapsed);
+    printf("exp128f_svml %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -6233,32 +6233,32 @@ int main(int argc, char **argv)
 
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
-    exp_256f(inout, inout2, len);
+    exp256f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("exp_256f %d %lf\n", len, elapsed);
+    printf("exp256f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        exp_256f(inout, inout2, len);
+        exp256f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("exp_256f %d %lf\n", len, elapsed);
+    printf("exp256f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
-    exp_256f_svml(inout, inout2, len);
+    exp256f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("exp_256f_svml %d %lf\n", len, elapsed);
+    printf("exp256f_svml %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        exp_256f_svml(inout, inout2, len);
+        exp256f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("exp_256f_svml %d %lf\n", len, elapsed);
+    printf("exp256f_svml %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -6266,32 +6266,32 @@ int main(int argc, char **argv)
 
 #ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
-    exp_512f(inout, inout2, len);
+    exp512f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("exp_512f %d %lf\n", len, elapsed);
+    printf("exp512f %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        exp_512f(inout, inout2, len);
+        exp512f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("exp_512f %d %lf\n", len, elapsed);
+    printf("exp512f %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 
 #ifdef ICC
     clock_gettime(CLOCK_REALTIME, &start);
-    exp_512f_svml(inout, inout2, len);
+    exp512f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("exp_512f_svml %d %lf\n", len, elapsed);
+    printf("exp512f_svml %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        exp_512f_svml(inout, inout2, len);
+        exp512f_svml(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("exp_512f_svml %d %lf\n", len, elapsed);
+    printf("exp512f_svml %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 

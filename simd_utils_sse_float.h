@@ -120,7 +120,7 @@ static inline v4sf log2_ps(v4sf x)
 }
 
 
-static inline void log10_128f(float *src, float *dst, int len)
+static inline void log10128f(float *src, float *dst, int len)
 {
     const v4sf invln10f = _mm_set1_ps((float) INVLN10);
 
@@ -144,7 +144,7 @@ static inline void log10_128f(float *src, float *dst, int len)
     }
 }
 
-static inline void log10_128f_precise(float *src, float *dst, int len)
+static inline void log10128f_precise(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
@@ -166,7 +166,7 @@ static inline void log10_128f_precise(float *src, float *dst, int len)
     }
 }
 
-static inline void log2_128f(float *src, float *dst, int len)
+static inline void log2128f(float *src, float *dst, int len)
 {
     const v4sf invln2f = _mm_set1_ps((float) INVLN2);
 
@@ -190,7 +190,7 @@ static inline void log2_128f(float *src, float *dst, int len)
     }
 }
 
-static inline void log2_128f_precise(float *src, float *dst, int len)
+static inline void log2128f_precise(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
@@ -212,7 +212,7 @@ static inline void log2_128f_precise(float *src, float *dst, int len)
     }
 }
 
-static inline void ln_128f(float *src, float *dst, int len)
+static inline void ln128f(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
@@ -232,7 +232,7 @@ static inline void ln_128f(float *src, float *dst, int len)
     }
 }
 
-static inline void exp_128f(float *src, float *dst, int len)
+static inline void exp128f(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
@@ -301,7 +301,7 @@ static inline v4sf exp_ps_alternate(v4sf x)
     return z;
 }
 
-static inline void exp_128f_(float *src, float *dst, int len)
+static inline void exp128f_(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
