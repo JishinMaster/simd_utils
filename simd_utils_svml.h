@@ -113,7 +113,7 @@ static inline void sincos128d_svml(double *src, double *dst_sin, double *dst_cos
     }
 }
 
-static inline void exp_128f_svml(float *src, float *dst, int len)
+static inline void exp128f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
@@ -133,7 +133,7 @@ static inline void exp_128f_svml(float *src, float *dst, int len)
     }
 }
 
-static inline void ln_128f_svml(float *src, float *dst, int len)
+static inline void ln128f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
@@ -153,7 +153,7 @@ static inline void ln_128f_svml(float *src, float *dst, int len)
     }
 }
 
-static inline void log2_128f_svml(float *src, float *dst, int len)
+static inline void log2128f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
@@ -173,7 +173,7 @@ static inline void log2_128f_svml(float *src, float *dst, int len)
     }
 }
 
-static inline void log10_128f_svml(float *src, float *dst, int len)
+static inline void log10128f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
     stop_len *= SSE_LEN_FLOAT;
@@ -586,7 +586,7 @@ static inline void sincos256d_svml(double *src, double *dst_sin, double *dst_cos
     }
 }
 
-static inline void exp_256f_svml(float *src, float *dst, int len)
+static inline void exp256f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
@@ -606,7 +606,7 @@ static inline void exp_256f_svml(float *src, float *dst, int len)
     }
 }
 
-static inline void ln_256f_svml(float *src, float *dst, int len)
+static inline void ln256f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
@@ -626,7 +626,7 @@ static inline void ln_256f_svml(float *src, float *dst, int len)
     }
 }
 
-static inline void log2_256f_svml(float *src, float *dst, int len)
+static inline void log2256f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
@@ -646,7 +646,7 @@ static inline void log2_256f_svml(float *src, float *dst, int len)
     }
 }
 
-static inline void log10_256f_svml(float *src, float *dst, int len)
+static inline void log10256f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
@@ -1059,7 +1059,7 @@ static inline void sincos512d_svml(double *src, double *dst_sin, double *dst_cos
     }
 }
 
-static inline void exp_512f_svml(float *src, float *dst, int len)
+static inline void exp512f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
@@ -1079,7 +1079,7 @@ static inline void exp_512f_svml(float *src, float *dst, int len)
     }
 }
 
-static inline void ln_512f_svml(float *src, float *dst, int len)
+static inline void ln512f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
@@ -1099,7 +1099,7 @@ static inline void ln_512f_svml(float *src, float *dst, int len)
     }
 }
 
-static inline void log2_512f_svml(float *src, float *dst, int len)
+static inline void log2512f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
@@ -1119,7 +1119,7 @@ static inline void log2_512f_svml(float *src, float *dst, int len)
     }
 }
 
-static inline void log10_512f_svml(float *src, float *dst, int len)
+static inline void log10512f_svml(float *src, float *dst, int len)
 {
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;

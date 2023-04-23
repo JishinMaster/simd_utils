@@ -893,6 +893,16 @@ static inline void lnf_C_precise(float *src, float *dst, int len)
     }
 }
 
+static inline void ln_C(double *src, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++)
+        dst[i] = log(src[i]);
+}
+
+
 static inline void expf_C(float *src, float *dst, int len)
 {
 #ifdef OMP

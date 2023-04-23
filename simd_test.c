@@ -7357,7 +7357,7 @@ int main(int argc, char **argv)
 
 
     printf("\n");
-    /////////////////////////////////////////////////////////// TAN //////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////// EXP //////////////////////////////////////////////////////////////////////////////
     printf("EXP\n");
 
     for (int i = 0; i < len; i++) {
@@ -7426,6 +7426,44 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("exp512d %d %lf\n", len, elapsed);
+
+    l2_errd(inoutd_ref, inoutd2, len);
+#endif
+
+    printf("\n");
+    /////////////////////////////////////////////////////////// LOG //////////////////////////////////////////////////////////////////////////////
+    printf("LOG\n");
+
+    for (int i = 0; i < len; i++) {
+        inoutd[i] = (double) (rand() % 8000) / 100.0 + 0.0000001;
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    ln_C(inoutd, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ln_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ln_C(inoutd, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ln_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    ln128d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ln128d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ln128d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ln128d %d %lf\n", len, elapsed);
 
     l2_errd(inoutd_ref, inoutd2, len);
 #endif

@@ -545,6 +545,13 @@ static inline v2sd _mm_cvtepi64_pd_custom(v2sid x)
 #endif
 }
 
+static inline v2sd _mm_cvtepi64_pd_signed_custom(v2sid x)
+{
+    // Signed
+    x = _mm_add_epi64(x, _mm_castpd_si128(_mm_set1_pd(0x0018000000000000)));
+    return _mm_sub_pd(_mm_castsi128_pd(x), _mm_set1_pd(0x0018000000000000));
+}
+
 static inline v2sid _mm_cvttpd_epi64_custom(v2sd x)
 {
     // Signed
@@ -1219,6 +1226,7 @@ static inline v2sd exp_pd(v2sd x)
     return (x);
 }
 
+// old
 #if 0
 static inline v2sd log_pd(v2sd x)
 {
@@ -1229,14 +1237,14 @@ static inline v2sd log_pd(v2sd x)
 
     x = _mm_max_pd(x, *(v2sd *) _pd_min_norm_pos); /* cut off denormalized stuff */
 
-    emm0 = _mm_srli_epi64(_mm_castpd_si128(x), 55);
+    emm0 = _mm_srli_epi64(_mm_castpd_si128(x), 52);
 
     /* keep only the fractional part */
     x = _mm_and_pd(x, *(v2sd *) _pd_inv_mant_mask);
     x = _mm_or_pd(x, *(v2sd *) _pd_0p5);
 
-    emm0 = _mm_sub_epi64(emm0, *(v2sd *) _pi64_0x7f);
-    v2sd e = _mm_cvtepi64_pd_custom_ps(emm0);
+    emm0 = _mm_sub_epi64(emm0, *(v2sd *) _pi64_0x3ff);
+    v2sd e = _mm_cvtepi64_pd_signed_custom(emm0);
 
     e = _mm_add_pd(e, one);
 
@@ -1255,7 +1263,7 @@ static inline v2sd log_pd(v2sd x)
 
     v4sf z = _mm_mul_pd(x, x);
 
-    v2sd y = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_log_p0, x, *(v4sf *) _pd_cephes_log_p1);
+    v2sd y = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_log_p0, x, *(v2sd *) _pd_cephes_log_p1);
     y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p2);
     y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p3);
     y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p4);
@@ -1270,12 +1278,100 @@ static inline v2sd log_pd(v2sd x)
     y = _mm_fmadd_pd_custom(e, *(v2sd *) _pd_cephes_log_q1, y);
     y = _mm_fnmadd_pd_custom(z, *(v2sd *) _pd_0p5, y);
 
-    tmp = _mm_fmadd_pd_custom(e, *(v4sf *) _pd_cephes_log_q2, y);
+    tmp = _mm_fmadd_pd_custom(e, *(v2sd *) _pd_cephes_log_q2, y);
     x = _mm_add_pd(x, tmp);
     x = _mm_or_pd(x, invalid_mask);  // negative arg will be NAN
     return x;
 }
 #endif
+
+v2sd log_pd(v2sd x)
+{
+    v2sd y, z;
+
+    /* separate mantissa from exponent */
+
+    /* Equivalent C language standard library function: */
+    // x = frexp( x, &e );
+    v2sid emm0 = _mm_srli_epi64(_mm_castpd_si128(x), 52);
+    x = _mm_and_pd(x, *(v2sd *) _pd_inv_mant_mask);
+    x = _mm_or_pd(x, *(v2sd *) _pd_0p5);
+    emm0 = _mm_sub_epi64(emm0, *(v2sid *) _pi64_0x3ff);
+    v2sd e = _mm_cvtepi64_pd_signed_custom(emm0);
+    e = _mm_add_pd(e, *(v2sd *) _pd_1);
+
+    /* logarithm using log(x) = z + z**3 P(z)/Q(z),
+     * where z = 2(x-1)/x+1)
+     */
+    v2sd abse = _mm_and_pd(e, *(v2sd *) _pd_pos_sign_mask);
+    v2sd abseinf2 = _mm_cmplt_pd(abse, *(v2sd *) _pd_2);  // FF if < 2
+    v2sd xinfsqrth = _mm_cmple_pd(x, *(v2sd *) _pd_cephes_SQRTHF);
+
+    e = _mm_blendv_pd(e, _mm_sub_pd(e, *(v2sd *) _pd_1), xinfsqrth);  // if( x < SQRTH ) e-=1
+    v2sd z_abseinf2, y_abseinf2, x_abseinf2;
+    v2sd tmp_abseinf2, tmp2_abseinf2;
+
+    // if(x < SQRTH) z_abseinf2 = (x-0.5), else x-1
+    z_abseinf2 = _mm_blendv_pd(_mm_sub_pd(x, *(v2sd *) _pd_1), _mm_sub_pd(x, *(v2sd *) _pd_0p5), xinfsqrth);
+
+    tmp_abseinf2 = _mm_fmadd_pd_custom(z_abseinf2, *(v2sd *) _pd_0p5, *(v2sd *) _pd_0p5);
+    tmp2_abseinf2 = _mm_fmadd_pd_custom(x, *(v2sd *) _pd_0p5, *(v2sd *) _pd_0p5);
+
+    // if(x < SQRTH) y_abseinf2 = z*0.5 + 0.5, else = x*0.5 + 0.5
+    y_abseinf2 = _mm_blendv_pd(tmp2_abseinf2, tmp_abseinf2, xinfsqrth);
+    x_abseinf2 = _mm_div_pd(z_abseinf2, y_abseinf2);  // x = z / y;
+    z_abseinf2 = _mm_mul_pd(x_abseinf2, x_abseinf2);  // z = x*x;
+
+    // z = x * ( z * polevl( z, R, 2 ) / p1evl( z, S, 3 ) );
+    tmp_abseinf2 = _mm_fmadd_pd_custom(z_abseinf2, *(v2sd *) _pd_cephes_log_r0, *(v2sd *) _pd_cephes_log_r1);
+    tmp_abseinf2 = _mm_fmadd_pd_custom(z_abseinf2, tmp_abseinf2, *(v2sd *) _pd_cephes_log_r2);
+    tmp2_abseinf2 = _mm_add_pd(z_abseinf2, *(v2sd *) _pd_cephes_log_s0);
+    tmp2_abseinf2 = _mm_fmadd_pd_custom(z_abseinf2, tmp2_abseinf2, *(v2sd *) _pd_cephes_log_s1);
+    tmp2_abseinf2 = _mm_fmadd_pd_custom(z_abseinf2, tmp2_abseinf2, *(v2sd *) _pd_cephes_log_s2);
+    tmp_abseinf2 = _mm_mul_pd(tmp_abseinf2, z_abseinf2);
+    tmp_abseinf2 = _mm_div_pd(tmp_abseinf2, tmp2_abseinf2);
+    z_abseinf2 = _mm_mul_pd(x_abseinf2, tmp_abseinf2);
+
+    // convert e to double
+    // y = e
+    z_abseinf2 = _mm_fmadd_pd_custom(e, *(v2sd *) _pd_min_212emin4, z_abseinf2);  // z = z - y * 2.121944400546905827679e-4;
+    z_abseinf2 = _mm_add_pd(z_abseinf2, x_abseinf2);                              // z = z + x;
+
+    /* logarithm using log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
+    v2sd tmp3, tmp4;
+    tmp3 = _mm_fmadd_pd_custom(x, *(v2sd *) _pd_2, *(v2sd *) _pd_min1);  //	  x = 2.0*x - 1.0; /*  2x - 1  */
+    tmp4 = _mm_sub_pd(x, *(v2sd *) _pd_1);                               // x = x - 1.0;
+    x = _mm_blendv_pd(tmp4, tmp3, xinfsqrth);
+
+    /* rational form */
+    z = _mm_mul_pd(x, x);  // z = x*x;
+    //  y = x * ( z * polevl( x, P, 5 ) / p1evl( x, Q, 5 ) );
+    tmp3 = _mm_fmadd_pd_custom(x, *(v2sd *) _pd_cephes_log_p0, *(v2sd *) _pd_cephes_log_p1);
+    tmp3 = _mm_fmadd_pd_custom(x, tmp3, *(v2sd *) _pd_cephes_log_p2);
+    tmp3 = _mm_fmadd_pd_custom(x, tmp3, *(v2sd *) _pd_cephes_log_p3);
+    tmp3 = _mm_fmadd_pd_custom(x, tmp3, *(v2sd *) _pd_cephes_log_p4);
+    tmp3 = _mm_fmadd_pd_custom(x, tmp3, *(v2sd *) _pd_cephes_log_p5);
+    tmp4 = _mm_add_pd(x, *(v2sd *) _pd_cephes_log_q0);
+    tmp4 = _mm_fmadd_pd_custom(x, tmp4, *(v2sd *) _pd_cephes_log_q1);
+    tmp4 = _mm_fmadd_pd_custom(x, tmp4, *(v2sd *) _pd_cephes_log_q2);
+    tmp4 = _mm_fmadd_pd_custom(x, tmp4, *(v2sd *) _pd_cephes_log_q3);
+    tmp4 = _mm_fmadd_pd_custom(x, tmp4, *(v2sd *) _pd_cephes_log_q4);
+    tmp4 = _mm_fmadd_pd_custom(x, tmp4, *(v2sd *) _pd_cephes_log_q5);
+    tmp3 = _mm_div_pd(tmp3, tmp4);
+    tmp3 = _mm_mul_pd(z, tmp3);
+    y = _mm_mul_pd(x, tmp3);
+
+    // if( e) => no need, if e==0 it still works
+    z = _mm_fmadd_pd_custom(e, *(v2sd *) _pd_min_212emin4, z);  // z = z - e * 2.121944400546905827679e-4;
+    y = _mm_fmadd_pd_custom(z, *(v2sd *) _pd_min0p5, y);        // y = y - 0.5*z;
+    z = _mm_add_pd(x, y);                                       // z = x + y;
+    // if( e) => no need, if e==0 it still works
+
+    z = _mm_blendv_pd(z, z_abseinf2, abseinf2);         // if fabs(e) < 2 z = z_abseinf2
+    z = _mm_fmadd_pd_custom(e, *(v2sd *) _pd_0p69, z);  // z + e * 0.693359375;
+
+    return (z);
+}
 
 static inline void exp128d(double *src, double *dst, int len)
 {
@@ -1291,6 +1387,28 @@ static inline void exp128d(double *src, double *dst, int len)
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             v2sd src_tmp = _mm_loadu_pd(src + i);
             _mm_storeu_pd(dst + i, exp_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = exp(src[i]);
+    }
+}
+
+static inline void ln128d(double *src, double *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_load_pd(src + i);
+            _mm_store_pd(dst + i, log_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_loadu_pd(src + i);
+            _mm_storeu_pd(dst + i, log_pd(src_tmp));
         }
     }
 
