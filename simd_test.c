@@ -85,36 +85,36 @@ int64_t ulpsDistance64(const double a, const double b)
 float l2_err(float *test, float *ref, int len)
 {
     float l2_err = 0.0;
-    int sup3ulps = 0;
-    float sup3ulps_percent = 0.0f;
+    int sup1ulps = 0;
+    float sup1ulps_percent = 0.0f;
 
     for (int i = 0; i < len; i++) {
         l2_err += (ref[i] - test[i]) * (ref[i] - test[i]);
         int32_t dist = ulpsDistance32(ref[i], test[i]);
         if (dist > 1)
-            sup3ulps++;
+            sup1ulps++;
     }
 
-    sup3ulps_percent = (float) sup3ulps / (float) len * 100.0f;
-    printf("L2 ERR %0.9g SUP_1ULPS %2.4g %% \n", l2_err, sup3ulps_percent);
+    sup1ulps_percent = (float) sup1ulps / (float) len * 100.0f;
+    printf("L2 ERR %0.9g SUP_1ULPS %2.4g %% \n", l2_err, sup1ulps_percent);
     return l2_err;
 }
 
 double l2_errd(double *test, double *ref, int len)
 {
     double l2_err = 0.0;
-    int sup3ulps = 0;
-    float sup3ulps_percent = 0.0f;
+    int sup1ulps = 0;
+    float sup1ulps_percent = 0.0f;
 
     for (int i = 0; i < len; i++) {
         l2_err += (ref[i] - test[i]) * (ref[i] - test[i]);
         int64_t dist = ulpsDistance64(ref[i], test[i]);
-        if (dist > 3)
-            sup3ulps++;
+        if (dist > 1)
+            sup1ulps++;
     }
 
-    sup3ulps_percent = (float) sup3ulps / (float) len * 100.0f;
-    printf("L2 ERR %0.13g SUP_3ULPS %2.4g %% \n", l2_err, sup3ulps_percent);
+    sup1ulps_percent = (float) sup1ulps / (float) len * 100.0f;
+    printf("L2 ERR %0.13g SUP_1ULPS %2.4g %% \n", l2_err, sup1ulps_percent);
     return l2_err;
 }
 
@@ -7394,6 +7394,8 @@ int main(int argc, char **argv)
     printf("exp128d %d %lf\n", len, elapsed);
 
     l2_errd(inoutd_ref, inoutd2, len);
+    /*for(int i = 0; i < len; i++)
+    	printf("%f %f %f\n",inoutd[i], inoutd_ref[i], inoutd2[i]);*/
 #endif
 
 #ifdef AVX
@@ -7464,6 +7466,23 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ln128d %d %lf\n", len, elapsed);
+
+    l2_errd(inoutd_ref, inoutd2, len);
+#endif
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    ln256d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ln256d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ln256d(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ln256d %d %lf\n", len, elapsed);
 
     l2_errd(inoutd_ref, inoutd2, len);
 #endif

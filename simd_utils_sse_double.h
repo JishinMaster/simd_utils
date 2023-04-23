@@ -1226,65 +1226,6 @@ static inline v2sd exp_pd(v2sd x)
     return (x);
 }
 
-// old
-#if 0
-static inline v2sd log_pd(v2sd x)
-{
-    v2sid emm0;
-    v2sd one = *(v2sd *) _pd_1;
-
-    v2sd invalid_mask = _mm_cmple_pd(x, _mm_setzero_pd());
-
-    x = _mm_max_pd(x, *(v2sd *) _pd_min_norm_pos); /* cut off denormalized stuff */
-
-    emm0 = _mm_srli_epi64(_mm_castpd_si128(x), 52);
-
-    /* keep only the fractional part */
-    x = _mm_and_pd(x, *(v2sd *) _pd_inv_mant_mask);
-    x = _mm_or_pd(x, *(v2sd *) _pd_0p5);
-
-    emm0 = _mm_sub_epi64(emm0, *(v2sd *) _pi64_0x3ff);
-    v2sd e = _mm_cvtepi64_pd_signed_custom(emm0);
-
-    e = _mm_add_pd(e, one);
-
-    /* part2:
-     if( x < SQRTHF ) {
-       e -= 1;
-       x = x + x - 1.0;
-     } else { x = x - 1.0; }
-	 */
-    v2sd mask = _mm_cmplt_pd(x, *(v2sd *) _pd_cephes_SQRTHF);
-    v2sd tmp = _mm_and_pd(x, mask);
-    x = _mm_sub_pd(x, one);
-    e = _mm_sub_pd(e, _mm_and_pd(one, mask));
-    x = _mm_add_pd(x, tmp);
-
-
-    v4sf z = _mm_mul_pd(x, x);
-
-    v2sd y = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_log_p0, x, *(v2sd *) _pd_cephes_log_p1);
-    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p2);
-    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p3);
-    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p4);
-    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p5);
-    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p6);
-    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p7);
-    y = _mm_fmadd_pd_custom(y, x, *(v2sd *) _pd_cephes_log_p8);
-    y = _mm_mul_pd(y, x);
-
-    y = _mm_mul_pd(y, z);
-
-    y = _mm_fmadd_pd_custom(e, *(v2sd *) _pd_cephes_log_q1, y);
-    y = _mm_fnmadd_pd_custom(z, *(v2sd *) _pd_0p5, y);
-
-    tmp = _mm_fmadd_pd_custom(e, *(v2sd *) _pd_cephes_log_q2, y);
-    x = _mm_add_pd(x, tmp);
-    x = _mm_or_pd(x, invalid_mask);  // negative arg will be NAN
-    return x;
-}
-#endif
-
 v2sd log_pd(v2sd x)
 {
     v2sd y, z;
@@ -1305,7 +1246,7 @@ v2sd log_pd(v2sd x)
      */
     v2sd abse = _mm_and_pd(e, *(v2sd *) _pd_pos_sign_mask);
     v2sd abseinf2 = _mm_cmplt_pd(abse, *(v2sd *) _pd_2);  // FF if < 2
-    v2sd xinfsqrth = _mm_cmple_pd(x, *(v2sd *) _pd_cephes_SQRTHF);
+    v2sd xinfsqrth = _mm_cmplt_pd(x, *(v2sd *) _pd_cephes_SQRTHF);
 
     e = _mm_blendv_pd(e, _mm_sub_pd(e, *(v2sd *) _pd_1), xinfsqrth);  // if( x < SQRTH ) e-=1
     v2sd z_abseinf2, y_abseinf2, x_abseinf2;
