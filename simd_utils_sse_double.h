@@ -1332,7 +1332,7 @@ static inline void exp128d(double *src, double *dst, int len)
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i] = exp(src[i]);
+        dst[i] = log(src[i]);
     }
 }
 

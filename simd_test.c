@@ -7379,6 +7379,22 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("exp_C %d %lf\n", len, elapsed);
 
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsExp_64f_A53(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsExp_64f_A53 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsExp_64f_A53(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsExp_64f_A53 %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+#endif
+
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);
     exp128d(inoutd, inoutd2, len);
@@ -7452,6 +7468,22 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ln_C %d %lf\n", len, elapsed);
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsLn_64f_A53(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsLn_64f_A53 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsLn_64f_A53(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsLn_64f_A53 %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+#endif
 
 #ifdef SSE
     clock_gettime(CLOCK_REALTIME, &start);

@@ -1192,6 +1192,119 @@ static inline void exp512d(double *src, double *dst, int len)
     }
 }
 
+v8sd log512_pd(v8sd x)
+{
+    v8sd y, z;
+
+    /* separate mantissa from exponent */
+
+    /* Equivalent C language standard library function: */
+    // x = frexp( x, &e );
+    v8sid emm0 = _mm512_srli_epi64(_mm512_castpd_si512(x), 52);
+    x = _mm512_and_pd(x, *(v8sd *) _pd512_inv_mant_mask);
+    x = _mm512_or_pd(x, *(v8sd *) _pd512_0p5);
+    emm0 = _mm512_sub_epi64(emm0, *(v8sid *) _pi512_64_0x3ff);
+    v8sd e = _mm512_cvtepi64_pd(emm0);
+    e = _mm512_add_pd(e, *(v8sd *) _pd512_1);
+
+    /* logarithm using log(x) = z + z**3 P(z)/Q(z),
+     * where z = 2(x-1)/x+1)
+     */
+    v8sd abse = _mm512_and_pd(e, *(v8sd *) _pd512_pos_sign_mask);
+    __mmask8 abseinf2 = _mm512_cmp_pd_mask(abse, *(v8sd *) _pd512_2, _CMP_LT_OS);// FF if < 2
+    __mmask8 xinfsqrth = _mm512_cmp_pd_mask(x, *(v8sd *) _pd512_cephes_SQRTHF, _CMP_LT_OS);
+
+    e = _mm512_mask_blend_pd(xinfsqrth, e, _mm512_sub_pd(e, *(v8sd *) _pd512_1));  // if( x < SQRTH ) e-=1
+    v8sd z_abseinf2, y_abseinf2, x_abseinf2;
+    v8sd tmp_abseinf2, tmp2_abseinf2;
+
+    // if(x < SQRTH) z_abseinf2 = (x-0.5), else x-1
+    tmp_abseinf2 = _mm512_sub_pd(x, *(v8sd *) _pd512_1);
+    tmp2_abseinf2 =  _mm512_sub_pd(x, *(v8sd *) _pd512_0p5);
+    z_abseinf2 = _mm512_mask_blend_pd(xinfsqrth, tmp_abseinf2, tmp2_abseinf2);
+
+    tmp_abseinf2 = _mm512_fmadd_pd(z_abseinf2, *(v8sd *) _pd512_0p5, *(v8sd *) _pd512_0p5);
+    tmp2_abseinf2 = _mm512_fmadd_pd(x, *(v8sd *) _pd512_0p5, *(v8sd *) _pd512_0p5);
+
+    // if(x < SQRTH) y_abseinf2 = z*0.5 + 0.5, else = x*0.5 + 0.5
+    y_abseinf2 = _mm512_mask_blend_pd(xinfsqrth, tmp2_abseinf2, tmp_abseinf2);
+    
+    x_abseinf2 = _mm512_div_pd(z_abseinf2, y_abseinf2);  // x = z / y;
+    z_abseinf2 = _mm512_mul_pd(x_abseinf2, x_abseinf2);  // z = x*x;
+
+    // z = x * ( z * polevl( z, R, 2 ) / p1evl( z, S, 3 ) );
+    tmp_abseinf2 = _mm512_fmadd_pd(z_abseinf2, *(v8sd *) _pd512_cephes_log_r0, *(v8sd *) _pd512_cephes_log_r1);
+    tmp_abseinf2 = _mm512_fmadd_pd(z_abseinf2, tmp_abseinf2, *(v8sd *) _pd512_cephes_log_r2);
+    tmp2_abseinf2 = _mm512_add_pd(z_abseinf2, *(v8sd *) _pd512_cephes_log_s0);
+    tmp2_abseinf2 = _mm512_fmadd_pd(z_abseinf2, tmp2_abseinf2, *(v8sd *) _pd512_cephes_log_s1);
+    tmp2_abseinf2 = _mm512_fmadd_pd(z_abseinf2, tmp2_abseinf2, *(v8sd *) _pd512_cephes_log_s2);
+    tmp_abseinf2 = _mm512_mul_pd(tmp_abseinf2, z_abseinf2);
+    tmp_abseinf2 = _mm512_div_pd(tmp_abseinf2, tmp2_abseinf2);
+    z_abseinf2 = _mm512_mul_pd(x_abseinf2, tmp_abseinf2);
+
+    // convert e to double
+    // y = e
+    z_abseinf2 = _mm512_fmadd_pd(e, *(v8sd *) _pd512_min_212emin4, z_abseinf2);  // z = z - y * 2.121944400546905827679e-4;
+    z_abseinf2 = _mm512_add_pd(z_abseinf2, x_abseinf2);                              // z = z + x;
+
+    /* logarithm using log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
+    v8sd tmp3, tmp4;
+    tmp3 = _mm512_fmadd_pd(x, *(v8sd *) _pd512_2, *(v8sd *) _pd512_min1);  //	  x = 2.0*x - 1.0; /*  2x - 1  */
+    tmp4 = _mm512_sub_pd(x, *(v8sd *) _pd512_1);                               // x = x - 1.0;
+    x = _mm512_mask_blend_pd(xinfsqrth, tmp4, tmp3);
+
+    /* rational form */
+    z = _mm512_mul_pd(x, x);  // z = x*x;
+    //  y = x * ( z * polevl( x, P, 5 ) / p1evl( x, Q, 5 ) );
+    tmp3 = _mm512_fmadd_pd(x, *(v8sd *) _pd512_cephes_log_p0, *(v8sd *) _pd512_cephes_log_p1);
+    tmp3 = _mm512_fmadd_pd(x, tmp3, *(v8sd *) _pd512_cephes_log_p2);
+    tmp3 = _mm512_fmadd_pd(x, tmp3, *(v8sd *) _pd512_cephes_log_p3);
+    tmp3 = _mm512_fmadd_pd(x, tmp3, *(v8sd *) _pd512_cephes_log_p4);
+    tmp3 = _mm512_fmadd_pd(x, tmp3, *(v8sd *) _pd512_cephes_log_p5);
+    tmp4 = _mm512_add_pd(x, *(v8sd *) _pd512_cephes_log_q0);
+    tmp4 = _mm512_fmadd_pd(x, tmp4, *(v8sd *) _pd512_cephes_log_q1);
+    tmp4 = _mm512_fmadd_pd(x, tmp4, *(v8sd *) _pd512_cephes_log_q2);
+    tmp4 = _mm512_fmadd_pd(x, tmp4, *(v8sd *) _pd512_cephes_log_q3);
+    tmp4 = _mm512_fmadd_pd(x, tmp4, *(v8sd *) _pd512_cephes_log_q4);
+    tmp4 = _mm512_fmadd_pd(x, tmp4, *(v8sd *) _pd512_cephes_log_q5);
+    tmp3 = _mm512_div_pd(tmp3, tmp4);
+    tmp3 = _mm512_mul_pd(z, tmp3);
+    y = _mm512_mul_pd(x, tmp3);
+
+    // if( e) => no need, if e==0 it still works
+    z = _mm512_fmadd_pd(e, *(v8sd *) _pd512_min_212emin4, z);  // z = z - e * 2.121944400546905827679e-4;
+    y = _mm512_fmadd_pd(z, *(v8sd *) _pd512_min0p5, y);        // y = y - 0.5*z;
+    z = _mm512_add_pd(x, y);                                       // z = x + y;
+    // if( e) => no need, if e==0 it still works
+
+    z = _mm512_mask_blend_pd(abseinf2, z, z_abseinf2);         // if fabs(e) < 2 z = z_abseinf2
+    z = _mm512_fmadd_pd(e, *(v8sd *) _pd512_0p69, z);  // z + e * 0.693359375;
+
+    return (z);
+}
+
+static inline void ln512d(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_DOUBLE;
+    stop_len *= AVX512_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_load_pd(src + i);
+            _mm512_store_pd(dst + i, log512_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_loadu_pd(src + i);
+            _mm512_storeu_pd(dst + i, log512_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = log(src[i]);
+    }
+}
+
 static inline void tan512d(double *src, double *dst, int len)
 {
     int stop_len = len / AVX512_LEN_DOUBLE;
