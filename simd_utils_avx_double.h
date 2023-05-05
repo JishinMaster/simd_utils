@@ -788,26 +788,6 @@ static inline void atan2256d_interleaved(complex64_t *src, double *dst, int len)
 
 #ifdef __AVX2__
 
-static inline v4sid _mm256_cvttpd_epi64_custom(v4sd x)
-{
-    x = _mm256_add_pd(x, *(v4sd *) _pd256_PDEPI64U);
-    return _mm256_xor_si256(
-        _mm256_castpd_si256(x),
-        _mm256_castpd_si256(*(v4sd *) _pd256_PDEPI64U));
-}
-
-static inline v4sd _mm256_cvtepi64_pd_custom(v4sid x)
-{
-    x = _mm256_or_si256(x, _mm256_castpd_si256(*(v4sd *) _pd256_PDEPI64U));
-    return _mm256_sub_pd(_mm256_castsi256_pd(x), *(v4sd *) _pd256_PDEPI64U);
-}
-
-static inline v4sd _mm256_cvtepi64_pd_signed_custom(v4sid x)
-{
-    x = _mm256_add_epi64(x, _mm256_castpd_si256(_mm256_set1_pd(0x0018000000000000)));
-    return _mm256_sub_pd(_mm256_castsi256_pd(x), _mm256_set1_pd(0x0018000000000000));
-}
-
 static inline void sincos256_pd(v4sd x, v4sd *s, v4sd *c)
 {
     v4sd xmm1, xmm2, sign_bit_sin, y;
@@ -825,7 +805,7 @@ static inline void sincos256_pd(v4sd x, v4sd *s, v4sd *c)
     y = _mm256_round_pd(y, ROUNDTOFLOOR);
 
     /* store the integer part of y in emm2 */
-    emm2 = _mm256_cvttpd_epi64_custom(y);
+    emm2 = _mm256_cvtpd_epi64_custom(y);
     /* j=(j+1) & (~1) (see the cephes sources) */
     emm2 = _mm256_add_epi64(emm2, *(v4sid *) _pi256_64_1);
     emm2 = _mm256_and_si256(emm2, *(v4sid *) _pi256_64_inv1);
@@ -1264,7 +1244,7 @@ static inline v4sd tan256_pd(v4sd xx)
     z = _mm256_fmadd_pd_custom(z, *(v4sd *) _pd256_min8, y);
 
     /* integer and fractional part modulo one octant */
-    j = _mm256_cvttpd_epi64_custom(z);
+    j = _mm256_cvtpd_epi64_custom(z);
 
     /* map zeros and singularities to origin */
     jandone = _mm256_cmpgt_epi64(_mm256_and_si256(j, *(v4sid *) _pi256_64_1), _mm256_setzero_si256());

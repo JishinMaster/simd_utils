@@ -527,49 +527,6 @@ static inline void realtocplx128d(double *srcRe, double *srcIm, complex64_t *dst
     }
 }
 
-
-// Work in progress
-// in SSE, missing _mm_cvtepi64_pd, _mm_cvttpd_epi64
-// See : https://stackoverflow.com/questions/41144668/how-to-efficiently-perform-double-int64-conversions-with-sse-avx
-
-static inline v2sd _mm_cvtepi64_pd_custom(v2sid x)
-{
-#if 0
-    //Signed
-    x = _mm_add_epi64(x, _mm_castpd_si128(_mm_set1_pd(0x0018000000000000)));
-    return _mm_sub_pd(_mm_castsi128_pd(x), _mm_set1_pd(0x0018000000000000));
-#else
-    // unsigned
-    x = _mm_or_si128(x, _mm_castpd_si128(_mm_set1_pd(0x0010000000000000)));
-    return _mm_sub_pd(_mm_castsi128_pd(x), _mm_set1_pd(0x0010000000000000));
-#endif
-}
-
-static inline v2sd _mm_cvtepi64_pd_signed_custom(v2sid x)
-{
-    // Signed
-    x = _mm_add_epi64(x, _mm_castpd_si128(_mm_set1_pd(0x0018000000000000)));
-    return _mm_sub_pd(_mm_castsi128_pd(x), _mm_set1_pd(0x0018000000000000));
-}
-
-static inline v2sid _mm_cvttpd_epi64_custom(v2sd x)
-{
-    // Signed
-#if 0
-   x = _mm_add_pd(x, _mm_set1_pd(0x0018000000000000));
-    return _mm_sub_epi64(
-        _mm_castpd_si128(x),
-        _mm_castpd_si128(_mm_set1_pd(0x0018000000000000))
-    );
-#else
-    // Unsigned
-    x = _mm_add_pd(x, *(v2sd *) _pd_PDEPI64U);  //_mm_set1_pd(0x0010000000000000));
-    return _mm_xor_si128(
-        _mm_castpd_si128(x),
-        _mm_castpd_si128(*(v2sd *) _pd_PDEPI64U));
-#endif
-}
-
 static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
 {
     v2sd xmm1, xmm2, sign_bit_sin, y;
@@ -596,7 +553,7 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     z = _mm_sub_pd(y, z); */
 
     /* store the integer part of y in emm2 */
-    emm2 = _mm_cvttpd_epi64_custom(y);
+    emm2 = _mm_cvtpd_epi64_custom(y);
     /* j=(j+1) & (~1) (see the cephes sources) */
     emm2 = _mm_add_epi64(emm2, *(v2sid *) _pi64_1);
 
@@ -1226,6 +1183,28 @@ static inline v2sd exp_pd(v2sd x)
     return (x);
 }
 
+static inline void exp128d(double *src, double *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_load_pd(src + i);
+            _mm_store_pd(dst + i, exp_pd(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_loadu_pd(src + i);
+            _mm_storeu_pd(dst + i, exp_pd(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = log(src[i]);
+    }
+}
+
 v2sd log_pd(v2sd x)
 {
     v2sd y, z;
@@ -1314,28 +1293,6 @@ v2sd log_pd(v2sd x)
     return (z);
 }
 
-static inline void exp128d(double *src, double *dst, int len)
-{
-    int stop_len = len / SSE_LEN_DOUBLE;
-    stop_len *= SSE_LEN_DOUBLE;
-
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
-            v2sd src_tmp = _mm_load_pd(src + i);
-            _mm_store_pd(dst + i, exp_pd(src_tmp));
-        }
-    } else {
-        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
-            v2sd src_tmp = _mm_loadu_pd(src + i);
-            _mm_storeu_pd(dst + i, exp_pd(src_tmp));
-        }
-    }
-
-    for (int i = stop_len; i < len; i++) {
-        dst[i] = log(src[i]);
-    }
-}
-
 static inline void ln128d(double *src, double *dst, int len)
 {
     int stop_len = len / SSE_LEN_DOUBLE;
@@ -1391,7 +1348,7 @@ static inline v2sd tan_pd(v2sd xx)
     z = _mm_fmadd_pd_custom(z, *(v2sd *) _pd_min8, y);
 
     /* integer and fractional part modulo one octant */
-    j = _mm_cvttpd_epi64_custom(z);
+    j = _mm_cvtpd_epi64_custom(z);
 
     /* map zeros and singularities to origin */
     jandone = _mm_cmpgt_epi64(_mm_and_si128(j, *(v2sid *) _pi64_1), _mm_setzero_si128());
