@@ -408,12 +408,11 @@ static inline v2sd _mm_cvtepi64_pd_signed_custom(v2sid x)
 static inline v2sid _mm_cvtpd_epi64_custom(v2sd x)
 {
     // Signed
-#if 0
-   x = _mm_add_pd(x, _mm_set1_pd(0x0018000000000000));
+#if 1
+    x = _mm_add_pd(x, *(v2sd *) _pd_epi64_mask);
     return _mm_sub_epi64(
         _mm_castpd_si128(x),
-        _mm_castpd_si128(_mm_set1_pd(0x0018000000000000))
-    );
+        _mm_castpd_si128(*(v2sd *) _pd_epi64_mask));
 #else
     // Unsigned
     x = _mm_add_pd(x, *(v2sd *) _pd_PDEPI64U);  //_mm_set1_pd(0x0010000000000000));
@@ -490,14 +489,14 @@ static inline __m256d _mm256_fnmadd_pd_custom(__m256d a, __m256d b, __m256d c)
 
 // https://stackoverflow.com/questions/41144668/how-to-efficiently-perform-double-int64-conversions-with-sse-avx
 //  Only works for inputs in the range: [-2^51, 2^51]
-/*static inline __m256i _mm256_cvtpd_epi64_custom(__m256d x)
+static inline __m256i _mm256_cvtpd_epi64_custom(__m256d x)
 {
     x = _mm256_add_pd(x, *(v4sd *) _pd256_epi64_mask);
     return _mm256_sub_epi64(
         _mm256_castpd_si256(x),
         _mm256_castpd_si256(*(v4sd *) _pd256_epi64_mask));
-}*/
-
+}
+/*
 static inline v4sid _mm256_cvtpd_epi64_custom(v4sd x)
 {
     x = _mm256_add_pd(x, *(v4sd *) _pd256_PDEPI64U);
@@ -505,7 +504,7 @@ static inline v4sid _mm256_cvtpd_epi64_custom(v4sd x)
         _mm256_castpd_si256(x),
         _mm256_castpd_si256(*(v4sd *) _pd256_PDEPI64U));
 }
-
+*/
 static inline v4sd _mm256_cvtepi64_pd_custom(v4sid x)
 {
     x = _mm256_or_si256(x, _mm256_castpd_si256(*(v4sd *) _pd256_PDEPI64U));

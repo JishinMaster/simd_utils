@@ -2115,6 +2115,15 @@ static inline void print2i(__m128i v)
     printf("[%ld, %ld]", p[0], p[1]);
 }
 
+static inline void print2xi(__m128i v)
+{
+    int64_t *p = (int64_t *) &v;
+#ifndef USE_SSE2
+    _mm_empty();
+#endif
+    printf("[%16x, %16x]", p[0], p[1]);
+}
+
 #endif
 
 #ifdef AVX

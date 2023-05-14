@@ -1172,7 +1172,8 @@ static inline v2sd exp_pd(v2sd x)
     tmp2 = _mm_sub_pd(tmp2, px);
     x = _mm_div_pd(px, tmp2);
     x = _mm_fmadd_pd_custom(x, *(v2sd *) _pd_2, *(v2sd *) _pd_1);
-
+    // print2(x);
+    // print2xi(n);
     /* build 2^n */
     n = _mm_add_epi64(n, *(v2sid *) _pi64_1023);
     n = _mm_slli_epi64(n, 52);
@@ -1180,6 +1181,7 @@ static inline v2sd exp_pd(v2sd x)
 
     /* multiply by power of 2 */
     x = _mm_mul_pd(x, pow2n);
+    // print2(x);printf("\n");
     return (x);
 }
 
@@ -1201,7 +1203,7 @@ static inline void exp128d(double *src, double *dst, int len)
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i] = log(src[i]);
+        dst[i] = exp(src[i]);
     }
 }
 

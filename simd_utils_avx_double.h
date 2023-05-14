@@ -1119,7 +1119,7 @@ v4sd log256_pd(v4sd x)
      * where z = 2(x-1)/x+1)
      */
     v4sd abse = _mm256_and_pd(e, *(v4sd *) _pd256_pos_sign_mask);
-    v4sd abseinf2 = _mm256_cmp_pd(abse, *(v4sd *) _pd256_2, _CMP_LT_OS);// FF if < 2
+    v4sd abseinf2 = _mm256_cmp_pd(abse, *(v4sd *) _pd256_2, _CMP_LT_OS);  // FF if < 2
     v4sd xinfsqrth = _mm256_cmp_pd(x, *(v4sd *) _pd256_cephes_SQRTHF, _CMP_LT_OS);
 
     e = _mm256_blendv_pd(e, _mm256_sub_pd(e, *(v4sd *) _pd256_1), xinfsqrth);  // if( x < SQRTH ) e-=1
@@ -1128,7 +1128,7 @@ v4sd log256_pd(v4sd x)
 
     // if(x < SQRTH) z_abseinf2 = (x-0.5), else x-1
     tmp_abseinf2 = _mm256_sub_pd(x, *(v4sd *) _pd256_1);
-    tmp2_abseinf2 =  _mm256_sub_pd(x, *(v4sd *) _pd256_0p5);
+    tmp2_abseinf2 = _mm256_sub_pd(x, *(v4sd *) _pd256_0p5);
     z_abseinf2 = _mm256_blendv_pd(tmp_abseinf2, tmp2_abseinf2, xinfsqrth);
 
     tmp_abseinf2 = _mm256_fmadd_pd_custom(z_abseinf2, *(v4sd *) _pd256_0p5, *(v4sd *) _pd256_0p5);
@@ -1136,7 +1136,7 @@ v4sd log256_pd(v4sd x)
 
     // if(x < SQRTH) y_abseinf2 = z*0.5 + 0.5, else = x*0.5 + 0.5
     y_abseinf2 = _mm256_blendv_pd(tmp2_abseinf2, tmp_abseinf2, xinfsqrth);
-    
+
     x_abseinf2 = _mm256_div_pd(z_abseinf2, y_abseinf2);  // x = z / y;
     z_abseinf2 = _mm256_mul_pd(x_abseinf2, x_abseinf2);  // z = x*x;
 
@@ -1153,12 +1153,12 @@ v4sd log256_pd(v4sd x)
     // convert e to double
     // y = e
     z_abseinf2 = _mm256_fmadd_pd_custom(e, *(v4sd *) _pd256_min_212emin4, z_abseinf2);  // z = z - y * 2.121944400546905827679e-4;
-    z_abseinf2 = _mm256_add_pd(z_abseinf2, x_abseinf2);                              // z = z + x;
+    z_abseinf2 = _mm256_add_pd(z_abseinf2, x_abseinf2);                                 // z = z + x;
 
     /* logarithm using log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
     v4sd tmp3, tmp4;
     tmp3 = _mm256_fmadd_pd_custom(x, *(v4sd *) _pd256_2, *(v4sd *) _pd256_min1);  //	  x = 2.0*x - 1.0; /*  2x - 1  */
-    tmp4 = _mm256_sub_pd(x, *(v4sd *) _pd256_1);                               // x = x - 1.0;
+    tmp4 = _mm256_sub_pd(x, *(v4sd *) _pd256_1);                                  // x = x - 1.0;
     x = _mm256_blendv_pd(tmp4, tmp3, xinfsqrth);
 
     /* rational form */
@@ -1182,10 +1182,10 @@ v4sd log256_pd(v4sd x)
     // if( e) => no need, if e==0 it still works
     z = _mm256_fmadd_pd_custom(e, *(v4sd *) _pd256_min_212emin4, z);  // z = z - e * 2.121944400546905827679e-4;
     y = _mm256_fmadd_pd_custom(z, *(v4sd *) _pd256_min0p5, y);        // y = y - 0.5*z;
-    z = _mm256_add_pd(x, y);                                       // z = x + y;
+    z = _mm256_add_pd(x, y);                                          // z = x + y;
     // if( e) => no need, if e==0 it still works
 
-    z = _mm256_blendv_pd(z, z_abseinf2, abseinf2);         // if fabs(e) < 2 z = z_abseinf2
+    z = _mm256_blendv_pd(z, z_abseinf2, abseinf2);            // if fabs(e) < 2 z = z_abseinf2
     z = _mm256_fmadd_pd_custom(e, *(v4sd *) _pd256_0p69, z);  // z + e * 0.693359375;
 
     return (z);

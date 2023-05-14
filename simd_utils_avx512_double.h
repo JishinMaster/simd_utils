@@ -1211,7 +1211,7 @@ v8sd log512_pd(v8sd x)
      * where z = 2(x-1)/x+1)
      */
     v8sd abse = _mm512_and_pd(e, *(v8sd *) _pd512_pos_sign_mask);
-    __mmask8 abseinf2 = _mm512_cmp_pd_mask(abse, *(v8sd *) _pd512_2, _CMP_LT_OS);// FF if < 2
+    __mmask8 abseinf2 = _mm512_cmp_pd_mask(abse, *(v8sd *) _pd512_2, _CMP_LT_OS);  // FF if < 2
     __mmask8 xinfsqrth = _mm512_cmp_pd_mask(x, *(v8sd *) _pd512_cephes_SQRTHF, _CMP_LT_OS);
 
     e = _mm512_mask_blend_pd(xinfsqrth, e, _mm512_sub_pd(e, *(v8sd *) _pd512_1));  // if( x < SQRTH ) e-=1
@@ -1220,7 +1220,7 @@ v8sd log512_pd(v8sd x)
 
     // if(x < SQRTH) z_abseinf2 = (x-0.5), else x-1
     tmp_abseinf2 = _mm512_sub_pd(x, *(v8sd *) _pd512_1);
-    tmp2_abseinf2 =  _mm512_sub_pd(x, *(v8sd *) _pd512_0p5);
+    tmp2_abseinf2 = _mm512_sub_pd(x, *(v8sd *) _pd512_0p5);
     z_abseinf2 = _mm512_mask_blend_pd(xinfsqrth, tmp_abseinf2, tmp2_abseinf2);
 
     tmp_abseinf2 = _mm512_fmadd_pd(z_abseinf2, *(v8sd *) _pd512_0p5, *(v8sd *) _pd512_0p5);
@@ -1228,7 +1228,7 @@ v8sd log512_pd(v8sd x)
 
     // if(x < SQRTH) y_abseinf2 = z*0.5 + 0.5, else = x*0.5 + 0.5
     y_abseinf2 = _mm512_mask_blend_pd(xinfsqrth, tmp2_abseinf2, tmp_abseinf2);
-    
+
     x_abseinf2 = _mm512_div_pd(z_abseinf2, y_abseinf2);  // x = z / y;
     z_abseinf2 = _mm512_mul_pd(x_abseinf2, x_abseinf2);  // z = x*x;
 
@@ -1245,12 +1245,12 @@ v8sd log512_pd(v8sd x)
     // convert e to double
     // y = e
     z_abseinf2 = _mm512_fmadd_pd(e, *(v8sd *) _pd512_min_212emin4, z_abseinf2);  // z = z - y * 2.121944400546905827679e-4;
-    z_abseinf2 = _mm512_add_pd(z_abseinf2, x_abseinf2);                              // z = z + x;
+    z_abseinf2 = _mm512_add_pd(z_abseinf2, x_abseinf2);                          // z = z + x;
 
     /* logarithm using log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
     v8sd tmp3, tmp4;
     tmp3 = _mm512_fmadd_pd(x, *(v8sd *) _pd512_2, *(v8sd *) _pd512_min1);  //	  x = 2.0*x - 1.0; /*  2x - 1  */
-    tmp4 = _mm512_sub_pd(x, *(v8sd *) _pd512_1);                               // x = x - 1.0;
+    tmp4 = _mm512_sub_pd(x, *(v8sd *) _pd512_1);                           // x = x - 1.0;
     x = _mm512_mask_blend_pd(xinfsqrth, tmp4, tmp3);
 
     /* rational form */
@@ -1274,11 +1274,11 @@ v8sd log512_pd(v8sd x)
     // if( e) => no need, if e==0 it still works
     z = _mm512_fmadd_pd(e, *(v8sd *) _pd512_min_212emin4, z);  // z = z - e * 2.121944400546905827679e-4;
     y = _mm512_fmadd_pd(z, *(v8sd *) _pd512_min0p5, y);        // y = y - 0.5*z;
-    z = _mm512_add_pd(x, y);                                       // z = x + y;
+    z = _mm512_add_pd(x, y);                                   // z = x + y;
     // if( e) => no need, if e==0 it still works
 
-    z = _mm512_mask_blend_pd(abseinf2, z, z_abseinf2);         // if fabs(e) < 2 z = z_abseinf2
-    z = _mm512_fmadd_pd(e, *(v8sd *) _pd512_0p69, z);  // z + e * 0.693359375;
+    z = _mm512_mask_blend_pd(abseinf2, z, z_abseinf2);  // if fabs(e) < 2 z = z_abseinf2
+    z = _mm512_fmadd_pd(e, *(v8sd *) _pd512_0p69, z);   // z + e * 0.693359375;
 
     return (z);
 }

@@ -7411,7 +7411,7 @@ int main(int argc, char **argv)
 
     l2_errd(inoutd_ref, inoutd2, len);
     /*for(int i = 0; i < len; i++)
-    	printf("%f %f %f\n",inoutd[i], inoutd_ref[i], inoutd2[i]);*/
+        printf("%f %f %f\n",inoutd[i], inoutd_ref[i], inoutd2[i]);*/
 #endif
 
 #ifdef AVX
