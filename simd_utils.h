@@ -20,6 +20,7 @@ extern "C" {
 #endif
 
 #include <math.h>
+#include <fenv.h>
 #include <stdint.h>
 #include <stdio.h>
 

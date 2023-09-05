@@ -979,7 +979,7 @@ _PI64_CONST(1023, (unsigned int) 1023);
 _PD_CONST_TYPE(zero, int, (int) 0x00000000);
 _PD_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
 _PD_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);
-_PD_CONST_TYPE(inv_mant_mask, int64_t, 0x800FFFFFFFFFFFFFL);
+_PD_CONST_TYPE(inv_mant_mask, int64_t, (int64_t) 0x800FFFFFFFFFFFFFL);
 _PD_CONST_TYPE(sign_mask, int64_t, (int64_t) 0x8000000000000000L);
 _PD_CONST_TYPE(inv_sign_mask, int64_t, ~0x8000000000000000L);
 _PD_CONST_TYPE(pos_sign_mask, int64_t, 0xFFFFFFFFFFFFFL);

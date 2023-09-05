@@ -1207,7 +1207,7 @@ static inline void exp128d(double *src, double *dst, int len)
     }
 }
 
-v2sd log_pd(v2sd x)
+static inline v2sd log_pd(v2sd x)
 {
     v2sd y, z;
 
