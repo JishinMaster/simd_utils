@@ -69,26 +69,6 @@ RMode	Meaning
 */
 
 
-#if defined(__ARM_FEATURE_CRYPTO)
-
-FORCE_INLINE __m128i _mm_aesdec_si128(__m128i a, __m128i RoundKey)
-{
-    return vreinterpretq_m128i_u8(vaesimcq_u8(vaesdq_u8(a, (__m128i){}))) ^ RoundKey;
-}
-
-FORCE_INLINE __m128i _mm_aesdeclast_si128(__m128i a, __m128i RoundKey)
-{
-    return vreinterpretq_m128i_u8(vaesdq_u8(a, (__m128i){})) ^ RoundKey;
-}
-
-inline __m128i _mm_aesimc_si128(__m128i a)
-{
-    return vreinterpretq_m128i_u8(vaesimcq_u8(vreinterpretq_u8_m128i(a)));
-}
-
-#endif
-
-
 #if 0
 //Armv8.3+
 FORCE_INLINE __m128 _mm_cplx_mul_ps(__m128 r, __m128 a, __m128 b)
