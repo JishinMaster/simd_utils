@@ -2153,7 +2153,7 @@ static inline v16sf atan512f_ps(v16sf xx)
     y = _mm512_mask_blend_ps(suptan3pi8, y, *(v16sf *) _ps512_PIO2F);
 
 
-    inftan3pi8suppi8 = _kand_mask64(_mm512_cmp_ps_mask(x, *(v16sf *) _ps512_TAN3PI8F, _CMP_LT_OS), _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_TANPI8F, _CMP_GT_OS));  // if( x > tan 3pi/8 )
+    inftan3pi8suppi8 = _kand_mask64(_mm512_cmp_ps_mask(x, *(v16sf *) _ps512_TAN3PI8F, _CMP_LE_OS), _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_TANPI8F, _CMP_GT_OS));  // if( x > tan 3pi/8 )
     tmp2 = _mm512_add_ps(x, *(v16sf *) _ps512_1);
     tmp3 = _mm512_sub_ps(x, *(v16sf *) _ps512_1);
     x = _mm512_mask_div_ps(x, inftan3pi8suppi8, tmp3, tmp2);
@@ -2209,6 +2209,7 @@ static inline v16sf atan2512f_ps(v16sf y, v16sf x)
     z = *(v16sf *) _ps512_PIO2F;
 
     xeqzeroandyinfzero = _kand_mask16(xeqzero, yinfzero);
+
     z = _mm512_mask_blend_ps(xeqzeroandyinfzero, z, *(v16sf *) _ps512_mPIO2F);
     z = _mm512_mask_blend_ps(yeqzero, z, _mm512_setzero_ps());
 

@@ -2411,7 +2411,7 @@ static inline v8sf atan256f_ps(v8sf xx)
     y = _mm256_blendv_ps(y, *(v8sf *) _ps256_PIO2F, suptan3pi8);
 
 
-    inftan3pi8suppi8 = _mm256_and_ps(_mm256_cmp_ps(x, *(v8sf *) _ps256_TAN3PI8F, _CMP_LT_OS), _mm256_cmp_ps(x, *(v8sf *) _ps256_TANPI8F, _CMP_GT_OS));  // if( x > tan 3pi/8 )
+    inftan3pi8suppi8 = _mm256_and_ps(_mm256_cmp_ps(x, *(v8sf *) _ps256_TAN3PI8F, _CMP_LE_OS), _mm256_cmp_ps(x, *(v8sf *) _ps256_TANPI8F, _CMP_GT_OS));  // if( x > tan 3pi/8 )
     x = _mm256_blendv_ps(x, _mm256_div_ps(_mm256_sub_ps(x, *(v8sf *) _ps256_1), _mm256_add_ps(x, *(v8sf *) _ps256_1)), inftan3pi8suppi8);
     y = _mm256_blendv_ps(y, *(v8sf *) _ps256_PIO4F, inftan3pi8suppi8);
 
@@ -2458,6 +2458,7 @@ static inline v8sf atan2256f_ps(v8sf y, v8sf x)
     v8sf xinfzero, yinfzero, xeqzero, yeqzero;
     v8sf xeqzeroandyinfzero, yeqzeroandxinfzero;
     v8sf specialcase;
+    v8sf tmp, tmp2;
 
     xinfzero = _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_LT_OS);  // code =2
     yinfzero = _mm256_cmp_ps(y, _mm256_setzero_ps(), _CMP_LT_OS);  // code = code |1;
@@ -2465,22 +2466,23 @@ static inline v8sf atan2256f_ps(v8sf y, v8sf x)
     xeqzero = _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_EQ_OS);
     yeqzero = _mm256_cmp_ps(y, _mm256_setzero_ps(), _CMP_EQ_OS);
 
-    z = *(v8sf *) _ps256_PIO2F;
-
     xeqzeroandyinfzero = _mm256_and_ps(xeqzero, yinfzero);
-    z = _mm256_blendv_ps(z, *(v8sf *) _ps256_mPIO2F, xeqzeroandyinfzero);
-    z = _mm256_blendv_ps(z, _mm256_setzero_ps(), yeqzero);
-
     yeqzeroandxinfzero = _mm256_and_ps(yeqzero, xinfzero);
+    
+    xeqzeroandyinfzero = _mm256_and_ps(xeqzeroandyinfzero, *(v8sf *) _ps256_sign_mask);
+    tmp = _mm256_xor_ps(*(v8sf *) _ps256_PIO2F, xeqzeroandyinfzero);  // either PI or -PI
+    z = _mm256_andnot_ps(yeqzero, tmp);                            // not(yeqzero) and tmp => 0, PI/2, -PI/2
     z = _mm256_blendv_ps(z, *(v8sf *) _ps256_PIF, yeqzeroandxinfzero);
-
     specialcase = _mm256_or_ps(xeqzero, yeqzero);
 
-    w = _mm256_setzero_ps();
-    w = _mm256_blendv_ps(w, *(v8sf *) _ps256_PIF, _mm256_andnot_ps(yinfzero, xinfzero));  // y >= 0 && x<0
-    w = _mm256_blendv_ps(w, *(v8sf *) _ps256_mPIF, _mm256_and_ps(yinfzero, xinfzero));    // y < 0 && x<0
+    tmp = _mm256_and_ps(*(v8sf *) _ps256_PIF, _mm256_andnot_ps(yinfzero, xinfzero));
+    tmp2 = _mm256_and_ps(*(v8sf *) _ps256_mPIF, _mm256_and_ps(yinfzero, xinfzero));
+    w = _mm256_add_ps(tmp, tmp2);
 
-    z = _mm256_blendv_ps(_mm256_add_ps(w, atan256f_ps(_mm256_div_ps(y, x))), z, specialcase);  // atanf(y/x) if not in special case
+    tmp = _mm256_div_ps(y, x);
+    tmp = atan256f_ps(tmp);
+    tmp = _mm256_add_ps(w, tmp);
+    z = _mm256_blendv_ps(tmp, z, specialcase);  // atanf(y/x) if not in special case
 
     return (z);
 }
