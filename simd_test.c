@@ -81,79 +81,95 @@ int64_t ulpsDistance64(const double a, const double b)
     return dist;
 }
 
-
+//Relative Error
+// For complex arrays this is not the good way to compute the error
+// but it should give a good enough idea of the precision
 float l2_err(float *test, float *ref, int len)
 {
-    float l2_err = 0.0;
+    float l2_rel_err = 0.0f;
+    float sum = 0.0f;
     int sup1ulps = 0;
     float sup1ulps_percent = 0.0f;
 
     for (int i = 0; i < len; i++) {
-        l2_err += (ref[i] - test[i]) * (ref[i] - test[i]);
+        l2_rel_err += (ref[i] - test[i]) * (ref[i] - test[i]);
+        sum += ref[i]*ref[i];
         int32_t dist = ulpsDistance32(ref[i], test[i]);
         if (dist > 1)
             sup1ulps++;
     }
 
     sup1ulps_percent = (float) sup1ulps / (float) len * 100.0f;
-    printf("L2 ERR %0.9g SUP_1ULPS %2.4g %% \n", l2_err, sup1ulps_percent);
-    return l2_err;
+    l2_rel_err =  sqrtf(l2_rel_err)/sqrtf(sum);
+    printf("L2 REL ERR %0.9g SUP_1ULPS %2.4g %% \n", l2_rel_err, sup1ulps_percent);
+    return l2_rel_err;
 }
 
 double l2_errd(double *test, double *ref, int len)
 {
-    double l2_err = 0.0;
+    double l2_rel_err = 0.0;
+    double sum = 0.0;
     int sup1ulps = 0;
     float sup1ulps_percent = 0.0f;
 
     for (int i = 0; i < len; i++) {
-        l2_err += (ref[i] - test[i]) * (ref[i] - test[i]);
+        l2_rel_err += (ref[i] - test[i]) * (ref[i] - test[i]);
+        sum += ref[i]*ref[i];
         int64_t dist = ulpsDistance64(ref[i], test[i]);
         if (dist > 1)
             sup1ulps++;
     }
 
     sup1ulps_percent = (float) sup1ulps / (float) len * 100.0f;
-    printf("L2 ERR %0.13g SUP_1ULPS %2.4g %% \n", l2_err, sup1ulps_percent);
-    return l2_err;
+    l2_rel_err =  sqrt(l2_rel_err)/sqrt(sum);
+    printf("L2 REL ERR %0.18g SUP_1ULPS %2.4g %% \n", l2_rel_err, sup1ulps_percent);
+    return l2_rel_err;
 }
 
 float l2_err_u8(uint8_t *test, uint8_t *ref, int len)
 {
-    float l2_err = 0.0f;
-
+    float l2_rel_err = 0.0f;
+    float sum = 0.0;
+    
     for (int i = 0; i < len; i++) {
-        l2_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
+        l2_rel_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
+        sum +=  (float) (ref[i]*ref[i]);
     }
 
-    printf("L2 ERR %0.9g\n", l2_err);
-    return l2_err;
+    l2_rel_err =  sqrtf(l2_rel_err)/sqrtf(sum);
+    printf("L2 REL ERR %0.9g\n", l2_rel_err);
+    return l2_rel_err;
 }
 
 float l2_err_i16(int16_t *test, int16_t *ref, int len)
 {
-    float l2_err = 0.0f;
+    float l2_rel_err = 0.0f;
+    float sum = 0.0;
 
     for (int i = 0; i < len; i++) {
-        l2_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
+        l2_rel_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
+        sum +=  (float) (ref[i]*ref[i]);
     }
 
-    printf("L2 ERR %0.9g\n", l2_err);
-    return l2_err;
+    l2_rel_err =  sqrtf(l2_rel_err)/sqrtf(sum);
+    printf("L2 REL ERR %0.9g\n", l2_rel_err);
+    return l2_rel_err;
 }
 
 float l2_err_i32(int32_t *test, int32_t *ref, int len)
 {
-    float l2_err = 0.0f;
+    float l2_rel_err = 0.0f;
+    float sum = 0.0;
 
     for (int i = 0; i < len; i++) {
-        l2_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
+        l2_rel_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
+        sum +=  (float) (ref[i]*ref[i]);
     }
 
-    printf("L2 ERR %0.9g\n", l2_err);
-    return l2_err;
+    l2_rel_err =  sqrtf(l2_rel_err)/sqrtf(sum);
+    printf("L2 REL ERR %0.9g\n", l2_rel_err);
+    return l2_rel_err;
 }
-
 
 int main(int argc, char **argv)
 {
@@ -284,6 +300,12 @@ int main(int argc, char **argv)
     uint8_t *inout_u1 = NULL, *inout_u2 = NULL;
     int16_t *inout_s1 = NULL, *inout_s2 = NULL, *inout_s3 = NULL, *inout_sref = NULL;
     int32_t *inout_i1 = NULL, *inout_i2 = NULL, *inout_i3 = NULL, *inout_iref = NULL;
+    
+    if(argc < 3){
+      printf("Usage simd_test : len alignment\n");
+      return -1;
+    }
+    
     int len = atoi(argv[1]);
 
 #ifndef USE_MALLOC
