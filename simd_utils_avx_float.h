@@ -989,7 +989,7 @@ static inline void convertInt16ToFloat32_256(int16_t *src, float *dst, int len, 
             _mm256_store_ps(dst + i + 3 * AVX_LEN_FLOAT, floathi2);
         }
     } else {
-        for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+        for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
             v8si vec = _mm256_loadu_si256((__m256i *) (src + i));                        // loads 1 2 3 4 5 6 7 8 8 9 10 11 12 13 14 15 16
             v8si low_unordered = _mm256_unpacklo_epi16(vec, vec);                        // low 1 1 2 2 3 3 4 4  9 9 10 10 11 11 12 12
             v8si high_unordered = _mm256_unpackhi_epi16(vec, vec);                       // high 5 5 6 6 7 7 8 8 13 13 14 14 15 15 16 16
