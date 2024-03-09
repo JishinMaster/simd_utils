@@ -111,7 +111,7 @@ static inline v16sf exp512_ps(v16sf x)
 
 static inline v16sf sin512_ps(v16sf x)
 {  // any x
-    v16sf xmm3, sign_bit, y;
+    v16sf sign_bit, y;
     v16si imm0, imm2;
 
     sign_bit = x;

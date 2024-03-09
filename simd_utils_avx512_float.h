@@ -298,7 +298,6 @@ static inline v16sf cbrt512f_ps(v16sf xx)
     v16sf e_tmp = _mm512_mul_ps(*(v16sf *) _ps512_3, _mm512_roundscale_ps(e, ROUNDTOZERO));
     rem = _mm512_sub_ps(rem, e_tmp);
 
-    v16sf mul1, mul2;
     v16sf mul_cst1 = _mm512_mask_blend_ps(e_sign, *(v16sf *) _ps512_cephes_invCBRT2, *(v16sf *) _ps512_cephes_CBRT2);
     v16sf mul_cst2 = _mm512_mask_blend_ps(e_sign, *(v16sf *) _ps512_cephes_invCBRT4, *(v16sf *) _ps512_cephes_CBRT4);
 

@@ -695,7 +695,7 @@ static inline v8sf exp256_ps(v8sf x)
 */
 static inline v8sf sin256_ps(v8sf x)
 {  // any x
-    v8sf xmm3, sign_bit, y;
+    v8sf sign_bit, y;
     v8si imm0, imm2;
 
 #ifndef __AVX2__
@@ -812,7 +812,7 @@ static inline v8sf sin256_ps(v8sf x)
 /* almost the same as sin_ps */
 static inline v8sf cos256_ps(v8sf x)
 {  // any x
-    v8sf xmm3, y;
+    v8sf y;
     v8si imm0, imm2;
 
 #ifndef __AVX2__

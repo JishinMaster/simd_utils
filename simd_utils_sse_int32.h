@@ -199,11 +199,14 @@ static inline void copy128s(int32_t *src, int32_t *dst, int len)
     int stop_len = len / SSE_LEN_INT32;
     stop_len *= SSE_LEN_INT32;
 
-#ifdef OMP
-#pragma omp parallel for schedule(auto)
-#endif
-    for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
-        _mm_store_si128((__m128i *) (dst + i), _mm_load_si128((__m128i *) (src + i)));
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+      for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
+          _mm_store_si128((__m128i *) (dst + i), _mm_load_si128((__m128i *) (src + i)));
+      }
+    } else {
+      for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
+          _mm_storeu_si128((__m128i *) (dst + i), _mm_loadu_si128((__m128i *) (src + i)));
+      }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -216,16 +219,21 @@ static inline void copy128s_2(int32_t *src, int32_t *dst, int len)
     int stop_len = len / (2 * SSE_LEN_INT32);
     stop_len *= (2 * SSE_LEN_INT32);
 
-#ifdef OMP
-#pragma omp parallel for schedule(auto)
-#endif
-    for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
-        __m128i tmp1 = _mm_load_si128((__m128i *) (src + i));
-        __m128i tmp2 = _mm_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
-        _mm_store_si128((__m128i *) (dst + i), tmp1);
-        _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+      for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+          __m128i tmp1 = _mm_load_si128((__m128i *) (src + i));
+          __m128i tmp2 = _mm_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
+          _mm_store_si128((__m128i *) (dst + i), tmp1);
+          _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
+      }
+    } else {
+      for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+          __m128i tmp1 = _mm_loadu_si128((__m128i *) (src + i));
+          __m128i tmp2 = _mm_loadu_si128((__m128i *) (src + i + SSE_LEN_INT32));
+          _mm_storeu_si128((__m128i *) (dst + i), tmp1);
+          _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
+      }
     }
-
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i];
     }
@@ -236,13 +244,14 @@ static inline void fast_copy128s(int32_t *src, int32_t *dst, int len)
     int stop_len = len / SSE_LEN_INT32;
     stop_len *= SSE_LEN_INT32;
 
-#ifdef OMP
-#pragma omp parallel for schedule(auto)
-#endif
-    for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
-        _mm_stream_si128((__m128i *) (dst + i), _mm_stream_load_si128((__m128i *) (src + i)));
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+      for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
+          _mm_stream_si128((__m128i *) (dst + i), _mm_stream_load_si128((__m128i *) (src + i)));
+      }
+      _mm_mfence();
+    } else {
+      stop_len = 0;
     }
-    _mm_mfence();
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i];
@@ -255,17 +264,18 @@ static inline void fast_copy128s_2(int32_t *src, int32_t *dst, int len)
     int stop_len = len / (2 * SSE_LEN_INT32);
     stop_len *= (2 * SSE_LEN_INT32);
 
-#ifdef OMP
-#pragma omp parallel for schedule(auto)
-#endif
-    for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
-        __m128i tmp1 = _mm_stream_load_si128((__m128i *) (src + i));
-        __m128i tmp2 = _mm_stream_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
-        _mm_stream_si128((__m128i *) (dst + i), tmp1);
-        _mm_stream_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+      for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+          __m128i tmp1 = _mm_stream_load_si128((__m128i *) (src + i));
+          __m128i tmp2 = _mm_stream_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
+          _mm_stream_si128((__m128i *) (dst + i), tmp1);
+          _mm_stream_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
+      }
+      _mm_mfence();
+    } else {
+      stop_len = 0;
     }
-    _mm_mfence();
-
+    
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i];
     }
@@ -276,20 +286,21 @@ static inline void fast_copy128s_4(int32_t *src, int32_t *dst, int len)
     int stop_len = len / (4 * SSE_LEN_INT32);
     stop_len *= (4 * SSE_LEN_INT32);
 
-#ifdef OMP
-#pragma omp parallel for schedule(auto)
-#endif
-    for (int i = 0; i < stop_len; i += 4 * SSE_LEN_INT32) {
-        __m128i tmp1 = _mm_stream_load_si128((__m128i *) (src + i));
-        __m128i tmp2 = _mm_stream_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
-        __m128i tmp3 = _mm_stream_load_si128((__m128i *) (src + i + 2 * SSE_LEN_INT32));
-        __m128i tmp4 = _mm_stream_load_si128((__m128i *) (src + i + 3 * SSE_LEN_INT32));
-        _mm_stream_si128((__m128i *) (dst + i), tmp1);
-        _mm_stream_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
-        _mm_stream_si128((__m128i *) (dst + i + 2 * SSE_LEN_INT32), tmp3);
-        _mm_stream_si128((__m128i *) (dst + i + 3 * SSE_LEN_INT32), tmp4);
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+      for (int i = 0; i < stop_len; i += 4 * SSE_LEN_INT32) {
+          __m128i tmp1 = _mm_stream_load_si128((__m128i *) (src + i));
+          __m128i tmp2 = _mm_stream_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
+          __m128i tmp3 = _mm_stream_load_si128((__m128i *) (src + i + 2 * SSE_LEN_INT32));
+          __m128i tmp4 = _mm_stream_load_si128((__m128i *) (src + i + 3 * SSE_LEN_INT32));
+          _mm_stream_si128((__m128i *) (dst + i), tmp1);
+          _mm_stream_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
+          _mm_stream_si128((__m128i *) (dst + i + 2 * SSE_LEN_INT32), tmp3);
+          _mm_stream_si128((__m128i *) (dst + i + 3 * SSE_LEN_INT32), tmp4);
+      }
+      _mm_mfence();
+    } else {
+      stop_len = 0;
     }
-    _mm_mfence();
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i];

@@ -804,7 +804,7 @@ static inline v8sd _mm512_cvtepi64_pd_custom(v8sid x)
 
 static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
 {
-    v8sd xmm1, xmm2, xmm3 = _mm512_setzero_pd(), sign_bit_sin, y;
+    v8sd xmm1, xmm2, sign_bit_sin, y;
     v8sid emm0, emm2, emm4;
     __mmask8 cmpeq_mask;
 

@@ -284,7 +284,7 @@ static inline void fast_copy512s_4(int32_t *src, int32_t *dst, int len)
 
 static inline __m512i _mm512_absdiff_epi16(__m512i a, __m512i b)
 {
-    __m512i cmp, difab, difba;
+    __m512i difab, difba;
     __mmask32 cmp_mask = _mm512_cmpgt_epi16_mask(a, b);
 
     difab = _mm512_sub_epi16(a, b);
@@ -293,7 +293,7 @@ static inline __m512i _mm512_absdiff_epi16(__m512i a, __m512i b)
     return _mm512_mask_blend_epi16(cmp_mask, difba, difab);
 #else
     __m512i zero = _mm512_setzero_epi32();
-    cmp = _mm512_mask_set1_epi16(zero, cmp_mask, 0xFFFF);
+    __m512i cmp = _mm512_mask_set1_epi16(zero, cmp_mask, 0xFFFF);
     difab = _mm512_and_si512(cmp, difab);
     difba = _mm512_andnot_si512(cmp, difba);
     return _mm512_or_si512(difab, difba);
@@ -302,7 +302,7 @@ static inline __m512i _mm512_absdiff_epi16(__m512i a, __m512i b)
 
 static inline __m512i _mm512_absdiff_epi32(__m512i a, __m512i b)
 {
-    __m512i cmp, difab, difba;
+    __m512i difab, difba;
     __mmask16 cmp_mask = _mm512_cmpgt_epi32_mask(a, b);
 
     difab = _mm512_sub_epi32(a, b);
@@ -311,7 +311,7 @@ static inline __m512i _mm512_absdiff_epi32(__m512i a, __m512i b)
     return _mm512_mask_blend_epi32(cmp_mask, difba, difab);
 #else
     __m512i zero = _mm512_setzero_epi32();
-    cmp = _mm512_mask_set1_epi32(zero, cmp_mask, 0xFFFFFFFF);
+    __m512i cmp = _mm512_mask_set1_epi32(zero, cmp_mask, 0xFFFFFFFF);
     difab = _mm512_and_si512(cmp, difab);
     difba = _mm512_andnot_si512(cmp, difba);
     return _mm512_or_si512(difab, difba);
@@ -320,7 +320,7 @@ static inline __m512i _mm512_absdiff_epi32(__m512i a, __m512i b)
 
 static inline __m512i _mm512_absdiff_epi8(__m512i a, __m512i b)
 {
-    __m512i cmp, difab, difba;
+    __m512i difab, difba;
     __mmask64 cmp_mask = _mm512_cmpgt_epi8_mask(a, b);
 
     difab = _mm512_sub_epi8(a, b);
@@ -329,7 +329,7 @@ static inline __m512i _mm512_absdiff_epi8(__m512i a, __m512i b)
     return _mm512_mask_blend_epi32(cmp_mask, difba, difab);
 #else
     __m512i zero = _mm512_setzero_epi32();
-    cmp = _mm512_mask_set1_epi8(zero, cmp_mask, 0xFF);
+    __m512i cmp = _mm512_mask_set1_epi8(zero, cmp_mask, 0xFF);
     difab = _mm512_and_si512(cmp, difab);
     difba = _mm512_andnot_si512(cmp, difba);
     return _mm512_or_si512(difab, difba);

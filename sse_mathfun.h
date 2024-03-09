@@ -566,7 +566,7 @@ static inline v4sf exp_ps(v4sf x)
 
 static inline v4sf sin_ps(v4sf x)
 {  // any x
-    v4sf xmm3, sign_bit, y;
+    v4sf sign_bit, y;
 
     v4si emm0, emm2;
 
@@ -642,7 +642,7 @@ static inline v4sf sin_ps(v4sf x)
 /* almost the same as sin_ps */
 static inline v4sf cos_ps(v4sf x)
 {  // any x
-    v4sf xmm3, y;
+    v4sf y;
 
     v4si emm0, emm2;
 
