@@ -2830,10 +2830,10 @@ static inline void dotc512f(complex32_t *src1, complex32_t *src2, int len, compl
     int stop_len = len / (4 * AVX512_LEN_FLOAT);
     stop_len *= (4 * AVX512_LEN_FLOAT);
 
-    v16sfx2 vec_acc1 = {_mm512_setzero_ps(), _mm512_setzero_ps()};  // initialize the vector accumulator
-    v16sfx2 vec_acc2 = {_mm512_setzero_ps(), _mm512_setzero_ps()};  // initialize the vector accumulator
+    v16sfx2 vec_acc1 = {{_mm512_setzero_ps(), _mm512_setzero_ps()}};  // initialize the vector accumulator
+    v16sfx2 vec_acc2 = {{_mm512_setzero_ps(), _mm512_setzero_ps()}};  // initialize the vector accumulator
 
-    complex32_t dst_tmp = {0.0f, 0.0f};
+    complex32_t dst_tmp = {{0.0f, 0.0f}};
 
     __attribute__((aligned(AVX512_LEN_BYTES))) float accumulateRe[AVX512_LEN_FLOAT];
     __attribute__((aligned(AVX512_LEN_BYTES))) float accumulateIm[AVX512_LEN_FLOAT];
@@ -3553,7 +3553,7 @@ static inline void pol2cart2D512f(float *r, float *theta, float *x, float *y, in
     }
 
     for (int i = stop_len; i < len; i++) {
-        float sin_tmp, cos_tmp;
+        float sin_tmp = 0.0f, cos_tmp = 0.0f;
         mysincosf(theta[i], &sin_tmp, &cos_tmp);
         x[i] = r[i] * cos_tmp;
         y[i] = r[i] * sin_tmp;

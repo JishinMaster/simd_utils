@@ -4560,7 +4560,7 @@ static inline void pol2cart2D128f(float *r, float *theta, float *x, float *y, in
     }
 
     for (int i = stop_len; i < len; i++) {
-        float sin_tmp, cos_tmp;
+        float sin_tmp = 0.0f, cos_tmp = 0.0f;
         mysincosf(theta[i], &sin_tmp, &cos_tmp);
         x[i] = r[i] * cos_tmp;
         y[i] = r[i] * sin_tmp;
