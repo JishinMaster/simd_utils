@@ -740,6 +740,22 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    sin128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sin128f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sin128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sin128f_amdlibm %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -773,6 +789,22 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    sin256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sin256f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sin256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sin256f_amdlibm %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX512
@@ -803,6 +835,22 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sin512f_svml %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    sin512f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sin512f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sin512f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sin512f_amdlibm %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -913,6 +961,22 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    cos128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cos128f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cos128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cos128f_amdlibm %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -946,6 +1010,22 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    cos256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cos256f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cos256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cos256f_amdlibm %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX512
@@ -976,6 +1056,22 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("cos512f_svml %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    cos512f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cos512f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cos512f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cos512f_amdlibm %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -1091,6 +1187,23 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout3, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos128f_amdlibm(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos128f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sincos128f_amdlibm(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sincos128f_amdlibm %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+    l2_err(inout2_ref, inout3, len);
+#endif
+
 #ifdef VDSP
     clock_gettime(CLOCK_REALTIME, &start);
     vvsincosf(inout2, inout3, inout, &len);
@@ -1143,6 +1256,23 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout3, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos256f_amdlibm(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos256f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sincos256f_amdlibm(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sincos256f_amdlibm %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+    l2_err(inout2_ref, inout3, len);
+#endif
+
 #endif
 
 #ifdef AVX512
@@ -1174,6 +1304,23 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sincos512f_svml %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+    l2_err(inout2_ref, inout3, len);
+#endif
+
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos512f_amdlibm(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos512f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sincos512f_amdlibm(inout, inout2, inout3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sincos512f_amdlibm %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
     l2_err(inout2_ref, inout3, len);
 #endif
@@ -1292,6 +1439,23 @@ int main(int argc, char **argv)
     l2_errd(inoutd2_ref, inoutd3, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos128d_amdlibm(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos128d_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sincos128d_amdlibm(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sincos128d_amdlibm %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+    l2_errd(inoutd2_ref, inoutd3, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -1328,6 +1492,23 @@ int main(int argc, char **argv)
     l2_errd(inoutd2_ref, inoutd3, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos256d_amdlibm(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos256d_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sincos256d_amdlibm(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sincos256d_amdlibm %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+    l2_errd(inoutd2_ref, inoutd3, len);
+#endif
+
 #endif
 
 #ifdef AVX512
@@ -1344,6 +1525,41 @@ int main(int argc, char **argv)
     printf("sincos512d %d %lf\n", len, elapsed);
     l2_errd(inoutd_ref, inoutd2, len);
     l2_errd(inoutd2_ref, inoutd3, len);
+    
+#ifdef ICC
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos512d_svml(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos512d_svml %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sincos512d_svml(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sincos512d_svml %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+    l2_errd(inoutd2_ref, inoutd3, len);
+#endif
+
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincos512d_amdlibm(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincos512d_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sincos512d_amdlibm(inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sincos512d_amdlibm %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+    l2_errd(inoutd2_ref, inoutd3, len);
+#endif
+
 #endif
 
     /*for(int i = 0; i < len; i++){
@@ -1629,6 +1845,23 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    ln128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ln128f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ln128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ln128f_amdlibm %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+
 #ifdef VDSP
     clock_gettime(CLOCK_REALTIME, &start);
     vvlogf(inout2, inout, &len);
@@ -1678,6 +1911,22 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    ln256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ln256f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ln256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ln256f_amdlibm %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX512
@@ -1708,6 +1957,22 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ln512f_svml %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    ln512f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ln512f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ln512f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ln512f_amdlibm %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -1818,6 +2083,22 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    log2128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("log2128f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        log2128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("log2128f_amdlibm %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -1865,6 +2146,22 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    log2256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("log2256f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        log2256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("log2256f_amdlibm %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX512
@@ -1909,6 +2206,22 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("log2512f_svml %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    log2512f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("log2512f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        log2512f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("log2512f_amdlibm %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -2035,6 +2348,22 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    log10128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("log10128f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        log10128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("log10128f_amdlibm %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #ifdef VDSP
     clock_gettime(CLOCK_REALTIME, &start);
     vvlog10f(inout2, inout, &len);
@@ -2098,6 +2427,22 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    log10256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("log10256f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        log10256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("log10256f_amdlibm %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX512
@@ -2142,6 +2487,22 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("log10512f_svml %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    log10512f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("log10512f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        log10512f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("log10512f_amdlibm %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -2280,6 +2641,22 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    exp128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("exp128f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        exp128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("exp128f_amdlibm %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX
@@ -2313,6 +2690,22 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    exp256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("exp256f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        exp256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("exp256f_amdlibm %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX512
@@ -2343,6 +2736,22 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("exp512f_svml %d %lf\n", len, elapsed);
+    l2_err(inout2_ref, inout2, len);
+#endif
+
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    exp512f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("exp512f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        exp512f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("exp512f_amdlibm %d %lf\n", len, elapsed);
     l2_err(inout2_ref, inout2, len);
 #endif
 
@@ -3305,6 +3714,22 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    tan128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("tan128f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        tan128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("tan128f_amdlibm %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
 #ifdef VDSP
     clock_gettime(CLOCK_REALTIME, &start);
     vvtanf(inout2, inout, &len);
@@ -3354,6 +3779,22 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2, len);
 #endif
 
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    tan256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("tan256f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        tan256f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("tan256f_amdlibm %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, len);
+#endif
+
 #endif
 
 #ifdef AVX512
@@ -3388,7 +3829,6 @@ int main(int argc, char **argv)
 #endif
 
 #endif
-
 
 #ifdef RISCV
     clock_gettime(CLOCK_REALTIME, &start);

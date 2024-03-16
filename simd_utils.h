@@ -720,6 +720,10 @@ static inline void _mm512_store2u_pd(double *mem_addr, v8sdx2 a)
 #include "simd_utils_svml.h"
 #endif
 
+#ifdef AMDLIBM
+#include "simd_utils_amdlibm.h"
+#endif
+
 #ifdef RISCV /* RISCV */
 
 #ifndef __linux__
