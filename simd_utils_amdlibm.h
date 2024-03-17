@@ -132,6 +132,28 @@ static inline void exp128f_amdlibm(float *src, float *dst, int len)
     }
 }
 
+static inline void exp128d_amdlibm(double *src, double *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_load_pd(src + i);
+            _mm_store_pd(dst + i, amd_vrd2_exp(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_loadu_pd(src + i);
+            _mm_storeu_pd(dst + i, amd_vrd2_exp(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = exp(src[i]);
+    }
+}
+
 static inline void ln128f_amdlibm(float *src, float *dst, int len)
 {
     int stop_len = len / SSE_LEN_FLOAT;
@@ -149,6 +171,28 @@ static inline void ln128f_amdlibm(float *src, float *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = logf(src[i]);
+    }
+}
+
+static inline void ln128d_amdlibm(double *src, double *dst, int len)
+{
+    int stop_len = len / SSE_LEN_DOUBLE;
+    stop_len *= SSE_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_load_pd(src + i);
+            _mm_store_pd(dst + i, amd_vrd2_log(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
+            v2sd src_tmp = _mm_loadu_pd(src + i);
+            _mm_storeu_pd(dst + i, amd_vrd2_log(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = exp(src[i]);
     }
 }
 
@@ -281,7 +325,7 @@ static inline void asin128f_amdlibm(float *src, float *dst, int len)
 }
 
 /*
-static inline void asin128d_amdlibm(double *src, double *dst, int len)
+static inline void asin512d_amdlibm(double *src, double *dst, int len)
 {
     int stop_len = len / SSE_LEN_DOUBLE;
     stop_len *= SSE_LEN_DOUBLE;
@@ -630,6 +674,28 @@ static inline void exp256f_amdlibm(float *src, float *dst, int len)
     }
 }
 
+static inline void exp256d_amdlibm(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX_LEN_DOUBLE;
+    stop_len *= AVX_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_load_pd(src + i);
+            _mm256_store_pd(dst + i, amd_vrd4_exp(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_loadu_pd(src + i);
+            _mm256_storeu_pd(dst + i, amd_vrd4_exp(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = exp(src[i]);
+    }
+}
+
 static inline void ln256f_amdlibm(float *src, float *dst, int len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
@@ -647,6 +713,28 @@ static inline void ln256f_amdlibm(float *src, float *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = logf(src[i]);
+    }
+}
+
+static inline void ln256d_amdlibm(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX_LEN_DOUBLE;
+    stop_len *= AVX_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_load_pd(src + i);
+            _mm256_store_pd(dst + i, amd_vrd4_log(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_loadu_pd(src + i);
+            _mm256_storeu_pd(dst + i, amd_vrd4_log(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = exp(src[i]);
     }
 }
 
@@ -1105,6 +1193,27 @@ static inline void exp512f_amdlibm(float *src, float *dst, int len)
     }
 }
 
+static inline void exp512d_amdlibm(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_DOUBLE;
+    stop_len *= AVX512_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_load_pd(src + i);
+            _mm512_store_pd(dst + i, amd_vrd8_exp(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_loadu_pd(src + i);
+            _mm512_storeu_pd(dst + i, amd_vrd8_exp(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = exp(src[i]);
+    }
+}
 
 static inline void ln512f_amdlibm(float *src, float *dst, int len)
 {
@@ -1126,6 +1235,27 @@ static inline void ln512f_amdlibm(float *src, float *dst, int len)
     }
 }
 
+static inline void ln512d_amdlibm(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_DOUBLE;
+    stop_len *= AVX512_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_load_pd(src + i);
+            _mm512_store_pd(dst + i, amd_vrd8_log(src_tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_loadu_pd(src + i);
+            _mm512_storeu_pd(dst + i, amd_vrd8_log(src_tmp));
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = exp(src[i]);
+    }
+}
 
 static inline void log2512f_amdlibm(float *src, float *dst, int len)
 {

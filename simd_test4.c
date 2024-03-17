@@ -868,6 +868,40 @@ int main(int argc, char **argv)
     }*/
 #endif
 
+#ifdef ICC
+    clock_gettime(CLOCK_REALTIME, &start);
+    cbrt128f_svml(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cbrt128f_svml %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cbrt128f_svml(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cbrt128f_svml %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout_ref, len);
+#endif
+
+#ifdef AMDLIBM
+    clock_gettime(CLOCK_REALTIME, &start);
+    cbrt128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cbrt128f_amdlibm %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cbrt128f_amdlibm(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cbrt128f_amdlibm %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout_ref, len);
+#endif
+
 #ifdef AVX
 #ifdef __AVX2__
     clock_gettime(CLOCK_REALTIME, &start);
@@ -885,6 +919,24 @@ int main(int argc, char **argv)
 
     l2_err(inout2, inout_ref, len);
 #endif
+
+#ifdef ICC
+    clock_gettime(CLOCK_REALTIME, &start);
+    cbrt256f_svml(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cbrt256f_svml %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cbrt256f_svml(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cbrt256f_svml %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout_ref, len);
+#endif
+
 #endif
 
 #ifdef AVX512
@@ -902,6 +954,24 @@ int main(int argc, char **argv)
     printf("cbrt512f %d %lf\n", len, elapsed);
 
     l2_err(inout2, inout_ref, len);
+    
+#ifdef ICC
+    clock_gettime(CLOCK_REALTIME, &start);
+    cbrt512f_svml(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("cbrt512f_svml %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cbrt512f_svml(inout, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cbrt512f_svml %d %lf\n", len, elapsed);
+
+    l2_err(inout2, inout_ref, len);
+#endif
+
 #endif
 
 #ifdef RISCV

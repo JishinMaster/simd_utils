@@ -71,7 +71,7 @@ int64_t ulpsDistance64(const double a, const double b)
     if ((ia < 0) != (ib < 0))
         return -1;
 
-    int64_t dist = abs(ia - ib);
+    int64_t dist = labs(ia - ib);
     return dist;
 }
 
@@ -154,14 +154,13 @@ float l2_err_i16(int16_t *test, int16_t *ref, int len)
 float l2_err_i32(int32_t *test, int32_t *ref, int len)
 {
     float l2_rel_err = 0.0f;
-    //float sum = 0.0;
-
+    //double sum = 0.0;
     for (int i = 0; i < len; i++) {
         l2_rel_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
-        //sum +=  (float) (ref[i]*ref[i]);
+        //sumi +=  (ref[i]*ref[i]);
     }
-
-    l2_rel_err =  sqrtf(l2_rel_err);///sqrtf(sum);
+    //sum = sqrt((double)sumi);
+    l2_rel_err =  sqrtf(l2_rel_err);///(float)sum;
     printf("L2 REL ERR %0.9g\n", l2_rel_err);
     return l2_rel_err;
 }
