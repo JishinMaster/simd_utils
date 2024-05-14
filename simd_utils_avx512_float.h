@@ -1153,8 +1153,8 @@ static inline void convert512_64f32f(double *src, float *dst, int len)
             v8sf src_hi = _mm512_cvtpd_ps(src_tmp2);
             v8sf src_lo2 = _mm512_cvtpd_ps(src_tmp3);
             v8sf src_hi2 = _mm512_cvtpd_ps(src_tmp4);
-            v16sf dst_tmp = _mm512_setzero_pd();
-            v16sf dst_tmp2 = _mm512_setzero_pd();
+            v16sf dst_tmp = _mm512_setzero_ps();
+            v16sf dst_tmp2 = _mm512_setzero_ps();
             dst_tmp = _mm512_insertf32x8(dst_tmp, src_lo, 0);
             dst_tmp = _mm512_insertf32x8(dst_tmp, src_hi, 1);
             dst_tmp2 = _mm512_insertf32x8(dst_tmp2, src_lo2, 0);
@@ -1173,8 +1173,8 @@ static inline void convert512_64f32f(double *src, float *dst, int len)
             v8sf src_hi = _mm512_cvtpd_ps(src_tmp2);
             v8sf src_lo2 = _mm512_cvtpd_ps(src_tmp3);
             v8sf src_hi2 = _mm512_cvtpd_ps(src_tmp4);
-            v16sf dst_tmp = _mm512_setzero_pd();
-            v16sf dst_tmp2 = _mm512_setzero_pd();
+            v16sf dst_tmp = _mm512_setzero_ps();
+            v16sf dst_tmp2 = _mm512_setzero_ps();
             dst_tmp = _mm512_insertf32x8(dst_tmp, src_lo, 0);
             dst_tmp = _mm512_insertf32x8(dst_tmp, src_hi, 1);
             dst_tmp2 = _mm512_insertf32x8(dst_tmp2, src_lo2, 0);
