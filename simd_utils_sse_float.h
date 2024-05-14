@@ -1808,8 +1808,8 @@ static inline void threshold128_gtabs_f(float *src, float *dst, int len, float v
         }
     } else {
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
-            v4sf src_tmp = _mm_load_ps(src + i);
-            v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
             v4sf src_sign = _mm_and_ps(src_tmp, *(v4sf *) _ps_sign_mask);  // extract sign
             v4sf src_sign2 = _mm_and_ps(src_tmp2, *(v4sf *) _ps_sign_mask);
             v4sf src_abs = _mm_and_ps(src_tmp, *(v4sf *) _ps_pos_sign_mask);  // take absolute value
@@ -1818,8 +1818,8 @@ static inline void threshold128_gtabs_f(float *src, float *dst, int len, float v
             v4sf dst_tmp2 = _mm_min_ps(src_abs2, pval);
             dst_tmp = _mm_xor_ps(dst_tmp, src_sign);
             dst_tmp2 = _mm_xor_ps(dst_tmp2, src_sign2);
-            _mm_store_ps(dst + i, dst_tmp);
-            _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+            _mm_storeu_ps(dst + i, dst_tmp);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
     }
 
