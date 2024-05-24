@@ -1100,7 +1100,7 @@ static inline void exp256d(double *src, double *dst, int len)
     }
 }
 
-v4sd log256_pd(v4sd x)
+static inline v4sd log256_pd(v4sd x)
 {
     v4sd y, z;
 

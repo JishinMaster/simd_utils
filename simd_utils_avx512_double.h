@@ -1082,12 +1082,11 @@ static inline v8sd tan512_pd(v8sd xx)
 
     /* compute x mod PIO4 */
     y = _mm512_mul_pd(x, *(v8sd *) _pd512_cephes_FOPI);
-    // useful?
     y = _mm512_roundscale_pd(y, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+
 
     /* strip high bits of integer part */
     z = _mm512_mul_pd(y, *(v8sd *) _pd512_0p125);
-    // useful?
     z = _mm512_roundscale_pd(z, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
     z = _mm512_fmadd_pd_custom(z, *(v8sd *) _pd512_min8, y);
 
@@ -1141,6 +1140,7 @@ static inline v8sd exp512_pd(v8sd x)
 
     px = _mm512_fmadd_pd(*(v8sd *) _pd512_cephes_LOG2E, x, *(v8sd *) _pd512_0p5);
     px = _mm512_roundscale_pd(px, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+
     n = _mm512_cvtpd_epi64(px);  // n = px;
     x = _mm512_fmadd_pd(*(v8sd *) _pd512_cephes_exp_minC1, px, x);
     x = _mm512_fmadd_pd(*(v8sd *) _pd512_cephes_exp_minC2, px, x);
@@ -1192,7 +1192,7 @@ static inline void exp512d(double *src, double *dst, int len)
     }
 }
 
-v8sd log512_pd(v8sd x)
+static inline v8sd log512_pd(v8sd x)
 {
     v8sd y, z;
 
