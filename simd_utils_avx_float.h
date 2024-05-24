@@ -389,8 +389,8 @@ static inline v8sf cbrt256f_ps(v8sf xx)
 
     rem = e;
     e = _mm256_mul_ps(e, *(v8sf *) _ps256_0p3);
-    v8sf e_tmp = _mm256_mul_ps(*(v8sf *) _ps256_3, _mm256_round_ps(e, ROUNDTOZERO));
-    rem = _mm256_sub_ps(rem, e_tmp);
+    e = _mm256_round_ps(e, ROUNDTOZERO);
+    rem = _mm256_fnmadd_ps_custom(e, *(v8sf *) _ps256_3, rem);
 
     v8sf mul1, mul2;
     v8sf mul_cst1 = _mm256_blendv_ps(*(v8sf *) _ps256_cephes_invCBRT2, *(v8sf *) _ps256_cephes_CBRT2, e_sign);
@@ -417,8 +417,7 @@ static inline v8sf cbrt256f_ps(v8sf xx)
     v8sf tmp2 = _mm256_mul_ps(x, x);
     tmp2 = _mm256_div_ps(z, tmp2);
     tmp2 = _mm256_sub_ps(x, tmp2);
-    tmp2 = _mm256_mul_ps(tmp2, *(v8sf *) _ps256_0p3);
-    x = _mm256_sub_ps(x, tmp2);
+    x = _mm256_fnmadd_ps_custom(tmp2, *(v8sf *) _ps256_0p3, x);
 
     // x = _mm256_blendv_ps(_mm256_mul_ps(x, *(v8sf *) _ps256_min1), x, sign);
     x = _mm256_xor_ps(x, sign);

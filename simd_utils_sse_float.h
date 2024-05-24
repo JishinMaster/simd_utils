@@ -423,8 +423,8 @@ static inline v4sf cbrtf_ps(v4sf xx)
 
     rem = e;
     e = _mm_mul_ps(e, *(v4sf *) _ps_0p3);
-    v4sf e_tmp = _mm_mul_ps(*(v4sf *) _ps_3, _mm_round_ps(e, ROUNDTOZERO));
-    rem = _mm_sub_ps(rem, e_tmp);
+    e = _mm_round_ps(e, ROUNDTOZERO);
+    rem = _mm_fnmadd_ps_custom(*(v4sf *) _ps_3, e, rem);
 
     v4sf mul1, mul2;
     v4sf mul_cst1 = _mm_blendv_ps(*(v4sf *) _ps_cephes_invCBRT2, *(v4sf *) _ps_cephes_CBRT2, e_sign);
@@ -455,8 +455,7 @@ static inline v4sf cbrtf_ps(v4sf xx)
     tmp2 = _mm_mul_ps(x, x);
     tmp2 = _mm_div_ps(z, tmp2);
     tmp2 = _mm_sub_ps(x, tmp2);
-    tmp2 = _mm_mul_ps(tmp2, *(v4sf *) _ps_0p3);
-    x = _mm_sub_ps(x, tmp2);
+    x = _mm_fnmadd_ps_custom(tmp2, *(v4sf *) _ps_0p3, x);
 
     // x = _mm_blendv_ps(_mm_mul_ps(x, *(v4sf *) _ps_min1), x, sign);
     x = _mm_xor_ps(x, sign);

@@ -314,6 +314,10 @@ int main(int argc, char **argv)
     volatile int l = 0;
     double flops;
 
+    for (int i = 0; i < len; i++) {
+        inout[i] = -(float) len / 16.0f + 0.1f * (float) i;
+    }
+    
     printf("\n");
     /////////////////////////////////////////////////////////// SUBCREVF //////////////////////////////////////////////////////////////////////////////
     printf("SUBCREVF\n");
