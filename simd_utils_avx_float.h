@@ -1245,7 +1245,7 @@ static inline void cplxtoreal256f(complex32_t *src, float *dstRe, float *dstIm, 
     v8si idx = _mm256_set_epi32(7, 5, 3, 1, 6, 4, 2, 0);
 #endif
 
-    if (areAligned3((uintptr_t) (src), (uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX_LEN_FLOAT)) {
+    if (areAligned3((uintptr_t) (src), (uintptr_t) (dstRe), (uintptr_t) (dstIm), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
             v8sf vec1 = _mm256_load_ps((float const *) (src) + i);                  // load 0 1 2 3 4 5 6 7
             v8sf vec2 = _mm256_load_ps((float const *) (src) + i + AVX_LEN_FLOAT);  // load 8 9 10 11 12 13 14 15
@@ -2047,7 +2047,7 @@ static inline void sincos256f(float *src, float *dst_sin, float *dst_cos, int le
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-    if (areAligned3((uintptr_t) (src), (uintptr_t) (dst_sin), (uintptr_t) (dst_cos), AVX_LEN_FLOAT)) {
+    if (areAligned3((uintptr_t) (src), (uintptr_t) (dst_sin), (uintptr_t) (dst_cos), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             v8sf dst_sin_tmp;
