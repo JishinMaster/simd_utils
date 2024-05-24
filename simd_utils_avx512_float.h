@@ -11,31 +11,22 @@
 
 static inline v16sf log10512_ps(v16sf x)
 {
-    v16si imm0;
-    v16sf one = *(v16sf *) _ps512_1;
-
     v16sf invalid_mask = (v16sf) _mm512_movm_epi32(_mm512_cmp_ps_mask(x, _mm512_setzero_ps(), _CMP_LE_OS));
     x = _mm512_max_ps(x, *(v16sf *) _ps512_min_norm_pos); /* cut off denormalized stuff */
 
-    // can be done with AVX2
-    imm0 = _mm512_srli_epi32(_mm512_castps_si512(x), 23);
+    /* get the exponent part */
+    v16sf e = _mm512_getexp_ps(x);
+    e = _mm512_add_ps(e, *(v16sf *) _ps512_1);
 
     /* keep only the fractional part */
     x = _mm512_and_ps(x, *(v16sf *) _ps512_inv_mant_mask);
     x = _mm512_or_ps(x, *(v16sf *) _ps512_0p5);
 
-    // this is again another AVX2 instruction
-    imm0 = _mm512_sub_epi32(imm0, *(v16si *) _pi32_512_0x7f);
-    v16sf e = _mm512_cvtepi32_ps(imm0);
-
-    e = _mm512_add_ps(e, one);
-
-    v16sf mask = (v16sf) _mm512_movm_epi32(_mm512_cmp_ps_mask(x, *(v16sf *) _ps512_cephes_SQRTHF, _CMP_LT_OS));
-
-    v16sf tmp = _mm512_and_ps(x, mask);
-    x = _mm512_sub_ps(x, one);
-    e = _mm512_sub_ps(e, _mm512_and_ps(one, mask));
-    x = _mm512_add_ps(x, tmp);
+    __mmask16 kmask = _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_cephes_SQRTHF, _CMP_LT_OS);
+    v16sf tmp = x;
+    x = _mm512_sub_ps(x, *(v16sf *) _ps512_1);
+    e = _mm512_mask_sub_ps(e, kmask, e, *(v16sf *) _ps512_1);
+    x = _mm512_mask_add_ps(x, kmask, x, tmp);
 
     v16sf z = _mm512_mul_ps(x, x);
 
@@ -66,31 +57,22 @@ static inline v16sf log10512_ps(v16sf x)
 
 static inline v16sf log2512_ps(v16sf x)
 {
-    v16si imm0;
-    v16sf one = *(v16sf *) _ps512_1;
-
     v16sf invalid_mask = (v16sf) _mm512_movm_epi32(_mm512_cmp_ps_mask(x, _mm512_setzero_ps(), _CMP_LE_OS));
     x = _mm512_max_ps(x, *(v16sf *) _ps512_min_norm_pos); /* cut off denormalized stuff */
 
-    // can be done with AVX2
-    imm0 = _mm512_srli_epi32(_mm512_castps_si512(x), 23);
+    /* get the exponent part */
+    v16sf e = _mm512_getexp_ps(x);
+    e = _mm512_add_ps(e, *(v16sf *) _ps512_1);
 
     /* keep only the fractional part */
     x = _mm512_and_ps(x, *(v16sf *) _ps512_inv_mant_mask);
     x = _mm512_or_ps(x, *(v16sf *) _ps512_0p5);
 
-    // this is again another AVX2 instruction
-    imm0 = _mm512_sub_epi32(imm0, *(v16si *) _pi32_512_0x7f);
-    v16sf e = _mm512_cvtepi32_ps(imm0);
-
-    e = _mm512_add_ps(e, one);
-
-    v16sf mask = (v16sf) _mm512_movm_epi32(_mm512_cmp_ps_mask(x, *(v16sf *) _ps512_cephes_SQRTHF, _CMP_LT_OS));
-
-    v16sf tmp = _mm512_and_ps(x, mask);
-    x = _mm512_sub_ps(x, one);
-    e = _mm512_sub_ps(e, _mm512_and_ps(one, mask));
-    x = _mm512_add_ps(x, tmp);
+    __mmask16 kmask = _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_cephes_SQRTHF, _CMP_LT_OS);
+    v16sf tmp = x;
+    x = _mm512_sub_ps(x, *(v16sf *) _ps512_1);
+    e = _mm512_mask_sub_ps(e, kmask, e, *(v16sf *) _ps512_1);
+    x = _mm512_mask_add_ps(x, kmask, x, tmp);
 
     v16sf z = _mm512_mul_ps(x, x);
 
@@ -275,10 +257,10 @@ static inline v16sf cbrt512f_ps(v16sf xx)
     // x = frexpf(x, &e);
     // solve problem for zero
     v16si emm0 = _mm512_srli_epi32(_mm512_castps_si512(x), 23);
-    x = _mm512_and_ps(x, *(v16sf *) _ps512_inv_mant_mask);
-    x = _mm512_or_ps(x, *(v16sf *) _ps512_0p5);
     emm0 = _mm512_sub_epi32(emm0, *(v16si *) _pi32_512_0x7e);
     e = _mm512_cvtepi32_ps(emm0);
+    x = _mm512_and_ps(x, *(v16sf *) _ps512_inv_mant_mask);
+    x = _mm512_or_ps(x, *(v16sf *) _ps512_0p5);
 
     /* Approximate cube root of number between .5 and 1,
      * peak relative error = 9.2e-6
@@ -295,8 +277,8 @@ static inline v16sf cbrt512f_ps(v16sf xx)
 
     rem = e;
     e = _mm512_mul_ps(e, *(v16sf *) _ps512_0p3);
-    v16sf e_tmp = _mm512_mul_ps(*(v16sf *) _ps512_3, _mm512_roundscale_ps(e, ROUNDTOZERO));
-    rem = _mm512_sub_ps(rem, e_tmp);
+    e =  _mm512_roundscale_ps(e, ROUNDTOZERO);
+    rem = _mm512_fnmadd_ps_custom(*(v16sf *) _ps512_3, e, rem);
 
     v16sf mul_cst1 = _mm512_mask_blend_ps(e_sign, *(v16sf *) _ps512_cephes_invCBRT2, *(v16sf *) _ps512_cephes_CBRT2);
     v16sf mul_cst2 = _mm512_mask_blend_ps(e_sign, *(v16sf *) _ps512_cephes_invCBRT4, *(v16sf *) _ps512_cephes_CBRT4);
@@ -320,8 +302,7 @@ static inline v16sf cbrt512f_ps(v16sf xx)
     v16sf tmp2 = _mm512_mul_ps(x, x);
     tmp2 = _mm512_div_ps(z, tmp2);
     tmp2 = _mm512_sub_ps(x, tmp2);
-    tmp2 = _mm512_mul_ps(tmp2, *(v16sf *) _ps512_0p3);
-    x = _mm512_sub_ps(x, tmp2);
+    x = _mm512_fnmadd_ps_custom(tmp2, *(v16sf *) _ps512_0p3, x);
 
     // x = _mm512_mask_blend_ps(sign, _mm512_mul_ps(x, *(v16sf *) _ps512_min1), x);
     x = _mm512_xor_ps(x, sign);
@@ -1143,6 +1124,10 @@ static inline void convert512_64f32f(double *src, float *dst, int len)
     stop_len *= (4 * AVX512_LEN_DOUBLE);
 
     int j = 0;
+    
+    v16sf dst_tmp = _mm512_setzero_ps();
+    v16sf dst_tmp2 = _mm512_setzero_ps();
+    
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 4 * AVX512_LEN_DOUBLE) {
             v8sd src_tmp = _mm512_load_pd(src + i);
@@ -1153,8 +1138,6 @@ static inline void convert512_64f32f(double *src, float *dst, int len)
             v8sf src_hi = _mm512_cvtpd_ps(src_tmp2);
             v8sf src_lo2 = _mm512_cvtpd_ps(src_tmp3);
             v8sf src_hi2 = _mm512_cvtpd_ps(src_tmp4);
-            v16sf dst_tmp = _mm512_setzero_ps();
-            v16sf dst_tmp2 = _mm512_setzero_ps();
             dst_tmp = _mm512_insertf32x8(dst_tmp, src_lo, 0);
             dst_tmp = _mm512_insertf32x8(dst_tmp, src_hi, 1);
             dst_tmp2 = _mm512_insertf32x8(dst_tmp2, src_lo2, 0);
@@ -1173,8 +1156,6 @@ static inline void convert512_64f32f(double *src, float *dst, int len)
             v8sf src_hi = _mm512_cvtpd_ps(src_tmp2);
             v8sf src_lo2 = _mm512_cvtpd_ps(src_tmp3);
             v8sf src_hi2 = _mm512_cvtpd_ps(src_tmp4);
-            v16sf dst_tmp = _mm512_setzero_ps();
-            v16sf dst_tmp2 = _mm512_setzero_ps();
             dst_tmp = _mm512_insertf32x8(dst_tmp, src_lo, 0);
             dst_tmp = _mm512_insertf32x8(dst_tmp, src_hi, 1);
             dst_tmp2 = _mm512_insertf32x8(dst_tmp2, src_lo2, 0);
@@ -1478,7 +1459,6 @@ static inline void threshold512_gt_f(float *src, float *dst, int len, float valu
     }
 }
 
-#if 1
 static inline void threshold512_gtabs_f(float *src, float *dst, int len, float value)
 {
     const v16sf pval = _mm512_set1_ps(value);
@@ -1490,14 +1470,8 @@ static inline void threshold512_gtabs_f(float *src, float *dst, int len, float v
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
-            v16sf src_sign = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_sign_mask);  // extract sign
-            v16sf src_sign2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_sign_mask);
-            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);  // take absolute value
-            v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
-            v16sf dst_tmp = _mm512_min_ps(src_abs, pval);
-            v16sf dst_tmp2 = _mm512_min_ps(src_abs2, pval);
-            dst_tmp = _mm512_xor_ps(dst_tmp, src_sign);
-            dst_tmp2 = _mm512_xor_ps(dst_tmp2, src_sign2);
+            v16sf dst_tmp = _mm512_range_ps(src_tmp, pval, 0x2);
+            v16sf dst_tmp2 = _mm512_range_ps(src_tmp2, pval, 0x2);
             _mm512_store_ps(dst + i, dst_tmp);
             _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
@@ -1505,14 +1479,8 @@ static inline void threshold512_gtabs_f(float *src, float *dst, int len, float v
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps(src + i);
             v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
-            v16sf src_sign = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_sign_mask);  // extract sign
-            v16sf src_sign2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_sign_mask);
-            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);  // take absolute value
-            v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
-            v16sf dst_tmp = _mm512_min_ps(src_abs, pval);
-            v16sf dst_tmp2 = _mm512_min_ps(src_abs2, pval);
-            dst_tmp = _mm512_xor_ps(dst_tmp, src_sign);
-            dst_tmp2 = _mm512_xor_ps(dst_tmp2, src_sign2);
+            v16sf dst_tmp = _mm512_range_ps(src_tmp, pval, 0x2);
+            v16sf dst_tmp2 = _mm512_range_ps(src_tmp2, pval, 0x2);
             _mm512_storeu_ps(dst + i, dst_tmp);
             _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
@@ -1526,60 +1494,6 @@ static inline void threshold512_gtabs_f(float *src, float *dst, int len, float v
         }
     }
 }
-#else
-static inline void threshold512_gtabs_f(float *src, float *dst, int len, float value)
-{
-    const v16sf pval = _mm512_set1_ps(value);
-    const v16sf mval = _mm512_set1_ps(-value);
-
-    int stop_len = len / (2 * AVX512_LEN_FLOAT);
-    stop_len *= (2 * AVX512_LEN_FLOAT);
-
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-            v16sf src_tmp = _mm512_load_ps(src + i);
-            v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
-            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
-            v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
-            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
-            __mmask16 eqmask2 = _mm512_cmp_ps_mask(src_abs2, src_tmp2, _CMP_EQ_OS);
-            __mmask16 gtmask = _mm512_cmp_ps_mask(src_abs, pval, _CMP_GT_OS);  // if abs(A) < value => 0xFFFFFFFF, else 0
-            __mmask16 gtmask2 = _mm512_cmp_ps_mask(src_abs2, pval, _CMP_GT_OS);
-            v16sf sval = _mm512_mask_blend_ps(eqmask, mval, pval);  // if A >= 0 value, else -value
-            v16sf sval2 = _mm512_mask_blend_ps(eqmask2, mval, pval);
-            v16sf dst_tmp = _mm512_mask_blend_ps(gtmask, src_tmp, sval);  // either A or sval (+- value)
-            v16sf dst_tmp2 = _mm512_mask_blend_ps(gtmask2, src_tmp2, sval2);
-            _mm512_store_ps(dst + i, dst_tmp);
-            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
-        }
-    } else {
-        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-            v16sf src_tmp = _mm512_loadu_ps(src + i);
-            v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
-            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
-            v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
-            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
-            __mmask16 eqmask2 = _mm512_cmp_ps_mask(src_abs2, src_tmp2, _CMP_EQ_OS);
-            __mmask16 gtmask = _mm512_cmp_ps_mask(src_abs, pval, _CMP_GT_OS);  // if abs(A) < value => 0xFFFFFFFF, else 0
-            __mmask16 gtmask2 = _mm512_cmp_ps_mask(src_abs2, pval, _CMP_GT_OS);
-            v16sf sval = _mm512_mask_blend_ps(eqmask, mval, pval);  // if A >= 0 value, else -value
-            v16sf sval2 = _mm512_mask_blend_ps(eqmask2, mval, pval);
-            v16sf dst_tmp = _mm512_mask_blend_ps(gtmask, src_tmp, sval);  // either A or sval (+- value)
-            v16sf dst_tmp2 = _mm512_mask_blend_ps(gtmask2, src_tmp2, sval2);
-            _mm512_storeu_ps(dst + i, dst_tmp);
-            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
-        }
-    }
-
-    for (int i = stop_len; i < len; i++) {
-        if (src[i] >= 0.0f) {
-            dst[i] = src[i] > value ? value : src[i];
-        } else {
-            dst[i] = src[i] < (-value) ? (-value) : src[i];
-        }
-    }
-}
-#endif
 
 static inline void threshold512_lt_f(float *src, float *dst, int len, float value)
 {
@@ -1613,7 +1527,6 @@ static inline void threshold512_lt_f(float *src, float *dst, int len, float valu
     }
 }
 
-#if 1
 static inline void threshold512_ltabs_f(float *src, float *dst, int len, float value)
 {
     const v16sf pval = _mm512_set1_ps(value);
@@ -1625,14 +1538,8 @@ static inline void threshold512_ltabs_f(float *src, float *dst, int len, float v
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_load_ps(src + i);
             v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
-            v16sf src_sign = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_sign_mask);  // extract sign
-            v16sf src_sign2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_sign_mask);
-            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);  // take absolute value
-            v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
-            v16sf dst_tmp = _mm512_max_ps(src_abs, pval);
-            v16sf dst_tmp2 = _mm512_max_ps(src_abs2, pval);
-            dst_tmp = _mm512_xor_ps(dst_tmp, src_sign);
-            dst_tmp2 = _mm512_xor_ps(dst_tmp2, src_sign2);
+            v16sf dst_tmp = _mm512_range_ps(src_tmp, pval, 0x3);
+            v16sf dst_tmp2 = _mm512_range_ps(src_tmp2, pval, 0x3);
             _mm512_store_ps(dst + i, dst_tmp);
             _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
@@ -1640,14 +1547,8 @@ static inline void threshold512_ltabs_f(float *src, float *dst, int len, float v
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf src_tmp = _mm512_loadu_ps(src + i);
             v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
-            v16sf src_sign = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_sign_mask);  // extract sign
-            v16sf src_sign2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_sign_mask);
-            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);  // take absolute value
-            v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
-            v16sf dst_tmp = _mm512_max_ps(src_abs, pval);
-            v16sf dst_tmp2 = _mm512_max_ps(src_abs2, pval);
-            dst_tmp = _mm512_xor_ps(dst_tmp, src_sign);
-            dst_tmp2 = _mm512_xor_ps(dst_tmp2, src_sign2);
+            v16sf dst_tmp = _mm512_range_ps(src_tmp, pval, 0x3);
+            v16sf dst_tmp2 = _mm512_range_ps(src_tmp2, pval, 0x3);
             _mm512_storeu_ps(dst + i, dst_tmp);
             _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
         }
@@ -1661,60 +1562,6 @@ static inline void threshold512_ltabs_f(float *src, float *dst, int len, float v
         }
     }
 }
-#else
-static inline void threshold512_ltabs_f(float *src, float *dst, int len, float value)
-{
-    const v16sf pval = _mm512_set1_ps(value);
-    const v16sf mval = _mm512_set1_ps(-value);
-
-    int stop_len = len / (2 * AVX512_LEN_FLOAT);
-    stop_len *= (2 * AVX512_LEN_FLOAT);
-
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-            v16sf src_tmp = _mm512_load_ps(src + i);
-            v16sf src_tmp2 = _mm512_load_ps(src + i + AVX512_LEN_FLOAT);
-            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
-            v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
-            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
-            __mmask16 eqmask2 = _mm512_cmp_ps_mask(src_abs2, src_tmp2, _CMP_EQ_OS);
-            __mmask16 ltmask = _mm512_cmp_ps_mask(src_abs, pval, _CMP_LT_OS);  // if abs(A) < value => 0xFFFFFFFF, else 0
-            __mmask16 ltmask2 = _mm512_cmp_ps_mask(src_abs2, pval, _CMP_LT_OS);
-            v16sf sval = _mm512_mask_blend_ps(eqmask, mval, pval);  // if A >= 0 value, else -value
-            v16sf sval2 = _mm512_mask_blend_ps(eqmask2, mval, pval);
-            v16sf dst_tmp = _mm512_mask_blend_ps(ltmask, src_tmp, sval);  // either A or sval (+- value)
-            v16sf dst_tmp2 = _mm512_mask_blend_ps(ltmask2, src_tmp2, sval2);
-            _mm512_store_ps(dst + i, dst_tmp);
-            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
-        }
-    } else {
-        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
-            v16sf src_tmp = _mm512_loadu_ps(src + i);
-            v16sf src_tmp2 = _mm512_loadu_ps(src + i + AVX512_LEN_FLOAT);
-            v16sf src_abs = _mm512_and_ps(src_tmp, *(v16sf *) _ps512_pos_sign_mask);
-            v16sf src_abs2 = _mm512_and_ps(src_tmp2, *(v16sf *) _ps512_pos_sign_mask);
-            __mmask16 eqmask = _mm512_cmp_ps_mask(src_abs, src_tmp, _CMP_EQ_OS);  // if A = abs(A), then A is >= 0 (mask 0xFFFFFFFF)
-            __mmask16 eqmask2 = _mm512_cmp_ps_mask(src_abs2, src_tmp2, _CMP_EQ_OS);
-            __mmask16 ltmask = _mm512_cmp_ps_mask(src_abs, pval, _CMP_LT_OS);  // if abs(A) < value => 0xFFFFFFFF, else 0
-            __mmask16 ltmask2 = _mm512_cmp_ps_mask(src_abs2, pval, _CMP_LT_OS);
-            v16sf sval = _mm512_mask_blend_ps(eqmask, mval, pval);  // if A >= 0 value, else -value
-            v16sf sval2 = _mm512_mask_blend_ps(eqmask2, mval, pval);
-            v16sf dst_tmp = _mm512_mask_blend_ps(ltmask, src_tmp, sval);  // either A or sval (+- value)
-            v16sf dst_tmp2 = _mm512_mask_blend_ps(ltmask2, src_tmp2, sval2);
-            _mm512_storeu_ps(dst + i, dst_tmp);
-            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
-        }
-    }
-
-    for (int i = stop_len; i < len; i++) {
-        if (src[i] >= 0.0f) {
-            dst[i] = src[i] < value ? value : src[i];
-        } else {
-            dst[i] = src[i] > (-value) ? (-value) : src[i];
-        }
-    }
-}
-#endif
 
 static inline void threshold512_ltval_gtval_f(float *src, float *dst, int len, float ltlevel, float ltvalue, float gtlevel, float gtvalue)
 {

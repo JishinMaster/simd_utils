@@ -19,31 +19,22 @@
 */
 static inline v16sf log512_ps(v16sf x)
 {
-    v16si imm0;
-    v16sf one = *(v16sf *) _ps512_1;
-
     v16sf invalid_mask = (v16sf) _mm512_movm_epi32(_mm512_cmp_ps_mask(x, _mm512_setzero_ps(), _CMP_LE_OS));
     x = _mm512_max_ps(x, *(v16sf *) _ps512_min_norm_pos); /* cut off denormalized stuff */
 
-    // can be done with AVX2
-    imm0 = _mm512_srli_epi32(_mm512_castps_si512(x), 23);
+    /* get the exponent part */
+    v16sf e = _mm512_getexp_ps(x);
+    e = _mm512_add_ps(e, *(v16sf *) _ps512_1);
 
     /* keep only the fractional part */
     x = _mm512_and_ps(x, *(v16sf *) _ps512_inv_mant_mask);
     x = _mm512_or_ps(x, *(v16sf *) _ps512_0p5);
 
-    // this is again another AVX2 instruction
-    imm0 = _mm512_sub_epi32(imm0, *(v16si *) _pi32_512_0x7f);
-    v16sf e = _mm512_cvtepi32_ps(imm0);
-
-    e = _mm512_add_ps(e, one);
-
-    v16sf mask = (v16sf) _mm512_movm_epi32(_mm512_cmp_ps_mask(x, *(v16sf *) _ps512_cephes_SQRTHF, _CMP_LT_OS));
-
-    v16sf tmp = _mm512_and_ps(x, mask);
-    x = _mm512_sub_ps(x, one);
-    e = _mm512_sub_ps(e, _mm512_and_ps(one, mask));
-    x = _mm512_add_ps(x, tmp);
+    __mmask16 kmask = _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_cephes_SQRTHF, _CMP_LT_OS);
+    v16sf tmp = x;
+    x = _mm512_sub_ps(x, *(v16sf *) _ps512_1);
+    e = _mm512_mask_sub_ps(e, kmask, e, *(v16sf *) _ps512_1);
+    x = _mm512_mask_add_ps(x, kmask, x, tmp);
 
     v16sf z = _mm512_mul_ps(x, x);
 
@@ -72,7 +63,6 @@ static inline v16sf exp512_ps(v16sf x)
 {
     v16sf tmp = _mm512_setzero_ps(), fx;
     v16si imm0;
-    v16sf one = *(v16sf *) _ps512_1;
 
     x = _mm512_min_ps(x, *(v16sf *) _ps512_exp_hi);
     x = _mm512_max_ps(x, *(v16sf *) _ps512_exp_lo);
@@ -82,9 +72,8 @@ static inline v16sf exp512_ps(v16sf x)
     tmp = _mm512_floor_ps(fx);
 
     /* if greater, substract 1 */
-    v16sf mask = (v16sf) _mm512_movm_epi32(_mm512_cmp_ps_mask(tmp, fx, _CMP_GT_OS));
-    mask = _mm512_and_ps(mask, one);
-    fx = _mm512_sub_ps(tmp, mask);
+    __mmask16 kmask = _mm512_cmp_ps_mask(tmp, fx, _CMP_GT_OS);
+    fx = _mm512_mask_sub_ps(tmp, kmask, tmp, *(v16sf *) _ps512_1);
 
     x = _mm512_fnmadd_ps(fx, *(v16sf *) _ps512_cephes_exp_C1, x);
     x = _mm512_fnmadd_ps(fx, *(v16sf *) _ps512_cephes_exp_C2, x);
@@ -97,15 +86,10 @@ static inline v16sf exp512_ps(v16sf x)
     y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_exp_p4);
     y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_exp_p5);
     y = _mm512_fmadd_ps(y, z, x);
-    y = _mm512_add_ps(y, one);
+    y = _mm512_add_ps(y, *(v16sf *) _ps512_1);
 
     /* build 2^n */
-    imm0 = _mm512_cvttps_epi32(fx);
-    // another two AVX2 instructions
-    imm0 = _mm512_add_epi32(imm0, *(v16si *) _pi32_512_0x7f);
-    imm0 = _mm512_slli_epi32(imm0, 23);
-    v16sf pow2n = _mm512_castsi512_ps(imm0);
-    y = _mm512_mul_ps(y, pow2n);
+    y = _mm512_scalef_ps(y, fx);
     return y;
 }
 
@@ -126,7 +110,7 @@ static inline v16sf sin512_ps(v16sf x)
     /* store the integer part of y in mm0 */
     imm2 = _mm512_cvttps_epi32(y);
     /* j=(j+1) & (~1) (see the cephes sources) */
-    // another two AVX2 instruction
+    // another two AVX512 instructions
     imm2 = _mm512_add_epi32(imm2, *(v16si *) _pi32_512_1);
     imm2 = _mm512_and_si512(imm2, *(v16si *) _pi32_512_inv1);
     y = _mm512_cvtepi32_ps(imm2);
@@ -141,17 +125,8 @@ static inline v16sf sin512_ps(v16sf x)
      Both branches will be computed.
   */
     imm2 = _mm512_and_si512(imm2, *(v16si *) _pi32_512_2);
-    imm2 = (__m512i) _mm512_maskz_set1_epi32(_mm512_cmpeq_epi32_mask(imm2, *(v16si *) _pi32_512_0), -1);
-
-
     v16sf swap_sign_bit = _mm512_castsi512_ps(imm0);
-
-#if 1
-    // Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?
-    __mmask16 poly_mask = _mm512_cmplt_epi32_mask(imm2, _mm512_setzero_si512());
-#else
-    v16sf poly_mask = _mm512_castsi512_ps(imm2);
-#endif
+    __mmask16 poly_mask = _mm512_cmpeq_epi32_mask(imm2, *(v16si *) _pi32_512_0);
 
     sign_bit = _mm512_xor_ps(sign_bit, swap_sign_bit);
 
@@ -179,13 +154,7 @@ static inline v16sf sin512_ps(v16sf x)
     y2 = _mm512_fmadd_ps(y2, x, x);
 
     /* select the correct result from the two polynoms */
-#if 1
     y = _mm512_mask_blend_ps(poly_mask, y, y2);
-#else
-    y2 = _mm512_and_ps(poly_mask, y2);  //, xmm3);
-    y = _mm512_andnot_ps(poly_mask, y);
-    y = _mm512_add_ps(y, y2);
-#endif
 
     /* update the sign */
     y = _mm512_xor_ps(y, sign_bit);
@@ -216,18 +185,11 @@ static inline v16sf cos512_ps(v16sf x)
     /* get the swap sign flag */
     imm0 = _mm512_andnot_si512(imm2, *(v16si *) _pi32_512_4);
     imm0 = _mm512_slli_epi32(imm0, 29);
+
     /* get the polynom selection mask */
     imm2 = _mm512_and_si512(imm2, *(v16si *) _pi32_512_2);
-    imm2 = (__m512i) _mm512_maskz_set1_epi32(_mm512_cmpeq_epi32_mask(imm2, *(v16si *) _pi32_512_0), -1);
-
     v16sf sign_bit = _mm512_castsi512_ps(imm0);
-
-#if 1
-    // Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?
-    __mmask16 poly_mask = _mm512_cmplt_epi32_mask(imm2, _mm512_setzero_si512());
-#else
-    v16sf poly_mask = _mm512_castsi512_ps(imm2);
-#endif
+    __mmask16 poly_mask = _mm512_cmpeq_epi32_mask(imm2, *(v16si *) _pi32_512_0);
 
     /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
@@ -253,13 +215,7 @@ static inline v16sf cos512_ps(v16sf x)
     y2 = _mm512_fmadd_ps(y2, x, x);
 
     /* select the correct result from the two polynoms */
-#if 1
     y = _mm512_mask_blend_ps(poly_mask, y, y2);
-#else
-    y2 = _mm512_and_ps(poly_mask, y2);  //, xmm3);
-    y = _mm512_andnot_ps(poly_mask, y);
-    y = _mm512_add_ps(y, y2);
-#endif
 
     /* update the sign */
     y = _mm512_xor_ps(y, sign_bit);
@@ -298,17 +254,8 @@ static inline void sincos512_ps(v16sf x, v16sf *s, v16sf *c)
 
     /* get the polynom selection mask for the sine*/
     imm2 = _mm512_and_si512(imm2, *(v16si *) _pi32_512_2);
-    imm2 = (__m512i) _mm512_maskz_set1_epi32(_mm512_cmpeq_epi32_mask(imm2, *(v16si *) _pi32_512_0), -1);
-    // v16sf poly_mask = _mm512_castsi512_ps(imm2);
-
     v16sf swap_sign_bit_sin = _mm512_castsi512_ps(imm0);
-
-#if 1
-    // Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?
-    __mmask16 poly_mask = _mm512_cmplt_epi32_mask(imm2, _mm512_setzero_si512());
-#else
-    v16sf poly_mask = _mm512_castsi512_ps(imm2);
-#endif
+    __mmask16 poly_mask = _mm512_cmpeq_epi32_mask(imm2, *(v16si *) _pi32_512_0);
 
     /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
@@ -341,17 +288,8 @@ static inline void sincos512_ps(v16sf x, v16sf *s, v16sf *c)
     y2 = _mm512_fmadd_ps(y2, x, x);
 
     /* select the correct result from the two polynoms */
-#if 1
     xmm1 = _mm512_mask_blend_ps(poly_mask, y, y2);
     xmm2 = _mm512_mask_blend_ps(poly_mask, y2, y);
-#else
-    v16sf ysin2 = _mm512_and_ps(poly_mask, y2);
-    v16sf ysin1 = _mm512_andnot_ps(poly_mask, y);
-    y2 = _mm512_sub_ps(y2, ysin2);
-    y = _mm512_sub_ps(y, ysin1);
-    xmm1 = _mm512_add_ps(ysin1, ysin2);
-    xmm2 = _mm512_add_ps(y, y2);
-#endif
 
     /* update the sign */
     *s = _mm512_xor_ps(xmm1, sign_bit_sin);

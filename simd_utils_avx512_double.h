@@ -546,11 +546,11 @@ static inline v8sd asin512_pd(v8sd x)
     // sign = _mm512_cmp_pd_mask(x, _mm512_setzero_pd(), _CMP_LT_OS);  // 0xFFFFFFFF if x < 0.0
     sign = _mm512_and_pd(x, *(v8sd *) _pd512_sign_mask);
 
-    ainfem8 = _mm512_cmp_pd_mask(a, _mm512_set1_pd(1.0e-8), _CMP_LT_OS);  // if( a < 1.0e-8)
-    asup0p625 = _mm512_cmp_pd_mask(a, _mm512_set1_pd(0.625), _CMP_GT_OS);
+    ainfem8 = _mm512_cmp_pd_mask(a, *(v8sd *) _pd512_1em8, _CMP_LT_OS);  // if( a < 1.0e-8)
+    asup0p625 = _mm512_cmp_pd_mask(a, *(v8sd *) _pd512_0p625, _CMP_GT_OS);
 
     // fist branch
-    zz_first_branch = _mm512_sub_pd(_mm512_set1_pd(1.0), a);
+    zz_first_branch = _mm512_sub_pd(*(v8sd *) _pd512_1, a);
     p = _mm512_fmadd_pd_custom(*(v8sd *) _pd512_ASIN_R0, zz_first_branch, *(v8sd *) _pd512_ASIN_R1);
     p = _mm512_fmadd_pd_custom(p, zz_first_branch, *(v8sd *) _pd512_ASIN_R2);
     p = _mm512_fmadd_pd_custom(p, zz_first_branch, *(v8sd *) _pd512_ASIN_R3);
@@ -627,7 +627,6 @@ static inline v8sd atan512_pd(v8sd xx)
     __mmask8 suptan3pi8, inftan3pi8inf0p66;  // > T3PI8 or (< T3PI8 and > 0.66)
     __mmask8 flagand1, flagand2;
     v8sd tmp, tmp2, tmp3;
-    v8sd zerop66 = _mm512_set1_pd(0.66);
     v8sd flag = _mm512_setzero_pd();  // flag = 0
 
     x = _mm512_and_pd(*(v8sd *) _pd512_positive_mask, xx);  // x = fabs(xx)
@@ -635,14 +634,13 @@ static inline v8sd atan512_pd(v8sd xx)
     sign = _mm512_and_pd(xx, *(v8sd *) _pd512_sign_mask);
 
     /* range reduction */
-
     y = _mm512_setzero_pd();
     suptan3pi8 = _mm512_cmp_pd_mask(x, *(v8sd *) _pd512_TAN3PI8, _CMP_GT_OS);  // if( x > tan 3pi/8 )
     x = _mm512_mask_div_pd(x, suptan3pi8, *(v8sd *) _pd512_min1, x);           // if( x > tan 3pi/8 ) then x = -1.0/x
     y = _mm512_mask_blend_pd(suptan3pi8, y, *(v8sd *) _pd512_PIO2);            // if( x > tan 3pi/8 ) then y = PI/2
     flag = _mm512_mask_blend_pd(suptan3pi8, flag, *(v8sd *) _pd512_1);         // if( x > tan 3pi/8 ) then flag = 1
 
-    inftan3pi8inf0p66 = _kand_mask8(_mm512_cmp_pd_mask(x, *(v8sd *) _pd512_TAN3PI8, _CMP_LE_OS), _mm512_cmp_pd_mask(x, zerop66, _CMP_LE_OS));  // if( x <= tan 3pi/8 ) && (x <= 0.66)
+    inftan3pi8inf0p66 = _kand_mask8(_mm512_cmp_pd_mask(x, *(v8sd *) _pd512_TAN3PI8, _CMP_LE_OS), _mm512_cmp_pd_mask(x, *(v8sd *) _pd512_0p66, _CMP_LE_OS));  // if( x <= tan 3pi/8 ) && (x <= 0.66)
     y = _mm512_mask_blend_pd(inftan3pi8inf0p66, *(v8sd *) _pd512_PIO4, y);                                                                     // y = 0 or PIO4
     tmp2 = _mm512_add_pd(x, *(v8sd *) _pd512_1);
     tmp3 = _mm512_sub_pd(x, *(v8sd *) _pd512_1);
@@ -833,18 +831,8 @@ static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
     v8sd swap_sign_bit_sin = _mm512_castsi512_pd(emm0);
     /* get the polynom selection mask for the sine*/
     emm2 = _mm512_and_si512(emm2, *(v8sid *) _pi512_64_2);
-    cmpeq_mask = _mm512_cmpeq_epi64_mask(emm2, _mm512_setzero_si512());
-    v8sid ffff = _mm512_set1_epi64(0xFFFFFFFFFFFFFFFF);
-    emm2 = _mm512_mask_blend_epi64(cmpeq_mask, _mm512_setzero_si512(), ffff);
 
-#if 1
-    // Cast integer 0000 FFFF (negative int) to mmask type. Is there a better way?
-    __mmask8 poly_mask = _mm512_cmplt_epi64_mask(emm2, _mm512_setzero_si512());
-#else
-    v8sd poly_mask = _mm512_castsi512_pd(emm2);
-#endif
-
-
+    __mmask8 poly_mask = _mm512_cmpeq_epi64_mask(emm2, _mm512_setzero_si512());
 
     /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
@@ -881,17 +869,8 @@ static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
     y2 = _mm512_fmadd_pd_custom(y2, x, x);
 
     /* select the correct result from the two polynoms */
-#if 1
     xmm1 = _mm512_mask_blend_pd(poly_mask, y, y2);
     xmm2 = _mm512_mask_blend_pd(poly_mask, y2, y);
-#else
-    v8sd ysin2 = _mm512_and_pd(poly_mask, y2);
-    v8sd ysin1 = _mm512_andnot_pd(poly_mask, y);
-    y2 = _mm512_sub_pd(y2, ysin2);
-    y = _mm512_sub_pd(y, ysin1);
-    xmm1 = _mm512_add_pd(ysin1, ysin2);
-    xmm2 = _mm512_add_pd(y, y2);
-#endif
 
     /* update the sign */
     *s = _mm512_xor_pd(xmm1, sign_bit_sin);
@@ -1141,7 +1120,7 @@ static inline v8sd exp512_pd(v8sd x)
     px = _mm512_fmadd_pd(*(v8sd *) _pd512_cephes_LOG2E, x, *(v8sd *) _pd512_0p5);
     px = _mm512_roundscale_pd(px, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
 
-    n = _mm512_cvtpd_epi64(px);  // n = px;
+    v8sd px_tmp = px;
     x = _mm512_fmadd_pd(*(v8sd *) _pd512_cephes_exp_minC1, px, x);
     x = _mm512_fmadd_pd(*(v8sd *) _pd512_cephes_exp_minC2, px, x);
 
@@ -1160,13 +1139,8 @@ static inline v8sd exp512_pd(v8sd x)
     x = _mm512_div_pd(px, tmp2);
     x = _mm512_fmadd_pd(x, *(v8sd *) _pd512_2, *(v8sd *) _pd512_1);
 
-    /* build 2^n */
-    n = _mm512_add_epi64(n, *(v8sid *) _pi512_64_1023);
-    n = _mm512_slli_epi64(n, 52);
-    v8sd pow2n = _mm512_castsi512_pd(n);
-
     /* multiply by power of 2 */
-    x = _mm512_mul_pd(x, pow2n);
+    x = _mm512_scalef_pd(x, px_tmp);
     return (x);
 }
 
@@ -1214,19 +1188,18 @@ static inline v8sd log512_pd(v8sd x)
     __mmask8 abseinf2 = _mm512_cmp_pd_mask(abse, *(v8sd *) _pd512_2, _CMP_LT_OS);  // FF if < 2
     __mmask8 xinfsqrth = _mm512_cmp_pd_mask(x, *(v8sd *) _pd512_cephes_SQRTHF, _CMP_LT_OS);
 
-    e = _mm512_mask_blend_pd(xinfsqrth, e, _mm512_sub_pd(e, *(v8sd *) _pd512_1));  // if( x < SQRTH ) e-=1
+    // if( x < SQRTH ) e-=1
+    e = _mm512_mask_sub_pd(e, xinfsqrth, e, *(v8sd *) _pd512_1);
     v8sd z_abseinf2, y_abseinf2, x_abseinf2;
     v8sd tmp_abseinf2, tmp2_abseinf2;
 
     // if(x < SQRTH) z_abseinf2 = (x-0.5), else x-1
-    tmp_abseinf2 = _mm512_sub_pd(x, *(v8sd *) _pd512_1);
-    tmp2_abseinf2 = _mm512_sub_pd(x, *(v8sd *) _pd512_0p5);
-    z_abseinf2 = _mm512_mask_blend_pd(xinfsqrth, tmp_abseinf2, tmp2_abseinf2);
-
-    tmp_abseinf2 = _mm512_fmadd_pd(z_abseinf2, *(v8sd *) _pd512_0p5, *(v8sd *) _pd512_0p5);
-    tmp2_abseinf2 = _mm512_fmadd_pd(x, *(v8sd *) _pd512_0p5, *(v8sd *) _pd512_0p5);
+    tmp2_abseinf2 = _mm512_sub_pd(x, *(v8sd *) _pd512_1);
+    z_abseinf2 = _mm512_mask_sub_pd(tmp2_abseinf2, xinfsqrth, x, *(v8sd *) _pd512_0p5);
 
     // if(x < SQRTH) y_abseinf2 = z*0.5 + 0.5, else = x*0.5 + 0.5
+    tmp_abseinf2 = _mm512_fmadd_pd(z_abseinf2, *(v8sd *) _pd512_0p5, *(v8sd *) _pd512_0p5);
+    tmp2_abseinf2 = _mm512_fmadd_pd(x, *(v8sd *) _pd512_0p5, *(v8sd *) _pd512_0p5);
     y_abseinf2 = _mm512_mask_blend_pd(xinfsqrth, tmp2_abseinf2, tmp_abseinf2);
 
     x_abseinf2 = _mm512_div_pd(z_abseinf2, y_abseinf2);  // x = z / y;
@@ -1248,10 +1221,18 @@ static inline v8sd log512_pd(v8sd x)
     z_abseinf2 = _mm512_add_pd(z_abseinf2, x_abseinf2);                          // z = z + x;
 
     /* logarithm using log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
+    
+    // if(x < SQRTH) x  = 2.0*x - 1.0, else x - 1.0
     v8sd tmp3, tmp4;
-    tmp3 = _mm512_fmadd_pd(x, *(v8sd *) _pd512_2, *(v8sd *) _pd512_min1);  //	  x = 2.0*x - 1.0; /*  2x - 1  */
+// Less precision without FMA?
+#if 1
+    tmp4 = _mm512_sub_pd(x, *(v8sd *) _pd512_1);
+    x = _mm512_mask_add_pd(tmp4, xinfsqrth, x, x);
+#else
+    tmp3 = _mm512_fmadd_pd(x, *(v8sd *) _pd512_2, *(v8sd *) _pd512_min1);  //    x = 2.0*x - 1.0; /*  2x - 1  */
     tmp4 = _mm512_sub_pd(x, *(v8sd *) _pd512_1);                           // x = x - 1.0;
     x = _mm512_mask_blend_pd(xinfsqrth, tmp4, tmp3);
+#endif
 
     /* rational form */
     z = _mm512_mul_pd(x, x);  // z = x*x;
