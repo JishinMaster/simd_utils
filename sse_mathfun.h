@@ -106,7 +106,7 @@ static inline v4sf log_ps(v4sf x)
 
 static inline v4sf exp_ps(v4sf x)
 {
-    v4sf tmp = _mm_setzero_ps(), fx;
+    v4sf tmp, fx;
     v4si emm0;
     v4sf one = *(v4sf *) _ps_1;
 
@@ -116,18 +116,7 @@ static inline v4sf exp_ps(v4sf x)
     /* express exp(x) as exp(g + n*log(2)) */
     fx = _mm_mul_ps(x, *(v4sf *) _ps_cephes_LOG2EF);
     fx = _mm_add_ps(fx, *(v4sf *) _ps_0p5);
-
-    /* how to perform a floorf with SSE: just below */
-
-    // without SSE4.1
-    //  emm0 = _mm_cvttps_epi32(fx);
-    //  tmp = _mm_cvtepi32_ps(emm0);
-    // With SSE4.1
-    tmp = _mm_round_ps(fx, _MM_FROUND_FLOOR);
-    /* if greater, substract 1 */
-    v4sf mask = _mm_cmpgt_ps(tmp, fx);
-    mask = _mm_and_ps(mask, one);
-    fx = _mm_sub_ps(tmp, mask);
+    fx = _mm_round_ps(fx, _MM_FROUND_FLOOR);
 
     tmp = _mm_mul_ps(fx, *(v4sf *) _ps_cephes_exp_C1);
     v4sf z = _mm_mul_ps(fx, *(v4sf *) _ps_cephes_exp_C2);
@@ -521,10 +510,8 @@ static inline v4sf log_ps(v4sf x)
 
 static inline v4sf exp_ps(v4sf x)
 {
-    v4sf tmp = _mm_setzero_ps(), fx;
-
+    v4sf fx;
     v4si emm0;
-
     v4sf one = *(v4sf *) _ps_1;
 
     x = _mm_min_ps(x, *(v4sf *) _ps_exp_hi);
@@ -532,14 +519,7 @@ static inline v4sf exp_ps(v4sf x)
 
     /* express exp(x) as exp(g + n*log(2)) */
     fx = _mm_fmadd_ps(x, *(v4sf *) _ps_cephes_LOG2EF, *(v4sf *) _ps_0p5);
-
-    /* how to perform a floorf with SSE: just below */
-    tmp = _mm_round_ps(fx, _MM_FROUND_FLOOR);
-
-    /* if greater, substract 1 */
-    v4sf mask = _mm_cmpgt_ps(tmp, fx);
-    mask = _mm_and_ps(mask, one);
-    fx = _mm_sub_ps(tmp, mask);
+    fx = _mm_round_ps(fx, _MM_FROUND_FLOOR);
 
     x = _mm_fnmadd_ps(fx, *(v4sf *) _ps_cephes_exp_C1, x);
     x = _mm_fnmadd_ps(fx, *(v4sf *) _ps_cephes_exp_C2, x);

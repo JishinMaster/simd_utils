@@ -110,7 +110,7 @@ static inline v8sf log256_ps(v8sf x)
 
 static inline v8sf exp256_ps(v8sf x)
 {
-    v8sf tmp = _mm256_setzero_ps(), fx;
+    v8sf tmp, fx;
     v8si imm0;
     v8sf one = *(v8sf *) _ps256_1;
 
@@ -120,18 +120,7 @@ static inline v8sf exp256_ps(v8sf x)
     /* express exp(x) as exp(g + n*log(2)) */
     fx = _mm256_mul_ps(x, *(v8sf *) _ps256_cephes_LOG2EF);
     fx = _mm256_add_ps(fx, *(v8sf *) _ps256_0p5);
-
-    /* how to perform a floorf with SSE: just below */
-    // imm0 = _mm256_cvttps_epi32(fx);
-    // tmp  = _mm256_cvtepi32_ps(imm0);
-
-    tmp = _mm256_floor_ps(fx);
-
-    /* if greater, substract 1 */
-    // v8sf mask = _mm256_cmpgt_ps(tmp, fx);
-    v8sf mask = _mm256_cmp_ps(tmp, fx, _CMP_GT_OS);
-    mask = _mm256_and_ps(mask, one);
-    fx = _mm256_sub_ps(tmp, mask);
+    fx = _mm256_floor_ps(fx);
 
     tmp = _mm256_mul_ps(fx, *(v8sf *) _ps256_cephes_exp_C1);
     v8sf z = _mm256_mul_ps(fx, *(v8sf *) _ps256_cephes_exp_C2);
@@ -640,7 +629,7 @@ static inline v8sf log256_ps(v8sf x)
 
 static inline v8sf exp256_ps(v8sf x)
 {
-    v8sf tmp = _mm256_setzero_ps(), fx;
+    v8sf fx;
     v8si imm0;
     v8sf one = *(v8sf *) _ps256_1;
 
@@ -649,14 +638,7 @@ static inline v8sf exp256_ps(v8sf x)
 
     /* express exp(x) as exp(g + n*log(2)) */
     fx = _mm256_fmadd_ps(x, *(v8sf *) _ps256_cephes_LOG2EF, *(v8sf *) _ps256_0p5);
-
-    /* how to perform a floorf with SSE: just below */
-    tmp = _mm256_floor_ps(fx);
-
-    /* if greater, substract 1 */
-    v8sf mask = _mm256_cmp_ps(tmp, fx, _CMP_GT_OS);
-    mask = _mm256_and_ps(mask, one);
-    fx = _mm256_sub_ps(tmp, mask);
+    fx = _mm256_floor_ps(fx);
 
     x = _mm256_fnmadd_ps(fx, *(v8sf *) _ps256_cephes_exp_C1, x);
     x = _mm256_fnmadd_ps(fx, *(v8sf *) _ps256_cephes_exp_C2, x);

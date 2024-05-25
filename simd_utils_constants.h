@@ -1939,7 +1939,7 @@ _PD512_CONST(1em8, 1E-8);
 
 
 /// PRINT FUNCTIONS */
-#if 0
+#if 1
 
 #if defined(RISCV)
 
@@ -2159,6 +2159,12 @@ static inline void print4id(__m256i v)
 #endif
 
 #ifdef AVX512
+static inline void print16(__m512 v)
+{
+    float *p = (float *) &v;
+    printf("[%3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g, %3.5g]", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+}
+
 static inline void print8d(__m512d v)
 {
     double *p = (double *) &v;

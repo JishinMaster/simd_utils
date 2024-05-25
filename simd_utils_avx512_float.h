@@ -148,7 +148,7 @@ static inline void log10512f_precise(float *src, float *dst, int len)
 
 static inline void log2512f(float *src, float *dst, int len)
 {
-    const v16sf invln2f = _mm512_set1_ps((float) INVLN2);  //_mm512_broadcast_ss(&invln10f_mask);
+    const v16sf invln2f = _mm512_set1_ps((float) INVLN2);
 
     int stop_len = len / AVX512_LEN_FLOAT;
     stop_len *= AVX512_LEN_FLOAT;
@@ -1353,8 +1353,12 @@ static inline void minmax512f(float *src, int len, float *min_value, float *max_
         max_v = _mm512_max_ps(max_v, max_v2);
         min_v = _mm512_min_ps(min_v, min_v2);
 
-// With SIMD reduction
+// With AVX512 reduce
 #if 1
+        min_tmp = _mm512_reduce_min_ps(min_v);
+        max_tmp = _mm512_reduce_max_ps(max_v);
+#else
+// With SIMD reduction
         v8sf max1 = _mm512_castps512_ps256(max_v);
         v8sf min1 = _mm512_castps512_ps256(min_v);
         v8sf max2 = _mm512_extractf32x8_ps(max_v, 1);
@@ -1377,44 +1381,6 @@ static inline void minmax512f(float *src, int len, float *min_value, float *max_
         min4 = _mm_min_ps(min3, min4);
         _mm_store_ss(&max_tmp, max4);
         _mm_store_ss(&min_tmp, min4);
-
-#else
-        _mm512_store_ps(max_f, max_v);
-        _mm512_store_ps(min_f, min_v);
-
-        max_tmp = max_f[0];
-        max_tmp = max_tmp > max_f[1] ? max_tmp : max_f[1];
-        max_tmp = max_tmp > max_f[2] ? max_tmp : max_f[2];
-        max_tmp = max_tmp > max_f[3] ? max_tmp : max_f[3];
-        max_tmp = max_tmp > max_f[4] ? max_tmp : max_f[4];
-        max_tmp = max_tmp > max_f[5] ? max_tmp : max_f[5];
-        max_tmp = max_tmp > max_f[6] ? max_tmp : max_f[6];
-        max_tmp = max_tmp > max_f[7] ? max_tmp : max_f[7];
-        max_tmp = max_tmp > max_f[8] ? max_tmp : max_f[8];
-        max_tmp = max_tmp > max_f[9] ? max_tmp : max_f[9];
-        max_tmp = max_tmp > max_f[10] ? max_tmp : max_f[10];
-        max_tmp = max_tmp > max_f[11] ? max_tmp : max_f[11];
-        max_tmp = max_tmp > max_f[12] ? max_tmp : max_f[12];
-        max_tmp = max_tmp > max_f[13] ? max_tmp : max_f[13];
-        max_tmp = max_tmp > max_f[14] ? max_tmp : max_f[14];
-        max_tmp = max_tmp > max_f[15] ? max_tmp : max_f[15];
-
-        min_tmp = min_f[0];
-        min_tmp = min_tmp < min_f[1] ? min_tmp : min_f[1];
-        min_tmp = min_tmp < min_f[2] ? min_tmp : min_f[2];
-        min_tmp = min_tmp < min_f[3] ? min_tmp : min_f[3];
-        min_tmp = min_tmp < min_f[4] ? min_tmp : min_f[4];
-        min_tmp = min_tmp < min_f[5] ? min_tmp : min_f[5];
-        min_tmp = min_tmp < min_f[6] ? min_tmp : min_f[6];
-        min_tmp = min_tmp < min_f[7] ? min_tmp : min_f[7];
-        min_tmp = min_tmp < min_f[8] ? min_tmp : min_f[8];
-        min_tmp = min_tmp < min_f[9] ? min_tmp : min_f[9];
-        min_tmp = min_tmp < min_f[10] ? min_tmp : min_f[10];
-        min_tmp = min_tmp < min_f[11] ? min_tmp : min_f[11];
-        min_tmp = min_tmp < min_f[12] ? min_tmp : min_f[12];
-        min_tmp = min_tmp < min_f[13] ? min_tmp : min_f[13];
-        min_tmp = min_tmp < min_f[14] ? min_tmp : min_f[14];
-        min_tmp = min_tmp < min_f[15] ? min_tmp : min_f[15];
 #endif
     }
 
@@ -2592,11 +2558,9 @@ static inline void sum512f(float *src, float *dst, int len)
     int stop_len = len / (2 * AVX512_LEN_FLOAT);
     stop_len *= (2 * AVX512_LEN_FLOAT);
 
-    __attribute__((aligned(AVX512_LEN_BYTES))) float accumulate[AVX512_LEN_FLOAT];
-    float tmp_acc = 0.0f;
     v16sf vec_acc1 = _mm512_setzero_ps();  // initialize the vector accumulator
     v16sf vec_acc2 = _mm512_setzero_ps();  // initialize the vector accumulator
-
+    
     if (isAligned((uintptr_t) (src), AVX512_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
             v16sf vec_tmp1 = _mm512_load_ps(src + i);
@@ -2614,14 +2578,11 @@ static inline void sum512f(float *src, float *dst, int len)
     }
 
     vec_acc1 = _mm512_add_ps(vec_acc1, vec_acc2);
-    _mm512_store_ps(accumulate, vec_acc1);
-
+    float tmp_acc = _mm512_reduce_add_ps(vec_acc1);
     for (int i = stop_len; i < len; i++) {
         tmp_acc += src[i];
     }
-
-    tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3] + accumulate[4] + accumulate[5] + accumulate[6] + accumulate[7] + accumulate[8] + accumulate[9] + accumulate[10] + accumulate[11] + accumulate[12] + accumulate[13] + accumulate[14] + accumulate[15];
-
+    
     *dst = tmp_acc;
 }
 
@@ -2638,8 +2599,6 @@ static inline void dot512f(float *src1, float *src2, int len, float *dst)
     int stop_len = len / (2 * AVX512_LEN_FLOAT);
     stop_len *= (2 * AVX512_LEN_FLOAT);
 
-    __attribute__((aligned(AVX512_LEN_BYTES))) float accumulate[AVX512_LEN_FLOAT];
-    float tmp_acc = 0.0f;
     v16sf vec_acc1 = _mm512_setzero_ps();  // initialize the vector accumulator
     v16sf vec_acc2 = _mm512_setzero_ps();  // initialize the vector accumulator
 
@@ -2663,13 +2622,10 @@ static inline void dot512f(float *src1, float *src2, int len, float *dst)
         }
     }
     vec_acc1 = _mm512_add_ps(vec_acc1, vec_acc2);
-    _mm512_store_ps(accumulate, vec_acc1);
-
+    float tmp_acc = _mm512_reduce_add_ps(vec_acc1);
     for (int i = stop_len; i < len; i++) {
         tmp_acc += src1[i] * src2[i];
     }
-
-    tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3] + accumulate[4] + accumulate[5] + accumulate[6] + accumulate[7] + accumulate[8] + accumulate[9] + accumulate[10] + accumulate[11] + accumulate[12] + accumulate[13] + accumulate[14] + accumulate[15];
 
     *dst = tmp_acc;
 }
@@ -2682,11 +2638,8 @@ static inline void dotc512f(complex32_t *src1, complex32_t *src2, int len, compl
     v16sfx2 vec_acc1 = {{_mm512_setzero_ps(), _mm512_setzero_ps()}};  // initialize the vector accumulator
     v16sfx2 vec_acc2 = {{_mm512_setzero_ps(), _mm512_setzero_ps()}};  // initialize the vector accumulator
 
-    complex32_t dst_tmp = {{0.0f, 0.0f}};
-
-    __attribute__((aligned(AVX512_LEN_BYTES))) float accumulateRe[AVX512_LEN_FLOAT];
-    __attribute__((aligned(AVX512_LEN_BYTES))) float accumulateIm[AVX512_LEN_FLOAT];
-
+    complex32_t dst_tmp;
+    
     //  (ac -bd) + i(ad + bc)
     if (areAligned2((uintptr_t) (src1), (uintptr_t) (src2), AVX512_LEN_BYTES)) {
         for (int i = 0; i < 2 * stop_len; i += 4 * AVX512_LEN_FLOAT) {
@@ -2734,23 +2687,14 @@ static inline void dotc512f(complex32_t *src1, complex32_t *src2, int len, compl
 
     vec_acc1.val[0] = _mm512_add_ps(vec_acc1.val[0], vec_acc2.val[0]);
     vec_acc1.val[1] = _mm512_add_ps(vec_acc1.val[1], vec_acc2.val[1]);
-    _mm512_store_ps(accumulateRe, vec_acc1.val[0]);
-    _mm512_store_ps(accumulateIm, vec_acc1.val[1]);
+    
+    dst_tmp.re = _mm512_reduce_add_ps(vec_acc1.val[0]);
+    dst_tmp.im = _mm512_reduce_add_ps(vec_acc1.val[1]);
 
     for (int i = stop_len; i < len; i++) {
         dst_tmp.re += src1[i].re * src2[i].re - (src1[i].im * src2[i].im);
         dst_tmp.im += src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
     }
-
-    dst_tmp.re = dst_tmp.re + accumulateRe[0] + accumulateRe[1] + accumulateRe[2] + accumulateRe[3] +
-                 accumulateRe[4] + accumulateRe[5] + accumulateRe[6] + accumulateRe[7] +
-                 accumulateRe[8] + accumulateRe[9] + accumulateRe[10] + accumulateRe[11] +
-                 accumulateRe[12] + accumulateRe[13] + accumulateRe[14] + accumulateRe[15];
-    dst_tmp.im = dst_tmp.im + accumulateIm[0] + accumulateIm[1] + accumulateIm[2] + accumulateIm[3] +
-                 accumulateIm[4] + accumulateIm[5] + accumulateIm[6] + accumulateIm[7] +
-                 accumulateIm[8] + accumulateIm[9] + accumulateIm[10] + accumulateIm[11] +
-                 accumulateIm[12] + accumulateIm[13] + accumulateIm[14] + accumulateIm[15];
-
 
     dst->re = dst_tmp.re;
     dst->im = dst_tmp.im;
@@ -3315,12 +3259,6 @@ static inline void softmax512f(float *src, float *dst, int len)
     int stop_len = len / (AVX512_LEN_FLOAT);
     stop_len *= (AVX512_LEN_FLOAT);
 
-    __attribute__((aligned(AVX512_LEN_BYTES))) float accumulate[AVX512_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f,
-                                                                                     0.0f, 0.0f, 0.0f, 0.0f,
-                                                                                     0.0f, 0.0f, 0.0f, 0.0f,
-                                                                                     0.0f, 0.0f, 0.0f, 0.0f};
-    float acc = 0.0f;
-
     v16sf vec_acc1 = _mm512_setzero_ps();  // initialize the vector accumulator
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
@@ -3339,17 +3277,12 @@ static inline void softmax512f(float *src, float *dst, int len)
         }
     }
 
-    _mm512_store_ps(accumulate, vec_acc1);
+    float acc = _mm512_reduce_add_ps(vec_acc1);
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = expf(src[i]);
         acc += dst[i];
     }
-
-    acc = acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3] +
-          accumulate[4] + accumulate[5] + accumulate[6] + accumulate[7] +
-          accumulate[8] + accumulate[9] + accumulate[10] + accumulate[11] +
-          accumulate[12] + accumulate[13] + accumulate[14] + accumulate[15];
     vec_acc1 = _mm512_set1_ps(acc);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {

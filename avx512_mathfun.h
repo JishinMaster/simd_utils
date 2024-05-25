@@ -61,19 +61,18 @@ static inline v16sf log512_ps(v16sf x)
 
 static inline v16sf exp512_ps(v16sf x)
 {
-    v16sf tmp = _mm512_setzero_ps(), fx;
+    v16sf tmp, fx;
     v16si imm0;
 
     x = _mm512_min_ps(x, *(v16sf *) _ps512_exp_hi);
     x = _mm512_max_ps(x, *(v16sf *) _ps512_exp_lo);
 
-    /* express exp(x) as exp(g + n*log(2)) */
+  /* Express e**x = e**g 2**n
+   *   = e**g e**( n loge(2) )
+   *   = e**( g + n loge(2) )
+   */
     fx = _mm512_fmadd_ps(x, *(v16sf *) _ps512_cephes_LOG2EF, *(v16sf *) _ps512_0p5);
-    tmp = _mm512_floor_ps(fx);
-
-    /* if greater, substract 1 */
-    __mmask16 kmask = _mm512_cmp_ps_mask(tmp, fx, _CMP_GT_OS);
-    fx = _mm512_mask_sub_ps(tmp, kmask, tmp, *(v16sf *) _ps512_1);
+    fx = _mm512_floor_ps(fx);
 
     x = _mm512_fnmadd_ps(fx, *(v16sf *) _ps512_cephes_exp_C1, x);
     x = _mm512_fnmadd_ps(fx, *(v16sf *) _ps512_cephes_exp_C2, x);
