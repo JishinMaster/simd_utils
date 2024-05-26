@@ -1681,8 +1681,6 @@ static inline void minmax128f(float *src, int len, float *min_value, float *max_
     stop_len *= (2 * SSE_LEN_FLOAT);
     stop_len = (stop_len < 0) ? 0 : stop_len;
 
-    float min_f[SSE_LEN_FLOAT] __attribute__((aligned(SSE_LEN_BYTES)));
-    float max_f[SSE_LEN_FLOAT] __attribute__((aligned(SSE_LEN_BYTES)));
     v4sf max_v, min_v, max_v2, min_v2;
     v4sf src_tmp, src_tmp2;
 
@@ -1725,6 +1723,20 @@ static inline void minmax128f(float *src, int len, float *min_value, float *max_
         max_v = _mm_max_ps(max_v, max_v2);
         min_v = _mm_min_ps(min_v, min_v2);
 
+#if 1
+        v4sf max3 = _mm_shuffle_ps(max_v, max_v, _MM_SHUFFLE(0,1,2,3));
+        v4sf min3 = _mm_shuffle_ps(max_v, max_v, _MM_SHUFFLE(0,1,2,3));
+        v4sf max4 = _mm_max_ps(max3, max_v);
+        v4sf min4 = _mm_min_ps(min3, min_v);
+        max3 = _mm_shuffle_ps(max4, max4, _MM_SHUFFLE(1,0,1,0));
+        min3 = _mm_shuffle_ps(min4, min4, _MM_SHUFFLE(1,0,1,0));
+        max4 = _mm_max_ps(max3, max4);
+        min4 = _mm_min_ps(min3, min4);
+        _mm_store_ss(&max_tmp, max4);
+        _mm_store_ss(&min_tmp, min4);
+#else
+        float min_f[SSE_LEN_FLOAT] __attribute__((aligned(SSE_LEN_BYTES)));
+        float max_f[SSE_LEN_FLOAT] __attribute__((aligned(SSE_LEN_BYTES)));
         _mm_store_ps(max_f, max_v);
         _mm_store_ps(min_f, min_v);
 
@@ -1737,6 +1749,7 @@ static inline void minmax128f(float *src, int len, float *min_value, float *max_
         min_tmp = min_tmp < min_f[1] ? min_tmp : min_f[1];
         min_tmp = min_tmp < min_f[2] ? min_tmp : min_f[2];
         min_tmp = min_tmp < min_f[3] ? min_tmp : min_f[3];
+#endif
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -3182,6 +3195,7 @@ static inline void sum128f(float *src, float *dst, int len)
             vec_acc2 = _mm_add_ps(vec_acc2, vec_tmp2);
         }
     }
+    
     vec_acc1 = _mm_add_ps(vec_acc1, vec_acc2);
     _mm_store_ps(accumulate, vec_acc1);
 
@@ -3190,7 +3204,6 @@ static inline void sum128f(float *src, float *dst, int len)
     }
 
     tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3];
-
     *dst = tmp_acc;
 }
 
@@ -4410,8 +4423,8 @@ static inline void softmax128f(float *src, float *dst, int len)
     int stop_len = len / (SSE_LEN_FLOAT);
     stop_len *= (SSE_LEN_FLOAT);
 
-    __attribute__((aligned(SSE_LEN_BYTES))) float accumulate[SSE_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f};
-    float acc = 0.0f;
+    __attribute__((aligned(SSE_LEN_BYTES))) float accumulate[SSE_LEN_FLOAT];
+    float acc;
 
     v4sf vec_acc1 = _mm_setzero_ps();  // initialize the vector accumulator
 
@@ -4433,12 +4446,17 @@ static inline void softmax128f(float *src, float *dst, int len)
 
     _mm_store_ps(accumulate, vec_acc1);
 
+    //From GCC _mm512_reduce_add_ps
+    __m128 tmp1 = _mm_shuffle_ps(vec_acc1, vec_acc1, _MM_SHUFFLE( 0, 1, 2, 3));
+    __m128 tmp2 = _mm_add_ps(tmp1, vec_acc1);
+    _mm_store_ps(accumulate, tmp2);
+    acc = accumulate[0] + accumulate[1];
+
     for (int i = stop_len; i < len; i++) {
         dst[i] = expf(src[i]);
         acc += dst[i];
     }
 
-    acc = acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3];
     vec_acc1 = _mm_set1_ps(acc);
 
     if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
@@ -4464,8 +4482,8 @@ static inline void softmax128f_dualacc(float *src, float *dst, int len)
     int stop_len = len / (2 * SSE_LEN_FLOAT);
     stop_len *= (2 * SSE_LEN_FLOAT);
 
-    __attribute__((aligned(SSE_LEN_BYTES))) float accumulate[SSE_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f};
-    float acc = 0.0f;
+    __attribute__((aligned(SSE_LEN_BYTES))) float accumulate[SSE_LEN_FLOAT];
+    float acc;
 
     v4sf vec_acc1 = _mm_setzero_ps();  // initialize the vector accumulator
     v4sf vec_acc2 = _mm_setzero_ps();  // initialize the vector accumulator
@@ -4495,14 +4513,18 @@ static inline void softmax128f_dualacc(float *src, float *dst, int len)
     }
 
     vec_acc1 = _mm_add_ps(vec_acc1, vec_acc2);
-    _mm_store_ps(accumulate, vec_acc1);
+    
+    //From GCC _mm512_reduce_add_ps
+    __m128 tmp1 = _mm_shuffle_ps(vec_acc1, vec_acc1, _MM_SHUFFLE( 0, 1, 2, 3));
+    __m128 tmp2 = _mm_add_ps(tmp1, vec_acc1);
+    _mm_store_ps(accumulate, tmp2);
+    acc = accumulate[0] + accumulate[1];
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = expf(src[i]);
         acc += dst[i];
     }
-
-    acc = acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3];
+    
     vec_acc1 = _mm_set1_ps(acc);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {

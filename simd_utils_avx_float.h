@@ -1635,12 +1635,12 @@ static inline void minmax256f(float *src, int len, float *min_value, float *max_
         v4sf min4 = _mm256_extractf128_ps(min_v, 1);
         max4 = _mm_max_ps(max3, max4);
         min4 = _mm_min_ps(min3, min4);
-        max3 = _mm_permute_ps(max4, 0x0E);
-        min3 = _mm_permute_ps(min4, 0x0E);
+        max3 = _mm_shuffle_ps(max4, max4, _MM_SHUFFLE(0,1,2,3)); //max3 = _mm_permute_ps(max4, 0x0E);
+        min3 = _mm_shuffle_ps(min4, min4, _MM_SHUFFLE(0,1,2,3)); //min3 = _mm_permute_ps(min4, 0x0E);
         max4 = _mm_max_ps(max3, max4);
         min4 = _mm_min_ps(min3, min4);
-        max3 = _mm_permute_ps(max4, 0x01);
-        min3 = _mm_permute_ps(min4, 0x01);
+        max3 = _mm_shuffle_ps(max4, max4, _MM_SHUFFLE(1,0,1,0)); //max3 = _mm_permute_ps(max4, 0x01);
+        min3 = _mm_shuffle_ps(min4, min4, _MM_SHUFFLE(1,0,1,0)); //min3 = _mm_permute_ps(min4, 0x01);
         max4 = _mm_max_ps(max3, max4);
         min4 = _mm_min_ps(min3, min4);
         _mm_store_ss(&max_tmp, max4);
@@ -3039,8 +3039,8 @@ static inline void sum256f(float *src, float *dst, int len)
     int stop_len = len / (2 * AVX_LEN_FLOAT);
     stop_len *= (2 * AVX_LEN_FLOAT);
 
-    __attribute__((aligned(AVX_LEN_BYTES))) float accumulate[AVX_LEN_FLOAT];
-    float tmp_acc = 0.0f;
+    __attribute__((aligned(SSE_LEN_BYTES))) float accumulate[SSE_LEN_FLOAT];
+    float tmp_acc;
     v8sf vec_acc1 = _mm256_setzero_ps();  // initialize the vector accumulator
     v8sf vec_acc2 = _mm256_setzero_ps();  // initialize the vector accumulator
 
@@ -3061,13 +3061,19 @@ static inline void sum256f(float *src, float *dst, int len)
     }
 
     vec_acc1 = _mm256_add_ps(vec_acc1, vec_acc2);
-    _mm256_store_ps(accumulate, vec_acc1);
+    
+    //From GCC _mm512_reduce_add_ps
+    __m128 tmp1 = _mm256_extractf128_ps (vec_acc1, 1);
+    __m128 tmp2 = _mm256_extractf128_ps (vec_acc1, 0);
+    __m128 tmp3 = _mm_add_ps(tmp1, tmp2);
+    __m128 tmp4 = _mm_shuffle_ps(tmp3, tmp3, _MM_SHUFFLE( 0, 1, 2, 3));
+    __m128 tmp5 = _mm_add_ps(tmp3, tmp4);
+    _mm_store_ps(accumulate, tmp5);
+    tmp_acc = accumulate[0] + accumulate[1]; 
 
     for (int i = stop_len; i < len; i++) {
         tmp_acc += src[i];
     }
-
-    tmp_acc = tmp_acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3] + accumulate[4] + accumulate[5] + accumulate[6] + accumulate[7];
 
     *dst = tmp_acc;
 }
@@ -3753,9 +3759,8 @@ static inline void softmax256f(float *src, float *dst, int len)
     int stop_len = len / (AVX_LEN_FLOAT);
     stop_len *= (AVX_LEN_FLOAT);
 
-    __attribute__((aligned(AVX_LEN_BYTES))) float accumulate[AVX_LEN_FLOAT] = {0.0f, 0.0f, 0.0f, 0.0f,
-                                                                               0.0f, 0.0f, 0.0f, 0.0f};
-    float acc = 0.0f;
+    __attribute__((aligned(SSE_LEN_BYTES))) float accumulate[SSE_LEN_FLOAT];
+    float acc;
 
     v8sf vec_acc1 = _mm256_setzero_ps();  // initialize the vector accumulator
 
@@ -3776,14 +3781,21 @@ static inline void softmax256f(float *src, float *dst, int len)
     }
 
     _mm256_store_ps(accumulate, vec_acc1);
+    
+    //From GCC _mm512_reduce_add_ps
+    __m128 tmp1 = _mm256_extractf128_ps (vec_acc1, 1);
+    __m128 tmp2 = _mm256_extractf128_ps (vec_acc1, 0);
+    __m128 tmp3 = _mm_add_ps(tmp1, tmp2);
+    __m128 tmp4 = _mm_shuffle_ps(tmp3, tmp3, _MM_SHUFFLE( 0, 1, 2, 3));
+    __m128 tmp5 = _mm_add_ps(tmp3, tmp4);
+    _mm_store_ps(accumulate, tmp5);
+    acc = accumulate[0] + accumulate[1]; 
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = expf(src[i]);
         acc += dst[i];
     }
 
-    acc = acc + accumulate[0] + accumulate[1] + accumulate[2] + accumulate[3] +
-          accumulate[4] + accumulate[5] + accumulate[6] + accumulate[7];
     vec_acc1 = _mm256_set1_ps(acc);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
