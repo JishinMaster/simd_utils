@@ -1939,7 +1939,7 @@ _PD512_CONST(1em8, 1E-8);
 
 
 /// PRINT FUNCTIONS */
-#if 1
+#if 0
 
 #if defined(RISCV)
 
@@ -2123,7 +2123,7 @@ static inline void print2xi(__m128i v)
 #ifndef USE_SSE2
     _mm_empty();
 #endif
-    printf("[%16x, %16x]", p[0], p[1]);
+    printf("[%16lx, %16lx]", p[0], p[1]);
 }
 
 #endif

@@ -1174,12 +1174,9 @@ static inline v8sd log512_pd(v8sd x)
 
     /* Equivalent C language standard library function: */
     // x = frexp( x, &e );
-    v8sid emm0 = _mm512_srli_epi64(_mm512_castpd_si512(x), 52);
+    v8sd e = _mm512_getexp_pd(x);
     x = _mm512_and_pd(x, *(v8sd *) _pd512_inv_mant_mask);
     x = _mm512_or_pd(x, *(v8sd *) _pd512_0p5);
-    emm0 = _mm512_sub_epi64(emm0, *(v8sid *) _pi512_64_0x3ff);
-    v8sd e = _mm512_cvtepi64_pd(emm0);
-    e = _mm512_add_pd(e, *(v8sd *) _pd512_1);
 
     /* logarithm using log(x) = z + z**3 P(z)/Q(z),
      * where z = 2(x-1)/x+1)
@@ -1189,7 +1186,15 @@ static inline v8sd log512_pd(v8sd x)
     __mmask8 xinfsqrth = _mm512_cmp_pd_mask(x, *(v8sd *) _pd512_cephes_SQRTHF, _CMP_LT_OS);
 
     // if( x < SQRTH ) e-=1
+#if 1 
+    //instead of doing add 1 then sub 1, dot add 1 on condition, should be faster
+    __mmask8 knotmask = _knot_mask8(xinfsqrth);
+    e = _mm512_mask_add_pd(e, knotmask, e, *(v8sd *) _pd512_1);
+#else
+    e = _mm512_add_pd(e, *(v8sd *) _pd512_1);
     e = _mm512_mask_sub_pd(e, xinfsqrth, e, *(v8sd *) _pd512_1);
+#endif
+
     v8sd z_abseinf2, y_abseinf2, x_abseinf2;
     v8sd tmp_abseinf2, tmp2_abseinf2;
 

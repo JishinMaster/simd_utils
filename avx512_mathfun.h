@@ -24,7 +24,6 @@ static inline v16sf log512_ps(v16sf x)
 
     /* get the exponent part */
     v16sf e = _mm512_getexp_ps(x);
-    e = _mm512_add_ps(e, *(v16sf *) _ps512_1);
 
     /* keep only the fractional part */
     x = _mm512_and_ps(x, *(v16sf *) _ps512_inv_mant_mask);
@@ -33,7 +32,16 @@ static inline v16sf log512_ps(v16sf x)
     __mmask16 kmask = _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_cephes_SQRTHF, _CMP_LT_OS);
     v16sf tmp = x;
     x = _mm512_sub_ps(x, *(v16sf *) _ps512_1);
+    
+#if 1
+    //instead of doing add 1 then sub 1, dot add 1 on condition, should be faster
+    __mmask16 knotmask = _knot_mask16(kmask);
+    e = _mm512_mask_add_ps(e, knotmask, e, *(v16sf *) _ps512_1);
+#else
+    e = _mm512_add_ps(e, *(v16sf *) _ps512_1);
     e = _mm512_mask_sub_ps(e, kmask, e, *(v16sf *) _ps512_1);
+#endif
+
     x = _mm512_mask_add_ps(x, kmask, x, tmp);
 
     v16sf z = _mm512_mul_ps(x, x);
