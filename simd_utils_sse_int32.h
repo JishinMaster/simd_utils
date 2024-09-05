@@ -126,30 +126,32 @@ static inline void vectorSlope128s(int *dst, int len, int offset, int slope)
     int stop_len = len / (2 * SSE_LEN_INT32);
     stop_len *= (2 * SSE_LEN_INT32);
 
-    if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
-        _mm_store_si128((__m128i *) dst, curVal);
-        _mm_store_si128((__m128i *) (dst + SSE_LEN_INT32), curVal2);
-    } else {
-        _mm_storeu_si128((__m128i *) dst, curVal);
-        _mm_storeu_si128((__m128i *) (dst + SSE_LEN_INT32), curVal2);
-    }
+    if (len >= 2*SSE_LEN_INT32) {
+		if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
+			_mm_store_si128((__m128i *) dst, curVal);
+			_mm_store_si128((__m128i *) (dst + SSE_LEN_INT32), curVal2);
+		} else {
+			_mm_storeu_si128((__m128i *) dst, curVal);
+			_mm_storeu_si128((__m128i *) (dst + SSE_LEN_INT32), curVal2);
+		}
 
-    if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
-        for (int i = 2 * SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
-            curVal = _mm_add_epi32(curVal, slope8_vec);
-            _mm_store_si128((__m128i *) (dst + i), curVal);
-            curVal2 = _mm_add_epi32(curVal2, slope8_vec);
-            _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), curVal2);
-        }
-    } else {
-        for (int i = 2 * SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
-            curVal = _mm_add_epi32(curVal, slope8_vec);
-            _mm_storeu_si128((__m128i *) (dst + i), curVal);
-            curVal2 = _mm_add_epi32(curVal2, slope8_vec);
-            _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), curVal2);
-        }
-    }
-
+		if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
+			for (int i = 2 * SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
+				curVal = _mm_add_epi32(curVal, slope8_vec);
+				_mm_store_si128((__m128i *) (dst + i), curVal);
+				curVal2 = _mm_add_epi32(curVal2, slope8_vec);
+				_mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), curVal2);
+			}
+		} else {
+			for (int i = 2 * SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
+				curVal = _mm_add_epi32(curVal, slope8_vec);
+				_mm_storeu_si128((__m128i *) (dst + i), curVal);
+				curVal2 = _mm_add_epi32(curVal2, slope8_vec);
+				_mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), curVal2);
+			}
+		}
+	}
+	
     for (int i = stop_len; i < len; i++) {
         dst[i] = offset + slope * i;
     }

@@ -124,30 +124,32 @@ static inline void vectorSlope512s(int *dst, int len, int offset, int slope)
     int stop_len = len / (2 * AVX512_LEN_INT32);
     stop_len *= (2 * AVX512_LEN_INT32);
 
-    if (isAligned((uintptr_t) (dst), AVX512_LEN_BYTES)) {
-        _mm512_store_si512((__m512i *) (dst + 0), curVal);
-        _mm512_store_si512((__m512i *) (dst + AVX512_LEN_INT32), curVal2);
-    } else {
-        _mm512_storeu_si512((__m512i *) (dst + 0), curVal);
-        _mm512_storeu_si512((__m512i *) (dst + AVX512_LEN_INT32), curVal2);
-    }
+    if (len >= 2*AVX512_LEN_INT32) {
+		if (isAligned((uintptr_t) (dst), AVX512_LEN_BYTES)) {
+			_mm512_store_si512((__m512i *) (dst + 0), curVal);
+			_mm512_store_si512((__m512i *) (dst + AVX512_LEN_INT32), curVal2);
+		} else {
+			_mm512_storeu_si512((__m512i *) (dst + 0), curVal);
+			_mm512_storeu_si512((__m512i *) (dst + AVX512_LEN_INT32), curVal2);
+		}
 
-    if (isAligned((uintptr_t) (dst), AVX512_LEN_BYTES)) {
-        for (int i = 2 * AVX512_LEN_INT32; i < stop_len; i += 2 * AVX512_LEN_INT32) {
-            curVal = _mm512_add_epi32(curVal, slope32_vec);
-            _mm512_store_si512((__m512i *) (dst + i), curVal);
-            curVal2 = _mm512_add_epi32(curVal2, slope32_vec);
-            _mm512_store_si512((__m512i *) (dst + i + AVX512_LEN_INT32), curVal2);
-        }
-    } else {
-        for (int i = 2 * AVX512_LEN_INT32; i < stop_len; i += 2 * AVX512_LEN_INT32) {
-            curVal = _mm512_add_epi32(curVal, slope32_vec);
-            _mm512_storeu_si512((__m512i *) (dst + i), curVal);
-            curVal2 = _mm512_add_epi32(curVal2, slope32_vec);
-            _mm512_storeu_si512((__m512i *) (dst + i + AVX512_LEN_INT32), curVal2);
-        }
-    }
-
+		if (isAligned((uintptr_t) (dst), AVX512_LEN_BYTES)) {
+			for (int i = 2 * AVX512_LEN_INT32; i < stop_len; i += 2 * AVX512_LEN_INT32) {
+				curVal = _mm512_add_epi32(curVal, slope32_vec);
+				_mm512_store_si512((__m512i *) (dst + i), curVal);
+				curVal2 = _mm512_add_epi32(curVal2, slope32_vec);
+				_mm512_store_si512((__m512i *) (dst + i + AVX512_LEN_INT32), curVal2);
+			}
+		} else {
+			for (int i = 2 * AVX512_LEN_INT32; i < stop_len; i += 2 * AVX512_LEN_INT32) {
+				curVal = _mm512_add_epi32(curVal, slope32_vec);
+				_mm512_storeu_si512((__m512i *) (dst + i), curVal);
+				curVal2 = _mm512_add_epi32(curVal2, slope32_vec);
+				_mm512_storeu_si512((__m512i *) (dst + i + AVX512_LEN_INT32), curVal2);
+			}
+		}
+	}
+	
     for (int i = stop_len; i < len; i++) {
         dst[i] = offset + slope * i;
     }

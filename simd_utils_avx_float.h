@@ -865,7 +865,7 @@ static inline void vectorSlope256f(float *dst, int len, float offset, float slop
     int stop_len = len / (2 * AVX_LEN_FLOAT);
     stop_len *= (2 * AVX_LEN_FLOAT);
 
-    if (len >= AVX_LEN_FLOAT) {
+    if (len >= 2*AVX_LEN_FLOAT) {
         if (((uintptr_t) (const void *) (dst) % AVX_LEN_BYTES) == 0) {
             _mm256_store_ps(dst + 0, curVal);
             _mm256_store_ps(dst + AVX_LEN_FLOAT, curVal2);

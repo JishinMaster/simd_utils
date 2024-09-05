@@ -425,7 +425,7 @@ static inline void vectorSlope128d(double *dst, int len, double offset, double s
     v2sd curVal2 = _mm_add_pd(_mm_set1_pd(offset), coef);
     curVal2 = _mm_add_pd(curVal2, _mm_set1_pd(2.0 * slope));
 
-    if (len >= SSE_LEN_DOUBLE) {
+    if (len >= 2*SSE_LEN_DOUBLE) {
         if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
             _mm_store_pd(dst + 0, curVal);
             _mm_store_pd(dst + SSE_LEN_DOUBLE, curVal2);

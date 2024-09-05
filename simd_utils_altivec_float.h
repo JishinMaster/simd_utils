@@ -3544,7 +3544,7 @@ static inline void vectorSlope128f(float *dst, int len, float offset, float slop
     int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
     stop_len *= (2 * ALTIVEC_LEN_FLOAT);
 
-    if (len >= ALTIVEC_LEN_BYTES) {
+    if (len >= 2*ALTIVEC_LEN_FLOAT) {
         if (isAligned((uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
             vec_st(curVal, 0, dst + 0);
             vec_st(curVal2, 0, dst + ALTIVEC_LEN_FLOAT);

@@ -422,7 +422,7 @@ static inline void vectorSlope256d(double *dst, int len, double offset, double s
     v4sd curVal2 = _mm256_add_pd(_mm256_set1_pd(offset), coef);
     curVal2 = _mm256_add_pd(curVal2, _mm256_set1_pd(4.0 * slope));
 
-    if (len >= AVX_LEN_DOUBLE) {
+    if (len >= 2*AVX_LEN_DOUBLE) {
         if (isAligned((uintptr_t) (dst), AVX_LEN_BYTES)) {
             _mm256_store_pd(dst + 0, curVal);
             _mm256_store_pd(dst + AVX_LEN_DOUBLE, curVal2);

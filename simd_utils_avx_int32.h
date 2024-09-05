@@ -121,29 +121,31 @@ static inline void vectorSlope256s(int *dst, int len, int offset, int slope)
     int stop_len = len / (2 * AVX_LEN_INT32);
     stop_len *= (2 * AVX_LEN_INT32);
 
-    if (((uintptr_t) (const void *) (dst) % AVX_LEN_BYTES) == 0) {
-        _mm256_storeu_si256((__m256i *) (dst + 0), curVal);
-        _mm256_storeu_si256((__m256i *) (dst + AVX_LEN_INT32), curVal2);
-    } else {
-        _mm256_storeu_si256((__m256i *) (dst + 0), curVal);
-        _mm256_storeu_si256((__m256i *) (dst + AVX_LEN_INT32), curVal2);
-    }
+	if(len >= 2*AVX_LEN_INT32){
+		if (((uintptr_t) (const void *) (dst) % AVX_LEN_BYTES) == 0) {
+			_mm256_storeu_si256((__m256i *) (dst + 0), curVal);
+			_mm256_storeu_si256((__m256i *) (dst + AVX_LEN_INT32), curVal2);
+		} else {
+			_mm256_storeu_si256((__m256i *) (dst + 0), curVal);
+			_mm256_storeu_si256((__m256i *) (dst + AVX_LEN_INT32), curVal2);
+		}
 
-    if (((uintptr_t) (const void *) (dst) % AVX_LEN_BYTES) == 0) {
-        for (int i = 2 * AVX_LEN_INT32; i < stop_len; i += 2 * AVX_LEN_INT32) {
-            curVal = _mm256_add_epi32(curVal, slope16_vec);
-            _mm256_store_si256((__m256i *) (dst + i), curVal);
-            curVal2 = _mm256_add_epi32(curVal2, slope16_vec);
-            _mm256_store_si256((__m256i *) (dst + i + AVX_LEN_INT32), curVal2);
-        }
-    } else {
-        for (int i = 2 * AVX_LEN_INT32; i < stop_len; i += 2 * AVX_LEN_INT32) {
-            curVal = _mm256_add_epi32(curVal, slope16_vec);
-            _mm256_storeu_si256((__m256i *) (dst + i), curVal);
-            curVal2 = _mm256_add_epi32(curVal2, slope16_vec);
-            _mm256_storeu_si256((__m256i *) (dst + i + AVX_LEN_INT32), curVal2);
-        }
-    }
+		if (((uintptr_t) (const void *) (dst) % AVX_LEN_BYTES) == 0) {
+			for (int i = 2 * AVX_LEN_INT32; i < stop_len; i += 2 * AVX_LEN_INT32) {
+				curVal = _mm256_add_epi32(curVal, slope16_vec);
+				_mm256_store_si256((__m256i *) (dst + i), curVal);
+				curVal2 = _mm256_add_epi32(curVal2, slope16_vec);
+				_mm256_store_si256((__m256i *) (dst + i + AVX_LEN_INT32), curVal2);
+			}
+		} else {
+			for (int i = 2 * AVX_LEN_INT32; i < stop_len; i += 2 * AVX_LEN_INT32) {
+				curVal = _mm256_add_epi32(curVal, slope16_vec);
+				_mm256_storeu_si256((__m256i *) (dst + i), curVal);
+				curVal2 = _mm256_add_epi32(curVal2, slope16_vec);
+				_mm256_storeu_si256((__m256i *) (dst + i + AVX_LEN_INT32), curVal2);
+			}
+		}
+	}
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = offset + slope * i;

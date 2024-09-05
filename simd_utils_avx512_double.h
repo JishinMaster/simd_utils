@@ -421,7 +421,7 @@ static inline void vectorSlope512d(double *dst, int len, double offset, double s
     int stop_len = len / (2 * AVX512_LEN_DOUBLE);
     stop_len *= (2 * AVX512_LEN_DOUBLE);
 
-    if (len >= AVX512_LEN_DOUBLE) {
+    if (len >= 2*AVX512_LEN_DOUBLE) {
         if (isAligned((uintptr_t) (dst), AVX512_LEN_BYTES)) {
             _mm512_store_pd(dst + 0, curVal);
             _mm512_store_pd(dst + AVX512_LEN_DOUBLE, curVal2);

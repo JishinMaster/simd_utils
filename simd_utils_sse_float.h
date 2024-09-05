@@ -914,7 +914,7 @@ static inline void vectorSlope128f(float *dst, int len, float offset, float slop
     int stop_len = len / (2 * SSE_LEN_FLOAT);
     stop_len *= (2 * SSE_LEN_FLOAT);
 
-    if (len >= SSE_LEN_BYTES) {
+    if (len >= 2*SSE_LEN_FLOAT) {
         if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
             _mm_store_ps(dst + 0, curVal);
             _mm_store_ps(dst + SSE_LEN_FLOAT, curVal2);
