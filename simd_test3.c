@@ -2676,35 +2676,36 @@ for (int i = 0; i < len; i++){
     }
 
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToU8_C(inout, inout_u2, len, RndZero, 4);
+    convertFloat32ToU8_C(inout, inout_u2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToU8_C %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToU8_C(inout, inout_u2, len, RndZero, 4);
+        convertFloat32ToU8_C(inout, inout_u2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToU8_C %d %lf\n", len, elapsed);
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConvert_32f8u_Sfs(inout, inout_u1, len, ippRndZero, 4);  // ippRndNear ippRndZero ippRndFinancial
+    ippsConvert_32f8u_Sfs(inout, inout_u1, len, ippRndFinancial, 4);  // ippRndFinancial ippRndZero ippRndFinancial
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_32f8u_Sfs %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        ippsConvert_32f8u_Sfs(inout, inout_u1, len, ippRndZero, 4);
+        ippsConvert_32f8u_Sfs(inout, inout_u1, len, ippRndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsConvert_32f8u_Sfs %d %lf\n", len, elapsed);
     l2_err_u8(inout_u1, inout_u2, len);
 
-    /*for(int i = 0; i < len; i++)
-          printf("%x %x\n" ,inout_u1[i],inout_u2[i]);*/
+    /*printf("Scale : %g\n", 1.0f / (float) (1 << 4));
+    for(int i = 0; i < len; i++)
+        printf("IPP : %g %x %x\n" ,inout[i], inout_u1[i],inout_u2[i]);*/
 
 
 #endif
@@ -2712,14 +2713,14 @@ for (int i = 0; i < len; i++){
 #if defined(SSE) || defined(ALTIVEC)
 #ifndef __MACH__
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToU8_128(inout, inout_u1, len, RndZero, 4);
+    convertFloat32ToU8_128(inout, inout_u1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToU8_128 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToU8_128(inout, inout_u1, len, RndZero, 4);
+        convertFloat32ToU8_128(inout, inout_u1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToU8_128 %d %lf\n", len, elapsed);
@@ -2727,19 +2728,20 @@ for (int i = 0; i < len; i++){
 #endif
 #endif
 
-    /*for(int i = 0; i < len; i++)
-        printf("%x %x\n" ,inout_u1[i],inout_u2[i]);
-    */
+    for(int i = 0; i < len; i++)
+        if(inout_s1[i] != inout_s2[i])
+          printf("SSE : %d %g %g %x %x\n" ,i, inout[i], inout[i]/(1<<4),inout_u1[i],inout_u2[i]);
+    
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToU8_256(inout, inout_u1, len, RndZero, 4);
+    convertFloat32ToU8_256(inout, inout_u1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToU8_256 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToU8_256(inout, inout_u1, len, RndZero, 4);
+        convertFloat32ToU8_256(inout, inout_u1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToU8_256 %d %lf\n", len, elapsed);
@@ -2749,14 +2751,14 @@ for (int i = 0; i < len; i++){
 
 #ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToU8_512(inout, inout_u1, len, RndZero, 4);
+    convertFloat32ToU8_512(inout, inout_u1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToU8_512 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToU8_512(inout, inout_u1, len, RndZero, 4);
+        convertFloat32ToU8_512(inout, inout_u1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToU8_512 %d %lf\n", len, elapsed);
@@ -2766,14 +2768,14 @@ for (int i = 0; i < len; i++){
 
 #ifdef RISCV
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToU8_vec(inout, inout_u1, len, RndZero, 4);
+    convertFloat32ToU8_vec(inout, inout_u1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToU8_vec %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToU8_vec(inout, inout_u1, len, RndZero, 4);
+        convertFloat32ToU8_vec(inout, inout_u1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToU8_vec %d %lf\n", len, elapsed);
@@ -2787,68 +2789,77 @@ for (int i = 0; i < len; i++){
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (i) *10.0f;
+        if(i%2==0) inout[i] = - inout[i];
         inout_s1[i] = 0;
         inout_s2[i] = 0;
     }
 
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToI16_C(inout, inout_s1, len, RndZero, 4);
+    convertFloat32ToI16_C(inout, inout_s1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToI16_C %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToI16_C(inout, inout_s1, len, RndZero, 4);
+        convertFloat32ToI16_C(inout, inout_s1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToI16_C %d %lf\n", len, elapsed);
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConvert_32f16s_Sfs(inout, inout_s2, len, ippRndZero, 4);  // ippRndNear ippRndZero ippRndFinancial
+    ippsConvert_32f16s_Sfs(inout, inout_s2, len, ippRndFinancial, 4);  // ippRndFinancial ippRndZero ippRndFinancial
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_32f16s_Sfs %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        ippsConvert_32f16s_Sfs(inout, inout_s2, len, ippRndZero, 4);
+        ippsConvert_32f16s_Sfs(inout, inout_s2, len, ippRndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsConvert_32f16s_Sfs %d %lf\n", len, elapsed);
     l2_err_i16(inout_s1, inout_s2, len);
+
+    for(int i = 0; i < len; i++)
+        if(inout_s1[i] != inout_s2[i])
+          printf("IPP : %d %g %g %d %d\n" ,i, inout[i], inout[i]/(1<<4),inout_s1[i],inout_s2[i]);
 #endif
 
 #if defined(SSE) || defined(ALTIVEC)
 #ifndef __MACH__
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToI16_128(inout, inout_s2, len, RndZero, 4);
+    convertFloat32ToI16_128(inout, inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToI16_128 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToI16_128(inout, inout_s2, len, RndZero, 4);
+        convertFloat32ToI16_128(inout, inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToI16_128 %d %lf\n", len, elapsed);
 
     l2_err_i16(inout_s1, inout_s2, len);
+
+    for(int i = 0; i < len; i++)
+        if(inout_s1[i] != inout_s2[i])
+          printf("SSE : %d %g %g %d %d\n" ,i, inout[i], inout[i]/(1<<4),inout_s1[i],inout_s2[i]);
 #endif
 #endif
 
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToI16_256(inout, inout_s2, len, RndZero, 4);
+    convertFloat32ToI16_256(inout, inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToI16_256 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToI16_256(inout, inout_s2, len, RndZero, 4);
+        convertFloat32ToI16_256(inout, inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToI16_256 %d %lf\n", len, elapsed);
@@ -2858,14 +2869,14 @@ for (int i = 0; i < len; i++){
 
 #ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToI16_512(inout, inout_s2, len, RndZero, 4);
+    convertFloat32ToI16_512(inout, inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToI16_512 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToI16_512(inout, inout_s2, len, RndZero, 4);
+        convertFloat32ToI16_512(inout, inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToI16_512 %d %lf\n", len, elapsed);
@@ -2875,14 +2886,14 @@ for (int i = 0; i < len; i++){
 
 #ifdef RISCV
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToI16_vec(inout, inout_s2, len, RndZero, 4);
+    convertFloat32ToI16_vec(inout, inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToI16_vec %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToI16_vec(inout, inout_s2, len, RndZero, 4);
+        convertFloat32ToI16_vec(inout, inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToI16_vec %d %lf\n", len, elapsed);
@@ -2901,65 +2912,70 @@ for (int i = 0; i < len; i++){
     }
 
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToU16_C(inout, (uint16_t *) inout_s1, len, RndZero, 4);
+    convertFloat32ToU16_C(inout, (uint16_t *) inout_s1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToU16_C %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToU16_C(inout, (uint16_t *) inout_s1, len, RndZero, 4);
+        convertFloat32ToU16_C(inout, (uint16_t *) inout_s1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToU16_C %d %lf\n", len, elapsed);
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConvert_32f16u_Sfs(inout, (uint16_t *) inout_s2, len, ippRndZero, 4);  // ippRndNear ippRndZero ippRndFinancial
+    ippsConvert_32f16u_Sfs(inout, (uint16_t *) inout_s2, len, ippRndFinancial, 4);  // ippRndFinancial ippRndZero ippRndFinancial
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_32f16u_Sfs %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        ippsConvert_32f16u_Sfs(inout, (uint16_t *) inout_s2, len, ippRndZero, 4);
+        ippsConvert_32f16u_Sfs(inout, (uint16_t *) inout_s2, len, ippRndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("ippsConvert_32f16u_Sfs %d %lf\n", len, elapsed);
     l2_err_i16(inout_s1, inout_s2, len);
+
+    /*printf("Scale : %g\n", 1.0f / (float) (1 << 4));
+    for(int i = 0; i < len; i++)
+        printf("IPP : %g %d %d\n" ,inout[i], inout_s1[i],inout_s2[i]);*/
 #endif
 
 #if defined(SSE) || defined(ALTIVEC)
 #ifndef __MACH__
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToU16_128(inout, (uint16_t *) inout_s2, len, RndZero, 4);
+    convertFloat32ToU16_128(inout, (uint16_t *) inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToU16_128 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToU16_128(inout, (uint16_t *) inout_s2, len, RndZero, 4);
+        convertFloat32ToU16_128(inout, (uint16_t *) inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToU16_128 %d %lf\n", len, elapsed);
 
     l2_err_i16(inout_s1, inout_s2, len);
 #endif
-    /*for(int i=0; i < len; i++)
-      printf("%f %u %u\n",inout[i], (uint16_t)inout_s1[i], (uint16_t)inout_s2[i]);*/
+    for(int i = 0; i < len; i++)
+        if(inout_s1[i] != inout_s2[i])
+          printf("SSE : %d %g %g %d %d\n" ,i, inout[i], inout[i]/(1<<4),inout_s1[i],inout_s2[i]);
 #endif
 
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToU16_256(inout, (uint16_t *) inout_s2, len, RndZero, 4);
+    convertFloat32ToU16_256(inout, (uint16_t *) inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToU16_256 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToU16_256(inout, (uint16_t *) inout_s2, len, RndZero, 4);
+        convertFloat32ToU16_256(inout, (uint16_t *) inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToU16_256 %d %lf\n", len, elapsed);
@@ -2969,14 +2985,14 @@ for (int i = 0; i < len; i++){
 
 #ifdef AVX512
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToU16_512(inout, (uint16_t *) inout_s2, len, RndZero, 4);
+    convertFloat32ToU16_512(inout, (uint16_t *) inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToU16_512 %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToU16_512(inout, (uint16_t *) inout_s2, len, RndZero, 4);
+        convertFloat32ToU16_512(inout, (uint16_t *) inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToU16_512 %d %lf\n", len, elapsed);
@@ -2986,14 +3002,14 @@ for (int i = 0; i < len; i++){
 
 #ifdef RISCV
     clock_gettime(CLOCK_REALTIME, &start);
-    convertFloat32ToU16_vec(inout, (uint16_t *) inout_s2, len, RndZero, 4);
+    convertFloat32ToU16_vec(inout, (uint16_t *) inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("convertFloat32ToU16_vec %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        convertFloat32ToU16_vec(inout, (uint16_t *) inout_s2, len, RndZero, 4);
+        convertFloat32ToU16_vec(inout, (uint16_t *) inout_s2, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convertFloat32ToU16_vec %d %lf\n", len, elapsed);
@@ -3023,7 +3039,7 @@ for (int i = 0; i < len; i++){
 
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
-    ippsConvert_16s32f_Sfs(inout_s1, inout_ref, len, 4);  // ippRndNear ippRndZero ippRndFinancial
+    ippsConvert_16s32f_Sfs(inout_s1, inout_ref, len, 4);  // ippRndFinancial ippRndZero ippRndFinancial
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("ippsConvert_16s32f_Sfs %d %lf\n", len, elapsed);

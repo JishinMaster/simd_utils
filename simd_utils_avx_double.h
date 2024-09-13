@@ -331,12 +331,20 @@ static inline void round256d(double *src, double *dst, int len)
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd src_tmp = _mm256_load_pd(src + i);
-            _mm256_store_pd(dst + i, _mm256_round_pd(src_tmp, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
+            v4sd spe1 = _mm256_and_pd(src_tmp, *(v4sd*)_pd256_sign_mask);
+            spe1 = _mm256_or_pd(spe1,*(v4sd*)_pd256_mid_mask);
+            spe1 = _mm256_add_pd(src_tmp, spe1);
+            v4sd dst_tmp = _mm256_round_pd(spe1, ROUNDTOZERO);
+            _mm256_store_pd(dst + i, dst_tmp);
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd src_tmp = _mm256_loadu_pd(src + i);
-            _mm256_storeu_pd(dst + i, _mm256_round_pd(src_tmp, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
+            v4sd spe1 = _mm256_and_pd(src_tmp, *(v4sd*)_pd256_sign_mask);
+            spe1 = _mm256_or_pd(spe1,*(v4sd*)_pd256_mid_mask);
+            spe1 = _mm256_add_pd(src_tmp, spe1);
+            v4sd dst_tmp = _mm256_round_pd(spe1, ROUNDTOZERO);
+            _mm256_storeu_pd(dst + i, dst_tmp);
         }
     }
 

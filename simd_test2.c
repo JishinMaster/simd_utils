@@ -3007,6 +3007,8 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < len; i++) {
         inout[i] = (float) (1.0f * i + 1.0f) / 1.82f;
+        if(i%4 == 0) inout[i] = (float) (1.0f * i + 0.5f);
+        if(i%2 == 0) inout[i] = - inout[i];
         inout_ref[i] = inout[i];
     }
 

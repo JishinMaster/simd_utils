@@ -1225,44 +1225,40 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 {
     float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
 
-    if (rounding_mode == RndZero) {
-#ifdef OMP
-#pragma omp simd
-#endif
-        for (int i = 0; i < len; i++) {
-            float tmp = floorf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
-        }
-    } else if (rounding_mode == RndNear) {
+    int rounding_ori = fegetround();
+    // Default bankers rounding => round to nearest even
+    if (rounding_mode == RndFinancial) {
 #ifdef OMP
 #pragma omp simd
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
-        }
-    } else if (rounding_mode == RndFinancial) {
-#ifdef OMP
-#pragma omp simd
-#endif
-        for (int i = 0; i < len; i++) {
-            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
-            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);  // round to nearest even with round(x/2)*2
         }
     } else {
+        if (rounding_mode == RndZero) {
+            fesetround(FE_TOWARDZERO);
+        } else {
+            fesetround(FE_TONEAREST);
+        }
+
+        // Default round toward zero
 #ifdef OMP
 #pragma omp simd
 #endif
         for (int i = 0; i < len; i++) {
-            float tmp = src[i] * scale_fact_mult;
+            float tmp = rintf(src[i] * scale_fact_mult);
             dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
         }
     }
+    fesetround(rounding_ori);
 }
 
 static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
 {
     float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+
+    int rounding_ori = fegetround();
 
     // Default bankers rounding => round to nearest even
     if (rounding_mode == RndFinancial) {
@@ -1270,7 +1266,7 @@ static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int 
 #pragma omp simd
 #endif
         for (int i = 0; i < len; i++) {
-            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            float tmp = roundf(src[i] * scale_fact_mult);
             dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
         }
     } else {
@@ -1285,15 +1281,18 @@ static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int 
 #pragma omp simd
 #endif
         for (int i = 0; i < len; i++) {
-            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            float tmp = rintf(src[i] * scale_fact_mult);
             dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
         }
     }
+    fesetround(rounding_ori);
 }
 
 static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
 {
     float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+
+    int rounding_ori = fegetround();
 
     // Default bankers rounding => round to nearest even
     if (rounding_mode == RndFinancial) {
@@ -1301,7 +1300,7 @@ static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int
 #pragma omp simd
 #endif
         for (int i = 0; i < len; i++) {
-            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            float tmp = roundf(src[i] * scale_fact_mult);
             dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
         }
     } else {
@@ -1316,10 +1315,12 @@ static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int
 #pragma omp simd
 #endif
         for (int i = 0; i < len; i++) {
-            float tmp = nearbyintf(src[i] * scale_fact_mult);
+            float tmp = rintf(src[i] * scale_fact_mult);
             dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);
         }
     }
+
+    fesetround(rounding_ori);
 }
 
 static inline void convertInt16ToFloat32_C(int16_t *src, float *dst, int len, int scale_factor)

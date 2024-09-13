@@ -815,6 +815,7 @@ _PS_CONST(min0p3, -0.333333333333f);
 _PS_CONST(0p5, 0.5f);
 _PS_CONST(min1, -1.0f);
 _PS_CONST(min2, -2.0f);
+_PS_CONST(2, 2.0f);
 _PS_CONST(min0p5, -0.5f);
 _PS_CONST(3, 3.0f);
 
@@ -824,6 +825,7 @@ _PS_CONST_TYPE(mant_mask, int, 0x7f800000);
 _PS_CONST_TYPE(inv_mant_mask, int, ~0x7f800000);  // 1000 0000 0111 1111 1111 1111 1111 1111
 
 _PS_CONST_TYPE(sign_mask, int, (int) 0x80000000);
+_PS_CONST_TYPE(mid_mask, int, (int)  0x3effffff);
 _PS_CONST_TYPE(inv_sign_mask, int, ~0x80000000);
 
 _PS_CONST(cephes_SQRTHF, 0.707106781186547524f);
@@ -981,6 +983,7 @@ _PD_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
 _PD_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);
 _PD_CONST_TYPE(inv_mant_mask, int64_t, (int64_t) 0x800FFFFFFFFFFFFFL);
 _PD_CONST_TYPE(sign_mask, int64_t, (int64_t) 0x8000000000000000L);
+_PD_CONST_TYPE(mid_mask, int64_t, (int64_t)  0x3fdfffffffffffffL);
 _PD_CONST_TYPE(inv_sign_mask, int64_t, ~0x8000000000000000L);
 _PD_CONST_TYPE(pos_sign_mask, int64_t, 0xFFFFFFFFFFFFFL);
 _PD_CONST_TYPE(epi64_mask, double, 0x0018000000000000L);
@@ -1267,6 +1270,7 @@ _PS256_CONST_TYPE(mant_mask, int, 0x7f800000);
 _PS256_CONST_TYPE(inv_mant_mask, int, ~0x7f800000);
 
 _PS256_CONST_TYPE(sign_mask, int, (int) 0x80000000);
+_PS256_CONST_TYPE(mid_mask, int, (int)  0x3effffff);
 _PS256_CONST_TYPE(inv_sign_mask, int, ~0x80000000);
 
 _PS256_CONST(cephes_SQRTHF, 0.707106781186547524f);
@@ -1309,6 +1313,7 @@ _PS256_CONST(cephes_FOPI, 1.27323954473516f);  // 4 / M_PI
 
 _PS256_CONST(min1, -1.0f);
 _PS256_CONST(min2, -2.0f);
+_PS256_CONST(2, 2.0f);
 _PS256_CONST(min0p5, -0.5f);
 
 // For tanf
@@ -1414,6 +1419,7 @@ _PD256_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
 _PD256_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);
 _PD256_CONST_TYPE(inv_mant_mask, int64_t, (int64_t)0x800FFFFFFFFFFFFFL);
 _PD256_CONST_TYPE(sign_mask, int64_t, (int64_t) 0x8000000000000000L);
+_PD256_CONST_TYPE(mid_mask, int64_t, (int64_t)  0x3fdfffffffffffffL);
 _PD256_CONST_TYPE(inv_sign_mask, int64_t, ~0x8000000000000000L);
 _PD256_CONST_TYPE(pos_sign_mask, int64_t, 0xFFFFFFFFFFFFFL);
 _PD256_CONST_TYPE(epi64_mask, double, 0x0018000000000000L);
@@ -1648,6 +1654,7 @@ _PS512_CONST_TYPE(mant_mask, int, 0x7f800000);
 _PS512_CONST_TYPE(inv_mant_mask, int, ~0x7f800000);
 
 _PS512_CONST_TYPE(sign_mask, int, (int) 0x80000000);
+_PS512_CONST_TYPE(mid_mask, int, (int)  0x3effffff);
 _PS512_CONST_TYPE(inv_sign_mask, int, ~0x80000000);
 _PS512_CONST(cephes_SQRTHF, 0.707106781186547524f);
 _PS512_CONST(cephes_log_p0, 7.0376836292E-2f);
@@ -1690,6 +1697,7 @@ _PS512_CONST(cephes_FOPI, 1.27323954473516f);  // 4 / M_PI
 _PS512_CONST(min1, -1.0f);
 _PS512_CONST(plus1, 1.0f);
 _PS512_CONST(min2, -2.0f);
+_PS512_CONST(2, 2.0f);
 _PS512_CONST(min0p5, -0.5f);
 
 
@@ -1793,6 +1801,7 @@ _PD512_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
 _PD512_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);
 _PD512_CONST_TYPE(inv_mant_mask, int64_t, (int64_t)0x800FFFFFFFFFFFFFL);
 _PD512_CONST_TYPE(sign_mask, int64_t, (int64_t) 0x8000000000000000L);
+_PD512_CONST_TYPE(mid_mask, int64_t, (int64_t)  0x3fdfffffffffffffL);
 _PD512_CONST_TYPE(inv_sign_mask, int64_t, ~0x8000000000000000L);
 
 _PD512_CONST(minus_cephes_DP1, -7.85398125648498535156E-1);
