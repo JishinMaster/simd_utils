@@ -3407,7 +3407,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("rintf_C %d %lf\n", len, elapsed);
 
-#if defined(SSE)
+#if defined(SSE) || defined(ALTIVEC)
     clock_gettime(CLOCK_REALTIME, &start);
     rint128f(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);

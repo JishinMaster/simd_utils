@@ -2729,7 +2729,7 @@ for (int i = 0; i < len; i++){
 #endif
 
     for(int i = 0; i < len; i++)
-        if(inout_s1[i] != inout_s2[i])
+        if(inout_u1[i] != inout_u2[i])
           printf("SSE : %d %g %g %x %x\n" ,i, inout[i], inout[i]/(1<<4),inout_u1[i],inout_u2[i]);
     
 #ifdef AVX

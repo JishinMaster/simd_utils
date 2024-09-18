@@ -56,6 +56,7 @@ static v4si vec_mullo(v4si a, v4si b)
 }
 #endif
 
+/*
 static inline void mul128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
 {
     int stop_len = len / (2 * ALTIVEC_LEN_INT32);
@@ -80,8 +81,7 @@ static inline void mul128s(int32_t *src1, int32_t *src2, int32_t *dst, int len)
         dst[i] = src1[i] * src2[i];
     }
 }
-
-#endif
+*/
 
 static inline void copy128s(int32_t *src, int32_t *dst, int len)
 {
@@ -815,7 +815,7 @@ static inline v8ss vec_absdiff(v8ss a, v8ss b)
     cmp = vec_cmpgt(a, b);
     difab = vec_sub(a, b);
     difba = vec_sub(b, a);
-#if 1  // should be faster
+#if 0  // should be faster
     return vec_sel(difba, difab, cmp);
 #else
     difab = vec_and(*(v8ss *) &cmp, difab);

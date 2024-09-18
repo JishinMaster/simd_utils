@@ -2128,9 +2128,8 @@ static inline void threshold128_ltval_gtval_f(float *src, float *dst, int len, f
         dst[i] = src[i] > gtlevel ? gtvalue : dst[i];
     }
 }
-
-//Warning : rounds like IEEE-754 to nearest even, not like C. To be done like SSE/AVX/etc
-static inline void round128f(float *src, float *dst, int len)
+			
+static inline void rint128f(float *src, float *dst, int len)
 {
     int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
     stop_len *= (2 * ALTIVEC_LEN_FLOAT);
@@ -2159,6 +2158,63 @@ static inline void round128f(float *src, float *dst, int len)
             }
             v4sf dst_tmp = vec_round(src_tmp);
             v4sf dst_tmp2 = vec_round(src_tmp2);
+
+            if (unalign_dst) {
+                vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
+                vec_stu(*(v16u8 *) &dst_tmp2, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                vec_st(dst_tmp, 0, dst + i);
+                vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+            }
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = rintf(src[i]);
+    }
+}
+
+static inline void round128f(float *src, float *dst, int len)
+{
+    int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);
+    stop_len *= (2 * ALTIVEC_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp = vec_ld(0, src + i);
+            v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+			v4sf spe1 = vec_and(src_tmp, *(v4sf*)_ps_sign_mask);
+            spe1 = vec_or(spe1,*(v4sf*)_ps_mid_mask);
+            spe1 = vec_add(src_tmp, spe1);
+            v4sf spe2 = vec_and(src_tmp2, *(v4sf*)_ps_sign_mask);
+            spe2 = vec_or(spe2,*(v4sf*)_ps_mid_mask);
+            spe2 = vec_add(src_tmp2, spe2);
+            v4sf dst_tmp = vec_trunc(spe1);
+            v4sf dst_tmp2 = vec_trunc(spe2);
+            vec_st(dst_tmp, 0, dst + i);
+            vec_st(dst_tmp2, 0, dst + i + ALTIVEC_LEN_FLOAT);
+        }
+    } else {
+        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+        for (int i = 0; i < stop_len; i += 2 * ALTIVEC_LEN_FLOAT) {
+            v4sf src_tmp, src_tmp2;
+            if (unalign_src) {
+                src_tmp = (v4sf) vec_ldu((unsigned char *) (src + i));
+                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+            } else {
+                src_tmp = vec_ld(0, src + i);
+                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+            }
+			v4sf spe1 = vec_and(src_tmp, *(v4sf*)_ps_sign_mask);
+            spe1 = vec_or(spe1,*(v4sf*)_ps_mid_mask);
+            spe1 = vec_add(src_tmp, spe1);
+            v4sf spe2 = vec_and(src_tmp2, *(v4sf*)_ps_sign_mask);
+            spe2 = vec_or(spe2,*(v4sf*)_ps_mid_mask);
+            spe2 = vec_add(src_tmp2, spe2);
+            v4sf dst_tmp = vec_trunc(spe1);
+            v4sf dst_tmp2 = vec_trunc(spe2);
 
             if (unalign_dst) {
                 vec_stu(*(v16u8 *) &dst_tmp, (unsigned char *) (dst + i));
@@ -2637,7 +2693,7 @@ static inline v4sf tanf_ps(v4sf xx)
     tmp = vec_mul(zz, tmp);
 
     tmp = vec_madd(tmp, z, z);
-    xsupem4 = vec_cmpgt(x, *(v4sf *) _ps_1em4);  // if( x > 1.0e-4 )
+    xsupem4 = vec_cmpgt(x, *(v4sf *) _ps_1emin4);  // if( x > 1.0e-4 )
     y = vec_sel(z, tmp, xsupem4);
 
     jandtwo = vec_cmpgt(vec_and(j, *(v4si *) _pi32_2), *(v4si *) _pi32_0);
@@ -3917,72 +3973,162 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
     if (rounding_mode == RndZero) {
         _FPU_SETCW(_FPU_RC_ZERO | _FPU_DEFAULT);  // rounding_vec = ROUNDTOZERO;
         fesetround(FE_TOWARDZERO);
-    } else if (rounding_mode == RndFinancial) {  // nothing to do, Default bankers rounding => round to nearest even
-    } else {
+    } else if (rounding_mode == RndNear)  {
         _FPU_SETCW(_FPU_RC_NEAREST | _FPU_DEFAULT);  // rounding_vec = ROUNDTONEAREST;
         fesetround(FE_TONEAREST);
     }
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
-            v4sf src_tmp1 = vec_ld(0, src + i);
-            v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
-            v4sf src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
-            v4sf src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
-            v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
-            v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
-            v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
-            v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
-            v4si tmp1_int = vec_cts(tmp1, 0);
-            v4si tmp2_int = vec_cts(tmp2, 0);
-            v4si tmp3_int = vec_cts(tmp3, 0);
-            v4si tmp4_int = vec_cts(tmp4, 0);
-            v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
-            v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
-            v16u8 tmp7 = vec_packsu(tmp5, tmp6);
-            vec_st(tmp7, 0, dst + i);
-        }
-    } else {
-        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
-        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+    if(rounding_mode != RndFinancial){
+		if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+			for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+				v4sf src_tmp1 = vec_ld(0, src + i);
+				v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+				v4sf src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+				v4sf src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+				v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+				v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+				v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+				v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+				v4si tmp1_int = vec_cts(tmp1, 0);
+				v4si tmp2_int = vec_cts(tmp2, 0);
+				v4si tmp3_int = vec_cts(tmp3, 0);
+				v4si tmp4_int = vec_cts(tmp4, 0);
+				v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
+				v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
+				v16u8 tmp7 = vec_packsu(tmp5, tmp6);
+				vec_st(tmp7, 0, dst + i);
+			}
+		} else {
+			int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+			int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
 
-        for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
-            v4sf src_tmp1, src_tmp2, src_tmp3, src_tmp4;
-            if (unalign_src) {
-                src_tmp1 = (v4sf) vec_ldu((unsigned char *) (src + i));
-                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
-                src_tmp3 = (v4sf) vec_ldu((unsigned char *) (src + i + 2 * ALTIVEC_LEN_FLOAT));
-                src_tmp4 = (v4sf) vec_ldu((unsigned char *) (src + i + 3 * ALTIVEC_LEN_FLOAT));
-            } else {
-                src_tmp1 = vec_ld(0, src + i);
-                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
-                src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
-                src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
-            }
+			for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+				v4sf src_tmp1, src_tmp2, src_tmp3, src_tmp4;
+				if (unalign_src) {
+					src_tmp1 = (v4sf) vec_ldu((unsigned char *) (src + i));
+					src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+					src_tmp3 = (v4sf) vec_ldu((unsigned char *) (src + i + 2 * ALTIVEC_LEN_FLOAT));
+					src_tmp4 = (v4sf) vec_ldu((unsigned char *) (src + i + 3 * ALTIVEC_LEN_FLOAT));
+				} else {
+					src_tmp1 = vec_ld(0, src + i);
+					src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+					src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+					src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+				}
 
-            v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
-            v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
-            v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
-            v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
-            v4si tmp1_int = vec_cts(tmp1, 0);
-            v4si tmp2_int = vec_cts(tmp2, 0);
-            v4si tmp3_int = vec_cts(tmp3, 0);
-            v4si tmp4_int = vec_cts(tmp4, 0);
-            v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
-            v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
-            v16u8 tmp7 = vec_packsu(tmp5, tmp6);
+				v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+				v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+				v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+				v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+				v4si tmp1_int = vec_cts(tmp1, 0);
+				v4si tmp2_int = vec_cts(tmp2, 0);
+				v4si tmp3_int = vec_cts(tmp3, 0);
+				v4si tmp4_int = vec_cts(tmp4, 0);
+				v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
+				v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
+				v16u8 tmp7 = vec_packsu(tmp5, tmp6);
 
-            if (unalign_dst) {
-                vec_stu(*(v16u8 *) &tmp7, (unsigned char *) (dst + i));
-            } else {
-                vec_st(tmp7, 0, dst + i);
-            }
-        }
-    }
+				if (unalign_dst) {
+					vec_stu(*(v16u8 *) &tmp7, (unsigned char *) (dst + i));
+				} else {
+					vec_st(tmp7, 0, dst + i);
+				}
+			}
+		}
+	} else {
+		if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+			for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+				v4sf src_tmp1 = vec_ld(0, src + i);
+				v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+				v4sf src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+				v4sf src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+				v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+				v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+				v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+				v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+			    v4sf spe1 = vec_and(tmp1, *(v4sf*)_ps_sign_mask);
+			    spe1 = vec_or(spe1,*(v4sf*)_ps_mid_mask);
+			    tmp1 = vec_add(tmp1, spe1);
+			    v4sf spe2 = vec_and(tmp2, *(v4sf*)_ps_sign_mask);
+			    spe2 = vec_or(spe2,*(v4sf*)_ps_mid_mask);
+			    tmp2 = vec_add(tmp2, spe2);
+			    v4sf spe3 = vec_and(tmp3, *(v4sf*)_ps_sign_mask);
+			    spe3 = vec_or(spe3,*(v4sf*)_ps_mid_mask);
+			    tmp3 = vec_add(tmp3, spe3);
+			    v4sf spe4 = vec_and(tmp4, *(v4sf*)_ps_sign_mask);
+			    spe4 = vec_or(spe4,*(v4sf*)_ps_mid_mask);
+			    tmp4 = vec_add(tmp4, spe4);
+				tmp1 = vec_trunc(tmp1);
+				tmp2 = vec_trunc(tmp2);
+				tmp3 = vec_trunc(tmp3);
+				tmp4 = vec_trunc(tmp4);
+				v4si tmp1_int = vec_cts(tmp1, 0);
+				v4si tmp2_int = vec_cts(tmp2, 0);
+				v4si tmp3_int = vec_cts(tmp3, 0);
+				v4si tmp4_int = vec_cts(tmp4, 0);
+				v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
+				v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
+				v16u8 tmp7 = vec_packsu(tmp5, tmp6);
+				vec_st(tmp7, 0, dst + i);
+			}
+		} else {
+			int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+			int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+			for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+				v4sf src_tmp1, src_tmp2, src_tmp3, src_tmp4;
+				if (unalign_src) {
+					src_tmp1 = (v4sf) vec_ldu((unsigned char *) (src + i));
+					src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+					src_tmp3 = (v4sf) vec_ldu((unsigned char *) (src + i + 2 * ALTIVEC_LEN_FLOAT));
+					src_tmp4 = (v4sf) vec_ldu((unsigned char *) (src + i + 3 * ALTIVEC_LEN_FLOAT));
+				} else {
+					src_tmp1 = vec_ld(0, src + i);
+					src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+					src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+					src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+				}
+
+				v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+				v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+				v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+				v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+			    v4sf spe1 = vec_and(tmp1, *(v4sf*)_ps_sign_mask);
+			    spe1 = vec_or(spe1,*(v4sf*)_ps_mid_mask);
+			    tmp1 = vec_add(tmp1, spe1);
+			    v4sf spe2 = vec_and(tmp2, *(v4sf*)_ps_sign_mask);
+			    spe2 = vec_or(spe2,*(v4sf*)_ps_mid_mask);
+			    tmp2 = vec_add(tmp2, spe2);
+			    v4sf spe3 = vec_and(tmp3, *(v4sf*)_ps_sign_mask);
+			    spe3 = vec_or(spe3,*(v4sf*)_ps_mid_mask);
+			    tmp3 = vec_add(tmp3, spe3);
+			    v4sf spe4 = vec_and(tmp4, *(v4sf*)_ps_sign_mask);
+			    spe4 = vec_or(spe4,*(v4sf*)_ps_mid_mask);
+			    tmp4 = vec_add(tmp4, spe4);
+				tmp1 = vec_trunc(tmp1);
+				tmp2 = vec_trunc(tmp2);
+				tmp3 = vec_trunc(tmp3);
+				tmp4 = vec_trunc(tmp4);
+				v4si tmp1_int = vec_cts(tmp1, 0);
+				v4si tmp2_int = vec_cts(tmp2, 0);
+				v4si tmp3_int = vec_cts(tmp3, 0);
+				v4si tmp4_int = vec_cts(tmp4, 0);
+				v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
+				v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
+				v16u8 tmp7 = vec_packsu(tmp5, tmp6);
+
+				if (unalign_dst) {
+					vec_stu(*(v16u8 *) &tmp7, (unsigned char *) (dst + i));
+				} else {
+					vec_st(tmp7, 0, dst + i);
+				}
+			}
+		}
+	}
 
     if (rounding_mode == RndFinancial) {
         for (int i = stop_len; i < len; i++) {
-            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            float tmp = roundf(src[i] * scale_fact_mult);
             dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);  // round to nearest even with round(x/2)*2
         }
     } else {
@@ -4012,73 +4158,164 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
     if (rounding_mode == RndZero) {
         _FPU_SETCW(_FPU_RC_ZERO | _FPU_DEFAULT);  // rounding_vec = ROUNDTOZERO;
         fesetround(FE_TOWARDZERO);
-    } else if (rounding_mode == RndFinancial) {  // nothing to do, Default bankers rounding => round to nearest even
-    } else {
+    } else if (rounding_mode == RndNear)  {
         _FPU_SETCW(_FPU_RC_NEAREST | _FPU_DEFAULT);  // rounding_vec = ROUNDTONEAREST;
         fesetround(FE_TONEAREST);
     }
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
-            v4sf src_tmp1 = vec_ld(0, src + i);
-            v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
-            v4sf src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
-            v4sf src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
-            v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
-            v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
-            v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
-            v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
-            v4si tmp1_int = vec_cts(tmp1, 0);
-            v4si tmp2_int = vec_cts(tmp2, 0);
-            v4si tmp3_int = vec_cts(tmp3, 0);
-            v4si tmp4_int = vec_cts(tmp4, 0);
-            v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
-            v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
-            vec_st(tmp5, 0, dst + i);
-            vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_INT16);
-        }
-    } else {
-        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
-        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+    if(rounding_mode != RndFinancial){
+		if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+			for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+				v4sf src_tmp1 = vec_ld(0, src + i);
+				v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+				v4sf src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+				v4sf src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+				v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+				v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+				v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+				v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+				v4si tmp1_int = vec_cts(tmp1, 0);
+				v4si tmp2_int = vec_cts(tmp2, 0);
+				v4si tmp3_int = vec_cts(tmp3, 0);
+				v4si tmp4_int = vec_cts(tmp4, 0);
+				v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
+				v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
+				vec_st(tmp5, 0, dst + i);
+				vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_INT16);
+			}
+		} else {
+			int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+			int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
 
-        for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
-            v4sf src_tmp1, src_tmp2, src_tmp3, src_tmp4;
-            if (unalign_src) {
-                src_tmp1 = (v4sf) vec_ldu((unsigned char *) (src + i));
-                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
-                src_tmp3 = (v4sf) vec_ldu((unsigned char *) (src + i + 2 * ALTIVEC_LEN_FLOAT));
-                src_tmp4 = (v4sf) vec_ldu((unsigned char *) (src + i + 3 * ALTIVEC_LEN_FLOAT));
-            } else {
-                src_tmp1 = vec_ld(0, src + i);
-                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
-                src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
-                src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
-            }
+			for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+				v4sf src_tmp1, src_tmp2, src_tmp3, src_tmp4;
+				if (unalign_src) {
+					src_tmp1 = (v4sf) vec_ldu((unsigned char *) (src + i));
+					src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+					src_tmp3 = (v4sf) vec_ldu((unsigned char *) (src + i + 2 * ALTIVEC_LEN_FLOAT));
+					src_tmp4 = (v4sf) vec_ldu((unsigned char *) (src + i + 3 * ALTIVEC_LEN_FLOAT));
+				} else {
+					src_tmp1 = vec_ld(0, src + i);
+					src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+					src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+					src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+				}
 
-            v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
-            v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
-            v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
-            v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
-            v4si tmp1_int = vec_cts(tmp1, 0);
-            v4si tmp2_int = vec_cts(tmp2, 0);
-            v4si tmp3_int = vec_cts(tmp3, 0);
-            v4si tmp4_int = vec_cts(tmp4, 0);
-            v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
-            v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
+				v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+				v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+				v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+				v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+				v4si tmp1_int = vec_cts(tmp1, 0);
+				v4si tmp2_int = vec_cts(tmp2, 0);
+				v4si tmp3_int = vec_cts(tmp3, 0);
+				v4si tmp4_int = vec_cts(tmp4, 0);
+				v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
+				v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
 
-            if (unalign_dst) {
-                vec_stu(*(v16u8 *) &tmp5, (unsigned char *) (dst + i));
-                vec_stu(*(v16u8 *) &tmp6, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
-            } else {
-                vec_st(tmp5, 0, dst + i);
-                vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_FLOAT);
-            }
-        }
-    }
+				if (unalign_dst) {
+					vec_stu(*(v16u8 *) &tmp5, (unsigned char *) (dst + i));
+					vec_stu(*(v16u8 *) &tmp6, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+				} else {
+					vec_st(tmp5, 0, dst + i);
+					vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_FLOAT);
+				}
+			}
+		}
+	} else {
+		if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+			for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+				v4sf src_tmp1 = vec_ld(0, src + i);
+				v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+				v4sf src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+				v4sf src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+				v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+				v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+				v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+				v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+			    v4sf spe1 = vec_and(tmp1, *(v4sf*)_ps_sign_mask);
+			    spe1 = vec_or(spe1,*(v4sf*)_ps_mid_mask);
+			    tmp1 = vec_add(tmp1, spe1);
+			    v4sf spe2 = vec_and(tmp2, *(v4sf*)_ps_sign_mask);
+			    spe2 = vec_or(spe2,*(v4sf*)_ps_mid_mask);
+			    tmp2 = vec_add(tmp2, spe2);
+			    v4sf spe3 = vec_and(tmp3, *(v4sf*)_ps_sign_mask);
+			    spe3 = vec_or(spe3,*(v4sf*)_ps_mid_mask);
+			    tmp3 = vec_add(tmp3, spe3);
+			    v4sf spe4 = vec_and(tmp4, *(v4sf*)_ps_sign_mask);
+			    spe4 = vec_or(spe4,*(v4sf*)_ps_mid_mask);
+			    tmp4 = vec_add(tmp4, spe4);
+				tmp1 = vec_trunc(tmp1);
+				tmp2 = vec_trunc(tmp2);
+				tmp3 = vec_trunc(tmp3);
+				tmp4 = vec_trunc(tmp4);				
+				v4si tmp1_int = vec_cts(tmp1, 0);
+				v4si tmp2_int = vec_cts(tmp2, 0);
+				v4si tmp3_int = vec_cts(tmp3, 0);
+				v4si tmp4_int = vec_cts(tmp4, 0);
+				v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
+				v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
+				vec_st(tmp5, 0, dst + i);
+				vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_INT16);
+			}
+		} else {
+			int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+			int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+			for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+				v4sf src_tmp1, src_tmp2, src_tmp3, src_tmp4;
+				if (unalign_src) {
+					src_tmp1 = (v4sf) vec_ldu((unsigned char *) (src + i));
+					src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+					src_tmp3 = (v4sf) vec_ldu((unsigned char *) (src + i + 2 * ALTIVEC_LEN_FLOAT));
+					src_tmp4 = (v4sf) vec_ldu((unsigned char *) (src + i + 3 * ALTIVEC_LEN_FLOAT));
+				} else {
+					src_tmp1 = vec_ld(0, src + i);
+					src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+					src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+					src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+				}
+
+				v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+				v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+				v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+				v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+			    v4sf spe1 = vec_and(tmp1, *(v4sf*)_ps_sign_mask);
+			    spe1 = vec_or(spe1,*(v4sf*)_ps_mid_mask);
+			    tmp1 = vec_add(tmp1, spe1);
+			    v4sf spe2 = vec_and(tmp2, *(v4sf*)_ps_sign_mask);
+			    spe2 = vec_or(spe2,*(v4sf*)_ps_mid_mask);
+			    tmp2 = vec_add(tmp2, spe2);
+			    v4sf spe3 = vec_and(tmp3, *(v4sf*)_ps_sign_mask);
+			    spe3 = vec_or(spe3,*(v4sf*)_ps_mid_mask);
+			    tmp3 = vec_add(tmp3, spe3);
+			    v4sf spe4 = vec_and(tmp4, *(v4sf*)_ps_sign_mask);
+			    spe4 = vec_or(spe4,*(v4sf*)_ps_mid_mask);
+			    tmp4 = vec_add(tmp4, spe4);
+				tmp1 = vec_trunc(tmp1);
+				tmp2 = vec_trunc(tmp2);
+				tmp3 = vec_trunc(tmp3);
+				tmp4 = vec_trunc(tmp4);				
+				v4si tmp1_int = vec_cts(tmp1, 0);
+				v4si tmp2_int = vec_cts(tmp2, 0);
+				v4si tmp3_int = vec_cts(tmp3, 0);
+				v4si tmp4_int = vec_cts(tmp4, 0);
+				v8ss tmp5 = vec_packs(tmp1_int, tmp2_int);
+				v8ss tmp6 = vec_packs(tmp3_int, tmp4_int);
+
+				if (unalign_dst) {
+					vec_stu(*(v16u8 *) &tmp5, (unsigned char *) (dst + i));
+					vec_stu(*(v16u8 *) &tmp6, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+				} else {
+					vec_st(tmp5, 0, dst + i);
+					vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_FLOAT);
+				}
+			}
+		}
+	}
 
     if (rounding_mode == RndFinancial) {
         for (int i = stop_len; i < len; i++) {
-            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            float tmp = roundf(src[i] * scale_fact_mult);
             dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
         }
     } else {
@@ -4108,73 +4345,166 @@ static inline void convertFloat32ToU16_128(float *src, uint16_t *dst, int len, i
     if (rounding_mode == RndZero) {
         _FPU_SETCW(_FPU_RC_ZERO | _FPU_DEFAULT);  // rounding_vec = ROUNDTOZERO;
         fesetround(FE_TOWARDZERO);
-    } else if (rounding_mode == RndFinancial) {  // nothing to do, Default bankers rounding => round to nearest even
-    } else {
+    } else if (rounding_mode == RndNear)  {
         _FPU_SETCW(_FPU_RC_NEAREST | _FPU_DEFAULT);  // rounding_vec = ROUNDTONEAREST;
         fesetround(FE_TONEAREST);
     }
 
-    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
-        for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
-            v4sf src_tmp1 = vec_ld(0, src + i);
-            v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
-            v4sf src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
-            v4sf src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
-            v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
-            v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
-            v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
-            v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
-            v4si tmp1_int = vec_cts(tmp1, 0);
-            v4si tmp2_int = vec_cts(tmp2, 0);
-            v4si tmp3_int = vec_cts(tmp3, 0);
-            v4si tmp4_int = vec_cts(tmp4, 0);
-            v8us tmp5 = vec_packsu(tmp1_int, tmp2_int);
-            v8us tmp6 = vec_packsu(tmp3_int, tmp4_int);
-            vec_st(tmp5, 0, dst + i);
-            vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_INT16);
-        }
-    } else {
-        int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
-        int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
 
-        for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
-            v4sf src_tmp1, src_tmp2, src_tmp3, src_tmp4;
-            if (unalign_src) {
-                src_tmp1 = (v4sf) vec_ldu((unsigned char *) (src + i));
-                src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
-                src_tmp3 = (v4sf) vec_ldu((unsigned char *) (src + i + 2 * ALTIVEC_LEN_FLOAT));
-                src_tmp4 = (v4sf) vec_ldu((unsigned char *) (src + i + 3 * ALTIVEC_LEN_FLOAT));
-            } else {
-                src_tmp1 = vec_ld(0, src + i);
-                src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
-                src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
-                src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
-            }
+    if(rounding_mode != RndFinancial){
+		if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+			for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+				v4sf src_tmp1 = vec_ld(0, src + i);
+				v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+				v4sf src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+				v4sf src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+				v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+				v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+				v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+				v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+				v4si tmp1_int = vec_cts(tmp1, 0);
+				v4si tmp2_int = vec_cts(tmp2, 0);
+				v4si tmp3_int = vec_cts(tmp3, 0);
+				v4si tmp4_int = vec_cts(tmp4, 0);
+				v8us tmp5 = vec_packsu(tmp1_int, tmp2_int);
+				v8us tmp6 = vec_packsu(tmp3_int, tmp4_int);
+				vec_st(tmp5, 0, dst + i);
+				vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_INT16);
+			}
+		} else {
+			int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+			int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
 
-            v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
-            v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
-            v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
-            v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
-            v4si tmp1_int = vec_cts(tmp1, 0);
-            v4si tmp2_int = vec_cts(tmp2, 0);
-            v4si tmp3_int = vec_cts(tmp3, 0);
-            v4si tmp4_int = vec_cts(tmp4, 0);
-            v8us tmp5 = vec_packsu(tmp1_int, tmp2_int);
-            v8us tmp6 = vec_packsu(tmp3_int, tmp4_int);
+			for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+				v4sf src_tmp1, src_tmp2, src_tmp3, src_tmp4;
+				if (unalign_src) {
+					src_tmp1 = (v4sf) vec_ldu((unsigned char *) (src + i));
+					src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+					src_tmp3 = (v4sf) vec_ldu((unsigned char *) (src + i + 2 * ALTIVEC_LEN_FLOAT));
+					src_tmp4 = (v4sf) vec_ldu((unsigned char *) (src + i + 3 * ALTIVEC_LEN_FLOAT));
+				} else {
+					src_tmp1 = vec_ld(0, src + i);
+					src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+					src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+					src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+				}
 
-            if (unalign_dst) {
-                vec_stu(*(v16u8 *) &tmp5, (unsigned char *) (dst + i));
-                vec_stu(*(v16u8 *) &tmp6, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
-            } else {
-                vec_st(tmp5, 0, dst + i);
-                vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_FLOAT);
-            }
-        }
-    }
+				v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+				v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+				v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+				v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+				v4si tmp1_int = vec_cts(tmp1, 0);
+				v4si tmp2_int = vec_cts(tmp2, 0);
+				v4si tmp3_int = vec_cts(tmp3, 0);
+				v4si tmp4_int = vec_cts(tmp4, 0);
+				v8us tmp5 = vec_packsu(tmp1_int, tmp2_int);
+				v8us tmp6 = vec_packsu(tmp3_int, tmp4_int);
+
+				if (unalign_dst) {
+					vec_stu(*(v16u8 *) &tmp5, (unsigned char *) (dst + i));
+					vec_stu(*(v16u8 *) &tmp6, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+				} else {
+					vec_st(tmp5, 0, dst + i);
+					vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_FLOAT);
+				}
+			}
+		}
+	} else {
+		if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), ALTIVEC_LEN_BYTES)) {
+			for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+				v4sf src_tmp1 = vec_ld(0, src + i);
+				v4sf src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+				v4sf src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+				v4sf src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+				v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+				v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+				v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+				v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+			    v4sf spe1 = vec_and(tmp1, *(v4sf*)_ps_sign_mask);
+			    spe1 = vec_or(spe1,*(v4sf*)_ps_mid_mask);
+			    tmp1 = vec_add(tmp1, spe1);
+			    v4sf spe2 = vec_and(tmp2, *(v4sf*)_ps_sign_mask);
+			    spe2 = vec_or(spe2,*(v4sf*)_ps_mid_mask);
+			    tmp2 = vec_add(tmp2, spe2);
+			    v4sf spe3 = vec_and(tmp3, *(v4sf*)_ps_sign_mask);
+			    spe3 = vec_or(spe3,*(v4sf*)_ps_mid_mask);
+			    tmp3 = vec_add(tmp3, spe3);
+			    v4sf spe4 = vec_and(tmp4, *(v4sf*)_ps_sign_mask);
+			    spe4 = vec_or(spe4,*(v4sf*)_ps_mid_mask);
+			    tmp4 = vec_add(tmp4, spe4);
+				tmp1 = vec_trunc(tmp1);
+				tmp2 = vec_trunc(tmp2);
+				tmp3 = vec_trunc(tmp3);
+				tmp4 = vec_trunc(tmp4);					
+				v4si tmp1_int = vec_cts(tmp1, 0);
+				v4si tmp2_int = vec_cts(tmp2, 0);
+				v4si tmp3_int = vec_cts(tmp3, 0);
+				v4si tmp4_int = vec_cts(tmp4, 0);
+				v8us tmp5 = vec_packsu(tmp1_int, tmp2_int);
+				v8us tmp6 = vec_packsu(tmp3_int, tmp4_int);
+				vec_st(tmp5, 0, dst + i);
+				vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_INT16);
+			}
+		} else {
+			int unalign_src = (uintptr_t) (src) % ALTIVEC_LEN_BYTES;
+			int unalign_dst = (uintptr_t) (dst) % ALTIVEC_LEN_BYTES;
+
+			for (int i = 0; i < stop_len; i += 4 * ALTIVEC_LEN_FLOAT) {
+				v4sf src_tmp1, src_tmp2, src_tmp3, src_tmp4;
+				if (unalign_src) {
+					src_tmp1 = (v4sf) vec_ldu((unsigned char *) (src + i));
+					src_tmp2 = (v4sf) vec_ldu((unsigned char *) (src + i + ALTIVEC_LEN_FLOAT));
+					src_tmp3 = (v4sf) vec_ldu((unsigned char *) (src + i + 2 * ALTIVEC_LEN_FLOAT));
+					src_tmp4 = (v4sf) vec_ldu((unsigned char *) (src + i + 3 * ALTIVEC_LEN_FLOAT));
+				} else {
+					src_tmp1 = vec_ld(0, src + i);
+					src_tmp2 = vec_ld(0, src + i + ALTIVEC_LEN_FLOAT);
+					src_tmp3 = vec_ld(0, src + i + 2 * ALTIVEC_LEN_FLOAT);
+					src_tmp4 = vec_ld(0, src + i + 3 * ALTIVEC_LEN_FLOAT);
+				}
+
+				v4sf tmp1 = vec_mul(src_tmp1, scale_fact_vec);
+				v4sf tmp2 = vec_mul(src_tmp2, scale_fact_vec);
+				v4sf tmp3 = vec_mul(src_tmp3, scale_fact_vec);
+				v4sf tmp4 = vec_mul(src_tmp4, scale_fact_vec);
+			    v4sf spe1 = vec_and(tmp1, *(v4sf*)_ps_sign_mask);
+			    spe1 = vec_or(spe1,*(v4sf*)_ps_mid_mask);
+			    tmp1 = vec_add(tmp1, spe1);
+			    v4sf spe2 = vec_and(tmp2, *(v4sf*)_ps_sign_mask);
+			    spe2 = vec_or(spe2,*(v4sf*)_ps_mid_mask);
+			    tmp2 = vec_add(tmp2, spe2);
+			    v4sf spe3 = vec_and(tmp3, *(v4sf*)_ps_sign_mask);
+			    spe3 = vec_or(spe3,*(v4sf*)_ps_mid_mask);
+			    tmp3 = vec_add(tmp3, spe3);
+			    v4sf spe4 = vec_and(tmp4, *(v4sf*)_ps_sign_mask);
+			    spe4 = vec_or(spe4,*(v4sf*)_ps_mid_mask);
+			    tmp4 = vec_add(tmp4, spe4);
+				tmp1 = vec_trunc(tmp1);
+				tmp2 = vec_trunc(tmp2);
+				tmp3 = vec_trunc(tmp3);
+				tmp4 = vec_trunc(tmp4);					
+				v4si tmp1_int = vec_cts(tmp1, 0);
+				v4si tmp2_int = vec_cts(tmp2, 0);
+				v4si tmp3_int = vec_cts(tmp3, 0);
+				v4si tmp4_int = vec_cts(tmp4, 0);
+				v8us tmp5 = vec_packsu(tmp1_int, tmp2_int);
+				v8us tmp6 = vec_packsu(tmp3_int, tmp4_int);
+
+				if (unalign_dst) {
+					vec_stu(*(v16u8 *) &tmp5, (unsigned char *) (dst + i));
+					vec_stu(*(v16u8 *) &tmp6, (unsigned char *) (dst + i + ALTIVEC_LEN_FLOAT));
+				} else {
+					vec_st(tmp5, 0, dst + i);
+					vec_st(tmp6, 0, dst + i + ALTIVEC_LEN_FLOAT);
+				}
+			}
+		}		
+	}
+
 
     if (rounding_mode == RndFinancial) {
         for (int i = stop_len; i < len; i++) {
-            float tmp = (roundf(src[i] * scale_fact_mult * 0.5f) / 2.0f);
+            float tmp = roundf(src[i] * scale_fact_mult);
             dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
         }
     } else {
