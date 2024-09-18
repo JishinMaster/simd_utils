@@ -44,6 +44,7 @@ fmadd vs fmacc, load stride vs segment, etc
 #define _MM_ROUND_TOWARD_ZERO 1
 #define _MM_ROUND_DOWN 2
 #define _MM_ROUND_UP 3
+#define _MM_ROUND_AWAY 4
 
 // load vector float32, 8
 // "1" in name means either vector scalar instructions, or load/store scalar to vector

@@ -323,6 +323,30 @@ static inline void muladdc256d(double *_a, double *_b, double _c, double *dst, i
     }
 }
 
+static inline void rint256d(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX_LEN_DOUBLE;
+    stop_len *= AVX_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_load_pd(src + i);
+            v4sd dst_tmp = _mm256_round_pd(src_tmp, ROUNDTONEAREST);
+            _mm256_store_pd(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
+            v4sd src_tmp = _mm256_loadu_pd(src + i);
+            v4sd dst_tmp = _mm256_round_pd(src_tmp, ROUNDTONEAREST);
+            _mm256_storeu_pd(dst + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = rint(src[i]);
+    }
+}
+
 static inline void round256d(double *src, double *dst, int len)
 {
     int stop_len = len / AVX_LEN_DOUBLE;

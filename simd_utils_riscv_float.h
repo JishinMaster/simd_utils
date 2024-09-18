@@ -2591,7 +2591,8 @@ static inline void modf_vec(float *src, float *integer, float *remainder, int le
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
-static inline void roundf_vec(float *src, float *dst, int len)
+// IEEE 754 round to nearest even
+static inline void rintf_vec(float *src, float *dst, int len)
 {
     size_t i;
     float *src_tmp = src;
@@ -2606,12 +2607,22 @@ static inline void roundf_vec(float *src, float *dst, int len)
     }
 }
 
+//C Roundf, round away from zero
+static inline void roundf_vec(float *src, float *dst, int len)
+{
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_AWAY);
+    rintf_vec(src, dst, len);
+    _MM_SET_ROUNDING_MODE(reg_ori);
+}
+
 static inline void ceilf_vec(float *src, float *dst, int len)
 {
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
     _MM_SET_ROUNDING_MODE(_MM_ROUND_UP);
-    roundf_vec(src, dst, len);
+    rintf_vec(src, dst, len);
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
@@ -2620,7 +2631,7 @@ static inline void floorf_vec(float *src, float *dst, int len)
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
     _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
-    roundf_vec(src, dst, len);
+    rintf_vec(src, dst, len);
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
@@ -2629,7 +2640,7 @@ static inline void truncf_vec(float *src, float *dst, int len)
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
     _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-    roundf_vec(src, dst, len);
+    rintf_vec(src, dst, len);
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 

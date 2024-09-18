@@ -323,6 +323,30 @@ static inline void muladdc512d(double *_a, double *_b, double _c, double *dst, i
     }
 }
 
+static inline void rint512d(double *src, double *dst, int len)
+{
+    int stop_len = len / AVX512_LEN_DOUBLE;
+    stop_len *= AVX512_LEN_DOUBLE;
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_load_pd(src + i);
+            v8sd dst_tmp = _mm512_roundscale_pd(src_tmp, ROUNDTONEAREST);
+            _mm512_store_pd(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_DOUBLE) {
+            v8sd src_tmp = _mm512_loadu_pd(src + i);
+            v8sd dst_tmp = _mm512_roundscale_pd(src_tmp, ROUNDTONEAREST);
+            _mm512_storeu_pd(dst + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = rint(src[i]);
+    }
+}
+
 static inline void round512d(double *src, double *dst, int len)
 {
     int stop_len = len / AVX512_LEN_DOUBLE;

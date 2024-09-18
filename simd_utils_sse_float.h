@@ -3433,6 +3433,37 @@ static inline void sqrt128f(float *src, float *dst, int len)
 }
 
 //rounds away from zero like IPP, whereas SSE/AVx/AVX512 rounds to nearest even (IEEE-754)
+static inline void rint128f(float *src, float *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4sf dst_tmp = _mm_round_ps(src_tmp, ROUNDTONEAREST);
+            v4sf dst_tmp2 = _mm_round_ps(src_tmp2, ROUNDTONEAREST);
+            _mm_store_ps(dst + i, dst_tmp);
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+            v4sf dst_tmp = _mm_round_ps(src_tmp, ROUNDTONEAREST);
+            v4sf dst_tmp2 = _mm_round_ps(src_tmp2, ROUNDTONEAREST);
+            _mm_storeu_ps(dst + i, dst_tmp);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = rintf(src[i]);
+    }
+}
+
+//rounds away from zero like IPP, whereas SSE/AVx/AVX512 rounds to nearest even (IEEE-754)
 static inline void round128f(float *src, float *dst, int len)
 {
     int stop_len = len / (2 * SSE_LEN_FLOAT);

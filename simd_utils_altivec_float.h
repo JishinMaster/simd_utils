@@ -2129,6 +2129,7 @@ static inline void threshold128_ltval_gtval_f(float *src, float *dst, int len, f
     }
 }
 
+//Warning : rounds like IEEE-754 to nearest even, not like C. To be done like SSE/AVX/etc
 static inline void round128f(float *src, float *dst, int len)
 {
     int stop_len = len / (2 * ALTIVEC_LEN_FLOAT);

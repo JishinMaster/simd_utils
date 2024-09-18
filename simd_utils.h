@@ -751,7 +751,7 @@ static inline void _MM_SET_ROUNDING_MODE(uint32_t mode)
     uint32_t reg;
 
     switch (mode) {
-    case _MM_ROUND_NEAREST:
+    case _MM_ROUND_NEAREST: //IEEE 754 round to nearest even
         asm volatile("fsrmi %0,0"
                      : "=r"(reg));
         break;
@@ -765,6 +765,10 @@ static inline void _MM_SET_ROUNDING_MODE(uint32_t mode)
         break;
     case _MM_ROUND_UP:
         asm volatile("fsrmi %0,3"
+                     : "=r"(reg));
+        break;
+	 case _MM_ROUND_AWAY: //C round away from zero
+        asm volatile("fsrmi %0,4"
                      : "=r"(reg));
         break;
     default:
@@ -2029,6 +2033,17 @@ static inline void roundf_C(float *src, float *dst, int len)
     }
 }
 
+static inline void rintf_C(float *src, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = rintf(src[i]);
+    }
+}
+
+
 static inline void truncf_C(float *src, float *dst, int len)
 {
 #ifdef OMP
@@ -2066,6 +2081,16 @@ static inline void roundd_C(double *src, double *dst, int len)
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] = round(src[i]);
+    }
+}
+
+static inline void rintd_C(double *src, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = rint(src[i]);
     }
 }
 

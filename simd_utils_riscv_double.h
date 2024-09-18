@@ -16,7 +16,7 @@
 
 #if ELEN >= 64
 
-static inline void roundd_vec(double *src, double *dst, int len)
+static inline void rintd_vec(double *src, double *dst, int len)
 {
     size_t i;
     double *src_tmp = src;
@@ -31,12 +31,21 @@ static inline void roundd_vec(double *src, double *dst, int len)
     }
 }
 
+static inline void roundd_vec(double *src, double *dst, int len)
+{
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_AWAY);
+    rintd_vec(src, dst, len);
+    _MM_SET_ROUNDING_MODE(reg_ori);
+}
+
 static inline void ceild_vec(double *src, double *dst, int len)
 {
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
     _MM_SET_ROUNDING_MODE(_MM_ROUND_UP);
-    roundd_vec(src, dst, len);
+    rintd_vec(src, dst, len);
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
@@ -45,7 +54,7 @@ static inline void floord_vec(double *src, double *dst, int len)
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
     _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
-    roundd_vec(src, dst, len);
+    rintd_vec(src, dst, len);
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
@@ -54,7 +63,7 @@ static inline void truncd_vec(double *src, double *dst, int len)
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
     _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-    roundd_vec(src, dst, len);
+    rintd_vec(src, dst, len);
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
@@ -372,7 +381,7 @@ static inline void vectorSloped_vec(double *dst, int len, double offset, double 
 
 #warning "No support for double precision functions"
 
-static inline void roundd_vec(double *src, double *dst, int len) {}
+static inline void rintd_vec(double *src, double *dst, int len) {}
 static inline void ceild_vec(double *src, double *dst, int len) {}
 static inline void floord_vec(double *src, double *dst, int len) {}
 static inline void truncd_vec(double *src, double *dst, int len) {}

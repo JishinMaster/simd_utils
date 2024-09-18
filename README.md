@@ -147,6 +147,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | meanXf   (a)                                          | meanf_C                     | ippsMean_32f                   | meanf_vec                     |
 | sqrtXf   (a)                                          | sqrtf_C                     | ippsSqrt_32f                   | sqrtf_vec                     |
 | roundXf  (a)                                          | roundf_C                    | ippsRound_32f                  | roundf_vec                    |
+| rintXf                                                | rintf_C                     | ?                              | rintf_vec                     |
 | ceilXf   (a)                                          | ceilf_C                     | ippsCeil_32f                   | ceilf_vec                     |
 | floorXf  (a)                                          | floorf_C                    | ippsFloor_32f                  | floorf_vec                    |
 | truncXf  (a)                                          | truncf_C                    | ippsTrunc_32f                  | truncf_vec                    |
@@ -173,6 +174,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | mulcaddcXd                                            | mulcaddcd_C                 | ?                              | mulcaddcd_vec                 |
 | muladdcXd                                             | muladdcd_C                  | ?                              | muladdcd_vec                  |
 | roundXd                                               | roundd_C                    | ippsRound_64f                  | roundd_vec                    |
+| rintXd                                                | rintd_C                     | ?                              | rintd_vec                     |
 | ceilXd                                                | ceild_C                     | ippsCeil_64f                   | ceild_vec                     |
 | floorXd                                               | floord_C                    | ippsFloor_64f                  | floord_vec                    |
 | truncXd                                               | truncd_C                    | ippsTrunc_64f                  | truncd_vec                    |
