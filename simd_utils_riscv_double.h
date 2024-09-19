@@ -377,6 +377,152 @@ static inline void vectorSloped_vec(double *dst, int len, double offset, double 
     }
 }
 
+
+
+static inline void sincosd_ps(V_ELT_DOUBLEH x,
+                              V_ELT_DOUBLEH *sin_tmp,
+                              V_ELT_DOUBLEH *cos_tmp,
+                              V_ELT_DOUBLEH coscof_1_vec,
+                              V_ELT_DOUBLEH coscof_2_vec,
+							  V_ELT_DOUBLEH coscof_3_vec,
+							  V_ELT_DOUBLEH coscof_4_vec,
+							  V_ELT_DOUBLEH coscof_5_vec,
+                              V_ELT_DOUBLEH sincof_1_vec,
+                              V_ELT_DOUBLEH sincof_2_vec,
+                              V_ELT_DOUBLEH sincof_3_vec,
+							  V_ELT_DOUBLEH sincof_4_vec,
+							  V_ELT_DOUBLEH sincof_5_vec,							  
+                              size_t i)
+{
+    V_ELT_DOUBLEH y;
+    V_ELT_INT64H  j;
+    V_ELT_BOOL64H jandone, jsup3, jsup1, j1or2, xinf0;
+    V_ELT_BOOL64H sign_sin, sign_cos, poly_mask;
+
+    sign_sin = VCLEAR_BOOL64H(i);
+    sign_cos = VCLEAR_BOOL64H(i);
+    // if (x < 0)
+    xinf0 = VLT1_DOUBLEH_BOOLH(x, 0.0, i);
+    sign_sin = VXOR_BOOL64H(sign_sin, xinf0, i);
+
+    /* take the absolute value */
+    x = VINTHERP_INTH_DOUBLEH(VAND1_INT64H(VINTHERP_DOUBLEH_INTH(x), inv_sign_maskd, i));
+    /* scale by 4/Pi */
+    y = VMUL1_DOUBLEH(x, FOPId, i);
+
+    /* store the integer part of y in mm2 */
+    j = VCVT_RTZ_DOUBLEH_INTH(y, i);
+
+    // if (j&1))
+    jandone = VNE1_INTH_BOOL64H(VAND1_INT64H(j, 1, i), 0, i);
+    j = VADD1_INT64H_MASK(jandone, j, j, 1, i);
+    y = VCVT_INTH_DOUBLEH(j, i);
+
+    // j&=7
+    j = VAND1_INT64H(j, 7, i);
+
+    // if (j > 3)
+    jsup3 = VGT1_INTH_BOOL64H(j, 3, i);
+    sign_sin = VXOR_BOOL64H(sign_sin, jsup3, i);
+    sign_cos = VXOR_BOOL64H(sign_cos, jsup3, i);
+    j = VSUB1_INT64H_MASK(jsup3, j, j, 4, i);
+
+    // if (j > 1)
+    jsup1 = VGT1_INTH_BOOL64H(j, 1, i);
+    sign_cos = VXOR_BOOL64H(sign_cos, jsup1, i);
+
+    j1or2 = VOR_BOOL64H(VEQ1_INTH_BOOL64H(j, 1, i),
+                      VEQ1_INTH_BOOL64H(j, 2, i), i);
+
+
+    /* The magic pass: "Extended precision modular arithmetic"
+    x = ((x - y * DP1) - y * DP2) - y * DP3; */
+    x = VFMACC1_DOUBLEH(x, minus_cephes_DP1, y, i);
+    x = VFMACC1_DOUBLEH(x, minus_cephes_DP2, y, i);
+    x = VFMACC1_DOUBLEH(x, minus_cephes_DP3, y, i);
+
+    /* Evaluate the first polynom  (0 <= x <= Pi/4) */
+    V_ELT_DOUBLEH z = VMUL_DOUBLEH(x, x, i);
+    y = z;
+    y = VFMADD1_DOUBLEH(y, coscod[0], coscof_1_vec, i);
+    y = VFMADD_DOUBLEH(y, z, coscof_2_vec, i);
+    y = VFMADD_DOUBLEH(y, z, coscof_3_vec, i);
+    y = VFMADD_DOUBLEH(y, z, coscof_4_vec, i);
+    y = VFMADD_DOUBLEH(y, z, coscof_5_vec, i);	
+    y = VMUL_DOUBLEH(y, z, i);
+    y = VMUL_DOUBLEH(y, z, i);
+    y = VFMACC1_DOUBLEH(y, -0.5, z, i);  // y = y -0.5*z
+    y = VADD1_DOUBLEH(y, 1.0, i);
+
+    /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
+    V_ELT_DOUBLEH y2;
+    y2 = z;
+    y2 = VFMADD1_DOUBLEH(y2, sincod[0], sincof_1_vec, i);
+    y2 = VFMADD_DOUBLEH(y2, z, sincof_2_vec, i);
+    y2 = VFMADD_DOUBLEH(y2, z, sincof_3_vec, i);
+    y2 = VFMADD_DOUBLEH(y2, z, sincof_4_vec, i);
+    y2 = VFMADD_DOUBLEH(y2, z, sincof_5_vec, i);	
+    y2 = VMUL_DOUBLEH(y2, z, i);
+    y2 = VFMADD_DOUBLEH(y2, x, x, i);
+
+    /* select the correct result from the two polynoms */
+    //V_ELT_DOUBLEH y_sin = VMERGE_DOUBLEH(poly_mask, y, y2, i);
+    //V_ELT_DOUBLEH y_cos = VMERGE_DOUBLEH(poly_mask, y2, y, i);
+    V_ELT_DOUBLEH y_sin = VMERGE_DOUBLEH(j1or2, y2, y, i);
+    V_ELT_DOUBLEH y_cos = VMERGE_DOUBLEH(j1or2, y, y2, i);
+	
+    y_sin = VMUL1_DOUBLEH_MASK(sign_sin, y_sin, y_sin, -1.0, i);
+    y_cos = VMUL1_DOUBLEH_MASK(sign_cos, y_cos, y_cos, -1.0, i);
+    *sin_tmp = y_sin;
+    *cos_tmp = y_cos;
+}
+
+static inline void sincosd_vec(double *src, double *s, double *c, int len)
+{
+    size_t i;
+    double *src_tmp = src;
+    double *s_tmp = s;
+    double *c_tmp = c;
+
+#ifdef NO_RTZ
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+#endif
+
+    i = VSETVL64H(len);
+    V_ELT_DOUBLEH coscof_1_vec = VLOAD1_DOUBLEH(coscod[1], i);
+    V_ELT_DOUBLEH coscof_2_vec = VLOAD1_DOUBLEH(coscod[2], i);
+	V_ELT_DOUBLEH coscof_3_vec = VLOAD1_DOUBLEH(coscod[3], i);
+	V_ELT_DOUBLEH coscof_4_vec = VLOAD1_DOUBLEH(coscod[4], i);
+	V_ELT_DOUBLEH coscof_5_vec = VLOAD1_DOUBLEH(coscod[5], i);	
+    V_ELT_DOUBLEH sincof_1_vec = VLOAD1_DOUBLEH(sincod[1], i);
+    V_ELT_DOUBLEH sincof_2_vec = VLOAD1_DOUBLEH(sincod[2], i);
+    V_ELT_DOUBLEH sincof_3_vec = VLOAD1_DOUBLEH(sincod[3], i);
+    V_ELT_DOUBLEH sincof_4_vec = VLOAD1_DOUBLEH(sincod[4], i);
+    V_ELT_DOUBLEH sincof_5_vec = VLOAD1_DOUBLEH(sincod[5], i);
+	
+    for (; (i = VSETVL64H(len)) > 0; len -= i) {
+        V_ELT_DOUBLEH x = VLOAD_DOUBLEH(src_tmp, i);
+        V_ELT_DOUBLEH y_sin, y_cos;
+        sincosd_ps(x, &y_sin, &y_cos,
+                   coscof_1_vec, coscof_2_vec, coscof_3_vec,
+				   coscof_4_vec, coscof_5_vec,
+                   sincof_1_vec, sincof_2_vec,  sincof_3_vec,
+				   sincof_4_vec, sincof_5_vec, i);
+        VSTORE_DOUBLEH(s_tmp, y_sin, i);
+        VSTORE_DOUBLEH(c_tmp, y_cos, i);
+
+        src_tmp += i;
+        s_tmp += i;
+        c_tmp += i;
+    }
+
+#ifdef NO_RTZ
+    _MM_SET_ROUNDING_MODE(reg_ori);
+#endif
+}
+
 #else
 
 #warning "No support for double precision functions"
@@ -403,5 +549,5 @@ static inline void fabsd_vec(double *src, double *dst, int len) {}
 static inline void sumd_vec(double *src, double *dst, int len) {}
 static inline void meand_vec(double *src, double *dst, int len) {}
 static inline void vectorSloped_vec(double *dst, int len, double offset, double slope) {}
-
+static inline void sincosd_vec(double *src, double *s, double *c, int len) {}
 #endif

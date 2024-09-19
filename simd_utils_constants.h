@@ -360,7 +360,10 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VMUL_DOUBLEH vfmul_vv_f64m2
 #define VMUL1_DOUBLEH vfmul_vf_f64m2
 #define VDIV_DOUBLEH vfdiv_vv_f64m2
-#define VFMA_DOUBLEH vfmacc_vv_f64m2  // d = a + b*c
+#define VFMACC_DOUBLEH vfmacc_vv_f64m2  // d = a + b*c
+#define VFMACC1_DOUBLEH vfmacc_vf_f64m2  
+#define VFMADD_DOUBLEH vfmadd_vv_f64m2  
+#define VFMADD1_DOUBLEH vfmadd_vf_f64m2 
 #define VFMA1_DOUBLEH vfmacc_vf_f64m2
 #define VFMSUB_DOUBLEH vfmsub_vv_f64m2  // d = a*b - c
 #define VREDSUM_DOUBLEH vfredosum_vs_f64m2_f64m1
@@ -379,6 +382,9 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VSQRT_DOUBLEH vfsqrt_v_f64m2
 #define VCVT_DOUBLEH_FLOATH vfncvt_f_f_w_f32m2
 #define VCVT_FLOATH_DOUBLEH vfwcvt_f_f_v_f64m2
+#define VLT1_DOUBLEH_BOOLH vmflt_vf_f64m2_b32
+#define VMERGE_DOUBLEH vmerge_vvm_f64m2
+#define VMUL1_DOUBLEH_MASK vfmul_vf_f64m2_m
 #endif  // ELEN >= 64
 
 //// INTH
@@ -389,6 +395,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VADD_INTH vadd_vv_i32m2
 #define VADD1_INTH vadd_vx_i32m2
 #define VADD1_INTH_MASK vadd_vx_i32m2_m
+#define VADD1_INT64H_MASK vadd_vx_i64m2_m
 #define VMUL_INTH vmul_vv_i32m2
 #define VMUL1_INTH vmul_vx_i32m2
 #define VSUB_INTH vsub_vv_i32m2
@@ -412,6 +419,17 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VMAX1_INTH vmax_vx_i32m2
 #define VNOT_INTH vnot_v_i32m2
 #define VMERGE_INTH vmerge_vvm_i32m2
+
+#if ELEN >= 64
+#define V_ELT_INT64H vint64m2_t
+#define VSLL1_INT64H vsll_vx_i64m2
+#define VADD1_INT64H vadd_vx_i64m2
+#define VAND1_INT64H vand_vx_i64m2
+#define VNE1_INTH_BOOL64H vmsne_vx_i64m2_b32
+#define VEQ1_INTH_BOOL64H vmseq_vx_i64m2_b32
+#define VGT1_INTH_BOOL64H vmsgt_vx_i64m2_b32
+#define VSUB1_INT64H_MASK vsub_vx_i64m2_m
+#endif
 
 //// UINTH
 #define VLOAD_UINTH vle32_v_u32m2
@@ -455,6 +473,16 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VANDNOT_BOOLH vmandn_mm_b16
 //#define VANDNOT_BOOLH vmnand_mm_b16
 
+#if ELEN >= 64
+#define V_ELT_BOOL64H vbool32_t
+#define VNOT_BOOL64H vmnot_m_b32
+#define VCLEAR_BOOL64H vmclr_m_b32
+#define VXOR_BOOL64H vmxor_mm_b32
+#define VOR_BOOL64H vmor_mm_b32
+#define VAND_BOOL64H vmand_mm_b32
+#define VANDNOT_BOOL64H vmandn_mm_b32
+#endif
+
 #endif  // RISCV
 
 #ifdef ALTIVEC
@@ -480,6 +508,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 
 static const float FOPI = 1.27323954473516f;
 static const float PIO4F = 0.7853981633974483096f;
+static const double FOPId = 1.2732395447351626861510701069801148;
 
 #define PIF 3.14159265358979323846f      // PI
 #define mPIF -3.14159265358979323846f    // -PI
@@ -506,9 +535,20 @@ static const float sincof[] = {-1.9515295891E-4f, 8.3321608736E-3f, -1.666665461
 static const float coscof[] = {2.443315711809948E-5f, -1.388731625493765E-3f,
                                4.166664568298827E-2f};
 
+static const double minus_cephes_DP1d = -7.85398125648498535156E-1;
+static const double minus_cephes_DP2d = -3.77489470793079817668E-8;
+static const double minus_cephes_DP3d = -2.69515142907905952645E-15;
+static const double sincod[] = {1.58962301576546568060E-10, -2.50507477628578072866E-8,
+2.75573136213857245213E-6, -1.98412698295895385996E-4, 8.33333333332211858878E-3, -1.66666666666666307295E-1};
+static const double coscod[] = {-1.13585365213876817300E-11, 2.08757008419747316778E-9, -2.75573141792967388112E-7, 2.48015872888517045348E-5, -1.38888888888730564116E-3, 4.16666666666665929218E-2};
+
 #define SIGN_MASK 0x80000000
+#define SIGN_MASKD 0x8000000000000000L
 static const int32_t sign_mask = SIGN_MASK;
 static const int32_t inv_sign_mask = ~SIGN_MASK;
+static const int64_t sign_maskd = SIGN_MASKD;
+static const int64_t inv_sign_maskd = ~SIGN_MASKD;
+
 #define neg_sign_mask ~0x7FFFFFFF
 #define min_norm_pos 0x00800000
 #define INVLN10 0.4342944819032518f  // 0.4342944819f
@@ -1968,6 +2008,15 @@ static inline void print_vech(V_ELT_FLOATH vec, int l)
     VSTORE_FLOATH(observ, vec, l);
     for (int i = 0; i < l; i++)
         printf("%0.3f ", observ[i]);
+    printf("\n");
+}
+
+static inline void print_vec64h(V_ELT_DOUBLEH vec, int l)
+{
+    double observ[16];
+    VSTORE_DOUBLEH(observ, vec, l);
+    for (int i = 0; i < l; i++)
+        printf("%g ", observ[i]);
     printf("\n");
 }
 

@@ -84,10 +84,10 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | SSE/NEON/ALTIVEC (X=128), AVX (X=256), AVX512 (X=512) |           C_REF             |              IPP_REF           |            RISCV              |
 |-------------------------------------------------------|-----------------------------|--------------------------------|-------------------------------|
 |                                                       |                             |                                |                               |
-| log10Xf/precise (a)                                  | log10f_C                    | ippsLog10_32f_A24              | log10f_vec                    |
-| log2Xf/precise  (a)                                  | log2f_C                     |                                | log2f_vec                     |
-| lnXf  (a)                                            | lnf_C                       | ippsLn_32f_A24                 | lnf_vec                       |
-| expXf (a)                                            | expf_C                      | ippsExp_32f_A24                | expf_vec                      |
+| log10Xf/precise (a)                                   | log10f_C                    | ippsLog10_32f_A24              | log10f_vec                    |
+| log2Xf/precise  (a)                                   | log2f_C                     |                                | log2f_vec                     |
+| lnXf  (a)                                             | lnf_C                       | ippsLn_32f_A24                 | lnf_vec                       |
+| expXf (a)                                             | expf_C                      | ippsExp_32f_A24                | expf_vec                      |
 | cbrtXf  (a)                                           | cbrtf_C                     | ?                              | cbrtf_vec                     |
 | fabsXf (a)                                            | fabsf_C                     | ippsAbs_32f                    | fabsf_vec                     |
 | setXf  (a)                                            | setf_C                      | ippsSet_32f                    | setf_vec                      |
@@ -147,7 +147,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | meanXf   (a)                                          | meanf_C                     | ippsMean_32f                   | meanf_vec                     |
 | sqrtXf   (a)                                          | sqrtf_C                     | ippsSqrt_32f                   | sqrtf_vec                     |
 | roundXf  (a)                                          | roundf_C                    | ippsRound_32f                  | roundf_vec                    |
-| rintXf                                                | rintf_C                     | ?                              | rintf_vec                     |
+| rintXf   (a)                                          | rintf_C                     | ?                              | rintf_vec                     |
 | ceilXf   (a)                                          | ceilf_C                     | ippsCeil_32f                   | ceilf_vec                     |
 | floorXf  (a)                                          | floorf_C                    | ippsFloor_32f                  | floorf_vec                    |
 | truncXf  (a)                                          | truncf_C                    | ippsTrunc_32f                  | truncf_vec                    |
@@ -179,7 +179,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | floorXd                                               | floord_C                    | ippsFloor_64f                  | floord_vec                    |
 | truncXd                                               | truncd_C                    | ippsTrunc_64f                  | truncd_vec                    |
 | vectorSlopeXd                                         | vectorSloped_C              | ippsVectorSlope_64f            | vectorSloped_vec              |
-| sincosXd                                              | sincosd_C                   | ippsSinCos_64f_A53             | ?                             |
+| sincosXd                                              | sincosd_C                   | ippsSinCos_64f_A53             | sincosd_vec                   |
 | sincosXd_interleaved                                  | sincosd_C_interleaved       | ippsCIS_64fc_A53               | ?                             |
 | atanXd                                                | atan_C                      | ippsAtan_64f_A53               | ?                             |
 | atan2Xd                                               | atan2d_C                    | ippsAtan2_64f_A53              | ?                             |
