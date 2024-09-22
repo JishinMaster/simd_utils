@@ -626,6 +626,21 @@ static const double TAN_mDP2d =  -7.94662735614792836714E-9;
 static const double TAN_mDP3d =  -3.06161699786838294307E-17;
 static const double tanlossthd =  1.073741824e9;
 
+static const double cephes_LOG2Ed =  1.4426950408889634073599;  /* 1/log(2) */
+static const double cephes_LOGE2d =  6.93147180559945309417E-1; /* log(2) */
+
+static const double cephes_exp_p0d =  1.26177193074810590878e-4;
+static const double cephes_exp_p1d =  3.02994407707441961300e-2;
+static const double cephes_exp_p2d =  9.99999999999999999910e-1;
+
+static const double cephes_exp_q0d =  3.00198505138664455042e-6;
+static const double cephes_exp_q1d =  2.52448340349684104192e-3;
+static const double cephes_exp_q2d =  2.27265548208155028766e-1;
+static const double cephes_exp_q3d =  2.00000000000000000009e0;
+
+static const double cephes_exp_minC1d =  -0.693145751953125;
+static const double cephes_exp_minC2d =  -1.42860682030941723212e-6;
+
 
 #define SIGN_MASK 0x80000000
 #define SIGN_MASKD 0x8000000000000000L

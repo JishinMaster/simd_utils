@@ -418,7 +418,7 @@ static inline void realtocplxd_vec(double *srcRe, double *srcIm, complex64_t *ds
 
 
 
-static inline void sincosd_ps(V_ELT_DOUBLEH x,
+static inline void sincos_pd(V_ELT_DOUBLEH x,
                               V_ELT_DOUBLEH *sin_tmp,
                               V_ELT_DOUBLEH *cos_tmp,
                               V_ELT_DOUBLEH coscof_1_vec,
@@ -544,7 +544,7 @@ static inline void sincosd_vec(double *src, double *s, double *c, int len)
     for (; (i = VSETVL64H(len)) > 0; len -= i) {
         V_ELT_DOUBLEH x = VLOAD_DOUBLEH(src_tmp, i);
         V_ELT_DOUBLEH y_sin, y_cos;
-        sincosd_ps(x, &y_sin, &y_cos,
+        sincos_pd(x, &y_sin, &y_cos,
                    coscof_1_vec, coscof_2_vec, coscof_3_vec,
 				   coscof_4_vec, coscof_5_vec,
                    sincof_1_vec, sincof_2_vec,  sincof_3_vec,
@@ -590,7 +590,7 @@ static inline void sincosd_interleaved_vec(double *src, complex64_t *dst, int le
     for (; (i = VSETVL64H(len)) > 0; len -= i) {
         V_ELT_DOUBLEH x = VLOAD_DOUBLEH(src_tmp, i);
         V_ELT_DOUBLEH y_sin, y_cos;
-        sincosd_ps(x, &y_sin, &y_cos,
+        sincos_pd(x, &y_sin, &y_cos,
                    coscof_1_vec, coscof_2_vec, coscof_3_vec,
 				   coscof_4_vec, coscof_5_vec,
                    sincof_1_vec, sincof_2_vec,  sincof_3_vec,
@@ -606,7 +606,7 @@ static inline void sincosd_interleaved_vec(double *src, complex64_t *dst, int le
 }
 
 
-static inline V_ELT_DOUBLEH atand_ps(V_ELT_DOUBLEH xx,
+static inline V_ELT_DOUBLEH atand_pd(V_ELT_DOUBLEH xx,
                                     V_ELT_DOUBLEH ATAN_P1_vec,
                                     V_ELT_DOUBLEH ATAN_P2_vec,
                                     V_ELT_DOUBLEH ATAN_P3_vec,
@@ -707,7 +707,7 @@ static inline void atand_vec(double *src, double *dst, int len)
     for (; (i = VSETVL64H(len)) > 0; len -= i) {
         V_ELT_DOUBLEH xx = VLOAD_DOUBLEH(src_tmp, i);
         V_ELT_DOUBLEH y;
-        y = atand_ps(xx, ATAN_P1_vec, ATAN_P2_vec, ATAN_P3_vec, ATAN_P4_vec,
+        y = atand_pd(xx, ATAN_P1_vec, ATAN_P2_vec, ATAN_P3_vec, ATAN_P4_vec,
 					ATAN_Q1_vec, ATAN_Q2_vec, ATAN_Q3_vec, ATAN_Q4_vec,
 					MOREBITS_vec, PIO4_vec, min1_vec, i);
         VSTORE_DOUBLEH(dst_tmp, y, i);
@@ -717,7 +717,7 @@ static inline void atand_vec(double *src, double *dst, int len)
 }
 
 
-static inline V_ELT_DOUBLEH atan2d_ps(V_ELT_DOUBLEH y, V_ELT_DOUBLEH x, V_ELT_DOUBLEH ATAN_P1_vec,
+static inline V_ELT_DOUBLEH atan2_pd(V_ELT_DOUBLEH y, V_ELT_DOUBLEH x, V_ELT_DOUBLEH ATAN_P1_vec,
                                     V_ELT_DOUBLEH ATAN_P2_vec,
                                     V_ELT_DOUBLEH ATAN_P3_vec,
                                     V_ELT_DOUBLEH ATAN_P4_vec,
@@ -756,7 +756,7 @@ static inline V_ELT_DOUBLEH atan2d_ps(V_ELT_DOUBLEH y, V_ELT_DOUBLEH x, V_ELT_DO
     w = VMERGE1_DOUBLEH(VAND_BOOL64H(yinfzero, xinfzero, i), w, mPIFd, i);                // y < 0 && x<0
 
     tmp = VDIV_DOUBLEH(y, x, i);
-    tmp = atand_ps(tmp, ATAN_P1_vec, ATAN_P2_vec, ATAN_P3_vec, ATAN_P4_vec,
+    tmp = atand_pd(tmp, ATAN_P1_vec, ATAN_P2_vec, ATAN_P3_vec, ATAN_P4_vec,
 					ATAN_Q1_vec, ATAN_Q2_vec, ATAN_Q3_vec, ATAN_Q4_vec,
 					MOREBITS_vec, PIO4_vec, min1_vec, i);
     tmp = VADD_DOUBLEH(w, tmp, i);
@@ -788,7 +788,7 @@ static inline void atan2d_vec(double *src1, double *src2, double *dst, int len)
         V_ELT_DOUBLEH y = VLOAD_DOUBLEH(src1_tmp, i);
         V_ELT_DOUBLEH x = VLOAD_DOUBLEH(src2_tmp, i);
 
-        V_ELT_DOUBLEH z = atan2d_ps(y, x,
+        V_ELT_DOUBLEH z = atan2_pd(y, x,
                                    ATAN_P1_vec, ATAN_P2_vec, ATAN_P3_vec, ATAN_P4_vec,
 					ATAN_Q1_vec, ATAN_Q2_vec, ATAN_Q3_vec, ATAN_Q4_vec,
 					MOREBITS_vec, PIO4_vec, min1_vec, i);
@@ -821,7 +821,7 @@ static inline void atan2d_interleaved_vec(complex64_t *src, double *dst, int len
     for (; (i = VSETVL64H(len)) > 0; len -= i) {
         V_ELT_DOUBLEH y, x;
         VLOAD_DOUBLEH2(&x, &y, src_tmp, i);
-        V_ELT_DOUBLEH z = atan2d_ps(y, x,
+        V_ELT_DOUBLEH z = atan2_pd(y, x,
                                    ATAN_P1_vec, ATAN_P2_vec, ATAN_P3_vec, ATAN_P4_vec,
 					ATAN_Q1_vec, ATAN_Q2_vec, ATAN_Q3_vec, ATAN_Q4_vec,
 					MOREBITS_vec, PIO4_vec, min1_vec, i);
@@ -829,6 +829,88 @@ static inline void atan2d_interleaved_vec(complex64_t *src, double *dst, int len
         src_tmp += 2*i;
         dst_tmp += i;
     }
+}
+
+
+static inline V_ELT_DOUBLEH exp_pd(V_ELT_DOUBLEH x,
+                                  V_ELT_DOUBLEH Op5_vec,
+                                  V_ELT_DOUBLEH cephes_exp_p1_vec,
+                                  V_ELT_DOUBLEH cephes_exp_p2_vec,
+                                  V_ELT_DOUBLEH cephes_exp_q1_vec,
+                                  V_ELT_DOUBLEH cephes_exp_q2_vec,
+                                  V_ELT_DOUBLEH cephes_exp_q3_vec,
+								  V_ELT_DOUBLEH one_vec,
+                                  size_t i)
+{
+    V_ELT_DOUBLEH px, xx, tmp, tmp2;
+    V_ELT_INT64H n;
+
+    /* Express e**x = e**g 2**n
+     *   = e**g e**( n loge(2) )
+     *   = e**( g + n loge(2) )
+     */
+    px = x;
+    px = VFMADD1_DOUBLEH(px, cephes_LOG2Ed, Op5_vec, i);
+    px = VCVT_INTH_DOUBLEH(VCVT_DOUBLEH_INTH(px, i), i);
+    n = VCVT_DOUBLEH_INTH(px, i);
+    x = VFMACC1_DOUBLEH(x, cephes_exp_minC1d, px, i);
+    x = VFMACC1_DOUBLEH(x, cephes_exp_minC2d, px, i);
+
+    xx = VMUL_DOUBLEH(x, x, i);
+    tmp = xx;
+    tmp = VFMADD1_DOUBLEH(tmp, cephes_exp_p0d, cephes_exp_p1_vec, i);
+    tmp = VFMADD_DOUBLEH(tmp, xx, cephes_exp_p2_vec, i);
+	px = VMUL_DOUBLEH(tmp, x, i);
+	
+	tmp2 = xx;
+    tmp2 = VFMADD1_DOUBLEH(tmp2, cephes_exp_q0d, cephes_exp_q1_vec, i);
+    tmp2 = VFMADD_DOUBLEH(tmp2, xx, cephes_exp_q2_vec, i);
+    tmp2 = VFMADD_DOUBLEH(tmp2, xx, cephes_exp_q3_vec, i);
+	tmp2 = VSUB_DOUBLEH(tmp2, px, i);
+	x = VDIV_DOUBLEH(px, tmp2, i);
+    x = VFMADD1_DOUBLEH(x, 2.0, one_vec, i);
+
+	/* build 2^n */
+    n = VADD1_INT64H(n, (unsigned int)1023, i);
+    n = VSLL1_INT64H(n, 52, i);
+    V_ELT_DOUBLEH pow2n = VINTERP_INTH_DOUBLEH(n);
+
+    /* multiply by power of 2 */
+    x = VMUL_DOUBLEH(x, pow2n, i);
+    return x;
+}
+
+static inline void expd_vec(double *src, double *dst, int len)
+{
+    size_t i;
+    double *src_tmp = src;
+    double *dst_tmp = dst;
+
+    i = VSETVL64H(len);
+
+    uint64_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
+
+    V_ELT_DOUBLEH cephes_exp_p1_vec = VLOAD1_DOUBLEH(cephes_exp_p1d, i);
+    V_ELT_DOUBLEH cephes_exp_p2_vec = VLOAD1_DOUBLEH(cephes_exp_p2d, i);
+    V_ELT_DOUBLEH cephes_exp_q1_vec = VLOAD1_DOUBLEH(cephes_exp_q1d, i);
+    V_ELT_DOUBLEH cephes_exp_q2_vec = VLOAD1_DOUBLEH(cephes_exp_q2d, i);
+    V_ELT_DOUBLEH cephes_exp_q3_vec = VLOAD1_DOUBLEH(cephes_exp_q3d, i);
+    V_ELT_DOUBLEH Op5_vec = VLOAD1_DOUBLEH(0.5, i);
+    V_ELT_DOUBLEH one_vec = VLOAD1_DOUBLEH(1.0, i);	
+
+    for (; (i = VSETVL64H(len)) > 0; len -= i) {
+        V_ELT_DOUBLEH x = VLOAD_DOUBLEH(src_tmp, i);
+        x = exp_pd(x, Op5_vec, cephes_exp_p1_vec,
+                   cephes_exp_p2_vec, cephes_exp_q1_vec,
+                   cephes_exp_q2_vec, cephes_exp_q3_vec, one_vec, i);
+        VSTORE_DOUBLEH(dst_tmp, x, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+
+    _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
 #else

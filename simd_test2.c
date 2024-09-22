@@ -4346,6 +4346,28 @@ int main(int argc, char **argv)
 
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    expd_vec(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("expd_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        expd_vec(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("expd_vec %d %lf\n", len, elapsed);
+
+    l2_errd(inoutd_ref, inoutd2, len);
+	
+    /*for(int i = 0; i < len; i++){
+        printf("%lf || %lf %lf %g\n",inoutd[i], inoutd_ref[i],inoutd2[i],
+		fabs(inoutd_ref[i]-inoutd2[i]));
+    }*/	
+#endif	
+
     printf("\n");
     /////////////////////////////////////////////////////////// LOG //////////////////////////////////////////////////////////////////////////////
     printf("LOG\n");

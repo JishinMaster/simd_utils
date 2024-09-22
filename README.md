@@ -187,7 +187,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | asinXd                                                | asin_C                      | ippsAsin_64f_A53               | ?                             |
 | cplxtorealXd                                          | cplxtoreald_C               | ippsCplxToReal_64fc            | cplxtoreald_vec               |
 | realtocplxXd                                          | realtocplxd_C               | ippsRealToCplx_64f             | realtocplxd_vec               |
-| expXd                                                 | exp_C                       | ippsExp_64f_A53                | ?                             |
+| expXd                                                 | exp_C                       | ippsExp_64f_A53                | expd_vec                      |
 | addXs   (a)                                           | adds_c                      | ?                              | adds_vec                      |
 | mulXs                                                 | muls_c                      | ?                              | muls_vec                      |
 | subXs   (a)                                           | subs_c                      | ?                              | subs_vec                      |
