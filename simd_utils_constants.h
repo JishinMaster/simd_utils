@@ -216,6 +216,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VCVT_DOUBLE_FLOAT vfncvt_f_f_w_f32m2
 #define VCVT_FLOAT_DOUBLE vfwcvt_f_f_v_f64m4
 
+
 #endif  // ELEN >= 64
 
 //// INT
@@ -328,8 +329,8 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VMIN1_FLOATH vfmin_vf_f32m2
 #define VMAX_FLOATH vfmax_vv_f32m2
 #define VMAX1_FLOATH vfmax_vf_f32m2
-#define VINTHERP_FLOATH_INTH vreinterpret_v_f32m2_i32m2
-#define VINTHERP_INTH_FLOATH vreinterpret_v_i32m2_f32m2
+#define VINTERP_FLOATH_INTH vreinterpret_v_f32m2_i32m2
+#define VINTERP_INTH_FLOATH vreinterpret_v_i32m2_f32m2
 #define VCVT_RTZ_FLOATH_INTH vfcvt_rtz_x_f_v_i32m2
 #define VCVT_FLOATH_INTH vfcvt_x_f_v_i32m2
 #define VCVT_INTH_FLOATH vfcvt_f_x_v_f32m2
@@ -350,6 +351,9 @@ vfnmsub.vf vd, rs1, vs2, vm
 //// DOUBLEH
 #define VSETVL64H vsetvl_e64m2
 #define V_ELT_DOUBLEH vfloat64m2_t
+#define VLOAD_DOUBLEH2 vlseg2e64_v_f64m2
+#define VLOAD_DOUBLEH_STRIDE vlse64_v_f64m2
+#define VSTORE_DOUBLEH2 vsseg2e64_v_f64m2
 #define VLOAD_DOUBLEH vle64_v_f64m2
 #define VLOAD1_DOUBLEH vfmv_v_f_f64m2
 #define VSTORE_DOUBLEH vse64_v_f64m2
@@ -373,8 +377,8 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VMAX_DOUBLEH vfmax_vv_f64m2
 #define VMIN1_DOUBLEH vfmin_vf_f64m2
 #define VMAX1_DOUBLEH vfmax_vf_f64m2
-#define VINTHERP_DOUBLEH_INTH vreinterpret_v_f64m2_i64m2
-#define VINTHERP_INTH_DOUBLEH vreinterpret_v_i64m2_f64m2
+#define VINTERP_DOUBLEH_INTH vreinterpret_v_f64m2_i64m2
+#define VINTERP_INTH_DOUBLEH vreinterpret_v_i64m2_f64m2
 #define VCVT_RTZ_DOUBLEH_INTH vfcvt_rtz_x_f_v_i64m2
 #define VCVT_DOUBLEH_INTH vfcvt_x_f_v_i64m2
 #define VCVT_INTH_DOUBLEH vfcvt_f_x_v_f64m2
@@ -384,7 +388,18 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VCVT_FLOATH_DOUBLEH vfwcvt_f_f_v_f64m2
 #define VLT1_DOUBLEH_BOOLH vmflt_vf_f64m2_b32
 #define VMERGE_DOUBLEH vmerge_vvm_f64m2
+#define VMERGE1_DOUBLEH vfmerge_vfm_f64m2
 #define VMUL1_DOUBLEH_MASK vfmul_vf_f64m2_m
+#define VEQ1_DOUBLEH_BOOLH vmfeq_vf_f64m2_b32
+#define VEQ_DOUBLEH_BOOLH vmfeq_vv_f64m2_b32
+#define VGE1_DOUBLEH_BOOLH vmfge_vf_f64m2_b32
+#define VGT1_DOUBLEH_BOOLH vmfgt_vf_f64m2_b32
+#define VNE1_DOUBLEH_BOOLH vmfne_vf_f64m2_b32
+#define VLT1_DOUBLEH_BOOLH vmflt_vf_f64m2_b32
+#define VLE1_DOUBLEH_BOOLH vmfle_vf_f64m2_b32
+#define VADD1_DOUBLEH_MASK vfadd_vf_f64m2_m
+#define VMUL1_DOUBLEH_MASK vfmul_vf_f64m2_m
+
 #endif  // ELEN >= 64
 
 //// INTH
@@ -422,13 +437,18 @@ vfnmsub.vf vd, rs1, vs2, vm
 
 #if ELEN >= 64
 #define V_ELT_INT64H vint64m2_t
+#define VLOAD1_INT64H vmv_v_x_i64m2
 #define VSLL1_INT64H vsll_vx_i64m2
 #define VADD1_INT64H vadd_vx_i64m2
 #define VAND1_INT64H vand_vx_i64m2
+#define VXOR_INT64H vxor_vv_i64m2
 #define VNE1_INTH_BOOL64H vmsne_vx_i64m2_b32
+#define VEQ1_INTH_BOOL64H vmseq_vx_i64m2_b32
 #define VEQ1_INTH_BOOL64H vmseq_vx_i64m2_b32
 #define VGT1_INTH_BOOL64H vmsgt_vx_i64m2_b32
 #define VSUB1_INT64H_MASK vsub_vx_i64m2_m
+#define VMERGE_INT64H vmerge_vvm_i64m2
+#define VMERGE1_INT64H vmerge_vxm_i64m2
 #endif
 
 //// UINTH
@@ -527,7 +547,7 @@ static const float lossth = 65536.f;
 static const float minus_cephes_DP1 = -0.78515625f;
 static const float minus_cephes_DP2 = -2.4187564849853515625e-4f;
 static const float minus_cephes_DP3 = -3.77489497744594108e-8f;
-static float lossth = 8192.;
+static const float lossth = 8192.;
 
 static const float T24M1 = 16777215.f;
 
@@ -541,6 +561,71 @@ static const double minus_cephes_DP3d = -2.69515142907905952645E-15;
 static const double sincod[] = {1.58962301576546568060E-10, -2.50507477628578072866E-8,
 2.75573136213857245213E-6, -1.98412698295895385996E-4, 8.33333333332211858878E-3, -1.66666666666666307295E-1};
 static const double coscod[] = {-1.13585365213876817300E-11, 2.08757008419747316778E-9, -2.75573141792967388112E-7, 2.48015872888517045348E-5, -1.38888888888730564116E-3, 4.16666666666665929218E-2};
+
+static const double ASIN_P0d =  4.253011369004428248960E-3;
+static const double ASIN_P1d =  -6.019598008014123785661E-1;
+static const double ASIN_P2d =  5.444622390564711410273E0;
+static const double ASIN_P3d =  -1.626247967210700244449E1;
+static const double ASIN_P4d =  1.956261983317594739197E1;
+static const double ASIN_P5d =  -8.198089802484824371615E0;
+
+static const double PIFd =  3.1415926535897932384626433832795028841971693993751058209749445923;      // PI
+static const double mPIFd =  -3.1415926535897932384626433832795028841971693993751058209749445923;    // -PI
+static const double PIO2Fd =  1.5707963267948966192313216916397514420985846996875529104874722961;    // PI/2 1.570796326794896619
+static const double mPIO2Fd =  -1.5707963267948966192313216916397514420985846996875529104874722961;  // -PI/2 1.570796326794896619
+static const double PIO4Fd =  0.7853981633974483096156608458198757210492923498437764552437361480;    // PI/4 0.7853981633974483096
+
+static const double ASIN_Q0d =  -1.474091372988853791896E1;
+static const double ASIN_Q1d =  7.049610280856842141659E1;
+static const double ASIN_Q2d =  -1.471791292232726029859E2;
+static const double ASIN_Q3d =  1.395105614657485689735E2;
+static const double ASIN_Q4d =  -4.918853881490881290097E1;
+
+static const double ASIN_R0d =  2.967721961301243206100E-3;
+static const double ASIN_R1d =  -5.634242780008963776856E-1;
+static const double ASIN_R2d =  6.968710824104713396794E0;
+static const double ASIN_R3d =  -2.556901049652824852289E1;
+static const double ASIN_R4d =  2.853665548261061424989E1;
+
+static const double ASIN_S0d =  -2.194779531642920639778E1;
+static const double ASIN_S1d =  1.470656354026814941758E2;
+static const double ASIN_S2d =  -3.838770957603691357202E2;
+static const double ASIN_S3d =  3.424398657913078477438E2;
+
+static const double PIO2d =  1.57079632679489661923;    /* pi/2 */
+static const double PIO4d =  7.85398163397448309616E-1; /* pi/4 */
+
+static const double minMOREBITSd =  -6.123233995736765886130E-17;
+static const double MOREBITSd =  6.123233995736765886130E-17;
+//static const double 0p5xMOREBITSd =  3.061616997868382943065e-17;
+
+static const double ATAN_P0d =  -8.750608600031904122785E-1;
+static const double ATAN_P1d =  -1.615753718733365076637E1;
+static const double ATAN_P2d =  -7.500855792314704667340E1;
+static const double ATAN_P3d =  -1.228866684490136173410E2;
+static const double ATAN_P4d =  -6.485021904942025371773E1;
+
+static const double ATAN_Q0d =  2.485846490142306297962E1;
+static const double ATAN_Q1d =  1.650270098316988542046E2;
+static const double ATAN_Q2d =  4.328810604912902668951E2;
+static const double ATAN_Q3d =  4.853903996359136964868E2;
+static const double ATAN_Q4d =  1.945506571482613964425E2;
+
+static const double TAN3PI8d =  2.41421356237309504880; /* 3*pi/8 */
+static const double min1d =  -1.0;
+//static const double 1m14d =  1.0e-14;
+static const double TAN_P0d =  -1.30936939181383777646E4;
+static const double TAN_P1d =  1.15351664838587416140E6;
+static const double TAN_P2d =  -1.79565251976484877988E7;
+static const double TAN_Q0d =  1.36812963470692954678E4;
+static const double TAN_Q1d =  -1.32089234440210967447E6;
+static const double TAN_Q2d =  2.50083801823357915839E7;
+static const double TAN_Q3d =  -5.38695755929454629881E7;
+static const double TAN_mDP1d =  -7.853981554508209228515625E-1;
+static const double TAN_mDP2d =  -7.94662735614792836714E-9;
+static const double TAN_mDP3d =  -3.06161699786838294307E-17;
+static const double tanlossthd =  1.073741824e9;
+
 
 #define SIGN_MASK 0x80000000
 #define SIGN_MASKD 0x8000000000000000L

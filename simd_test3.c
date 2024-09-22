@@ -2063,6 +2063,27 @@ for (int i = 0; i < len; i++){
 
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    atand_vec(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atand_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atand_vec(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atand_vec %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, len);
+	
+    /*for(int i = 0; i < len; i++){
+        printf("%lf || %lf %lf || %g\n",inoutd[i], inoutd_ref[i],inoutd2[i],
+		fabs(inoutd_ref[i]-inoutd2[i]));
+    }*/
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// ATANF2 //////////////////////////////////////////////////////////////////////////////
     printf("ATAN2\n");
@@ -2152,6 +2173,22 @@ for (int i = 0; i < len; i++){
 #endif
 
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2d_vec(inoutd, inoutd2, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2d_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atan2d_vec(inoutd, inoutd2, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atan2d_vec %d %lf\n", len, elapsed);
+    l2_errd(inoutd2_ref, inoutd_ref, len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// ATANF2_INTERLEAVED /////////////////////////////////////////////////////
     printf("ATAN2_INTERLEAVED\n");
@@ -2218,6 +2255,22 @@ for (int i = 0; i < len; i++){
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("atan2512d_interleaved %d %lf\n", len, elapsed);
+    l2_errd(inoutd2, inoutd_ref, len);
+#endif
+
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    atan2d_interleaved_vec((complex64_t *) inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("atan2d_interleaved_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        atan2d_interleaved_vec((complex64_t *) inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("atan2d_interleaved_vec %d %lf\n", len, elapsed);
     l2_errd(inoutd2, inoutd_ref, len);
 #endif
 
@@ -2550,7 +2603,6 @@ for (int i = 0; i < len; i++){
     printf("cplxtoreal128d %d %lf\n", len, elapsed);
     l2_errd(inoutd2, inoutd_ref, len);
     l2_errd(inoutd3, inoutd2_ref, len);
-
 #endif
 
 #if defined(AVX)
@@ -2568,7 +2620,6 @@ for (int i = 0; i < len; i++){
     printf("cplxtoreal256d %d %lf\n", len, elapsed);
     l2_errd(inoutd2, inoutd_ref, len);
     l2_errd(inoutd3, inoutd2_ref, len);
-
 #endif
 
 #if defined(AVX512)
@@ -2586,8 +2637,25 @@ for (int i = 0; i < len; i++){
     printf("cplxtoreal512d %d %lf\n", len, elapsed);
     l2_errd(inoutd2, inoutd_ref, len);
     l2_errd(inoutd3, inoutd2_ref, len);
-
 #endif
+
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    cplxtoreald_vec((complex64_t *) inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("cplxtoreald_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        cplxtoreald_vec((complex64_t *) inoutd, inoutd2, inoutd3, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("cplxtoreald_vec %d %lf\n", len, elapsed);
+    l2_errd(inoutd2, inoutd_ref, len);
+    l2_errd(inoutd3, inoutd2_ref, len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// REAL2CPLXD //////////////////////////////////////////////////////////////////////////////
     printf("REAL2CPLXD\n");
@@ -2665,6 +2733,21 @@ for (int i = 0; i < len; i++){
     l2_errd(inoutd, inoutd_ref, 2 * len);
 #endif
 
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    realtocplxd_vec(inoutd2, inoutd3, (complex64_t *) inoutd, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("realtocplxd_vec %d %lf\n", len, elapsed);
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        realtocplxd_vec(inoutd2, inoutd3, (complex64_t *) inoutd, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3 / (double) loop;
+    printf("realtocplxd_vec %d %lf\n", len, elapsed);
+    l2_errd(inoutd, inoutd_ref, 2 * len);
+#endif
+
     printf("\n");
     /////////////////////////////////////////////////////////// CONVERTFLOAT32_U8 //////////////////////////////////////////////////////////////////////////////
     printf("CONVERTFLOAT32_U8\n");
@@ -2726,11 +2809,10 @@ for (int i = 0; i < len; i++){
     printf("convertFloat32ToU8_128 %d %lf\n", len, elapsed);
     l2_err_u8(inout_u1, inout_u2, len);
 #endif
-#endif
-
     for(int i = 0; i < len; i++)
         if(inout_u1[i] != inout_u2[i])
           printf("SSE : %d %g %g %x %x\n" ,i, inout[i], inout[i]/(1<<4),inout_u1[i],inout_u2[i]);
+#endif
     
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);

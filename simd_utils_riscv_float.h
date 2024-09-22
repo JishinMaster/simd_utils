@@ -430,7 +430,7 @@ static inline void sincosf_ps(V_ELT_FLOATH x,
     sign_sin = VXOR_BOOLH(sign_sin, xinf0, i);
 
     /* take the absolute value */
-    x = VINTHERP_INTH_FLOATH(VAND1_INTH(VINTHERP_FLOATH_INTH(x), inv_sign_mask, i));
+    x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(x), inv_sign_mask, i));
 
     /* scale by 4/Pi */
     y = VMUL1_FLOATH(x, FOPI, i);
@@ -1500,12 +1500,12 @@ static inline void log10f_vec(float *src, float *dst, int len)
 
         V_ELT_BOOL32H invalid_mask = VLE1_FLOATH_BOOLH(x, 0.0f, i);
         x = VMAX1_FLOATH(x, 1.17549e-38f, i); /* cut off denormalized stuff */
-        imm0 = VSRA1_INTH(VINTHERP_FLOATH_INTH(x), 23, i);
+        imm0 = VSRA1_INTH(VINTERP_FLOATH_INTH(x), 23, i);
 
         /* keep only the fractional part */
-        x = VINTHERP_INTH_FLOATH(VAND1_INTH(VINTHERP_FLOATH_INTH(x), c_inv_mant_mask, i));
+        x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(x), c_inv_mant_mask, i));
         // 0x3f000000 is the hex representation of 0.5f
-        x = VINTHERP_INTH_FLOATH(VOR1_INTH(VINTHERP_FLOATH_INTH(x), 0x3f000000, i));
+        x = VINTERP_INTH_FLOATH(VOR1_INTH(VINTERP_FLOATH_INTH(x), 0x3f000000, i));
         imm0 = VSUB1_INTH(imm0, 0x7f, i);
         V_ELT_FLOATH e = VCVT_INTH_FLOATH(imm0, i);
         e = VADD1_FLOATH(e, 1.0f, i);
@@ -1649,12 +1649,12 @@ static inline V_ELT_FLOATH log_ps(V_ELT_FLOATH x,
     V_ELT_INTH imm0;
     V_ELT_BOOL32H invalid_mask = VLE1_FLOATH_BOOLH(x, 0.0f, i);
     x = VMAX1_FLOATH(x, 1.17549e-38f, i); /* cut off denormalized stuff */
-    imm0 = VSRA1_INTH(VINTHERP_FLOATH_INTH(x), 23, i);
+    imm0 = VSRA1_INTH(VINTERP_FLOATH_INTH(x), 23, i);
 
     /* keep only the fractional part */
-    x = VINTHERP_INTH_FLOATH(VAND1_INTH(VINTHERP_FLOATH_INTH(x), c_inv_mant_mask, i));
+    x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(x), c_inv_mant_mask, i));
     // 0x3f000000 is the hex representation of 0.5f
-    x = VINTHERP_INTH_FLOATH(VOR1_INTH(VINTHERP_FLOATH_INTH(x), 0x3f000000, i));
+    x = VINTERP_INTH_FLOATH(VOR1_INTH(VINTERP_FLOATH_INTH(x), 0x3f000000, i));
     imm0 = VSUB1_INTH(imm0, 0x7f, i);
     V_ELT_FLOATH e = VCVT_INTH_FLOATH(imm0, i);
     e = VADD1_FLOATH(e, 1.0f, i);
@@ -1745,12 +1745,12 @@ static inline void log2f_vec(float *src, float *dst, int len)
 
         V_ELT_BOOL32H invalid_mask = VLE1_FLOATH_BOOLH(x, 0.0f, i);
         x = VMAX1_FLOATH(x, 1.17549e-38f, i); /* cut off denormalized stuff */
-        imm0 = VSRA1_INTH(VINTHERP_FLOATH_INTH(x), 23, i);
+        imm0 = VSRA1_INTH(VINTERP_FLOATH_INTH(x), 23, i);
 
         /* keep only the fractional part */
-        x = VINTHERP_INTH_FLOATH(VAND1_INTH(VINTHERP_FLOATH_INTH(x), c_inv_mant_mask, i));
+        x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(x), c_inv_mant_mask, i));
         // 0x3f000000 is the hex representation of 0.5f
-        x = VINTHERP_INTH_FLOATH(VOR1_INTH(VINTHERP_FLOATH_INTH(x), 0x3f000000, i));
+        x = VINTERP_INTH_FLOATH(VOR1_INTH(VINTERP_FLOATH_INTH(x), 0x3f000000, i));
         imm0 = VSUB1_INTH(imm0, 0x7f, i);
         V_ELT_FLOATH e = VCVT_INTH_FLOATH(imm0, i);
         e = VADD1_FLOATH(e, 1.0f, i);
@@ -1910,7 +1910,7 @@ static inline V_ELT_FLOATH atan2f_ps(V_ELT_FLOATH y, V_ELT_FLOATH x, V_ELT_FLOAT
     return z;
 }
 
-static inline V_ELT_FLOATH atan2f_vec(float *src1, float *src2, float *dst, int len)
+static inline void atan2f_vec(float *src1, float *src2, float *dst, int len)
 {
     size_t i;
     float *src1_tmp = src1;
@@ -2768,9 +2768,9 @@ static inline void cbrtf_vec(float *src, float *dst, int len)
          */
         // x = frexpf(x, &e);
         // solve problem for zero
-        V_ELT_INTH emm0 = VSRA1_INTH(VINTHERP_FLOATH_INTH(x), 23, i);
-        x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTHERP_FLOATH_INTH(x), c_inv_mant_mask, i));
-        x = VINTERP_INTH_FLOATH(VOR1_INTH(VINTHERP_FLOATH_INTH(x), *(int32_t *) &Op5, i));
+        V_ELT_INTH emm0 = VSRA1_INTH(VINTERP_FLOATH_INTH(x), 23, i);
+        x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(x), c_inv_mant_mask, i));
+        x = VINTERP_INTH_FLOATH(VOR1_INTH(VINTERP_FLOATH_INTH(x), *(int32_t *) &Op5, i));
         emm0 = VSUB1_INTH(emm0, 0x7e, i);
         e = VCVT_INTH_FLOATH(emm0, i);
 

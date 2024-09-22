@@ -180,13 +180,13 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | truncXd                                               | truncd_C                    | ippsTrunc_64f                  | truncd_vec                    |
 | vectorSlopeXd                                         | vectorSloped_C              | ippsVectorSlope_64f            | vectorSloped_vec              |
 | sincosXd                                              | sincosd_C                   | ippsSinCos_64f_A53             | sincosd_vec                   |
-| sincosXd_interleaved                                  | sincosd_C_interleaved       | ippsCIS_64fc_A53               | ?                             |
-| atanXd                                                | atan_C                      | ippsAtan_64f_A53               | ?                             |
-| atan2Xd                                               | atan2d_C                    | ippsAtan2_64f_A53              | ?                             |
-| atan2Xd_interleaved                                   | atan2_interleaved_C         | ?                              | ?                             |
+| sincosXd_interleaved                                  | sincosd_C_interleaved       | ippsCIS_64fc_A53               | sincosd_interleaved_vec       |
+| atanXd                                                | atan_C                      | ippsAtan_64f_A53               | atand_vec                     |
+| atan2Xd                                               | atan2d_C                    | ippsAtan2_64f_A53              | atan2d_vec                    |
+| atan2Xd_interleaved                                   | atan2_interleaved_C         | ?                              | atan2d_interleaved_vec        |
 | asinXd                                                | asin_C                      | ippsAsin_64f_A53               | ?                             |
-| cplxtorealXd                                          | cplxtoreald_C               | ippsCplxToReal_64fc            | ?                             |
-| realtocplxXd                                          | realtocplxd_C               | ippsRealToCplx_64f             | ?                             |
+| cplxtorealXd                                          | cplxtoreald_C               | ippsCplxToReal_64fc            | cplxtoreald_vec               |
+| realtocplxXd                                          | realtocplxd_C               | ippsRealToCplx_64f             | realtocplxd_vec               |
 | expXd                                                 | exp_C                       | ippsExp_64f_A53                | ?                             |
 | addXs   (a)                                           | adds_c                      | ?                              | adds_vec                      |
 | mulXs                                                 | muls_c                      | ?                              | muls_vec                      |

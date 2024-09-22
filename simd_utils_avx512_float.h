@@ -2097,7 +2097,7 @@ static inline v16sf sinh512f_ps(v16sf x)
     // Set value to MAXNUMF if abs(x) > MAGLOGF
     // Set value to -MAXNUMF if abs(x) > MAGLOGF and x < 0
     z = _mm512_mask_blend_ps(xsupmaxlogf, z, *(v16sf *) _ps512_MAXNUMF);
-    z = _mm512_mask_blend_ps(_kand_mask64(xinf0, xsupmaxlogf), z, *(v16sf *) _ps512_minMAXNUMF);
+    z = _mm512_mask_blend_ps(_kand_mask16(xinf0, xsupmaxlogf), z, *(v16sf *) _ps512_minMAXNUMF);
 
     return (z);
 }
@@ -2143,7 +2143,7 @@ static inline v16sf atan512f_ps(v16sf xx)
     y = _mm512_mask_blend_ps(suptan3pi8, y, *(v16sf *) _ps512_PIO2F);
 
 
-    inftan3pi8suppi8 = _kand_mask64(_mm512_cmp_ps_mask(x, *(v16sf *) _ps512_TAN3PI8F, _CMP_LE_OS), _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_TANPI8F, _CMP_GT_OS));  // if( x > tan 3pi/8 )
+    inftan3pi8suppi8 = _kand_mask16(_mm512_cmp_ps_mask(x, *(v16sf *) _ps512_TAN3PI8F, _CMP_LE_OS), _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_TANPI8F, _CMP_GT_OS));  // if( x > tan 3pi/8 )
     tmp2 = _mm512_add_ps(x, *(v16sf *) _ps512_1);
     tmp3 = _mm512_sub_ps(x, *(v16sf *) _ps512_1);
     x = _mm512_mask_div_ps(x, inftan3pi8suppi8, tmp3, tmp2);
@@ -2367,7 +2367,7 @@ static inline v16sf tanh512f_ps(v16sf xx)
     z = _mm512_mask_blend_ps(xsup0p625, z_second_branch, z_first_branch);
     // if (x > 0.5 * MAXLOGF), return (xx > 0)? 1.0f: -1.0f
     z = _mm512_mask_blend_ps(xsupmaxlogfdiv2, z, *(v16sf *) _ps512_min1);
-    z = _mm512_mask_blend_ps(_kand_mask64(xxsup0, xsupmaxlogfdiv2), z, *(v16sf *) _ps512_1);
+    z = _mm512_mask_blend_ps(_kand_mask16(xxsup0, xsupmaxlogfdiv2), z, *(v16sf *) _ps512_1);
 
     return (z);
 }

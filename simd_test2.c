@@ -1584,9 +1584,10 @@ int main(int argc, char **argv)
     l2_errd(inoutd2_ref, inoutd3, len);
 #endif
 #endif
-    for(int i = 0; i < len; i++){
-        printf("%lf || %lf %lf || %lf %lf\n",inoutd[i], inoutd_ref[i],inoutd2[i], inoutd2_ref[i], inoutd3[i]);
-    }
+    /*for(int i = 0; i < len; i++){
+        printf("%lf || %lf %lf || %lf %lf || %g %g\n",inoutd[i], inoutd_ref[i],inoutd2[i], inoutd2_ref[i], inoutd3[i],
+		fabs(inoutd_ref[i]-inoutd2[i]),fabs(inoutd2_ref[i]-inoutd3[i]));
+    }*/
 
     printf("\n");
     ///////////////////////////////////////////////// SINCOSF_INTERLEAVED //////////////////////////////////////////////////////////////////////
@@ -1772,6 +1773,22 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sincos512d_interleaved %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2, 2 * len);
+#endif
+
+#if defined(RISCV)
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincosd_interleaved_vec(inoutd, (complex64_t *) inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincosd_interleaved_vec %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        sincosd_interleaved_vec(inoutd, (complex64_t *) inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("sincosd_interleaved_vec %d %lf\n", len, elapsed);
     l2_errd(inoutd_ref, inoutd2, 2 * len);
 #endif
 
