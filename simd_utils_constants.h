@@ -308,6 +308,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VXOR1_INTH vxor_vx_i32m2
 #define VADD_FLOATH vfadd_vv_f32m2
 #define VADD1_FLOATH vfadd_vf_f32m2
+#define VADD1_FLOATH_MASK vfadd_vf_f32m2_m
 #define VSUB_FLOATH vfsub_vv_f32m2
 #define VSUB1_FLOATH vfsub_vf_f32m2    // v2 = v1 - f
 #define VRSUB1_FLOATH vfrsub_vf_f32m2  // v2 = f - v1
@@ -361,6 +362,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VADD1_DOUBLEH vfadd_vf_f64m2
 #define VSUB_DOUBLEH vfsub_vv_f64m2
 #define VSUB1_DOUBLEH vfsub_vf_f64m2
+#define VRSUB1_DOUBLEH vfrsub_vf_f64m2  // v2 = f - v1
 #define VMUL_DOUBLEH vfmul_vv_f64m2
 #define VMUL1_DOUBLEH vfmul_vf_f64m2
 #define VDIV_DOUBLEH vfdiv_vv_f64m2
@@ -569,12 +571,8 @@ static const double ASIN_P3d =  -1.626247967210700244449E1;
 static const double ASIN_P4d =  1.956261983317594739197E1;
 static const double ASIN_P5d =  -8.198089802484824371615E0;
 
-static const double PIFd =  3.1415926535897932384626433832795028841971693993751058209749445923;      // PI
-static const double mPIFd =  -3.1415926535897932384626433832795028841971693993751058209749445923;    // -PI
-static const double PIO2Fd =  1.5707963267948966192313216916397514420985846996875529104874722961;    // PI/2 1.570796326794896619
-static const double mPIO2Fd =  -1.5707963267948966192313216916397514420985846996875529104874722961;  // -PI/2 1.570796326794896619
-static const double PIO4Fd =  0.7853981633974483096156608458198757210492923498437764552437361480;    // PI/4 0.7853981633974483096
-
+static const double PId =  3.1415926535897932384626433832795028841971693993751058209749445923;      // PI
+static const double mPId =  -3.1415926535897932384626433832795028841971693993751058209749445923;    // -PI
 static const double ASIN_Q0d =  -1.474091372988853791896E1;
 static const double ASIN_Q1d =  7.049610280856842141659E1;
 static const double ASIN_Q2d =  -1.471791292232726029859E2;
@@ -592,8 +590,8 @@ static const double ASIN_S1d =  1.470656354026814941758E2;
 static const double ASIN_S2d =  -3.838770957603691357202E2;
 static const double ASIN_S3d =  3.424398657913078477438E2;
 
-static const double PIO2d =  1.57079632679489661923;    /* pi/2 */
-static const double PIO4d =  7.85398163397448309616E-1; /* pi/4 */
+static const double PIO2d =  1.5707963267948966192313216916397514420985846996875529104874722961;    /* pi/2 */
+static const double PIO4d =  0.7853981633974483096156608458198757210492923498437764552437361480; /* pi/4 */
 
 static const double minMOREBITSd =  -6.123233995736765886130E-17;
 static const double MOREBITSd =  6.123233995736765886130E-17;
@@ -2098,7 +2096,7 @@ static inline void print_vec(V_ELT_FLOAT vec, int l)
     float observ[32];
     VSTORE_FLOAT(observ, vec, l);
     for (int i = 0; i < l; i++)
-        printf("%0.3f ", observ[i]);
+        printf("%3.4g ", observ[i]);
     printf("\n");
 }
 
@@ -2107,7 +2105,7 @@ static inline void print_vech(V_ELT_FLOATH vec, int l)
     float observ[32];
     VSTORE_FLOATH(observ, vec, l);
     for (int i = 0; i < l; i++)
-        printf("%0.3f ", observ[i]);
+        printf("%3.4g ", observ[i]);
     printf("\n");
 }
 
@@ -2116,7 +2114,7 @@ static inline void print_vec64h(V_ELT_DOUBLEH vec, int l)
     double observ[16];
     VSTORE_DOUBLEH(observ, vec, l);
     for (int i = 0; i < l; i++)
-        printf("%g ", observ[i]);
+        printf("%13.8g ", observ[i]);
     printf("\n");
 }
 

@@ -417,6 +417,74 @@ static inline void sincosf_ps(V_ELT_FLOATH x,
                               V_ELT_FLOATH sincof_2_vec,
                               size_t i)
 {
+#if 1
+    V_ELT_FLOATH y, sign_bit_sin;
+    V_ELT_INTH imm0, imm2, imm4;
+
+	sign_bit_sin = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(x), sign_mask, i));
+	
+    /* take the absolute value */
+    x = VINTERP_INTH_FLOATH(VAND1_INTH(VINTERP_FLOATH_INTH(x), inv_sign_mask, i));
+
+    /* scale by 4/Pi */
+    y = VMUL1_FLOATH(x, FOPI, i);
+
+    /* store the integer part of y in mm2 */
+    imm2 = VCVT_RTZ_FLOATH_INTH(y, i);
+
+    /* j=(j+1) & (~1) (see the cephes sources) */
+    imm2 = VADD1_INTH(imm2, 1, i);
+    imm2 = VAND1_INTH(imm2,  ~1, i);
+	
+    y = VCVT_INTH_FLOATH(imm2, i);
+    imm4 = imm2;
+
+    imm0 = VAND1_INTH(imm2, 4, i);
+    imm0 = VSLL1_INTH(imm0, 29, i);
+
+	/* get the polynom selection mask for the sine*/
+	imm2 =  VAND1_INTH(imm2, 2, i);
+    V_ELT_FLOATH swap_sign_bit_sin = VINTERP_INTH_FLOATH(imm0);
+    V_ELT_BOOL32H poly_mask = VEQ1_INTH_BOOLH(imm2, 0, i);
+
+    /* The magic pass: "Extended precision modular arithmetic"
+    x = ((x - y * DP1) - y * DP2) - y * DP3; */
+    x = VFMACC1_FLOATH(x, minus_cephes_DP1, y, i);
+    x = VFMACC1_FLOATH(x, minus_cephes_DP2, y, i);
+    x = VFMACC1_FLOATH(x, minus_cephes_DP3, y, i);
+
+    imm4 = VSUB1_INTH(imm4, 2, i);
+    imm4 = VAND1_INTH(VNOT_INTH(imm4, i), 4, i);
+    imm4 = VSLL1_INTH(imm4, 29, i);
+
+	V_ELT_FLOATH sign_bit_cos = VINTERP_INTH_FLOATH(imm4);
+    sign_bit_sin = VINTERP_INTH_FLOATH(VXOR_INTH(VINTERP_FLOATH_INTH(sign_bit_sin),imm0, i));
+
+    /* Evaluate the first polynom  (0 <= x <= Pi/4) */
+    V_ELT_FLOATH z = VMUL_FLOATH(x, x, i);
+    y = z;
+    y = VFMADD1_FLOATH(y, coscof[0], coscof_1_vec, i);
+    y = VFMADD_FLOATH(y, z, coscof_2_vec, i);
+    y = VMUL_FLOATH(y, z, i);
+    y = VMUL_FLOATH(y, z, i);
+    y = VFMACC1_FLOATH(y, -0.5f, z, i);  // y = y -0.5*z
+    y = VADD1_FLOATH(y, 1.0f, i);
+	
+    /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
+    V_ELT_FLOATH y2;
+    y2 = z;
+    y2 = VFMADD1_FLOATH(y2, sincof[0], sincof_1_vec, i);
+    y2 = VFMADD_FLOATH(y2, z, sincof_2_vec, i);
+    y2 = VMUL_FLOATH(y2, z, i);
+    y2 = VFMADD_FLOATH(y2, x, x, i);
+	
+    /* select the correct result from the two polynoms */
+    V_ELT_FLOATH y_sin = VMERGE_FLOATH(poly_mask, y, y2, i);
+    V_ELT_FLOATH y_cos = VMERGE_FLOATH(poly_mask, y2, y, i);
+	
+	*sin_tmp = VINTERP_INTH_FLOATH(VXOR_INTH(VINTERP_FLOATH_INTH(y_sin), VINTERP_FLOATH_INTH(sign_bit_sin), i));
+	*cos_tmp = VINTERP_INTH_FLOATH(VXOR_INTH(VINTERP_FLOATH_INTH(y_cos), VINTERP_FLOATH_INTH(sign_bit_cos), i));
+#else
     V_ELT_FLOATH y;
     V_ELT_INTH j;
     V_ELT_BOOL32H jandone, jsup3, jsup1, j1or2, xinf0;
@@ -424,7 +492,7 @@ static inline void sincosf_ps(V_ELT_FLOATH x,
 
     sign_sin = VCLEAR_BOOLH(i);
     sign_cos = VCLEAR_BOOLH(i);
-
+	
     // if (x < 0)
     xinf0 = VLT1_FLOATH_BOOLH(x, 0.0f, i);
     sign_sin = VXOR_BOOLH(sign_sin, xinf0, i);
@@ -486,11 +554,12 @@ static inline void sincosf_ps(V_ELT_FLOATH x,
     /* select the correct result from the two polynoms */
     V_ELT_FLOATH y_sin = VMERGE_FLOATH(j1or2, y2, y, i);
     V_ELT_FLOATH y_cos = VMERGE_FLOATH(j1or2, y, y2, i);
-
+	
     y_sin = VMUL1_FLOATH_MASK(sign_sin, y_sin, y_sin, -1.0f, i);
     y_cos = VMUL1_FLOATH_MASK(sign_cos, y_cos, y_cos, -1.0f, i);
     *sin_tmp = y_sin;
-    *cos_tmp = y_cos;
+    *cos_tmp = y_cos;	
+#endif	
 }
 
 static inline void sincosf_vec(float *src, float *s, float *c, int len)
@@ -503,7 +572,7 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
 #ifdef NO_RTZ
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
 #endif
 
     i = VSETVL32H(len);
@@ -566,114 +635,6 @@ static inline void sincosf_interleaved_vec(float *src, complex32_t *dst, int len
 #endif
 }
 
-#if 0  // old version with no FMA. Waiting for real HW benchmark to remove
-static inline void sincosf_vec(float *src, float *s, float *c, int len)
-{
-    size_t i;
-    float *src_tmp = src;
-    float *s_tmp = s;
-    float *c_tmp = c;
-
-#ifdef NO_RTZ
-    uint32_t reg_ori;
-    reg_ori = _MM_GET_ROUNDING_MODE();
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-#endif
-
-    for (; (i = VSETVL32(len)) > 0; len -= i) {
-        V_ELT_FLOAT x = VLOAD_FLOAT(src_tmp, i);
-
-        V_ELT_FLOAT y;
-        V_ELT_INT j;
-        V_ELT_BOOL32 jandone, jsup3, jsup1, j1or2, xinf0;
-        V_ELT_BOOL32 sign_sin, sign_cos;
-
-        sign_sin = VCLEAR_BOOL(i);
-        sign_cos = VCLEAR_BOOL(i);
-
-        // if (x < 0)
-        xinf0 = VLT1_FLOAT_BOOL(x, 0.0f, i);
-        sign_sin = VXOR_BOOL(sign_sin, xinf0, i);
-
-        /* take the absolute value */
-        x = VINTERP_INT_FLOAT(VAND1_INT(VINTERP_FLOAT_INT(x), inv_sign_mask, i));
-
-        /* scale by 4/Pi */
-        y = VMUL1_FLOAT(x, FOPI, i);
-
-        /* store the integer part of y in mm2 */
-        j = VCVT_RTZ_FLOAT_INT(y, i);
-
-        // if (j&1))
-        jandone = VNE1_INT_BOOL(VAND1_INT(j, 1, i), 0, i);
-        j = VADD1_INT_MASK(jandone, j, j, 1, i);
-        y = VCVT_INT_FLOAT(j, i);
-
-        // j&=7
-        j = VAND1_INT(j, 7, i);
-
-        // if (j > 3)
-        jsup3 = VGT1_INT_BOOL(j, 3, i);
-        sign_sin = VXOR_BOOL(sign_sin, jsup3, i);
-        sign_cos = VXOR_BOOL(sign_cos, jsup3, i);
-        j = VSUB1_INT_MASK(jsup3, j, j, 4, i);
-
-        // if (j > 1)
-        jsup1 = VGT1_INT_BOOL(j, 1, i);
-        sign_cos = VXOR_BOOL(sign_cos, jsup1, i);
-
-        j1or2 = VOR_BOOL(VEQ1_INT_BOOL(j, 1, i),
-                         VEQ1_INT_BOOL(j, 2, i), i);
-
-        /* The magic pass: "Extended precision modular arithmetic"
-        x = ((x - y * DP1) - y * DP2) - y * DP3; */
-        x = VFMACC1_FLOAT(x, minus_cephes_DP1, y, i);
-        x = VFMACC1_FLOAT(x, minus_cephes_DP2, y, i);
-        x = VFMACC1_FLOAT(x, minus_cephes_DP3, y, i);
-
-        /* Evaluate the first polynom  (0 <= x <= Pi/4) */
-        V_ELT_FLOAT z = VMUL_FLOAT(x, x, i);
-        y = VMUL1_FLOAT(z, coscof[0], i);
-        y = VADD1_FLOAT(y, coscof[1], i);
-        y = VMUL_FLOAT(y, z, i);
-        y = VADD1_FLOAT(y, coscof[2], i);
-        y = VMUL_FLOAT(y, z, i);
-        y = VMUL_FLOAT(y, z, i);
-        V_ELT_FLOAT tmp = VMUL1_FLOAT(z, 0.5f, i);
-        y = VSUB_FLOAT(y, tmp, i);
-        y = VADD1_FLOAT(y, 1.0f, i);
-
-        /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
-        V_ELT_FLOAT y2;
-        y2 = VMUL1_FLOAT(z, sincof[0], i);
-        y2 = VADD1_FLOAT(y2, sincof[1], i);
-        y2 = VMUL_FLOAT(y2, z, i);
-        y2 = VADD1_FLOAT(y2, sincof[2], i);
-        y2 = VMUL_FLOAT(y2, z, i);
-        y2 = VMUL_FLOAT(y2, x, i);
-        y2 = VADD_FLOAT(y2, x, i);
-
-        /* select the correct result from the two polynoms */
-        V_ELT_FLOAT y_sin = VMERGE_FLOAT(j1or2, y2, y, i);
-        V_ELT_FLOAT y_cos = VMERGE_FLOAT(j1or2, y, y2, i);
-
-        y_sin = VMUL1_FLOAT_MASK(sign_sin, y_sin, y_sin, -1.0f, i);
-        y_cos = VMUL1_FLOAT_MASK(sign_cos, y_cos, y_cos, -1.0f, i);
-
-        VSTORE_FLOAT(s_tmp, y_sin, i);
-        VSTORE_FLOAT(c_tmp, y_cos, i);
-
-        src_tmp += i;
-        s_tmp += i;
-        c_tmp += i;
-    }
-
-#ifdef NO_RTZ
-    _MM_SET_ROUNDING_MODE(reg_ori);
-#endif
-}
-#endif
-
 static inline void tanf_vec(float *src, float *dst, int len)
 {
     size_t i;
@@ -708,16 +669,12 @@ static inline void tanf_vec(float *src, float *dst, int len)
 
         // compute x mod PIO4
         tmp = VMUL1_FLOATH(x, FOPI, i);
-        j = VCVT_FLOATH_INTH(tmp, i);
+        j = VCVT_RTZ_FLOATH_INTH(tmp, i);
         y = VCVT_INTH_FLOATH(j, i);
 
         jandone = VGT1_INTH_BOOLH(VAND1_INTH(j, 1, i), 0, i);
-
-        // TODO : could it be improved like X86 (replace add and merge with and and and add)?
-        tmp = VADD1_FLOATH(y, 1.0f, i);
-        y = VMERGE_FLOATH(jandone, y, tmp, i);
-        tmpi = VADD1_INTH(j, 1, i);
-        j = VMERGE_INTH(jandone, j, tmpi, i);
+        y = VADD1_FLOATH_MASK(jandone, y, y, 1.0f, i);
+        j = VADD1_INTH_MASK(jandone, j, j, 1, i);
         z = x;
         z = VFMACC1_FLOATH(z, minus_cephes_DP1, y, i);
         z = VFMACC1_FLOATH(z, minus_cephes_DP2, y, i);
@@ -2284,12 +2241,7 @@ static inline V_ELT_FLOATH exp_ps(V_ELT_FLOATH x,
     z_tmp = VFMADD_FLOATH(z_tmp, pow2n, pow2n, i);
 
     z = VMERGE1_FLOATH(xsupmaxlogf, z_tmp, MAXNUMF, i);
-
-#if 0  // not ported on RISCV yey
-  z = _mm_andnot_ps(xinfminglogf, z);
-#else
     z = VMERGE1_FLOATH(xinfminglogf, z, 0.0f, i);
-#endif
 
     return z;
 }

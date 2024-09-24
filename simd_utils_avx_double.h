@@ -618,8 +618,6 @@ static inline v4sd asin256_pd(v4sd x)
     z_second_branch = _mm256_div_pd(z_second_branch, tmp_second_branch);
     z_second_branch = _mm256_fmadd_pd_custom(a, z_second_branch, a);
 
-
-
     z = _mm256_blendv_pd(z_second_branch, z_first_branch, asup0p625);
     // z = _mm256_blendv_pd(z, _mm256_xor_pd(*(v4sd *) _pd256_negative_mask, z), sign);
     z = _mm256_xor_pd(z, sign);

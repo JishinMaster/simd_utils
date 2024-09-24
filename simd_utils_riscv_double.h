@@ -745,15 +745,15 @@ static inline V_ELT_DOUBLEH atan2_pd(V_ELT_DOUBLEH y, V_ELT_DOUBLEH x, V_ELT_DOU
     xeqzeroandyinfzero = VAND_BOOL64H(xeqzero, yinfzero, i);
     yeqzeroandxinfzero = VAND_BOOL64H(yeqzero, xinfzero, i);
 
-    z = VLOAD1_DOUBLEH(PIO2Fd, i);
-    z = VMERGE1_DOUBLEH(xeqzeroandyinfzero, z, mPIO2Fd, i);
+    z = VLOAD1_DOUBLEH(PIO2d, i);
+    z = VMERGE1_DOUBLEH(xeqzeroandyinfzero, z, -PIO2d, i);
     z = VMERGE1_DOUBLEH(yeqzero, z, 0.0, i);
-    z = VMERGE1_DOUBLEH(yeqzeroandxinfzero, z, PIFd, i);
+    z = VMERGE1_DOUBLEH(yeqzeroandxinfzero, z, PId, i);
     specialcase = VOR_BOOL64H(xeqzero, yeqzero, i);
 
     w = VLOAD1_DOUBLEH(0.0, i);
-    w = VMERGE1_DOUBLEH(VAND_BOOL64H(VNOT_BOOL64H(yinfzero, i), xinfzero, i), w, PIFd, i);  // y >= 0 && x<0
-    w = VMERGE1_DOUBLEH(VAND_BOOL64H(yinfzero, xinfzero, i), w, mPIFd, i);                // y < 0 && x<0
+    w = VMERGE1_DOUBLEH(VAND_BOOL64H(VNOT_BOOL64H(yinfzero, i), xinfzero, i), w, PId, i);  // y >= 0 && x<0
+    w = VMERGE1_DOUBLEH(VAND_BOOL64H(yinfzero, xinfzero, i), w, -PId, i);                // y < 0 && x<0
 
     tmp = VDIV_DOUBLEH(y, x, i);
     tmp = atand_pd(tmp, ATAN_P1_vec, ATAN_P2_vec, ATAN_P3_vec, ATAN_P4_vec,
@@ -913,6 +913,104 @@ static inline void expd_vec(double *src, double *dst, int len)
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
+//Work in progress
+//Should improve precision or check on real hardware
+static inline void asind_vec(double *src, double *dst, int len)
+{
+    size_t i;
+    double *src_tmp = src;
+    double *dst_tmp = dst;
+	
+    i = VSETVL64H(len);
+    V_ELT_DOUBLEH ASIN_S1_vec = VLOAD1_DOUBLEH(ASIN_S1d, i);
+    V_ELT_DOUBLEH ASIN_S2_vec = VLOAD1_DOUBLEH(ASIN_S2d, i);
+    V_ELT_DOUBLEH ASIN_S3_vec = VLOAD1_DOUBLEH(ASIN_S3d, i);
+    V_ELT_DOUBLEH ASIN_P1_vec = VLOAD1_DOUBLEH(ASIN_P1d, i);
+    V_ELT_DOUBLEH ASIN_P2_vec = VLOAD1_DOUBLEH(ASIN_P2d, i);
+    V_ELT_DOUBLEH ASIN_P3_vec = VLOAD1_DOUBLEH(ASIN_P3d, i);
+    V_ELT_DOUBLEH ASIN_P4_vec = VLOAD1_DOUBLEH(ASIN_P4d, i);
+    V_ELT_DOUBLEH ASIN_P5_vec = VLOAD1_DOUBLEH(ASIN_P5d, i);
+    V_ELT_DOUBLEH ASIN_Q1_vec = VLOAD1_DOUBLEH(ASIN_Q1d, i);
+    V_ELT_DOUBLEH ASIN_Q2_vec = VLOAD1_DOUBLEH(ASIN_Q2d, i);
+    V_ELT_DOUBLEH ASIN_Q3_vec = VLOAD1_DOUBLEH(ASIN_Q3d, i);
+	V_ELT_DOUBLEH ASIN_Q4_vec = VLOAD1_DOUBLEH(ASIN_Q4d, i);
+	V_ELT_DOUBLEH ASIN_R1_vec = VLOAD1_DOUBLEH(ASIN_R1d, i);
+	V_ELT_DOUBLEH ASIN_R2_vec = VLOAD1_DOUBLEH(ASIN_R2d, i);
+	V_ELT_DOUBLEH ASIN_R3_vec = VLOAD1_DOUBLEH(ASIN_R3d, i);
+	V_ELT_DOUBLEH ASIN_R4_vec = VLOAD1_DOUBLEH(ASIN_R4d, i);
+    V_ELT_DOUBLEH minMOREBITS_vec = VLOAD1_DOUBLEH(minMOREBITSd, i);
+	
+    for (; (i = VSETVL64H(len)) > 0; len -= i) {
+        V_ELT_DOUBLEH x = VLOAD_DOUBLEH(src_tmp, i);
+		
+        V_ELT_DOUBLEH a, z, z_first_branch, zz_first_branch, p, zz_second_branch; 
+		V_ELT_DOUBLEH tmp_first_branch, tmp_second_branch, z_second_branch;
+        V_ELT_INT64H sign;
+        V_ELT_BOOL64H ainfem8, asup0p625, xsup1;
+
+        a = VINTERP_INTH_DOUBLEH(VAND1_INT64H(VINTERP_DOUBLEH_INTH(x), inv_sign_mask, i));
+        sign = VAND1_INT64H(VINTERP_DOUBLEH_INTH(x), sign_mask, i);
+
+        ainfem8 = VLT1_DOUBLEH_BOOLH(a, 1.0e-8, i);
+        asup0p625 = VGT1_DOUBLEH_BOOLH(a, 0.625, i); 
+		
+		// fist branch		
+        zz_first_branch = VRSUB1_DOUBLEH(a, 1.0, i);
+		p = zz_first_branch;
+		p = VFMADD1_DOUBLEH(p, ASIN_R0d, ASIN_R1_vec, i);
+		p = VFMADD_DOUBLEH(p, zz_first_branch, ASIN_R2_vec, i);
+		p = VFMADD_DOUBLEH(p, zz_first_branch, ASIN_R3_vec, i);
+		p = VFMADD_DOUBLEH(p, zz_first_branch, ASIN_R4_vec, i);
+		p = VMUL_DOUBLEH(p, zz_first_branch, i);		
+
+		tmp_first_branch = VADD1_DOUBLEH(zz_first_branch, ASIN_S0d, i);
+		tmp_first_branch = VFMADD_DOUBLEH(tmp_first_branch, zz_first_branch, ASIN_S1_vec, i);
+		tmp_first_branch = VFMADD_DOUBLEH(tmp_first_branch, zz_first_branch, ASIN_S2_vec, i);
+		tmp_first_branch = VFMADD_DOUBLEH(tmp_first_branch, zz_first_branch, ASIN_S3_vec, i);
+		p = VDIV_DOUBLEH(p, tmp_first_branch, i);
+
+		zz_first_branch = VSQRT_DOUBLEH(VADD_DOUBLEH(zz_first_branch, zz_first_branch, i), i);
+		z_first_branch = VRSUB1_DOUBLEH(zz_first_branch, PIO4d, i);
+		zz_first_branch = VFMADD_DOUBLEH(zz_first_branch, p, minMOREBITS_vec, i);
+		z_first_branch = VSUB_DOUBLEH(z_first_branch, zz_first_branch, i);
+	
+	    // second branch
+		zz_second_branch = VMUL_DOUBLEH(a, a, i);
+		z_second_branch = zz_second_branch;
+		z_second_branch = VFMADD1_DOUBLEH(z_second_branch, ASIN_P0d, ASIN_P1_vec, i);
+		z_second_branch = VFMADD_DOUBLEH(z_second_branch, zz_second_branch, ASIN_P2_vec, i);
+		z_second_branch = VFMADD_DOUBLEH(z_second_branch, zz_second_branch, ASIN_P3_vec, i);
+		z_second_branch = VFMADD_DOUBLEH(z_second_branch, zz_second_branch, ASIN_P4_vec, i);
+		z_second_branch = VFMADD_DOUBLEH(z_second_branch, zz_second_branch, ASIN_P5_vec, i);
+		z_second_branch = VMUL_DOUBLEH(z_second_branch, zz_second_branch, i);
+
+		tmp_second_branch = VADD1_DOUBLEH(zz_second_branch, ASIN_Q0d, i);
+		tmp_second_branch = VFMADD_DOUBLEH(tmp_second_branch, zz_second_branch, ASIN_Q1_vec, i);
+		tmp_second_branch = VFMADD_DOUBLEH(tmp_second_branch, zz_second_branch, ASIN_Q2_vec, i);
+		tmp_second_branch = VFMADD_DOUBLEH(tmp_second_branch, zz_second_branch, ASIN_Q3_vec, i);
+		tmp_second_branch = VFMADD_DOUBLEH(tmp_second_branch, zz_second_branch, ASIN_Q4_vec, i);
+
+		z_second_branch = VDIV_DOUBLEH(z_second_branch, tmp_second_branch, i);
+		z_second_branch = VFMADD_DOUBLEH(z_second_branch, a, a, i);
+		/*printf("x : ");print_vec64h(x, i);
+		printf("z_first_branch : ");print_vec64h(z_first_branch, i);		
+		printf("z_second_branch : ");print_vec64h(z_second_branch, i);*/
+		z = VADD1_DOUBLEH_MASK(asup0p625, z_second_branch, z_first_branch, PIO4d, i);
+		//printf("z : ");print_vec64h(z, i);
+        z = VINTERP_INTH_DOUBLEH(VXOR_INT64H(VINTERP_DOUBLEH_INTH(z), sign, i));
+		z = VMERGE_DOUBLEH(ainfem8, z, x, i);
+		//printf("z : ");print_vec64h(z, i);
+        // if (x > 1.0) then return 0.0
+		xsup1 = VGT1_DOUBLEH_BOOLH(x, 1.0, i);		
+        z = VMERGE1_DOUBLEH(xsup1, z, 0.0, i);
+		//printf("z : ");print_vec64h(z, i);
+
+        VSTORE_DOUBLEH(dst_tmp, z, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
+}
+
 #else
 
 #warning "No support for double precision functions"
@@ -946,4 +1044,6 @@ static inline void sincosd_interleaved_vec(double *src, complex64_t *dst, int le
 static inline void atand_vec(double *src, double *dst, int len) {}
 static inline void atan2d_vec(double *src1, double *src2, double *dst, int len) {}
 static inline void atan2d_interleaved_vec(complex64_t *src, double *dst, int len) {}
+static inline void asind_vec(double *src, double *dst, int len) {}
+static inline void expd_vec(double *src, double *dst, int len) {}
 #endif

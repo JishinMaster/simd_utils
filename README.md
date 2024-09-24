@@ -87,6 +87,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | log10Xf/precise (a)                                   | log10f_C                    | ippsLog10_32f_A24              | log10f_vec                    |
 | log2Xf/precise  (a)                                   | log2f_C                     |                                | log2f_vec                     |
 | lnXf  (a)                                             | lnf_C                       | ippsLn_32f_A24                 | lnf_vec                       |
+| lnXd                                                  | ln_C                        | ippsLn_64f_A53                 | ?                             |
 | expXf (a)                                             | expf_C                      | ippsExp_32f_A24                | expf_vec                      |
 | cbrtXf  (a)                                           | cbrtf_C                     | ?                              | cbrtf_vec                     |
 | fabsXf (a)                                            | fabsf_C                     | ippsAbs_32f                    | fabsf_vec                     |
@@ -138,6 +139,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | asinXf (a)                                            | asinf_C                     | ippsAsin_32f_A24               | asinf_vec                     |
 | tanhXf (a)                                            | tanhf_C                     | ippsTanh_32f_A24               | tanhf_vec                     |
 | tanXf  (a)                                            | tanf_C                      | ippsTan_32f_A24                | tanf_vec                      |
+| tanXd  (a)                                            | tan_C                       | ippsTan_64f_A53                | ?                             |
 | magnitudeXf_split  (a)                                | magnitudef_C_split          | ippsMagnitude_32f              | magnitudef_split_vec          |
 | powerspectXf_split (a)                                | powerspectf_C_split         | ippsPowerSpectr_32f            | powerspectf_split_vec         |
 | magnitudeXf_interleaved                               | magnitudef_C_interleaved    | ippsMagnitude_32fc             | magnitudef_interleaved_vec    |
@@ -184,7 +186,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | atanXd                                                | atan_C                      | ippsAtan_64f_A53               | atand_vec                     |
 | atan2Xd                                               | atan2d_C                    | ippsAtan2_64f_A53              | atan2d_vec                    |
 | atan2Xd_interleaved                                   | atan2_interleaved_C         | ?                              | atan2d_interleaved_vec        |
-| asinXd                                                | asin_C                      | ippsAsin_64f_A53               | ?                             |
+| asinXd                                                | asin_C                      | ippsAsin_64f_A53               | asind_vec                     |
 | cplxtorealXd                                          | cplxtoreald_C               | ippsCplxToReal_64fc            | cplxtoreald_vec               |
 | realtocplxXd                                          | realtocplxd_C               | ippsRealToCplx_64f             | realtocplxd_vec               |
 | expXd                                                 | exp_C                       | ippsExp_64f_A53                | expd_vec                      |

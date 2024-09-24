@@ -1378,6 +1378,27 @@ for (int i = 0; i < len; i++){
 
 #endif
 
+#ifdef RISCV
+    clock_gettime(CLOCK_REALTIME, &start);
+    asind_vec(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("asind_vec %d %lf\n", len, elapsed);
+
+    /*clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        asind_vec(inoutd, inoutd2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("asind_vec %d %lf\n", len, elapsed);*/
+    l2_errd(inoutd_ref, inoutd2, len);
+    
+	/*for(int i = 0; i < len; i++){
+        printf("%lf || %g %g || %g\n",inoutd[i], inoutd_ref[i],inoutd2[i],
+		fabs(inoutd_ref[i]-inoutd2[i]));
+    }*/	
+#endif	
+
     printf("\n");
     /////////////////////////////////////////////////////////// ATANF //////////////////////////////////////////////////////////////////////////////
     printf("ATANF\n");

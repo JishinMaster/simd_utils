@@ -1105,24 +1105,26 @@ int main(int argc, char **argv)
     printf("SINCOS\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
-    sincosf_C(inout, inout_ref, inout2_ref, len);
+    sincosf_C_precise(inout, inout_ref, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincosf_C_precise %d %lf\n", len, elapsed);
+	
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincosf_C(inout, inout2, inout3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("sincosf_C %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        sincosf_C(inout, inout_ref, inout2_ref, len);
+        sincosf_C(inout, inout2, inout3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sincosf_C %d %lf\n", len, elapsed);
 
-    clock_gettime(CLOCK_REALTIME, &start);
-    sincosf_C_precise(inout, inout_ref, inout2_ref, len);
-    clock_gettime(CLOCK_REALTIME, &stop);
-    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("sincosf_C_precise %d %lf\n", len, elapsed);
-
+    l2_err(inout_ref, inout2, len);
+    l2_err(inout2_ref, inout3, len);
 #ifdef IPP
     clock_gettime(CLOCK_REALTIME, &start);
     ippsSinCos_32f_A24(inout, inout2, inout3, len);
@@ -1339,8 +1341,8 @@ int main(int argc, char **argv)
     printf("sincosf_vec %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
-    // for (l = 0; l < loop; l++)
-    //     sincosf_vec(inout, inout2, inout3, len);
+     for (l = 0; l < loop; l++)
+         sincosf_vec(inout, inout2, inout3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sincosf_vec %d %lf\n", len, elapsed);
