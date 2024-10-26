@@ -7,7 +7,7 @@
 
 #pragma once
 
-// JishinMaster : DTCollab sse2neon.h commit : 1c258c41de900d94b09c5d45a15bcc8f0216332d
+// JishinMaster : DTCollab sse2neon.h commit : b72d48ef491e3c471e10c86715361d421d54ccd7
 #include "sse2neon.h"
 
 
