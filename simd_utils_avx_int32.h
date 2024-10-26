@@ -215,7 +215,7 @@ static inline void copy256s_2(int32_t *src, int32_t *dst, int len)
 
 static inline void fast_copy256s(int32_t *src, int32_t *dst, int len)
 {
-    int stop_len = len / AVX_LEN_INT32;
+    /*int stop_len = len / AVX_LEN_INT32;
     stop_len *= AVX_LEN_INT32;
 
 #ifdef OMP
@@ -229,12 +229,13 @@ static inline void fast_copy256s(int32_t *src, int32_t *dst, int len)
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i];
     }
+	*/
 }
 
 
 static inline void fast_copy256s_2(int32_t *src, int32_t *dst, int len)
 {
-    int stop_len = len / (2 * AVX_LEN_INT32);
+    /*int stop_len = len / (2 * AVX_LEN_INT32);
     stop_len *= (2 * AVX_LEN_INT32);
 
 #ifdef OMP
@@ -250,12 +251,12 @@ static inline void fast_copy256s_2(int32_t *src, int32_t *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i];
-    }
+    }*/
 }
 
 static inline void fast_copy256s_4(int32_t *src, int32_t *dst, int len)
 {
-    int stop_len = len / (4 * AVX_LEN_INT32);
+    /*int stop_len = len / (4 * AVX_LEN_INT32);
     stop_len *= (4 * AVX_LEN_INT32);
 
 #ifdef OMP
@@ -275,7 +276,7 @@ static inline void fast_copy256s_4(int32_t *src, int32_t *dst, int len)
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i];
-    }
+    }*/
 }
 
 static inline __m256i _mm256_absdiff_epi16(__m256i a, __m256i b)
