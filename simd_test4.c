@@ -1348,6 +1348,123 @@ int main(int argc, char **argv)
     l2_err(inout4, inout2_ref, len);
 #endif
 
+    printf("\n");
+    ////////////////////////////////////////////////// FP32TOFP16 ////////////////////////////////////////////////////////////////////
+    printf("FP32TOFP16\n");
+
+	for(int i = 0; i < len; i++)
+		inout[i]= (float)(-len)*0.0073456f + 0.0123456789f*(float)i;	
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    fp32tofp16_C(inout,  (uint16_t *)inout_sref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("fp32tofp16_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        fp32tofp16_C(inout,  (uint16_t *)inout_sref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("fp32tofp16_C %d %lf\n", len, elapsed);
+
+#ifdef SSE
+    clock_gettime(CLOCK_REALTIME, &start);
+    fp32tofp16128(inout,  (uint16_t *)inout_s1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("fp32tofp16128 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        fp32tofp16128(inout,  (uint16_t *)inout_s1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("fp32tofp16128 %d %lf\n", len, elapsed);
+
+    for(int i = 0; i < len; i++){
+		if(inout_s1[i] != inout_sref[i])
+			printf("error at %d : %08x != %08x\n",i,inout_s1[i],inout_sref[i]);
+	}
+	
+    clock_gettime(CLOCK_REALTIME, &start);
+    fp32tofp16256(inout,  (uint16_t *)inout_s1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("fp32tofp16256 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        fp32tofp16256(inout,  (uint16_t *)inout_s1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("fp32tofp16256 %d %lf\n", len, elapsed);
+
+    for(int i = 0; i < len; i++){
+		if(inout_s1[i] != inout_sref[i])
+			printf("error at %d : %08x != %08x\n",i,inout_s1[i],inout_sref[i]);
+	}
+#endif
+
+
+    printf("\n");
+    ////////////////////////////////////////////////// FP16TOFP32 ////////////////////////////////////////////////////////////////////
+    printf("FP16TOFP32\n");
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    fp16tofp32_C( (uint16_t *)inout_sref, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("fp16tofp32_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        fp16tofp32_C( (uint16_t *)inout_sref, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("fp16tofp32_C %d %lf\n", len, elapsed);
+
+#ifdef AVX
+    clock_gettime(CLOCK_REALTIME, &start);
+    fp16tofp32128( (uint16_t *)inout_sref, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("fp16tofp32128 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        fp16tofp32128( (uint16_t *)inout_sref, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("fp16tofp32128 %d %lf\n", len, elapsed);
+
+	//we convert format so it makes sense to directly compare float values
+    for(int i = 0; i < len; i++){
+		if(inout2[i] != inout_ref[i])
+			printf("error at %d : %g != %g\n",i,inout2[i],inout_ref[i]);
+	}
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    fp16tofp32256( (uint16_t *)inout_sref, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("fp16tofp32256 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        fp16tofp32256( (uint16_t *)inout_sref, inout2, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("fp16tofp32256 %d %lf\n", len, elapsed);
+
+	//we convert format so it makes sense to directly compare float values
+    for(int i = 0; i < len; i++){
+		if(inout2[i] != inout_ref[i])
+			printf("error at %d : %g != %g\n",i,inout2[i],inout_ref[i]);
+	}
+#endif
+
+#endif
     inout -= offset;
     inout2 -= offset;
     inout3 -= offset;
