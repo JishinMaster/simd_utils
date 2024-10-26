@@ -107,35 +107,15 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define MAX_ELTS64 VECTOR_LENGTH / 8
 #endif
 
-#ifndef vfcvt_rtz_x_f_v_i32m4
+#if 1 // else in work in progress, for recent GCC and clang
+
 #define NO_RTZ
 #define vfcvt_rtz_x_f_v_i32m4 vfcvt_x_f_v_i32m4
-#endif
-
-#ifndef vfcvt_rtz_x_f_v_i32m2
-#define NO_RTZ
 #define vfcvt_rtz_x_f_v_i32m2 vfcvt_x_f_v_i32m2
-#endif
-
-#if ELEN >= 64
-#ifndef vfcvt_rtz_x_f_v_i64m4
-#define NO_RTZ
-#define vfcvt_rtz_x_f_v_i64m4 vfcvt_x_f_v_i64m4
-#endif
-
-#ifndef vfcvt_rtz_x_f_v_i64m2
-#define NO_RTZ
-#define vfcvt_rtz_x_f_v_i64m2 vfcvt_x_f_v_i64m2
-#endif
-#endif  // ELEN >= 64
 
 ///////////////////// FULL VECTOR  m4 //////////////
 #define VSETVL32 vsetvl_e32m4
 #define VSETVL16 vsetvl_e16m4
-
-#if ELEN >= 64
-#define VSETVL64 vsetvl_e64m4
-#endif  // ELEN >= 64
 
 //// FLOAT
 #define V_ELT_FLOAT vfloat32m4_t
@@ -170,7 +150,9 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VCVT_FLOAT_INT vfcvt_x_f_v_i32m4
 #define VCVT_INT_FLOAT vfcvt_f_x_v_f32m4
 #define VMERGE_FLOAT vmerge_vvm_f32m4
-#define VMUL1_FLOAT_MASK vfmul_vf_f32m4_m
+static inline vfloat32m4_t VMUL1_FLOAT_MASK(vbool8_t mask, vfloat32m4_t op1, float op2, size_t vl){
+	return vfmul_vf_f32m4_m(mask, op1, op1, op2, vl);
+}
 #define VSQRT_FLOAT vfsqrt_v_f32m4
 #define VLE_FLOAT_STRIDE vlse32_v_f32m4
 #define VEQ1_FLOAT_BOOL vmfeq_vf_f32m4_b8
@@ -182,42 +164,6 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VABS_FLOAT vfabs_v_f32m4
 #define VMERGE1_FLOAT vfmerge_vfm_f32m4
 #define VGATHER_FLOAT vrgather_vv_f32m4
-
-#if ELEN >= 64
-//// DOUBLE
-#define V_ELT_DOUBLE vfloat64m4_t
-#define VLOAD_DOUBLE vle64_v_f64m4
-#define VLOAD1_DOUBLE vfmv_v_f_f64m4
-#define VSTORE_DOUBLE vse64_v_f64m4
-#define VADD_DOUBLE vfadd_vv_f64m4
-#define VADD1_DOUBLE vfadd_vf_f64m4
-#define VSUB_DOUBLE vfsub_vv_f64m4
-#define VSUB1_DOUBLE vfsub_vf_f64m4
-#define VMUL_DOUBLE vfmul_vv_f64m4
-#define VMUL1_DOUBLE vfmul_vf_f64m4
-#define VDIV_DOUBLE vfdiv_vv_f64m4
-#define VFMA_DOUBLE vfmacc_vv_f64m4  // d = a + b*c
-#define VFMA1_DOUBLE vfmacc_vf_f64m4
-#define VFMSUB_DOUBLE vfmsub_vv_f64m4  // d = a*b - c
-#define VREDSUM_DOUBLE vfredosum_vs_f64m4_f64m1
-#define VREDMAX_DOUBLE vfredmax_vs_f64m4_f64m1
-#define VREDMIN_DOUBLE vfredmin_vs_f64m4_f64m1
-#define VMIN_DOUBLE vfmin_vv_f64m4
-#define VMAX_DOUBLE vfmax_vv_f64m4
-#define VMIN1_DOUBLE vfmin_vf_f64m4
-#define VMAX1_DOUBLE vfmax_vf_f64m4
-#define VINTERP_DOUBLE_INT vreinterpret_v_f64m4_i64m4
-#define VINTERP_INT_DOUBLE vreinterpret_v_i64m4_f64m4
-#define VCVT_RTZ_DOUBLE_INT vfcvt_rtz_x_f_v_i64m4
-#define VCVT_DOUBLE_INT vfcvt_x_f_v_i64m4
-#define VCVT_INT_DOUBLE vfcvt_f_x_v_f64m4
-#define VABS_DOUBLE vfabs_v_f64m4
-#define VSQRT_DOUBLE vfsqrt_v_f64m4
-#define VCVT_DOUBLE_FLOAT vfncvt_f_f_w_f32m2
-#define VCVT_FLOAT_DOUBLE vfwcvt_f_f_v_f64m4
-
-
-#endif  // ELEN >= 64
 
 //// INT
 #define V_ELT_INT vint32m4_t
@@ -240,8 +186,12 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VNE1_INT_BOOL vmsne_vx_i32m4_b8
 #define VLT1_INT_BOOL vmslt_vx_i32m4_b8
 #define VLE1_INT_BOOL vmsle_vx_i32m4_b8
-#define VADD1_INT_MASK vadd_vx_i32m4_m
-#define VSUB1_INT_MASK vsub_vx_i32m4_m
+static inline vint32m4_t VADD1_INT_MASK(vbool8_t mask, vint32m4_t op1, int32_t op2, size_t vl){
+	return vadd_vx_i32m4_m(mask, op1, op1, op2, vl);
+}
+static inline vint32m4_t VSUB1_INT_MASK(vbool8_t mask, vint32m4_t op1, int32_t op2, size_t vl){
+	return vsub_vx_i32m4_m(mask, op1, op1, op2, vl);
+}
 #define VSUB1_INT vsub_vx_i32m4
 #define VOR1_INT vor_vx_i32m4
 #define VSRA1_INT vsra_vx_i32m4
@@ -291,30 +241,33 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VSETVL32H vsetvl_e32m2
 #define VSETVL16H vsetvl_e16m2
 
-#if ELEN >= 64
-#define VSETVL64H vsetvl_e64m2
-#endif  // ELEN >= 64
-
 //// FLOATH
 #define V_ELT_FLOATH vfloat32m2_t
+ 
 #define VLOAD_FLOATH vle32_v_f32m2
 #define VLOAD1_FLOATH vfmv_v_f_f32m2
 #define VLOAD_FLOATH2 vlseg2e32_v_f32m2
 #define VLOAD_FLOATH_STRIDE vlse32_v_f32m2
 #define VSTORE_FLOATH vse32_v_f32m2
+#define VSTORE_FLOATHH vse32_v_f32m1
+#define VLOAD_FLOATHH vle32_v_f32m1
 #define VSTORE_FLOATH2 vsseg2e32_v_f32m2
 #define VINTERP_FLOATH_INTH vreinterpret_v_f32m2_i32m2
 #define VINTERP_INTH_FLOATH vreinterpret_v_i32m2_f32m2
 #define VXOR1_INTH vxor_vx_i32m2
 #define VADD_FLOATH vfadd_vv_f32m2
 #define VADD1_FLOATH vfadd_vf_f32m2
-#define VADD1_FLOATH_MASK vfadd_vf_f32m2_m
+static inline vfloat32m2_t VADD1_FLOATH_MASK(vbool16_t mask, vfloat32m2_t op1, float op2, size_t vl){
+	return vfadd_vf_f32m2_m(mask, op1, op1, op2, vl);
+}
 #define VSUB_FLOATH vfsub_vv_f32m2
 #define VSUB1_FLOATH vfsub_vf_f32m2    // v2 = v1 - f
 #define VRSUB1_FLOATH vfrsub_vf_f32m2  // v2 = f - v1
 #define VMUL_FLOATH vfmul_vv_f32m2
 #define VMUL1_FLOATH vfmul_vf_f32m2
-#define VMUL1_FLOATH_MASK vfmul_vf_f32m2_m
+static inline vfloat32m2_t VMUL1_FLOATH_MASK(vbool16_t mask, vfloat32m2_t op1, float op2, size_t vl){
+	return vfmul_vf_f32m2_m(mask, op1, op1, op2, vl);
+}
 #define VDIV_FLOATH vfdiv_vv_f32m2
 #define VDIV1_FLOATH vfdiv_vf_f32m2
 #define VRDIV1_FLOATH vfrdiv_vf_f32m2
@@ -348,76 +301,29 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VMERGE1_FLOATH vfmerge_vfm_f32m2
 #define VGATHER_FLOATH vrgather_vv_f32m2
 
-#if ELEN >= 64
-//// DOUBLEH
-#define VSETVL64H vsetvl_e64m2
-#define V_ELT_DOUBLEH vfloat64m2_t
-#define VLOAD_DOUBLEH2 vlseg2e64_v_f64m2
-#define VLOAD_DOUBLEH_STRIDE vlse64_v_f64m2
-#define VSTORE_DOUBLEH2 vsseg2e64_v_f64m2
-#define VLOAD_DOUBLEH vle64_v_f64m2
-#define VLOAD1_DOUBLEH vfmv_v_f_f64m2
-#define VSTORE_DOUBLEH vse64_v_f64m2
-#define VADD_DOUBLEH vfadd_vv_f64m2
-#define VADD1_DOUBLEH vfadd_vf_f64m2
-#define VSUB_DOUBLEH vfsub_vv_f64m2
-#define VSUB1_DOUBLEH vfsub_vf_f64m2
-#define VRSUB1_DOUBLEH vfrsub_vf_f64m2  // v2 = f - v1
-#define VMUL_DOUBLEH vfmul_vv_f64m2
-#define VMUL1_DOUBLEH vfmul_vf_f64m2
-#define VDIV_DOUBLEH vfdiv_vv_f64m2
-#define VFMACC_DOUBLEH vfmacc_vv_f64m2  // d = a + b*c
-#define VFMACC1_DOUBLEH vfmacc_vf_f64m2  
-#define VFMADD_DOUBLEH vfmadd_vv_f64m2  
-#define VFMADD1_DOUBLEH vfmadd_vf_f64m2 
-#define VFMA1_DOUBLEH vfmacc_vf_f64m2
-#define VFMSUB_DOUBLEH vfmsub_vv_f64m2  // d = a*b - c
-#define VREDSUM_DOUBLEH vfredosum_vs_f64m2_f64m1
-#define VREDMAX_DOUBLEH vfredmax_vs_f64m2_f64m1
-#define VREDMIN_DOUBLEH vfredmin_vs_f64m2_f64m1
-#define VMIN_DOUBLEH vfmin_vv_f64m2
-#define VMAX_DOUBLEH vfmax_vv_f64m2
-#define VMIN1_DOUBLEH vfmin_vf_f64m2
-#define VMAX1_DOUBLEH vfmax_vf_f64m2
-#define VINTERP_DOUBLEH_INTH vreinterpret_v_f64m2_i64m2
-#define VINTERP_INTH_DOUBLEH vreinterpret_v_i64m2_f64m2
-#define VCVT_RTZ_DOUBLEH_INTH vfcvt_rtz_x_f_v_i64m2
-#define VCVT_DOUBLEH_INTH vfcvt_x_f_v_i64m2
-#define VCVT_INTH_DOUBLEH vfcvt_f_x_v_f64m2
-#define VABS_DOUBLEH vfabs_v_f64m2
-#define VSQRT_DOUBLEH vfsqrt_v_f64m2
-#define VCVT_DOUBLEH_FLOATH vfncvt_f_f_w_f32m2
-#define VCVT_FLOATH_DOUBLEH vfwcvt_f_f_v_f64m2
-#define VLT1_DOUBLEH_BOOLH vmflt_vf_f64m2_b32
-#define VMERGE_DOUBLEH vmerge_vvm_f64m2
-#define VMERGE1_DOUBLEH vfmerge_vfm_f64m2
-#define VMUL1_DOUBLEH_MASK vfmul_vf_f64m2_m
-#define VEQ1_DOUBLEH_BOOLH vmfeq_vf_f64m2_b32
-#define VEQ_DOUBLEH_BOOLH vmfeq_vv_f64m2_b32
-#define VGE1_DOUBLEH_BOOLH vmfge_vf_f64m2_b32
-#define VGT1_DOUBLEH_BOOLH vmfgt_vf_f64m2_b32
-#define VNE1_DOUBLEH_BOOLH vmfne_vf_f64m2_b32
-#define VLT1_DOUBLEH_BOOLH vmflt_vf_f64m2_b32
-#define VLE1_DOUBLEH_BOOLH vmfle_vf_f64m2_b32
-#define VADD1_DOUBLEH_MASK vfadd_vf_f64m2_m
-#define VMUL1_DOUBLEH_MASK vfmul_vf_f64m2_m
-
-#endif  // ELEN >= 64
-
 //// INTH
 #define V_ELT_INTH vint32m2_t
+#define VSTORE_INTHH vse32_v_i32m1
+#define VLOAD_INTHH  vle32_v_i32m1
 #define VLOAD_INTH vle32_v_i32m2
 #define VLOAD1_INTH vmv_v_x_i32m2
+#define VLOAD1_INTHH vmv_v_x_i32m1
 #define VSTORE_INTH vse32_v_i32m2
 #define VADD_INTH vadd_vv_i32m2
 #define VADD1_INTH vadd_vx_i32m2
-#define VADD1_INTH_MASK vadd_vx_i32m2_m
-#define VADD1_INT64H_MASK vadd_vx_i64m2_m
+static inline vint32m2_t VADD1_INTH_MASK(vbool16_t mask, vint32m2_t op1, int32_t op2, size_t vl){
+	return vadd_vx_i32m2_m(mask, op1, op1, op2, vl);
+}
+
+#define VADD1_INTH_MASKEDOFF vadd_vx_i32m2_m
+#define VADD1_INT64H_MASKEDOFF vadd_vx_i64m2_m
 #define VMUL_INTH vmul_vv_i32m2
 #define VMUL1_INTH vmul_vx_i32m2
 #define VSUB_INTH vsub_vv_i32m2
 #define VSUB1_INTH vsub_vx_i32m2
-#define VSUB1_INTH_MASK vsub_vx_i32m2_m
+static inline vint32m2_t VSUB1_INTH_MASK(vbool16_t mask, vint32m2_t op1, int32_t op2, size_t vl){
+	return vsub_vx_i32m2_m(mask, op1, op1, op2, vl);
+}
 #define VAND1_INTH vand_vx_i32m2
 #define VAND_INTH vand_vv_i32m2
 #define VXOR_INTH vxor_vv_i32m2
@@ -436,22 +342,6 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VMAX1_INTH vmax_vx_i32m2
 #define VNOT_INTH vnot_v_i32m2
 #define VMERGE_INTH vmerge_vvm_i32m2
-
-#if ELEN >= 64
-#define V_ELT_INT64H vint64m2_t
-#define VLOAD1_INT64H vmv_v_x_i64m2
-#define VSLL1_INT64H vsll_vx_i64m2
-#define VADD1_INT64H vadd_vx_i64m2
-#define VAND1_INT64H vand_vx_i64m2
-#define VXOR_INT64H vxor_vv_i64m2
-#define VNE1_INTH_BOOL64H vmsne_vx_i64m2_b32
-#define VEQ1_INTH_BOOL64H vmseq_vx_i64m2_b32
-#define VEQ1_INTH_BOOL64H vmseq_vx_i64m2_b32
-#define VGT1_INTH_BOOL64H vmsgt_vx_i64m2_b32
-#define VSUB1_INT64H_MASK vsub_vx_i64m2_m
-#define VMERGE_INT64H vmerge_vvm_i64m2
-#define VMERGE1_INT64H vmerge_vxm_i64m2
-#endif
 
 //// UINTH
 #define VLOAD_UINTH vle32_v_u32m2
@@ -496,6 +386,123 @@ vfnmsub.vf vd, rs1, vs2, vm
 //#define VANDNOT_BOOLH vmnand_mm_b16
 
 #if ELEN >= 64
+#define VSETVL64 vsetvl_e64m4
+
+//// DOUBLE
+#define V_ELT_DOUBLE vfloat64m4_t
+#define VLOAD_DOUBLE vle64_v_f64m4
+#define VLOAD1_DOUBLE vfmv_v_f_f64m4
+#define VSTORE_DOUBLE vse64_v_f64m4
+#define VADD_DOUBLE vfadd_vv_f64m4
+#define VADD1_DOUBLE vfadd_vf_f64m4
+#define VSUB_DOUBLE vfsub_vv_f64m4
+#define VSUB1_DOUBLE vfsub_vf_f64m4
+#define VMUL_DOUBLE vfmul_vv_f64m4
+#define VMUL1_DOUBLE vfmul_vf_f64m4
+#define VDIV_DOUBLE vfdiv_vv_f64m4
+#define VFMA_DOUBLE vfmacc_vv_f64m4  // d = a + b*c
+#define VFMA1_DOUBLE vfmacc_vf_f64m4
+#define VFMSUB_DOUBLE vfmsub_vv_f64m4  // d = a*b - c
+#define VREDSUM_DOUBLE vfredosum_vs_f64m4_f64m1
+#define VREDMAX_DOUBLE vfredmax_vs_f64m4_f64m1
+#define VREDMIN_DOUBLE vfredmin_vs_f64m4_f64m1
+#define VMIN_DOUBLE vfmin_vv_f64m4
+#define VMAX_DOUBLE vfmax_vv_f64m4
+#define VMIN1_DOUBLE vfmin_vf_f64m4
+#define VMAX1_DOUBLE vfmax_vf_f64m4
+#define VINTERP_DOUBLE_INT vreinterpret_v_f64m4_i64m4
+#define VINTERP_INT_DOUBLE vreinterpret_v_i64m4_f64m4
+#define VCVT_RTZ_DOUBLE_INT vfcvt_rtz_x_f_v_i64m4
+#define VCVT_DOUBLE_INT vfcvt_x_f_v_i64m4
+#define VCVT_INT_DOUBLE vfcvt_f_x_v_f64m4
+#define VABS_DOUBLE vfabs_v_f64m4
+#define VSQRT_DOUBLE vfsqrt_v_f64m4
+#define VCVT_DOUBLE_FLOAT vfncvt_f_f_w_f32m2
+#define VCVT_FLOAT_DOUBLE vfwcvt_f_f_v_f64m4
+
+//// DOUBLEH
+#define VSETVL64H vsetvl_e64m2
+#define V_ELT_DOUBLEH vfloat64m2_t
+#define VLOAD_DOUBLEH2 vlseg2e64_v_f64m2
+#define VLOAD_DOUBLEH_STRIDE vlse64_v_f64m2
+#define VSTORE_DOUBLEH2 vsseg2e64_v_f64m2
+#define VLOAD_DOUBLEH vle64_v_f64m2
+#define VLOAD1_DOUBLEH vfmv_v_f_f64m2
+#define VSTORE_DOUBLEH vse64_v_f64m2
+#define VADD_DOUBLEH vfadd_vv_f64m2
+#define VADD1_DOUBLEH vfadd_vf_f64m2
+#define VSUB_DOUBLEH vfsub_vv_f64m2
+#define VSUB1_DOUBLEH vfsub_vf_f64m2
+#define VRSUB1_DOUBLEH vfrsub_vf_f64m2  // v2 = f - v1
+#define VMUL_DOUBLEH vfmul_vv_f64m2
+#define VMUL1_DOUBLEH vfmul_vf_f64m2
+#define VDIV_DOUBLEH vfdiv_vv_f64m2
+#define VFMACC_DOUBLEH vfmacc_vv_f64m2  // d = a + b*c
+#define VFMACC1_DOUBLEH vfmacc_vf_f64m2  
+#define VFMADD_DOUBLEH vfmadd_vv_f64m2  
+#define VFMADD1_DOUBLEH vfmadd_vf_f64m2 
+#define VFMA1_DOUBLEH vfmacc_vf_f64m2
+#define VFMSUB_DOUBLEH vfmsub_vv_f64m2  // d = a*b - c
+#define VREDSUM_DOUBLEH vfredosum_vs_f64m2_f64m1
+#define VREDMAX_DOUBLEH vfredmax_vs_f64m2_f64m1
+#define VREDMIN_DOUBLEH vfredmin_vs_f64m2_f64m1
+#define VMIN_DOUBLEH vfmin_vv_f64m2
+#define VMAX_DOUBLEH vfmax_vv_f64m2
+#define VMIN1_DOUBLEH vfmin_vf_f64m2
+#define VMAX1_DOUBLEH vfmax_vf_f64m2
+#define VINTERP_DOUBLEH_INTH vreinterpret_v_f64m2_i64m2
+#define VINTERP_INTH_DOUBLEH vreinterpret_v_i64m2_f64m2
+#define VCVT_RTZ_DOUBLEH_INTH vfcvt_rtz_x_f_v_i64m2
+#define VCVT_DOUBLEH_INTH vfcvt_x_f_v_i64m2
+#define VCVT_INTH_DOUBLEH vfcvt_f_x_v_f64m2
+#define VABS_DOUBLEH vfabs_v_f64m2
+#define VSQRT_DOUBLEH vfsqrt_v_f64m2
+#define VCVT_DOUBLEH_FLOATH vfncvt_f_f_w_f32m2
+#define VCVT_FLOATH_DOUBLEH vfwcvt_f_f_v_f64m2
+#define VLT1_DOUBLEH_BOOLH vmflt_vf_f64m2_b32
+#define VMERGE_DOUBLEH vmerge_vvm_f64m2
+#define VMERGE1_DOUBLEH vfmerge_vfm_f64m2
+static inline vfloat64m2_t VMUL1_DOUBLEH_MASK(vbool32_t mask, vfloat64m2_t op1, double op2, size_t vl){
+	return vfmul_vf_f64m2_m(mask, op1, op1, op2, vl);
+}
+static inline vfloat64m2_t VADD1_DOUBLEH_MASK(vbool32_t mask, vfloat64m2_t op1, double op2, size_t vl){
+	return vfadd_vf_f64m2_m(mask, op1, op1, op2, vl);
+}
+#define VADD1_DOUBLEH_MASKEDOFF vfadd_vf_f64m2_m
+#define VEQ1_DOUBLEH_BOOLH vmfeq_vf_f64m2_b32
+#define VEQ_DOUBLEH_BOOLH vmfeq_vv_f64m2_b32
+#define VGE1_DOUBLEH_BOOLH vmfge_vf_f64m2_b32
+#define VGT1_DOUBLEH_BOOLH vmfgt_vf_f64m2_b32
+#define VNE1_DOUBLEH_BOOLH vmfne_vf_f64m2_b32
+#define VLT1_DOUBLEH_BOOLH vmflt_vf_f64m2_b32
+#define VLE1_DOUBLEH_BOOLH vmfle_vf_f64m2_b32
+
+
+// INT64H
+#define V_ELT_INT64H vint64m2_t
+#define VLOAD1_INT64H vmv_v_x_i64m2
+#define VSLL1_INT64H vsll_vx_i64m2
+#define VADD1_INT64H vadd_vx_i64m2
+static inline vint64m2_t VADD1_INT64H_MASK(vbool32_t mask, vint64m2_t op1, int64_t op2, size_t vl){
+	return vadd_vx_i64m2_m(mask, op1, op1, op2, vl);
+}
+static inline vint64m2_t VSUB1_INT64H_MASK(vbool32_t mask, vint64m2_t op1, int64_t op2, size_t vl){
+	return vsub_vx_i64m2_m(mask, op1, op1, op2, vl);
+}
+#define VAND1_INT64H vand_vx_i64m2
+#define VXOR_INT64H vxor_vv_i64m2
+#define VNE1_INTH_BOOL64H vmsne_vx_i64m2_b32
+#define VEQ1_INTH_BOOL64H vmseq_vx_i64m2_b32
+#define VEQ1_INTH_BOOL64H vmseq_vx_i64m2_b32
+#define VGT1_INTH_BOOL64H vmsgt_vx_i64m2_b32
+#define VMERGE_INT64H vmerge_vvm_i64m2
+#define VMERGE1_INT64H vmerge_vxm_i64m2
+#define VSTORE_INT64H vse64_v_i64m2
+
+#define vfcvt_rtz_x_f_v_i64m4 vfcvt_x_f_v_i64m4
+#define vfcvt_rtz_x_f_v_i64m2 vfcvt_x_f_v_i64m2
+
+//BOOL64H
 #define V_ELT_BOOL64H vbool32_t
 #define VNOT_BOOL64H vmnot_m_b32
 #define VCLEAR_BOOL64H vmclr_m_b32
@@ -503,6 +510,466 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define VOR_BOOL64H vmor_mm_b32
 #define VAND_BOOL64H vmand_mm_b32
 #define VANDNOT_BOOL64H vmandn_mm_b32
+#endif  // ELEN >= 64
+
+
+#else // RVV >= 0.12
+
+
+
+
+///////////////////// FULL VECTOR  m4 //////////////
+#define VSETVL32 __riscv_vsetvl_e32m4
+#define VSETVL16 __riscv_vsetvl_e16m4
+
+//// FLOAT
+#define V_ELT_FLOAT vfloat32m4_t
+#define VLOAD_FLOAT __riscv_vle32_v_f32m4
+#define VLOAD1_FLOAT __riscv_vfmv_v_f_f32m4
+#define VSTORE_FLOAT __riscv_vse32_v_f32m4
+#define VADD_FLOAT __riscv_vfadd_vv_f32m4
+#define VADD1_FLOAT __riscv_vfadd_vf_f32m4
+#define VSUB_FLOAT __riscv_vfsub_vv_f32m4
+#define VSUB1_FLOAT __riscv_vfsub_vf_f32m4
+#define VRSUB1_FLOAT __riscv_vfrsub_vf_f32m4  // v2 = f - v1
+#define VMUL_FLOAT __riscv_vfmul_vv_f32m4
+#define VMUL1_FLOAT __riscv_vfmul_vf_f32m4
+#define VDIV_FLOAT __riscv_vfdiv_vv_f32m4
+#define VDIV1_FLOAT __riscv_vfdiv_vf_f32m4
+#define VRDIV1_FLOAT __riscv_vfrdiv_vf_f32m4
+#define VFMACC_FLOAT __riscv_vfmacc_vv_f32m4  // vd[i] = +(vs1[i] * vs2[i]) + vd[i]
+#define VFMACC1_FLOAT __riscv_vfmacc_vf_f32m4
+#define VFMADD_FLOAT __riscv_vfmadd_vv_f32m4  // vd[i] = +(vs1[i] * vd[i]) + vs2[i]
+#define VFMADD1_FLOAT __riscv_vfmadd_vf_f32m4
+#define VFMSUB_FLOAT __riscv_vfmsub_vv_f32m4  // d = a*b - c
+#define VREDSUM_FLOAT __riscv_vfredosum_vs_f32m4_f32m1_tu
+/*static inline vfloat32m1_t VREDSUM_FLOAT(vfloat32m1_t dest,
+vfloat32m4_t vector, vfloat32m1_t scalar, size_t vl){
+	return  __riscv_vfredosum_vs_f32m4_f32m1(vector, scalar, vl);
+}*/
+#define VREDMAX_FLOAT __riscv_vfredmax_vs_f32m4_f32m1_tu
+#define VREDMIN_FLOAT __riscv_vfredmin_vs_f32m4_f32m1_tu
+#define VMIN_FLOAT __riscv_vfmin_vv_f32m4
+#define VMAX_FLOAT __riscv_vfmax_vv_f32m4
+#define VMIN1_FLOAT __riscv_vfmin_vf_f32m4
+#define VMAX1_FLOAT __riscv_vfmax_vf_f32m4
+#define VINTERP_FLOAT_INT __riscv_vreinterpret_v_f32m4_i32m4
+#define VINTERP_INT_FLOAT __riscv_vreinterpret_v_i32m4_f32m4
+#define VCVT_RTZ_FLOAT_INT __riscv_vfcvt_rtz_x_f_v_i32m4
+#define VCVT_FLOAT_INT __riscv_vfcvt_x_f_v_i32m4
+#define VCVT_INT_FLOAT __riscv_vfcvt_f_x_v_f32m4
+static inline vfloat32m4_t VMERGE_FLOAT(vbool8_t mask, vfloat32m4_t op1,
+vfloat32m4_t op2, size_t vl){
+	return __riscv_vmerge_vvm_f32m4(op1, op2, mask, vl);
+}
+#define VMUL1_FLOAT_MASK __riscv_vfmul_vf_f32m4_m
+
+#define VSQRT_FLOAT __riscv_vfsqrt_v_f32m4
+#define VLE_FLOAT_STRIDE __riscv_vlse32_v_f32m4
+#define VEQ1_FLOAT_BOOL __riscv_vmfeq_vf_f32m4_b8
+#define VEQ_FLOAT_BOOL __riscv_vmfeq_vv_f32m4_b8
+#define VGT1_FLOAT_BOOL __riscv_vmfgt_vf_f32m4_b8
+#define VNE1_FLOAT_BOOL __riscv_vmfne_vf_f32m4_b8
+#define VLT1_FLOAT_BOOL __riscv_vmflt_vf_f32m4_b8
+#define VLE1_FLOAT_BOOL __riscv_vmfle_vf_f32m4_b8
+#define VABS_FLOAT __riscv_vfabs_v_f32m4
+static inline vfloat32m4_t VMERGE1_FLOAT(vbool8_t mask, vfloat32m4_t op1,
+float op2, size_t vl){
+	return __riscv_vfmerge_vfm_f32m4(op1, op2, mask, vl);
+}
+#define VGATHER_FLOAT __riscv_vrgather_vv_f32m4
+#define vfmv_v_f_f32m1 __riscv_vfmv_v_f_f32m1
+
+//// INT
+#define V_ELT_INT vint32m4_t
+#define VLOAD_INT __riscv_vle32_v_i32m4
+#define VLOAD1_INT __riscv_vmv_v_x_i32m4
+#define VSTORE_INT __riscv_vse32_v_i32m4
+#define VADD_INT __riscv_vadd_vv_i32m4
+#define VADD1_INT __riscv_vadd_vx_i32m4
+#define VMUL_INT __riscv_vmul_vv_i32m4
+#define VMUL1_INT __riscv_vmul_vx_i32m4
+#define VSUB_INT __riscv_vsub_vv_i32m4
+#define VSUB1_INT __riscv_vsub_vx_i32m4
+#define VAND1_INT __riscv_vand_vx_i32m4
+#define VAND_INT __riscv_vand_vv_i32m4
+#define VXOR_INT __riscv_vxor_vv_i32m4
+#define VSLL1_INT __riscv_vsll_vx_i32m4
+#define VEQ1_INT_BOOL __riscv_vmseq_vx_i32m4_b8
+#define VEQ_INT_BOOL __riscv_vmseq_vv_i32m4_b8
+#define VGT1_INT_BOOL __riscv_vmsgt_vx_i32m4_b8
+#define VNE1_INT_BOOL __riscv_vmsne_vx_i32m4_b8
+#define VLT1_INT_BOOL __riscv_vmslt_vx_i32m4_b8
+#define VLE1_INT_BOOL __riscv_vmsle_vx_i32m4_b8
+#define VADD1_INT_MASK __riscv_vadd_vx_i32m4_m
+#define VSUB1_INT_MASK __riscv_vsub_vx_i32m4_m
+#define VSUB1_INT __riscv_vsub_vx_i32m4
+#define VOR1_INT __riscv_vor_vx_i32m4
+#define VSRA1_INT __riscv_vsra_vx_i32m4
+#define VMIN_INT __riscv_vmin_vv_i32m4
+#define VMIN1_INT __riscv_vmin_vx_i32m4
+#define VMAX_INT __riscv_vmax_vv_i32m4
+#define VMAX1_INT __riscv_vmax_vx_i32m4
+static inline vint32m4_t VMERGE_INT(vbool8_t mask, vint32m4_t op1,
+vint32m4_t op2, size_t vl){
+	return __riscv_vmerge_vvm_i32m4(op1, op2, mask, vl);
+}
+
+static inline vint32m4_t VMERGE1_INT(vbool8_t mask, vint32m4_t op1,
+int32_t op2, size_t vl){
+	return __riscv_vmerge_vxm_i32m4(op1, op2, mask, vl);
+}
+#define VNEG_INT __riscv_vneg_v_i32m4
+#define VREDSUM_INT vredsum_vs_i32m4_i32m1_tu
+/*static inline vint32m1_t VREDSUM_INT(vint32m1_t dest,
+vint32m4_t vector, vint32m1_t scalar, size_t vl){
+	return  __riscv_vredsum_vs_i32m4_i32m1(vector, scalar, vl);
+}*/
+#define VREDMAX_INT __riscv_vredmax_vs_i32m4_i32m1_tu
+#define VREDMIN_INT __riscv_vredmin_vs_i32m4_i32m1_tu
+#define VGATHER_INT __riscv_vrgather_vv_i32m4
+#define VNOT_INT __riscv_vnot_v_i32m4
+
+//// UINT
+#define VLOAD_UINT __riscv_vle32_v_u32m4
+#define VSTORE_UINT __riscv_vse32_v_u32m4
+#define V_ELT_UINT vuint32m4_t
+#define VCVT_FLOAT_UINT __riscv_vfcvt_xu_f_v_u32m4
+
+//// SHORT
+#define V_ELT_SHORT vint16m4_t
+#define VLOAD_SHORT __riscv_vle16_v_i16m4
+#define VLOAD1_SHORT __riscv_vmv_v_x_i16m4
+#define VSTORE_SHORT __riscv_vse16_v_i16m4
+#define VADD_SHORT __riscv_vadd_vv_i16m4
+#define VSUB_SHORT __riscv_vsub_vv_i16m4
+#define VREDSUMW_SHORT __riscv_vwredsum_vs_i16m4_i32m1_tu
+#define VGT_SHORT_BOOL __riscv_vmsgt_vv_i16m4_b4
+static inline vint16m4_t VMERGE_SHORT(vbool4_t mask, vint16m4_t op1,
+vint16m4_t op2, size_t vl){
+	return __riscv_vmerge_vvm_i16m4(op1, op2, mask, vl);
+}
+
+//// BOOL for 16 bits elements
+#define V_ELT_BOOL16 vbool4_t
+
+//// BOOL for 32 bits elements
+#define V_ELT_BOOL32 vbool8_t
+#define VNOT_BOOL __riscv_vmnot_m_b8
+#define VCLEAR_BOOL __riscv_vmclr_m_b8
+#define VXOR_BOOL __riscv_vmxor_mm_b8
+#define VOR_BOOL __riscv_vmor_mm_b8
+#define VAND_BOOL __riscv_vmand_mm_b8
+#define VANDNOT_BOOL __riscv_vmandn_mm_b8
+
+/////////////////////////// HALF VECTOR, m2 ///////////////
+#define VSETVL32H __riscv_vsetvl_e32m2
+#define VSETVL16H __riscv_vsetvl_e16m2
+
+//// FLOATH
+#define V_ELT_FLOATH vfloat32m2_t
+#define VLOAD_FLOATH __riscv_vle32_v_f32m2
+#define VLOAD1_FLOATH __riscv_vfmv_v_f_f32m2
+static inline void VLOAD_FLOATH2(vfloat32m2_t *v0, vfloat32m2_t *v1, float* base, size_t vl){
+	vfloat32m2x2_t v = __riscv_vlseg2e32_v_f32m2x2(base, vl);
+	*v0 = __riscv_vget_v_f32m2x2_f32m2(v, 0);
+	*v1 = __riscv_vget_v_f32m2x2_f32m2(v, 1);
+}
+static inline void VSTORE_FLOATH2(float* base, vfloat32m2_t v0, vfloat32m2_t v1, size_t vl){
+	vfloat32m2x2_t v = __riscv_vcreate_v_f32m2x2(v0, v1);
+	__riscv_vsseg2e32_v_f32m2x2(base, v, vl);
+}
+#define VSTORE_FLOATHH __riscv_vse32_v_f32m1
+#define VLOAD_FLOATHH __riscv_vle32_v_f32m1
+#define VLOAD_FLOATH_STRIDE __riscv_vlse32_v_f32m2
+#define VSTORE_FLOATH __riscv_vse32_v_f32m2
+#define VINTERP_FLOATH_INTH __riscv_vreinterpret_v_f32m2_i32m2
+#define VINTERP_INTH_FLOATH __riscv_vreinterpret_v_i32m2_f32m2
+#define VXOR1_INTH __riscv_vxor_vx_i32m2
+#define VADD_FLOATH __riscv_vfadd_vv_f32m2
+#define VADD1_FLOATH __riscv_vfadd_vf_f32m2
+#define VADD1_FLOATH_MASK __riscv_vfadd_vf_f32m2_m
+#define VSUB_FLOATH __riscv_vfsub_vv_f32m2
+#define VSUB1_FLOATH __riscv_vfsub_vf_f32m2    // v2 = v1 - f
+#define VRSUB1_FLOATH __riscv_vfrsub_vf_f32m2  // v2 = f - v1
+#define VMUL_FLOATH __riscv_vfmul_vv_f32m2
+#define VMUL1_FLOATH __riscv_vfmul_vf_f32m2
+#define VMUL1_FLOATH_MASK __riscv_vfmul_vf_f32m2_m
+#define VDIV_FLOATH __riscv_vfdiv_vv_f32m2
+#define VDIV1_FLOATH __riscv_vfdiv_vf_f32m2
+#define VRDIV1_FLOATH __riscv_vfrdiv_vf_f32m2
+#define VFMACC_FLOATH __riscv_vfmacc_vv_f32m2  // d = a + b*c
+#define VFMACC1_FLOATH __riscv_vfmacc_vf_f32m2
+#define VFMADD_FLOATH __riscv_vfmadd_vv_f32m2  // vd[i] = +(vs1[i] * vd[i]) + vs2[i]
+#define VFMADD1_FLOATH __riscv_vfmadd_vf_f32m2
+#define VFMSUB_FLOATH __riscv_vfmsub_vv_f32m2  // d = a*b - c
+#define VREDSUM_FLOATH __riscv_vfredosum_vs_f32m2_f32m1_tu
+/*static inline vfloat32m1_t VREDSUM_FLOATH(vfloat32m1_t dest,
+vfloat32m2_t vector, vfloat32m1_t scalar, size_t vl){
+	return  __riscv_vfredosum_vs_f32m2_f32m1(vector, scalar, vl);
+}*/
+#define VREDMAX_FLOATH __riscv_vfredmax_vs_f32m2_f32m1_tu
+#define VREDMIN_FLOATH __riscv_vfredmin_vs_f32m2_f32m1_tu
+#define VMIN_FLOATH __riscv_vfmin_vv_f32m2
+#define VMIN1_FLOATH __riscv_vfmin_vf_f32m2
+#define VMAX_FLOATH __riscv_vfmax_vv_f32m2
+#define VMAX1_FLOATH __riscv_vfmax_vf_f32m2
+#define VINTERP_FLOATH_INTH __riscv_vreinterpret_v_f32m2_i32m2
+#define VINTERP_INTH_FLOATH __riscv_vreinterpret_v_i32m2_f32m2
+#define VCVT_RTZ_FLOATH_INTH __riscv_vfcvt_rtz_x_f_v_i32m2
+#define VCVT_FLOATH_INTH __riscv_vfcvt_x_f_v_i32m2
+#define VCVT_INTH_FLOATH __riscv_vfcvt_f_x_v_f32m2
+static inline vfloat32m2_t VMERGE_FLOATH(vbool16_t mask, vfloat32m2_t op1,
+vfloat32m2_t op2, size_t vl){
+ return __riscv_vmerge_vvm_f32m2(op1, op2, mask, vl);
+}
+#define VSQRT_FLOATH __riscv_vfsqrt_v_f32m2
+#define VEQ1_FLOATH_BOOLH __riscv_vmfeq_vf_f32m2_b16
+#define VEQ_FLOATH_BOOLH __riscv_vmfeq_vv_f32m2_b16
+#define VGE1_FLOATH_BOOLH __riscv_vmfge_vf_f32m2_b16
+#define VGT1_FLOATH_BOOLH __riscv_vmfgt_vf_f32m2_b16
+#define VNE1_FLOATH_BOOLH __riscv_vmfne_vf_f32m2_b16
+#define VLT1_FLOATH_BOOLH __riscv_vmflt_vf_f32m2_b16
+#define VLE1_FLOATH_BOOLH __riscv_vmfle_vf_f32m2_b16
+#define VABS_FLOATH __riscv_vfabs_v_f32m2
+static inline vfloat32m2_t VMERGE1_FLOATH(vbool16_t mask, vfloat32m2_t op1,
+float op2, size_t vl){
+	return __riscv_vfmerge_vfm_f32m2(op1, op2, mask, vl);
+}
+#define VGATHER_FLOATH __riscv_vrgather_vv_f32m2
+
+//// INTH
+#define V_ELT_INTH vint32m2_t
+#define VSTORE_INTHH __riscv_vse32_v_i32m1
+#define VLOAD_INTHH __riscv_vle32_v_i32m1
+#define VLOAD_INTH __riscv_vle32_v_i32m2
+#define VLOAD1_INTH __riscv_vmv_v_x_i32m2
+#define VLOAD1_INTHH __riscv_vmv_v_x_i32m1
+#define VSTORE_INTH __riscv_vse32_v_i32m2
+#define VADD_INTH __riscv_vadd_vv_i32m2
+#define VADD1_INTH __riscv_vadd_vx_i32m2
+#define VADD1_INTH_MASK __riscv_vadd_vx_i32m2_m
+static inline vint32m2_t VADD1_INTH_MASKEDOFF(vbool16_t mask, vint32m2_t op1, vint32m2_t maskedoff,
+int32_t op2, size_t vl){
+	op1 = __riscv_vmerge_vvm_i32m2(maskedoff, op1, mask, vl);
+	return __riscv_vadd_vx_i32m2_m(mask, op1, op2, vl);
+}	
+static inline vint64m2_t VADD1_INT64H_MASKEDOFF(vbool32_t mask, vint64m2_t op1, vint64m2_t maskedoff,
+int64_t op2, size_t vl){
+	op1 = __riscv_vmerge_vvm_i64m2(maskedoff, op1, mask, vl);
+	return __riscv_vadd_vx_i64m2_m(mask, op1, op2, vl);
+}	
+#define VMUL_INTH __riscv_vmul_vv_i32m2
+#define VMUL1_INTH __riscv_vmul_vx_i32m2
+#define VSUB_INTH __riscv_vsub_vv_i32m2
+#define VSUB1_INTH __riscv_vsub_vx_i32m2
+#define VSUB1_INTH_MASK __riscv_vsub_vx_i32m2_m
+#define VAND1_INTH __riscv_vand_vx_i32m2
+#define VAND_INTH __riscv_vand_vv_i32m2
+#define VXOR_INTH __riscv_vxor_vv_i32m2
+#define VSLL1_INTH __riscv_vsll_vx_i32m2
+#define VEQ1_INTH_BOOLH __riscv_vmseq_vx_i32m2_b16
+#define VGT1_INTH_BOOLH __riscv_vmsgt_vx_i32m2_b16
+#define VNE1_INTH_BOOLH __riscv_vmsne_vx_i32m2_b16
+#define VLT1_INTH_BOOLH __riscv_vmflt_vf_f32m2_b16
+#define VLE1_INTH_BOOLH __riscv_vmsle_vx_i32m2_b16
+#define VEQ_INTH_BOOLH __riscv_vmseq_vv_i32m2_b16
+#define VOR1_INTH __riscv_vor_vx_i32m2
+#define VSRA1_INTH __riscv_vsra_vx_i32m2
+#define VMIN_INTH __riscv_vmin_vv_i32m2
+#define VMIN1_INTH __riscv_vmin_vx_i32m2
+#define VMAX_INTH __riscv_vmax_vv_i32m2
+#define VMAX1_INTH __riscv_vmax_vx_i32m2
+#define VNOT_INTH __riscv_vnot_v_i32m2
+
+static inline vint32m2_t VMERGE_INTH(vbool16_t mask, vint32m2_t op1,
+vint32m2_t op2, size_t vl){
+	return __riscv_vmerge_vvm_i32m2(op1, op2, mask, vl);
+}
+
+//// UINTH
+#define VLOAD_UINTH __riscv_vle32_v_u32m2
+#define V_ELT_UINTH __riscv_vuint32m2_t
+#define VCVT_FLOATH_UINTH __riscv_vfcvt_xu_f_v_u32m2
+
+//// SHORTH
+#define V_ELT_SHORTH vint16m2_t
+#define VLOAD_SHORTH __riscv_vle16_v_i16m2
+#define VLOAD1_SHORTH __riscv_vmv_v_x_i16m2
+#define VSTORE_SHORTH __riscv_vse16_v_i16m2
+#define VADD_SHORTH __riscv_vadd_vv_i16m2
+#define VREDSUMW_SHORTH __riscv_vwredsum_vs_i16m4_i32m1_tu
+static inline vint16m2_t VCVT_INT_SHORTH (vint32m4_t op1, size_t shift, size_t vl){
+	return __riscv_vnclip_wx_i16m2(op1, shift, __RISCV_VXRM_RNU, vl);
+}
+#define VCVT_SHORTH_INT __riscv_vsext_vf2_i32m4
+
+//// USHORTH
+#define V_ELT_USHORTH vuint16m2_t
+#define VLOAD_USHORTH __riscv_vle16_v_u16m2
+#define VSTORE_USHORTH __riscv_vse16_v_u16m2
+static inline vuint16m2_t VCVT_UINT_USHORTH (vuint32m4_t op1, size_t shift, size_t vl){
+	return __riscv_vnclipu_wx_u16m2(op1, shift, __RISCV_VXRM_RNU, vl);
+}
+//// UBYTEHH
+#define V_ELT_UBYTEHH vuint8m1_t
+#define VLOAD_UBYTEHH __riscv_vle8_v_u8m1
+#define VSTORE_UBYTEHH __riscv_vse8_v_u8m1
+static inline vuint8m1_t VCVT_USHORTH_UBYTEHH (vuint16m2_t op1, size_t shift, size_t vl){
+	return __riscv_vnclipu_wx_u8m1(op1, shift, __RISCV_VXRM_RNU, vl);
+}
+//// BOOL for Half length __riscv_vector 32 bits elements
+#define V_ELT_BOOL32H vbool16_t
+#define VNOT_BOOLH __riscv_vmnot_m_b16
+#define VCLEAR_BOOLH __riscv_vmclr_m_b16
+#define VXOR_BOOLH __riscv_vmxor_mm_b16
+#define VOR_BOOLH __riscv_vmor_mm_b16
+#define VAND_BOOLH __riscv_vmand_mm_b16
+#define VANDNOT_BOOLH __riscv_vmandn_mm_b16
+//#define VANDNOT_BOOLH __riscv_vmnand_mm_b16
+
+#if ELEN >= 64
+#define VSETVL64 __riscv_vsetvl_e64m4
+#define VSETVL64H __riscv_vsetvl_e64m2
+
+//// DOUBLE
+#define V_ELT_DOUBLE vfloat64m4_t
+#define VLOAD_DOUBLE __riscv_vle64_v_f64m4
+#define VLOAD1_DOUBLE __riscv_vfmv_v_f_f64m4
+#define VSTORE_DOUBLE __riscv_vse64_v_f64m4
+#define VADD_DOUBLE __riscv_vfadd_vv_f64m4
+#define VADD1_DOUBLE __riscv_vfadd_vf_f64m4
+#define VSUB_DOUBLE __riscv_vfsub_vv_f64m4
+#define VSUB1_DOUBLE __riscv_vfsub_vf_f64m4
+#define VMUL_DOUBLE __riscv_vfmul_vv_f64m4
+#define VMUL1_DOUBLE __riscv_vfmul_vf_f64m4
+#define VDIV_DOUBLE __riscv_vfdiv_vv_f64m4
+#define VFMA_DOUBLE __riscv_vfmacc_vv_f64m4  // d = a + b*c
+#define VFMA1_DOUBLE __riscv_vfmacc_vf_f64m4
+#define VFMSUB_DOUBLE __riscv_vfmsub_vv_f64m4  // d = a*b - c
+#define VREDSUM_DOUBLE __riscv_vfredosum_vs_f64m4_f64m1_tu
+#define VREDMAX_DOUBLE __riscv_vfredmax_vs_f64m4_f64m1_tu
+#define VREDMIN_DOUBLE __riscv_vfredmin_vs_f64m4_f64m1_tu
+#define VMIN_DOUBLE __riscv_vfmin_vv_f64m4
+#define VMAX_DOUBLE __riscv_vfmax_vv_f64m4
+#define VMIN1_DOUBLE __riscv_vfmin_vf_f64m4
+#define VMAX1_DOUBLE __riscv_vfmax_vf_f64m4
+#define VINTERP_DOUBLE_INT __riscv_vreinterpret_v_f64m4_i64m4
+#define VINTERP_INT_DOUBLE __riscv_vreinterpret_v_i64m4_f64m4
+#define VCVT_RTZ_DOUBLE_INT __riscv_vfcvt_rtz_x_f_v_i64m4
+#define VCVT_DOUBLE_INT __riscv_vfcvt_x_f_v_i64m4
+#define VCVT_INT_DOUBLE __riscv_vfcvt_f_x_v_f64m4
+#define VABS_DOUBLE __riscv_vfabs_v_f64m4
+#define VSQRT_DOUBLE __riscv_vfsqrt_v_f64m4
+#define VCVT_DOUBLE_FLOAT __riscv_vfncvt_f_f_w_f32m2
+#define VCVT_FLOAT_DOUBLE __riscv_vfwcvt_f_f_v_f64m4
+
+//// DOUBLEH
+#define V_ELT_DOUBLEH vfloat64m2_t
+static inline void VLOAD_DOUBLEH2(vfloat64m2_t *v0, vfloat64m2_t *v1, double* base, size_t vl){
+	vfloat64m2x2_t v = __riscv_vlseg2e64_v_f64m2x2(base, vl);
+	*v0 = __riscv_vget_v_f64m2x2_f64m2(v, 0);
+	*v1 = __riscv_vget_v_f64m2x2_f64m2(v, 1);
+}
+static inline void VSTORE_DOUBLEH2(double* base, vfloat64m2_t v0, vfloat64m2_t v1, size_t vl){
+	vfloat64m2x2_t v = __riscv_vcreate_v_f64m2x2(v0, v1);
+	__riscv_vsseg2e64_v_f64m2x2(base, v, vl);
+}
+#define VLOAD_DOUBLEH_STRIDE __riscv_vlse64_v_f64m2x2
+#define VLOAD_DOUBLEH __riscv_vle64_v_f64m2
+#define VLOAD1_DOUBLEH __riscv_vfmv_v_f_f64m2
+#define VSTORE_DOUBLEH __riscv_vse64_v_f64m2
+#define VADD_DOUBLEH __riscv_vfadd_vv_f64m2
+#define VADD1_DOUBLEH __riscv_vfadd_vf_f64m2
+#define VSUB_DOUBLEH __riscv_vfsub_vv_f64m2
+#define VSUB1_DOUBLEH __riscv_vfsub_vf_f64m2
+#define VRSUB1_DOUBLEH __riscv_vfrsub_vf_f64m2  // v2 = f - v1
+#define VMUL_DOUBLEH __riscv_vfmul_vv_f64m2
+#define VMUL1_DOUBLEH __riscv_vfmul_vf_f64m2
+#define VDIV_DOUBLEH __riscv_vfdiv_vv_f64m2
+#define VFMACC_DOUBLEH __riscv_vfmacc_vv_f64m2  // d = a + b*c
+#define VFMACC1_DOUBLEH __riscv_vfmacc_vf_f64m2  
+#define VFMADD_DOUBLEH __riscv_vfmadd_vv_f64m2  
+#define VFMADD1_DOUBLEH __riscv_vfmadd_vf_f64m2 
+#define VFMA1_DOUBLEH __riscv_vfmacc_vf_f64m2
+#define VFMSUB_DOUBLEH __riscv_vfmsub_vv_f64m2  // d = a*b - c
+#define VREDSUM_DOUBLEH __riscv_vfredosum_vs_f64m2_f64m1_tu
+#define VREDMAX_DOUBLEH __riscv_vfredmax_vs_f64m2_f64m1_tu
+#define VREDMIN_DOUBLEH __riscv_vfredmin_vs_f64m2_f64m1_tu
+#define VMIN_DOUBLEH __riscv_vfmin_vv_f64m2
+#define VMAX_DOUBLEH __riscv_vfmax_vv_f64m2
+#define VMIN1_DOUBLEH __riscv_vfmin_vf_f64m2
+#define VMAX1_DOUBLEH __riscv_vfmax_vf_f64m2
+#define VINTERP_DOUBLEH_INTH __riscv_vreinterpret_v_f64m2_i64m2
+#define VINTERP_INTH_DOUBLEH __riscv_vreinterpret_v_i64m2_f64m2
+#define VCVT_RTZ_DOUBLEH_INTH __riscv_vfcvt_rtz_x_f_v_i64m2
+#define VCVT_DOUBLEH_INTH __riscv_vfcvt_x_f_v_i64m2
+#define VCVT_INTH_DOUBLEH __riscv_vfcvt_f_x_v_f64m2
+#define VABS_DOUBLEH __riscv_vfabs_v_f64m2
+#define VSQRT_DOUBLEH __riscv_vfsqrt_v_f64m2
+#define VCVT_DOUBLEH_FLOATH __riscv_vfncvt_f_f_w_f32m2
+#define VCVT_FLOATH_DOUBLEH __riscv_vfwcvt_f_f_v_f64m2
+#define VLT1_DOUBLEH_BOOLH __riscv_vmflt_vf_f64m2_b32
+static inline vfloat64m2_t VMERGE_DOUBLEH(vbool32_t mask, vfloat64m2_t op1,
+vfloat64m2_t op2, size_t vl){
+ return __riscv_vmerge_vvm_f64m2(op1, op2, mask, vl);
+}
+
+static inline vfloat64m2_t VMERGE1_DOUBLEH(vbool32_t mask, vfloat64m2_t op1,
+double op2, size_t vl){
+	return __riscv_vfmerge_vfm_f64m2(op1, op2, mask, vl);
+}
+#define VMUL1_DOUBLEH_MASK __riscv_vfmul_vf_f64m2_m
+#define VEQ1_DOUBLEH_BOOLH __riscv_vmfeq_vf_f64m2_b32
+#define VEQ_DOUBLEH_BOOLH __riscv_vmfeq_vv_f64m2_b32
+#define VGE1_DOUBLEH_BOOLH __riscv_vmfge_vf_f64m2_b32
+#define VGT1_DOUBLEH_BOOLH __riscv_vmfgt_vf_f64m2_b32
+#define VNE1_DOUBLEH_BOOLH __riscv_vmfne_vf_f64m2_b32
+#define VLT1_DOUBLEH_BOOLH __riscv_vmflt_vf_f64m2_b32
+#define VLE1_DOUBLEH_BOOLH __riscv_vmfle_vf_f64m2_b32
+#define VADD1_DOUBLEH_MASK __riscv_vfadd_vf_f64m2_m
+#define VMUL1_DOUBLEH_MASK __riscv_vfmul_vf_f64m2_m
+static inline vfloat64m2_t VADD1_DOUBLEH_MASKEDOFF(vbool32_t mask, vfloat64m2_t op1, vfloat64m2_t maskedoff,
+double op2, size_t vl){
+	op1 = __riscv_vmerge_vvm_f64m2(maskedoff, op1, mask, vl);
+	return __riscv_vfadd_vf_f64m2_m(mask, op1, op2, vl);
+}	
+
+// INT64H
+#define V_ELT_INT64H vint64m2_t
+#define VLOAD1_INT64H __riscv_vmv_v_x_i64m2
+#define VSLL1_INT64H __riscv_vsll_vx_i64m2
+#define VADD1_INT64H __riscv_vadd_vx_i64m2
+#define VAND1_INT64H __riscv_vand_vx_i64m2
+#define VXOR_INT64H __riscv_vxor_vv_i64m2
+#define VNE1_INTH_BOOL64H __riscv_vmsne_vx_i64m2_b32
+#define VEQ1_INTH_BOOL64H __riscv_vmseq_vx_i64m2_b32
+#define VEQ1_INTH_BOOL64H __riscv_vmseq_vx_i64m2_b32
+#define VGT1_INTH_BOOL64H __riscv_vmsgt_vx_i64m2_b32
+#define VSUB1_INT64H_MASK __riscv_vsub_vx_i64m2_m
+static inline vint64m2_t VMERGE_INT64H(vbool32_t mask, vint64m2_t op1,
+vint64m2_t op2, size_t vl){
+	return __riscv_vmerge_vvm_i64m2(op1, op2, mask, vl);
+}
+
+static inline vint64m2_t VMERGE1_INT64H(vbool32_t mask, vint64m2_t op1,
+int64_t op2, size_t vl){
+	return __riscv_vmerge_vxm_i64m2(op1, op2, mask, vl);
+}
+#define VADD1_INT64H_MASK __riscv_vadd_vx_i64m2_m
+
+#define VSTORE_INT64H __riscv_vse64_v_i64m2
+
+//BOOL64H
+#define V_ELT_BOOL64H vbool32_t
+#define VNOT_BOOL64H __riscv_vmnot_m_b32
+#define VCLEAR_BOOL64H __riscv_vmclr_m_b32
+#define VXOR_BOOL64H __riscv_vmxor_mm_b32
+#define VOR_BOOL64H __riscv_vmor_mm_b32
+#define VAND_BOOL64H __riscv_vmand_mm_b32
+#define VANDNOT_BOOL64H __riscv_vmandn_mm_b32
+#endif  // ELEN >= 64
+
 #endif
 
 #endif  // RISCV
@@ -698,7 +1165,6 @@ typedef enum {
     RndNear,
     RndFinancial,
 } FloatRoundingMode;
-
 
 #define c_inv_mant_mask ~0x7f800000u
 #define c_cephes_SQRTHF 0.707106781186547524f
@@ -2105,7 +2571,7 @@ static inline void print_vech(V_ELT_FLOATH vec, int l)
     float observ[32];
     VSTORE_FLOATH(observ, vec, l);
     for (int i = 0; i < l; i++)
-        printf("%3.4g ", observ[i]);
+        printf("%g ", observ[i]);
     printf("\n");
 }
 
@@ -2136,6 +2602,14 @@ static inline void print_vec_inth(V_ELT_INTH vec, int l)
     printf("\n");
 }
 
+static inline void print_vec_int64h(V_ELT_INT64H vec, int l)
+{
+    long int observ[16];
+    VSTORE_INT64H(observ, vec, l);
+    for (int i = 0; i < l; i++)
+        printf("%x ", observ[i]);
+    printf("\n");
+}
 
 /*
 static inline void print_bool4(vbool4_t vec)
@@ -2151,7 +2625,7 @@ static inline void print_bool4(vbool4_t vec)
 static inline void print_vec_uint(V_ELT_UINT vec, int l)
 {
     unsigned int observ[32];
-    vse32_v_u32m4(observ, vec, l);
+    VSTORE_UINT(observ, vec, l);
     for (int i = 0; i < l; i++)
         printf("%x ", observ[i]);
     printf("\n");

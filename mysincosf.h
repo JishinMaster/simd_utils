@@ -23,8 +23,9 @@ static inline int mysincosf(float xx, float *s, float *c)
     if (x > T24M1) {
         return (0.0f);
     }
-    j = FOPI * x; /* integer part of x/(PI/4) */
-    y = j;
+    z = FOPI * x; /* integer part of x/(PI/4) */
+	j = (int)z;
+    y = (float)j;
     /* map zeros to origin */
     if (j & 1) {
         j += 1;

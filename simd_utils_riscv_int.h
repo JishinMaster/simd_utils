@@ -222,7 +222,7 @@ static inline void minmaxs_vec(int32_t *src, int len, int32_t *min_value, int32_
 
     i = VSETVL32(len);
 
-    vint32m1_t min0 = vle32_v_i32m1(src_tmp, 1);  // or vfmv_v_f_f32m1
+    vint32m1_t min0 = VLOAD_INTHH(src_tmp, 1);  // or vfmv_v_f_f32m1
     vint32m1_t max0 = min0;
     V_ELT_INT minv, maxv, v1;
     minv = VLOAD_INT(src_tmp, i);
@@ -237,8 +237,8 @@ static inline void minmaxs_vec(int32_t *src, int len, int32_t *min_value, int32_
     }
     min0 = VREDMIN_INT(min0, minv, min0, i_last);
     max0 = VREDMAX_INT(max0, maxv, max0, i_last);
-    vse32_v_i32m1(min_value, min0, 1);
-    vse32_v_i32m1(max_value, max0, 1);
+    VSTORE_INTHH(min_value, min0, 1);
+    VSTORE_INTHH(max_value, max0, 1);
 }
 
 static inline void maxeverys_vec(int32_t *src1, int32_t *src2, int32_t *dst, int len)
@@ -345,14 +345,14 @@ static inline void sum16s32s_vec(int16_t *src, int len, int32_t *dst, int scale_
     *dst = 0;
 
     i = VSETVL16(len);
-    vint32m1_t tmp = vmv_v_x_i32m1(0, i);
+    vint32m1_t tmp = VLOAD1_INTHH(0, i);
 
     for (; (i = VSETVL16(len)) > 0; len -= i) {
         V_ELT_SHORT va = VLOAD_SHORT(src_tmp, i);
         tmp = VREDSUMW_SHORT(tmp, va, tmp, i);
         src_tmp += i;
     }
-    vse32_v_i32m1(dst, tmp, 1);
+    VSTORE_INTHH(dst, tmp, 1);
     *dst /= scale;
 }
 

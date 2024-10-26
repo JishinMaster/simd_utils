@@ -1596,23 +1596,25 @@ int main(int argc, char **argv)
     printf("SINCOSF_INTERLEAVED\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
-    sincosf_C_interleaved(inout, (complex32_t *) inout_ref, len);
+    sincosf_C_interleaved_precise(inout, (complex32_t *) inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("sincosf_C_interleaved_precise %d %lf\n", len, elapsed);
+
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    sincosf_C_interleaved(inout, (complex32_t *) inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
     printf("sincosf_C_interleaved %d %lf\n", len, elapsed);
 
     clock_gettime(CLOCK_REALTIME, &start);
     for (l = 0; l < loop; l++)
-        sincosf_C_interleaved(inout, (complex32_t *) inout_ref, len);
+        sincosf_C_interleaved(inout, (complex32_t *) inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("sincosf_C_interleaved %d %lf\n", len, elapsed);
-
-    clock_gettime(CLOCK_REALTIME, &start);
-    sincosf_C_interleaved_precise(inout, (complex32_t *) inout_ref, len);
-    clock_gettime(CLOCK_REALTIME, &stop);
-    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("sincosf_C_interleaved_precise %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2, 2 * len);	
 
 #if defined(IPP)
     clock_gettime(CLOCK_REALTIME, &start);

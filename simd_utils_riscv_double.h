@@ -450,13 +450,21 @@ static inline void sincos_pd(V_ELT_DOUBLEH x,
     y = VMUL1_DOUBLEH(x, FOPId, i);
 
     /* store the integer part of y in mm2 */
+#ifdef NO_RTZ
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+#endif	
     j = VCVT_RTZ_DOUBLEH_INTH(y, i);
-
+#ifdef NO_RTZ
+    _MM_SET_ROUNDING_MODE(reg_ori);
+#endif
+	
     // if (j&1))
     jandone = VNE1_INTH_BOOL64H(VAND1_INT64H(j, 1, i), 0, i);
-    j = VADD1_INT64H_MASK(jandone, j, j, 1, i);
+    j = VADD1_INT64H_MASK(jandone, j, 1, i);
     y = VCVT_INTH_DOUBLEH(j, i);
-
+	
     // j&=7
     j = VAND1_INT64H(j, 7, i);
 
@@ -464,7 +472,7 @@ static inline void sincos_pd(V_ELT_DOUBLEH x,
     jsup3 = VGT1_INTH_BOOL64H(j, 3, i);
     sign_sin = VXOR_BOOL64H(sign_sin, jsup3, i);
     sign_cos = VXOR_BOOL64H(sign_cos, jsup3, i);
-    j = VSUB1_INT64H_MASK(jsup3, j, j, 4, i);
+    j = VSUB1_INT64H_MASK(jsup3, j, 4, i);
 
     // if (j > 1)
     jsup1 = VGT1_INTH_BOOL64H(j, 1, i);
@@ -479,7 +487,7 @@ static inline void sincos_pd(V_ELT_DOUBLEH x,
     x = VFMACC1_DOUBLEH(x, minus_cephes_DP1, y, i);
     x = VFMACC1_DOUBLEH(x, minus_cephes_DP2, y, i);
     x = VFMACC1_DOUBLEH(x, minus_cephes_DP3, y, i);
-
+	//printf("x ");print_vec64h(x,i);
     /* Evaluate the first polynom  (0 <= x <= Pi/4) */
     V_ELT_DOUBLEH z = VMUL_DOUBLEH(x, x, i);
     y = z;
@@ -492,7 +500,7 @@ static inline void sincos_pd(V_ELT_DOUBLEH x,
     y = VMUL_DOUBLEH(y, z, i);
     y = VFMACC1_DOUBLEH(y, -0.5, z, i);  // y = y -0.5*z
     y = VADD1_DOUBLEH(y, 1.0, i);
-
+	//printf("y ");print_vec64h(y,i);
     /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
     V_ELT_DOUBLEH y2;
     y2 = z;
@@ -503,15 +511,15 @@ static inline void sincos_pd(V_ELT_DOUBLEH x,
     y2 = VFMADD_DOUBLEH(y2, z, sincof_5_vec, i);	
     y2 = VMUL_DOUBLEH(y2, z, i);
     y2 = VFMADD_DOUBLEH(y2, x, x, i);
-
+	//printf("y2 ");print_vec64h(y2,i);
     /* select the correct result from the two polynoms */
     //V_ELT_DOUBLEH y_sin = VMERGE_DOUBLEH(poly_mask, y, y2, i);
     //V_ELT_DOUBLEH y_cos = VMERGE_DOUBLEH(poly_mask, y2, y, i);
     V_ELT_DOUBLEH y_sin = VMERGE_DOUBLEH(j1or2, y2, y, i);
     V_ELT_DOUBLEH y_cos = VMERGE_DOUBLEH(j1or2, y, y2, i);
 	
-    y_sin = VMUL1_DOUBLEH_MASK(sign_sin, y_sin, y_sin, -1.0, i);
-    y_cos = VMUL1_DOUBLEH_MASK(sign_cos, y_cos, y_cos, -1.0, i);
+    y_sin = VMUL1_DOUBLEH_MASK(sign_sin, y_sin, -1.0, i);
+    y_cos = VMUL1_DOUBLEH_MASK(sign_cos, y_cos, -1.0, i);
     *sin_tmp = y_sin;
     *cos_tmp = y_cos;
 }
@@ -522,12 +530,6 @@ static inline void sincosd_vec(double *src, double *s, double *c, int len)
     double *src_tmp = src;
     double *s_tmp = s;
     double *c_tmp = c;
-
-#ifdef NO_RTZ
-    uint32_t reg_ori;
-    reg_ori = _MM_GET_ROUNDING_MODE();
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-#endif
 
     i = VSETVL64H(len);
     V_ELT_DOUBLEH coscof_1_vec = VLOAD1_DOUBLEH(coscod[1], i);
@@ -556,10 +558,6 @@ static inline void sincosd_vec(double *src, double *s, double *c, int len)
         s_tmp += i;
         c_tmp += i;
     }
-
-#ifdef NO_RTZ
-    _MM_SET_ROUNDING_MODE(reg_ori);
-#endif
 }
 
 //TODO : check with a real target, QEMU shows low precision
@@ -568,12 +566,6 @@ static inline void sincosd_interleaved_vec(double *src, complex64_t *dst, int le
     size_t i;
     double *src_tmp = src;
 	double *dst_tmp = (double *) dst;
-
-#ifdef NO_RTZ
-    uint32_t reg_ori;
-    reg_ori = _MM_GET_ROUNDING_MODE();
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-#endif
 
     i = VSETVL64H(len);
     V_ELT_DOUBLEH coscof_1_vec = VLOAD1_DOUBLEH(coscod[1], i);
@@ -599,10 +591,6 @@ static inline void sincosd_interleaved_vec(double *src, complex64_t *dst, int le
         dst_tmp += 2 * i;
         src_tmp += i;
     }
-
-#ifdef NO_RTZ
-    _MM_SET_ROUNDING_MODE(reg_ori);
-#endif
 }
 
 
@@ -676,7 +664,7 @@ static inline V_ELT_DOUBLEH atand_pd(V_ELT_DOUBLEH xx,
 	tmp = MOREBITS_vec;
 	tmp = VFMADD1_DOUBLEH(MOREBITS_vec, 0.5, z, i);
 	z = VMERGE_DOUBLEH(flageq2, z, tmp, i);
-    z = VADD1_DOUBLEH_MASK(flageq1, z, z, MOREBITSd, i);
+    z = VADD1_DOUBLEH_MASK(flageq1, z, MOREBITSd, i);
 	y = VADD_DOUBLEH(y, z, i);
 	V_ELT_BOOL64H xeq0 = VEQ1_DOUBLEH_BOOLH(x, 0.0, i);
     y = VINTERP_INTH_DOUBLEH(VXOR_INT64H(VINTERP_DOUBLEH_INTH(y), sign, i));
@@ -995,7 +983,7 @@ static inline void asind_vec(double *src, double *dst, int len)
 		/*printf("x : ");print_vec64h(x, i);
 		printf("z_first_branch : ");print_vec64h(z_first_branch, i);		
 		printf("z_second_branch : ");print_vec64h(z_second_branch, i);*/
-		z = VADD1_DOUBLEH_MASK(asup0p625, z_second_branch, z_first_branch, PIO4d, i);
+		z = VADD1_DOUBLEH_MASKEDOFF(asup0p625, z_second_branch, z_first_branch, PIO4d, i);
 		//printf("z : ");print_vec64h(z, i);
         z = VINTERP_INTH_DOUBLEH(VXOR_INT64H(VINTERP_DOUBLEH_INTH(z), sign, i));
 		z = VMERGE_DOUBLEH(ainfem8, z, x, i);
