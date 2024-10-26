@@ -216,6 +216,8 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | pol2cart2DXf (a)                                      | pol2cart2Df_C               | ?                              | pol2cart2Df_vec               |
 | cart2pol2DXf (a)                                      | cart2pol2Df_C               | ?                              | cart2pol2Df_vec               |
 | gatheri_256/512s                                      | gatheri_C                   | ?                              | ?                             |
+| fp32tofp16128/256                                     | fp32tofp16_C                | ?                              | ?                             |
+| fp16tofp32128/256                                     | fp16tofp32_C                | ?                              | ?                             |
 
 
 ## Licence

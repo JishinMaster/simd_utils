@@ -4132,3 +4132,113 @@ static inline void modf256f(float *src, float *integer, float *remainder, int le
         remainder[i] = modff(src[i], &(integer[i]));
     }
 }
+
+//F16C introduced in the same time as AVX, so not SSE code
+void fp32tofp16128 (float* src, uint16_t* dst, size_t len)
+{
+    int stop_len = len / (2*SSE_LEN_FLOAT);
+    stop_len *= (2*SSE_LEN_FLOAT);
+
+	if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+		for (int i = 0; i < stop_len; i += 2*SSE_LEN_FLOAT) {
+			v4sf src_tmp = _mm_load_ps(src + i);
+			v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);		
+			v4si dst_tmp = _mm_cvtps_ph (src_tmp, _MM_FROUND_TO_NEAREST_INT); 
+			v4si dst_tmp2 = _mm_cvtps_ph (src_tmp2, _MM_FROUND_TO_NEAREST_INT);
+			v4sf tmp =  _mm_movelh_ps (*(v4sf *)&dst_tmp, *(v4sf *)&dst_tmp2);
+			_mm_store_si128 ((v4si*)(dst+i), (*(v4si *)&tmp));
+		} 
+	} else {
+		for (int i = 0; i < stop_len; i += 2*SSE_LEN_FLOAT) {
+			v4sf src_tmp = _mm_loadu_ps(src + i);
+			v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);		
+			v4si dst_tmp = _mm_cvtps_ph (src_tmp, _MM_FROUND_TO_NEAREST_INT); 
+			v4si dst_tmp2 = _mm_cvtps_ph (src_tmp2, _MM_FROUND_TO_NEAREST_INT);
+			v4sf tmp =  _mm_movelh_ps (*(v4sf *)&dst_tmp, *(v4sf *)&dst_tmp2);
+			_mm_storeu_si128 ((v4si*)(dst+i), (*(v4si *)&tmp));
+		} 	
+	}
+		
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = float2half_rn(src[i]);
+    }	
+}
+
+void fp32tofp16256 (float* src, uint16_t* dst, size_t len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+	if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+		for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+			v8sf src_tmp = _mm256_load_ps(src + i);	
+			v4si dst_tmp = _mm256_cvtps_ph (src_tmp, _MM_FROUND_TO_NEAREST_INT); 
+			_mm_store_si128 ((v4si*)(dst+i), dst_tmp);
+		}
+	} else {
+		for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+			v8sf src_tmp = _mm256_loadu_ps(src + i);	
+			v4si dst_tmp = _mm256_cvtps_ph (src_tmp, _MM_FROUND_TO_NEAREST_INT); 
+			_mm_storeu_si128 ((v4si*)(dst+i), dst_tmp);
+		}
+	}
+	
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = float2half_rn(src[i]);
+    }	
+}
+
+//F16C introduced in the same time as AVX, so not SSE code
+void fp16tofp32128 (uint16_t* src, float* dst, size_t len)
+{
+    int stop_len = len / (2*SSE_LEN_FLOAT);
+    stop_len *= (2*SSE_LEN_FLOAT);
+
+	if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+		for (int i = 0; i < stop_len; i += 2*SSE_LEN_FLOAT) {
+			v4si src_tmp = _mm_load_si128((v4si*)(src + i));
+			v4si src_tmp2 =  _mm_shuffle_epi32(src_tmp,  _MM_SHUFFLE(3,2, 3, 2));		
+			v4sf dst_tmp =_mm_cvtph_ps(src_tmp);
+			v4sf dst_tmp2 =_mm_cvtph_ps(src_tmp2);
+			_mm_store_ps (dst+i, dst_tmp);		
+			_mm_store_ps (dst+i+SSE_LEN_FLOAT, dst_tmp2);				
+		}
+	} else {
+		for (int i = 0; i < stop_len; i += 2*SSE_LEN_FLOAT) {
+			v4si src_tmp = _mm_loadu_si128((v4si*)(src + i));
+			v4si src_tmp2 =  _mm_shuffle_epi32(src_tmp,  _MM_SHUFFLE(3,2, 3, 2));		
+			v4sf dst_tmp =_mm_cvtph_ps(src_tmp);
+			v4sf dst_tmp2 =_mm_cvtph_ps(src_tmp2);
+			_mm_storeu_ps (dst+i, dst_tmp);		
+			_mm_storeu_ps (dst+i+SSE_LEN_FLOAT, dst_tmp2);				
+		}	
+	}
+   
+    for (int i = stop_len; i < len; i++) {
+		dst[i] = uint32_as_float(Float16ToFloat32(src[i]));
+    }	
+}
+
+void fp16tofp32256 (uint16_t* src, float* dst, size_t len)
+{
+    int stop_len = len / AVX_LEN_FLOAT;
+    stop_len *= AVX_LEN_FLOAT;
+
+	if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+		for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+			v4si src_tmp = _mm_load_si128((v4si*)(src + i));	
+			v8sf dst_tmp =_mm256_cvtph_ps(src_tmp);
+			_mm256_store_ps (dst+i, dst_tmp);			
+		}
+	} else {
+		for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+			v4si src_tmp = _mm_loadu_si128((v4si*)(src + i));	
+			v8sf dst_tmp =_mm256_cvtph_ps(src_tmp);
+			_mm256_storeu_ps (dst+i, dst_tmp);			
+		}
+	}
+	   
+    for (int i = stop_len; i < len; i++) {
+		dst[i] = uint32_as_float(Float16ToFloat32(src[i]));
+    }	
+}

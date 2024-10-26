@@ -91,6 +91,138 @@ static inline void simd_utils_get_version(void)
     printf("Simd Utils Version : %d.%d.%d\n", MAJOR_VERSION, MINOR_VERSION, SUB_VERSION);
 }
 
+
+//  Produce value of bit n.  n must be less than 32.
+#define Bit(n)  ((uint32_t) 1 << (n))
+
+//  Create a mask of n bits in the low bits.  n must be less than 32.
+#define Mask(n) (Bit(n) - 1)
+
+
+/*  Convert an IEEE-754 16-bit binary floating-point encoding to an IEEE-754
+    32-bit binary floating-point encoding.
+
+    This code has not been tested.
+*/
+//From https://stackoverflow.com/questions/71120169/bit-shifting-a-half-float-into-a-float/71125539#71125539
+static inline uint32_t Float16ToFloat32(uint16_t x)
+{
+    /*  Separate the sign encoding (1 bit starting at bit 15), the exponent
+        encoding (5 bits starting at bit 10), and the primary significand
+        (fraction) encoding (10 bits starting at bit 0).
+    */
+    uint32_t s = x >> 15;
+    uint32_t e = x >> 10 & Mask( 5);
+    uint32_t f = x       & Mask(10);
+
+    //  Left-adjust the significand field.
+    f <<= 23 - 10;
+
+    //  Switch to handle subnormal numbers, normal numbers, and infinities/NaNs.
+    switch (e)
+    {
+        //  Exponent code is subnormal.
+        case 0:
+            //  Zero does need any changes, but subnormals need normalization.
+            if (f != 0)
+            {
+                /*  Set the 32-bit exponent code corresponding to the 16-bit
+                    subnormal exponent.
+                */
+                e = 1 + (127 - 15);
+
+                /*  Normalize the significand by shifting until its leading
+                    bit moves out of the field.  (This code could benefit from
+                    a find-first-set instruction or possibly using a conversion
+                    from integer to floating-point to do the normalization.)
+                */
+                while (f < Bit(23))
+                {
+                    f <<= 1;
+                    e -= 1;
+                }
+
+                //  Remove the leading bit.
+                f &= Mask(23);
+            }
+            break;
+
+        // Exponent code is normal.
+        default:
+            e += 127 - 15;  //  Adjust from 16-bit bias to 32-bit bias.
+            break;
+
+        //  Exponent code indicates infinity or NaN.
+        case 31:
+            e = 255;        //  Set 32-bit exponent code for infinity or NaN.
+            break;
+    }
+
+    //  Assemble and return the 32-bit encoding.
+    return s << 31 | e << 23 | f;
+}
+
+
+static inline uint32_t float_as_uint32 (float a)
+{
+    return *(uint32_t *)&a;
+}
+
+static inline float uint32_as_float (uint32_t a)
+{
+    return *(float *)&a;
+}
+
+//From https://stackoverflow.com/questions/76799117/how-to-convert-a-float-to-a-half-type-and-the-other-way-around-in-c
+static inline uint16_t float2half_rn (float a)
+{
+    uint32_t ia = float_as_uint32 (a);
+    uint16_t ir;
+
+    ir = (ia >> 16) & 0x8000;
+    if ((ia & 0x7f800000) == 0x7f800000) {
+        if ((ia & 0x7fffffff) == 0x7f800000) {
+            ir |= 0x7c00; /* infinity */
+        } else {
+            ir |= 0x7e00 | ((ia >> (24 - 11)) & 0x1ff); /* NaN, quietened */
+        }
+    } else if ((ia & 0x7f800000) >= 0x33000000) {
+        int shift = (int)((ia >> 23) & 0xff) - 127;
+        if (shift > 15) {
+            ir |= 0x7c00; /* infinity */
+        } else {
+            ia = (ia & 0x007fffff) | 0x00800000; /* extract mantissa */
+            if (shift < -14) { /* denormal */  
+                ir |= ia >> (-1 - shift);
+                ia = ia << (32 - (-1 - shift));
+            } else { /* normal */
+                ir |= ia >> (24 - 11);
+                ia = ia << (32 - (24 - 11));
+                ir = ir + ((14 + shift) << 10);
+            }
+            /* IEEE-754 round to nearest of even */
+            if ((ia > 0x80000000) || ((ia == 0x80000000) && (ir & 1))) {
+                ir++;
+            }
+        }
+    }
+    return ir;
+}
+
+static inline void fp32tofp16_C (float* src, uint16_t* dst, size_t len)
+{
+	for (int i = 0; i < len; i ++) {
+        dst[i] = float2half_rn(src[i]);	
+	}
+}
+
+static inline void fp16tofp32_C (uint16_t* src, float* dst, size_t len)
+{
+	for (int i = 0; i < len; i ++) {
+		dst[i] = uint32_as_float(Float16ToFloat32(src[i]));
+	}
+}
+
 #ifdef SSE
 
 #ifdef NO_SSE3
