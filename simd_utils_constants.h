@@ -1166,6 +1166,25 @@ typedef enum {
     RndFinancial,
 } FloatRoundingMode;
 
+typedef  struct {
+	int16_t x;
+	int16_t y;
+} point_t;
+
+typedef struct {
+        point_t* modified_points;
+        int counter;
+} modified_t;
+
+#ifndef max
+#define max(a,b) ((a) > (b))? (a):(b)
+#endif
+
+#ifndef min
+#define min(a,b) ((a) < (b))? (a):(b)
+#endif
+
+
 #define c_inv_mant_mask ~0x7f800000u
 #define c_cephes_SQRTHF 0.707106781186547524f
 #define c_cephes_log_p0 7.0376836292E-2

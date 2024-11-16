@@ -218,6 +218,10 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | gatheri_256/512s                                      | gatheri_C                   | ?                              | ?                             |
 | fp32tofp16128/256                                     | fp32tofp16_C                | ?                              | ?                             |
 | fp16tofp32128/256                                     | fp16tofp32_C                | ?                              | ?                             |
+| ?                                                     | floodFill_4C_8u             | ippiFloodFill_4Con_8u_C1IR     | ?                             |
+| ?                                                     | floodFill_4C_32s            | ippiFloodFill_4Con_32s_C1IR    | ?                             |
+| ?                                                     | floodFill_8C_8u             | ippiFloodFill_8Con_8u_C1IR     | ?                             |
+| ?                                                     | floodFill_8C_32s            | ippiFloodFill_8Con_32s_C1IR    | ?                             |
 
 
 ## Licence

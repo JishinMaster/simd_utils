@@ -3086,6 +3086,304 @@ static inline void cart2pol3Df_C(float *x, float *y, float *z, float *r, float *
 }
 #endif
 
+
+// todo create a structure to optimize stack?
+// tail recursion (return while_loop instead of return) is slower
+static inline void while_loop_4c_32s(int32_t* srcDst, short i, short j, const short imageStep, const point_t roiSize,\
+				   const int32_t seedVal, const int32_t Point1NewValue, modified_t* modified)
+{
+	while(1){
+		short jp1 = min(j+1, roiSize.x-1);
+		short jm1 = max(j-1, 0);	
+		short ip1 = min(i+1, roiSize.y-1);
+		short im1 = max(i-1, 0);
+
+		if(srcDst[imageStep*i + j] == seedVal){
+			srcDst[imageStep*i + j] = Point1NewValue;
+		}
+		else if(srcDst[imageStep*i + jp1] == seedVal){		
+			srcDst[imageStep*i + jp1] = Point1NewValue;
+			j = jp1;		
+		}
+		else if(srcDst[imageStep*i + jm1] == seedVal){		
+			srcDst[imageStep*i + jm1] = Point1NewValue;		
+			j = jm1;		
+		}
+		else if(srcDst[imageStep*ip1 + j] == seedVal){				
+			srcDst[imageStep*ip1 + j] = Point1NewValue;		
+			i = ip1;			
+		}
+		else if(srcDst[imageStep*im1 + j] == seedVal){		
+			srcDst[imageStep*im1 + j] = Point1NewValue;			
+			i = im1;		
+		}
+		else{
+			return;
+		}
+		modified->modified_points[modified->counter].x = j;
+		modified->modified_points[modified->counter].y = i;			
+		modified->counter++;		
+		while_loop_4c_32s(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+	}			
+	return;
+}
+
+static inline void floodFill_4C_32s(int32_t* srcDst,  int imageStep, point_t roiSize, point_t seedPoint1, int32_t Point1NewValue, modified_t* modified){
+	int32_t seedVal = srcDst[imageStep*seedPoint1.y + seedPoint1.x];
+	
+	short i, j;
+	i = seedPoint1.y;	
+	j = seedPoint1.x;
+	if(seedVal == Point1NewValue){
+		return;
+	}
+	modified->counter = 0;
+	while_loop_4c_32s(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+	
+	int old_counter=modified->counter;
+	for(int c = 0; c < modified->counter; c++)
+		while_loop_4c_32s(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+	while(old_counter != modified->counter){ // new points to be discovered
+		int cnt_tmp  = old_counter;
+		old_counter =  modified->counter;
+		for(int c = cnt_tmp; c < modified->counter; c++)
+			while_loop_4c_32s(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+	}		
+}
+
+
+static inline void while_loop_8c_32s(int32_t* srcDst, short i, short j,  const int imageStep, const point_t roiSize,\
+				   const int32_t seedVal, const int32_t Point1NewValue, modified_t* modified)
+{
+	while(1){
+		short jp1 = min(j+1, roiSize.x-1);
+		short jm1 = max(j-1, 0);
+		short ip1 = min(i+1, roiSize.y-1);
+		short im1 = max(i-1, 0);
+		
+		if(srcDst[imageStep*i + j] == seedVal){
+			srcDst[imageStep*i + j] = Point1NewValue;
+		}
+		else if(srcDst[imageStep*i + jp1] == seedVal){		
+			srcDst[imageStep*i + jp1] = Point1NewValue;
+			j = jp1;			
+		}
+		else if(srcDst[imageStep*i + jm1] == seedVal){
+			srcDst[imageStep*i + jm1] = Point1NewValue;	
+			j = jm1;		
+		}
+		else if(srcDst[imageStep*ip1 + j] == seedVal){			
+			srcDst[imageStep*ip1 + j] = Point1NewValue;
+			i = ip1;								
+		}
+		else if(srcDst[imageStep*im1 + j] == seedVal){		
+			srcDst[imageStep*im1 + j] = Point1NewValue;
+			i = im1;		
+		}
+		else if(srcDst[imageStep*im1 + jp1] == seedVal){	
+			srcDst[imageStep*im1 + jp1] = Point1NewValue;
+			j = jp1;
+			i = im1;
+		}
+		else if(srcDst[imageStep*im1 + jm1] == seedVal){			
+			srcDst[imageStep*im1 + jm1] = Point1NewValue;
+			j = jm1;
+			i = im1;
+		}		
+		else if(srcDst[imageStep*ip1 + jp1] == seedVal){	
+			srcDst[imageStep*ip1 + jp1] = Point1NewValue;
+			j = jp1;
+			i = ip1;
+		}
+		else if(srcDst[imageStep*ip1 + jm1] == seedVal){			
+			srcDst[imageStep*ip1 + jm1] = Point1NewValue;
+			j = jm1;
+			i = ip1;
+		}	
+		else
+			return;
+		
+		modified->modified_points[modified->counter].x = j;
+		modified->modified_points[modified->counter].y = i;			
+		modified->counter++;			
+		while_loop_8c_32s(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+	}			
+	return;
+}
+
+static inline void floodFill_8C_c_32s(int32_t* srcDst,  int imageStep, point_t roiSize, point_t seedPoint1, int32_t Point1NewValue, modified_t* modified){
+	int32_t seedVal = srcDst[imageStep*seedPoint1.y + seedPoint1.x];
+	
+	short i, j;
+	i = seedPoint1.y;	
+	j = seedPoint1.x;
+	if(seedVal == Point1NewValue){
+		return;
+	}
+	modified->counter = 0;
+	while_loop_8c_32s(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+	
+	int old_counter=modified->counter;
+	for(int c = 0; c < modified->counter; c++)
+		while_loop_8c_32s(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+	while(old_counter != modified->counter){ // new points to be discovered
+		int cnt_tmp  = old_counter;
+		old_counter =  modified->counter;
+		for(int c = cnt_tmp; c < modified->counter; c++)
+			while_loop_8c_32s(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+	}		
+}
+
+static inline void while_loop_4c_8u(uint8_t* srcDst, short i, short j, const short imageStep, const point_t roiSize,\
+				   const uint8_t seedVal, const uint8_t Point1NewValue, modified_t* modified)
+{
+	while(1){
+		short jp1 = min(j+1, roiSize.x-1);
+		short jm1 = max(j-1, 0);	
+		short ip1 = min(i+1, roiSize.y-1);
+		short im1 = max(i-1, 0);
+
+		if(srcDst[imageStep*i + j] == seedVal){
+			srcDst[imageStep*i + j] = Point1NewValue;
+		}
+		else if(srcDst[imageStep*i + jp1] == seedVal){		
+			srcDst[imageStep*i + jp1] = Point1NewValue;
+			j = jp1;		
+		}
+		else if(srcDst[imageStep*i + jm1] == seedVal){		
+			srcDst[imageStep*i + jm1] = Point1NewValue;		
+			j = jm1;		
+		}
+		else if(srcDst[imageStep*ip1 + j] == seedVal){				
+			srcDst[imageStep*ip1 + j] = Point1NewValue;		
+			i = ip1;			
+		}
+		else if(srcDst[imageStep*im1 + j] == seedVal){		
+			srcDst[imageStep*im1 + j] = Point1NewValue;			
+			i = im1;		
+		}
+		else{
+			return;
+		}
+		modified->modified_points[modified->counter].x = j;
+		modified->modified_points[modified->counter].y = i;			
+		modified->counter++;		
+		while_loop_4c_8u(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+	}			
+	return;
+}
+
+static inline void floodFill_4C_8u(uint8_t* srcDst,  int imageStep, point_t roiSize, point_t seedPoint1, uint8_t Point1NewValue, modified_t* modified){
+	uint8_t seedVal = srcDst[imageStep*seedPoint1.y + seedPoint1.x];
+	
+	short i, j;
+	i = seedPoint1.y;	
+	j = seedPoint1.x;
+	if(seedVal == Point1NewValue){
+		return;
+	}
+	modified->counter = 0;
+	while_loop_4c_8u(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+	
+	int old_counter=modified->counter;
+	for(int c = 0; c < modified->counter; c++)
+		while_loop_4c_8u(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+	while(old_counter != modified->counter){ // new points to be discovered
+		int cnt_tmp  = old_counter;
+		old_counter =  modified->counter;
+		for(int c = cnt_tmp; c < modified->counter; c++)
+			while_loop_4c_8u(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+	}		
+}
+
+
+static inline void while_loop_8c_8u(uint8_t* srcDst, short i, short j,  const int imageStep, const point_t roiSize,\
+				   const uint8_t seedVal, const uint8_t Point1NewValue, modified_t* modified)
+{
+	while(1){
+		short jp1 = min(j+1, roiSize.x-1);
+		short jm1 = max(j-1, 0);
+		short ip1 = min(i+1, roiSize.y-1);
+		short im1 = max(i-1, 0);
+		
+		if(srcDst[imageStep*i + j] == seedVal){
+			srcDst[imageStep*i + j] = Point1NewValue;
+		}
+		else if(srcDst[imageStep*i + jp1] == seedVal){		
+			srcDst[imageStep*i + jp1] = Point1NewValue;
+			j = jp1;			
+		}
+		else if(srcDst[imageStep*i + jm1] == seedVal){
+			srcDst[imageStep*i + jm1] = Point1NewValue;	
+			j = jm1;		
+		}
+		else if(srcDst[imageStep*ip1 + j] == seedVal){			
+			srcDst[imageStep*ip1 + j] = Point1NewValue;
+			i = ip1;								
+		}
+		else if(srcDst[imageStep*im1 + j] == seedVal){		
+			srcDst[imageStep*im1 + j] = Point1NewValue;
+			i = im1;		
+		}
+		else if(srcDst[imageStep*im1 + jp1] == seedVal){	
+			srcDst[imageStep*im1 + jp1] = Point1NewValue;
+			j = jp1;
+			i = im1;
+		}
+		else if(srcDst[imageStep*im1 + jm1] == seedVal){			
+			srcDst[imageStep*im1 + jm1] = Point1NewValue;
+			j = jm1;
+			i = im1;
+		}		
+		else if(srcDst[imageStep*ip1 + jp1] == seedVal){	
+			srcDst[imageStep*ip1 + jp1] = Point1NewValue;
+			j = jp1;
+			i = ip1;
+		}
+		else if(srcDst[imageStep*ip1 + jm1] == seedVal){			
+			srcDst[imageStep*ip1 + jm1] = Point1NewValue;
+			j = jm1;
+			i = ip1;
+		}	
+		else
+			return;
+		
+		modified->modified_points[modified->counter].x = j;
+		modified->modified_points[modified->counter].y = i;			
+		modified->counter++;			
+		while_loop_8c_8u(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+	}			
+	return;
+}
+
+static inline void floodFill_8C_c_8u(uint8_t* srcDst,  int imageStep, point_t roiSize, point_t seedPoint1, uint8_t Point1NewValue, modified_t* modified){
+	uint8_t seedVal = srcDst[imageStep*seedPoint1.y + seedPoint1.x];
+	
+	short i, j;
+	i = seedPoint1.y;	
+	j = seedPoint1.x;
+	if(seedVal == Point1NewValue){
+		return;
+	}
+	modified->counter = 0;
+	while_loop_8c_8u(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+	
+	int old_counter=modified->counter;
+	for(int c = 0; c < modified->counter; c++)
+		while_loop_8c_8u(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+	while(old_counter != modified->counter){ // new points to be discovered
+		int cnt_tmp  = old_counter;
+		old_counter =  modified->counter;
+		for(int c = cnt_tmp; c < modified->counter; c++)
+			while_loop_8c_8u(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+	}		
+}
+
+
 #ifdef __cplusplus
 }
 #endif
