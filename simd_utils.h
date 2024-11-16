@@ -3129,6 +3129,7 @@ static inline void while_loop_4c_32s(int32_t* srcDst, short i, short j, const sh
 }
 
 static inline void floodFill_4C_32s(int32_t* srcDst,  int imageStep, point_t roiSize, point_t seedPoint1, int32_t Point1NewValue, modified_t* modified){
+	imageStep = imageStep/sizeof(int32_t);
 	int32_t seedVal = srcDst[imageStep*seedPoint1.y + seedPoint1.x];
 	
 	short i, j;
@@ -3213,6 +3214,7 @@ static inline void while_loop_8c_32s(int32_t* srcDst, short i, short j,  const i
 }
 
 static inline void floodFill_8C_c_32s(int32_t* srcDst,  int imageStep, point_t roiSize, point_t seedPoint1, int32_t Point1NewValue, modified_t* modified){
+	imageStep = imageStep/sizeof(int32_t);
 	int32_t seedVal = srcDst[imageStep*seedPoint1.y + seedPoint1.x];
 	
 	short i, j;
