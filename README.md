@@ -222,6 +222,7 @@ The following table is a work in progress, "?" means there is not yet an impleme
 | ?                                                     | floodFill_4C_32s            | ippiFloodFill_4Con_32s_C1IR    | ?                             |
 | ?                                                     | floodFill_8C_8u             | ippiFloodFill_8Con_8u_C1IR     | ?                             |
 | ?                                                     | floodFill_8C_32s            | ippiFloodFill_8Con_32s_C1IR    | ?                             |
+| ?                                                     | floodFill_8C_32f            | ippiFloodFill_8Con_32f_C1IR    | ?                             |
 
 
 ## Licence
