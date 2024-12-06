@@ -2394,8 +2394,15 @@ static inline void cplxconjvecmul_C_precise(complex32_t *src1, complex32_t *src2
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i].re = (float) ((double) src1[i].re * (double) src2[i].re + (double) src1[i].im * (double) src2[i].im);
-        dst[i].im = (float) ((double) src2[i].re * (double) src1[i].im - (double) src1[i].re * (double) src2[i].im);
+		complex64_t src1d, src2d, dstd;
+		src1d.re = (double)src1[i].re;
+		src1d.im = (double)src1[i].im;
+		src2d.re = (double)src2[i].re;
+		src2d.im = (double)src2[i].im;
+		dstd.re = src1d.re * src2d.re + (src1d.im * src2d.im);
+        dstd.im = -src1d.re * src2d.im + (src2d.re * src1d.im);
+        dst[i].re = (float)dstd.re;
+        dst[i].im = (float)dstd.im;
     }
 }
 
@@ -2416,8 +2423,15 @@ static inline void cplxconjvecmul_C_split_precise(float *src1Re, float *src1Im, 
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dstRe[i] = (float) ((double) src1Re[i] * (double) src2Re[i] + (double) src1Im[i] * (double) src2Im[i]);
-        dstIm[i] = (float) ((double) src2Re[i] * (double) src1Im[i] - (double) src1Re[i] * (double) src2Im[i]);
+		complex64_t src1d, src2d, dstd;
+		src1d.re = (double)src1Re[i];
+		src1d.im = (double)src1Im[i];
+		src2d.re = (double)src2Re[i];
+		src2d.im = (double)src2Im[i];
+		dstd.re = src1d.re * src2d.re + (src1d.im * src2d.im);
+        dstd.im = -src1d.re * src2d.im + (src2d.re * src1d.im);
+        dstRe[i] =  (float)dstd.re;
+        dstIm[i] = (float)dstd.im;
     }
 }
 

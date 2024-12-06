@@ -2083,8 +2083,9 @@ static inline void threshold128_ltval_gtval_f(float *src, float *dst, int len, f
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i] = src[i] < ltlevel ? ltvalue : src[i];
-        dst[i] = src[i] > gtlevel ? gtvalue : dst[i];
+		float tmp = src[i];
+        dst[i] = tmp < ltlevel ? ltvalue : tmp;
+        dst[i] = tmp > gtlevel ? gtvalue : dst[i];
     }
 }
 
@@ -4158,8 +4159,15 @@ static inline void cplxconjvecmul128f_precise(complex32_t *src1, complex32_t *sr
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i].re = src1[i].re * src2[i].re + (src1[i].im * src2[i].im);
-        dst[i].im = -src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
+		complex64_t src1d, src2d, dstd;
+		src1d.re = (double)src1[i].re;
+		src1d.im = (double)src1[i].im;
+		src2d.re = (double)src2[i].re;
+		src2d.im = (double)src2[i].im;
+		dstd.re = src1d.re * src2d.re + (src1d.im * src2d.im);
+        dstd.im = -src1d.re * src2d.im + (src2d.re * src1d.im);
+        dst[i].re = (float)dstd.re;
+        dst[i].im = (float)dstd.im;
     }
 }
 
@@ -4341,8 +4349,15 @@ static inline void cplxconjvecmul128f_split_precise(float *src1Re, float *src1Im
     }
 
     for (int i = stop_len; i < len; i++) {
-        dstRe[i] = src1Re[i] * src2Re[i] + (src1Im[i] * src2Im[i]);
-        dstIm[i] = (src2Re[i] * src1Im[i]) - src1Re[i] * src2Im[i];
+		complex64_t src1d, src2d, dstd;
+		src1d.re = (double)src1Re[i];
+		src1d.im = (double)src1Im[i];
+		src2d.re = (double)src2Re[i];
+		src2d.im = (double)src2Im[i];
+		dstd.re = src1d.re * src2d.re + (src1d.im * src2d.im);
+        dstd.im = -src1d.re * src2d.im + (src2d.re * src1d.im);
+        dstRe[i] =  (float)dstd.re;
+        dstIm[i] = (float)dstd.im;
     }
 }
 

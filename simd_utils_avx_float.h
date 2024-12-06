@@ -2153,8 +2153,9 @@ static inline void threshold256_ltval_gtval_f(float *src, float *dst, int len, f
     }
 
     for (int i = stop_len; i < len; i++) {
-        dst[i] = src[i] < ltlevel ? ltvalue : src[i];
-        dst[i] = src[i] > gtlevel ? gtvalue : dst[i];
+		float tmp = src[i];
+        dst[i] = tmp < ltlevel ? ltvalue : tmp;
+        dst[i] = tmp > gtlevel ? gtvalue : dst[i];
     }
 }
 
