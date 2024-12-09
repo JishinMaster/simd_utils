@@ -1061,9 +1061,9 @@ static inline void pol2cart2D128f_precise(float *r, float *theta, float *x, floa
             v4sf r_tmpf = _mm_load_ps(r + i);
             v4sf theta_tmpf = _mm_load_ps(theta + i);
             v2sd r_tmp0 = _mm_cvtps_pd(r_tmpf);
-            v2sd r_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(r_tmpf, r_tmpf));
+            v2sd r_tmp1 = _mm_cvtps_pd_high(r_tmpf);
             v2sd theta_tmp0 = _mm_cvtps_pd(theta_tmpf);
-            v2sd theta_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(theta_tmpf, theta_tmpf));
+            v2sd theta_tmp1 = _mm_cvtps_pd_high(theta_tmpf);
             v2sd sin_tmp0, sin_tmp1;
             v2sd cos_tmp0, cos_tmp1;
             sincos_pd(theta_tmp0, &sin_tmp0, &cos_tmp0);
@@ -1073,8 +1073,8 @@ static inline void pol2cart2D128f_precise(float *r, float *theta, float *x, floa
             v2sd x_tmpd1 = _mm_mul_pd(r_tmp1, cos_tmp1);
             v2sd y_tmpd1 = _mm_mul_pd(r_tmp1, sin_tmp1);
 
-            v4sf x_tmp = _mm_movelh_ps(_mm_cvtpd_ps(x_tmpd0), _mm_cvtpd_ps(x_tmpd1));
-            v4sf y_tmp = _mm_movelh_ps(_mm_cvtpd_ps(y_tmpd0), _mm_cvtpd_ps(y_tmpd1));
+            v4sf x_tmp = _mm_cvtpd2_ps(x_tmpd0, x_tmpd1);
+            v4sf y_tmp = _mm_cvtpd2_ps(y_tmpd0, y_tmpd1);
             _mm_store_ps(x + i, x_tmp);
             _mm_store_ps(y + i, y_tmp);
         }
@@ -1083,9 +1083,9 @@ static inline void pol2cart2D128f_precise(float *r, float *theta, float *x, floa
             v4sf r_tmpf = _mm_loadu_ps(r + i);
             v4sf theta_tmpf = _mm_loadu_ps(theta + i);
             v2sd r_tmp0 = _mm_cvtps_pd(r_tmpf);
-            v2sd r_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(r_tmpf, r_tmpf));
+            v2sd r_tmp1 = _mm_cvtps_pd_high(r_tmpf);
             v2sd theta_tmp0 = _mm_cvtps_pd(theta_tmpf);
-            v2sd theta_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(theta_tmpf, theta_tmpf));
+            v2sd theta_tmp1 = _mm_cvtps_pd_high(theta_tmpf);
             v2sd sin_tmp0, sin_tmp1;
             v2sd cos_tmp0, cos_tmp1;
             sincos_pd(theta_tmp0, &sin_tmp0, &cos_tmp0);
@@ -1095,8 +1095,8 @@ static inline void pol2cart2D128f_precise(float *r, float *theta, float *x, floa
             v2sd x_tmpd1 = _mm_mul_pd(r_tmp1, cos_tmp1);
             v2sd y_tmpd1 = _mm_mul_pd(r_tmp1, sin_tmp1);
 
-            v4sf x_tmp = _mm_movelh_ps(_mm_cvtpd_ps(x_tmpd0), _mm_cvtpd_ps(x_tmpd1));
-            v4sf y_tmp = _mm_movelh_ps(_mm_cvtpd_ps(y_tmpd0), _mm_cvtpd_ps(y_tmpd1));
+            v4sf x_tmp = _mm_cvtpd2_ps(x_tmpd0, x_tmpd1);
+            v4sf y_tmp = _mm_cvtpd2_ps(y_tmpd0, y_tmpd1);
             _mm_storeu_ps(x + i, x_tmp);
             _mm_storeu_ps(y + i, y_tmp);
         }
@@ -1124,9 +1124,9 @@ static inline void cart2pol2D128f_precise(float *x, float *y, float *r, float *t
             v4sf x_tmpf = _mm_load_ps(x + i);
             v4sf y_tmpf = _mm_load_ps(y + i);
             v2sd x_tmp0 = _mm_cvtps_pd(x_tmpf);
-            v2sd x_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(x_tmpf, x_tmpf));
+            v2sd x_tmp1 = _mm_cvtps_pd_high(x_tmpf);
             v2sd y_tmp0 = _mm_cvtps_pd(y_tmpf);
-            v2sd y_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(y_tmpf, y_tmpf));
+            v2sd y_tmp1 = _mm_cvtps_pd_high(y_tmpf);
             v2sd y_square0 = _mm_mul_pd(y_tmp0, y_tmp0);
             v2sd y_square1 = _mm_mul_pd(y_tmp1, y_tmp1);
             v2sd r_tmpd0 = _mm_fmadd_pd_custom(x_tmp0, x_tmp0, y_square0);
@@ -1135,8 +1135,8 @@ static inline void cart2pol2D128f_precise(float *x, float *y, float *r, float *t
             r_tmpd1 = _mm_sqrt_pd(r_tmpd1);
             v2sd theta_tmpd0 = atan2_pd(y_tmp0, x_tmp0);
             v2sd theta_tmpd1 = atan2_pd(y_tmp1, x_tmp1);
-            v4sf r_tmp = _mm_movelh_ps(_mm_cvtpd_ps(r_tmpd0), _mm_cvtpd_ps(r_tmpd1));
-            v4sf theta_tmp = _mm_movelh_ps(_mm_cvtpd_ps(theta_tmpd0), _mm_cvtpd_ps(theta_tmpd1));
+            v4sf r_tmp = _mm_cvtpd2_ps(r_tmpd0,r_tmpd1);
+            v4sf theta_tmp = _mm_cvtpd2_ps(theta_tmpd0, theta_tmpd1);
             _mm_store_ps(r + i, r_tmp);
             _mm_store_ps(theta + i, theta_tmp);
         }
@@ -1145,9 +1145,9 @@ static inline void cart2pol2D128f_precise(float *x, float *y, float *r, float *t
             v4sf x_tmpf = _mm_loadu_ps(x + i);
             v4sf y_tmpf = _mm_loadu_ps(y + i);
             v2sd x_tmp0 = _mm_cvtps_pd(x_tmpf);
-            v2sd x_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(x_tmpf, x_tmpf));
+            v2sd x_tmp1 = _mm_cvtps_pd_high(x_tmpf);
             v2sd y_tmp0 = _mm_cvtps_pd(y_tmpf);
-            v2sd y_tmp1 = _mm_cvtps_pd(_mm_movehl_ps(y_tmpf, y_tmpf));
+            v2sd y_tmp1 = _mm_cvtps_pd_high(y_tmpf);
             v2sd y_square0 = _mm_mul_pd(y_tmp0, y_tmp0);
             v2sd y_square1 = _mm_mul_pd(y_tmp1, y_tmp1);
             v2sd r_tmpd0 = _mm_fmadd_pd_custom(x_tmp0, x_tmp0, y_square0);
@@ -1156,8 +1156,8 @@ static inline void cart2pol2D128f_precise(float *x, float *y, float *r, float *t
             r_tmpd1 = _mm_sqrt_pd(r_tmpd1);
             v2sd theta_tmpd0 = atan2_pd(y_tmp0, x_tmp0);
             v2sd theta_tmpd1 = atan2_pd(y_tmp1, x_tmp1);
-            v4sf r_tmp = _mm_movelh_ps(_mm_cvtpd_ps(r_tmpd0), _mm_cvtpd_ps(r_tmpd1));
-            v4sf theta_tmp = _mm_movelh_ps(_mm_cvtpd_ps(theta_tmpd0), _mm_cvtpd_ps(theta_tmpd1));
+            v4sf r_tmp = _mm_cvtpd2_ps(r_tmpd0,r_tmpd1);
+            v4sf theta_tmp = _mm_cvtpd2_ps(theta_tmpd0, theta_tmpd1);
             _mm_storeu_ps(r + i, r_tmp);
             _mm_storeu_ps(theta + i, theta_tmp);
         }

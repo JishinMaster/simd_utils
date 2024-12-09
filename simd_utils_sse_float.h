@@ -1472,14 +1472,14 @@ static inline void convert128_64f32f(double *src, float *dst, int len)
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             __m128d src_lo = _mm_load_pd(src + i);
             __m128d src_hi = _mm_load_pd(src + i + 2);
-            v4sf tmp = _mm_movelh_ps(_mm_cvtpd_ps(src_lo), _mm_cvtpd_ps(src_hi));
+            v4sf tmp = _mm_cvtpd2_ps(src_lo, src_hi);
             _mm_store_ps(dst + i, tmp);
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             __m128d src_lo = _mm_loadu_pd(src + i);
             __m128d src_hi = _mm_loadu_pd(src + i + 2);
-            v4sf tmp = _mm_movelh_ps(_mm_cvtpd_ps(src_lo), _mm_cvtpd_ps(src_hi));
+            v4sf tmp = _mm_cvtpd2_ps(src_lo, src_hi);
             _mm_storeu_ps(dst + i, tmp);
         }
     }
@@ -4098,16 +4098,18 @@ static inline void cplxconjvecmul128f_precise(complex32_t *src1, complex32_t *sr
         for (int i = 0; i < 2 * stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sfx2 src1_split = _mm_load2_ps((float *) (src1) + i);  // a0a1a2a3, b0b1b2b3
             v4sfx2 src2_split = _mm_load2_ps((float *) (src2) + i);  // c0c1c2c3 d0d1d2d3
-
-            v2sd src1_split_lowd_0 = _mm_cvtps_pd(src1_split.val[0]);
-            v2sd src1_split_lowd_1 = _mm_cvtps_pd(src1_split.val[1]);
-            v2sd src2_split_lowd_0 = _mm_cvtps_pd(src2_split.val[0]);
-            v2sd src2_split_lowd_1 = _mm_cvtps_pd(src2_split.val[1]);
-
-            v2sd src1_split_highd_0 = _mm_cvtps_pd(_mm_shuffle_ps(src1_split.val[0], src1_split.val[0], _MM_SHUFFLE(1, 0, 3, 2)));
-            v2sd src1_split_highd_1 = _mm_cvtps_pd(_mm_shuffle_ps(src1_split.val[1], src1_split.val[1], _MM_SHUFFLE(1, 0, 3, 2)));
-            v2sd src2_split_highd_0 = _mm_cvtps_pd(_mm_shuffle_ps(src2_split.val[0], src2_split.val[0], _MM_SHUFFLE(1, 0, 3, 2)));
-            v2sd src2_split_highd_1 = _mm_cvtps_pd(_mm_shuffle_ps(src2_split.val[1], src2_split.val[1], _MM_SHUFFLE(1, 0, 3, 2)));
+			v4sf src1_re = src1_split.val[0];
+			v4sf src1_im = src1_split.val[1];
+			v4sf src2_re = src2_split.val[0];
+			v4sf src2_im = src2_split.val[1];
+            v2sd src1_split_lowd_0 = _mm_cvtps_pd(src1_re);
+            v2sd src1_split_lowd_1 = _mm_cvtps_pd(src1_im);
+            v2sd src2_split_lowd_0 = _mm_cvtps_pd(src2_re);
+            v2sd src2_split_lowd_1 = _mm_cvtps_pd(src2_im);
+            v2sd src1_split_highd_0 = _mm_cvtps_pd_high(src1_re);
+            v2sd src1_split_highd_1 =  _mm_cvtps_pd_high(src1_im);
+            v2sd src2_split_highd_0 = _mm_cvtps_pd_high(src2_re);
+            v2sd src2_split_highd_1 = _mm_cvtps_pd_high(src2_im);
 
             v2sd ac_lowd = _mm_mul_pd(src1_split_lowd_0, src2_split_lowd_0);     // ac
             v2sd bc_lowd = _mm_mul_pd(src1_split_lowd_1, src2_split_lowd_0);     // bc
@@ -4120,8 +4122,8 @@ static inline void cplxconjvecmul128f_precise(complex32_t *src1, complex32_t *sr
             v2sd im_lowd = _mm_fnmadd_pd_custom(src1_split_lowd_0, src2_split_lowd_1, bc_lowd);
             v2sd im_highd = _mm_fnmadd_pd_custom(src1_split_highd_0, src2_split_highd_1, bc_highd);
 
-            dst_split.val[0] = _mm_movelh_ps(_mm_cvtpd_ps(re_lowd), _mm_cvtpd_ps(re_highd));
-            dst_split.val[1] = _mm_movelh_ps(_mm_cvtpd_ps(im_lowd), _mm_cvtpd_ps(im_highd));
+            dst_split.val[0] = _mm_cvtpd2_ps(re_lowd, re_highd);
+            dst_split.val[1] = _mm_cvtpd2_ps(im_lowd, im_highd);
 
             _mm_store2_ps((float *) (dst) + i, dst_split);
         }
@@ -4129,16 +4131,18 @@ static inline void cplxconjvecmul128f_precise(complex32_t *src1, complex32_t *sr
         for (int i = 0; i < 2 * stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sfx2 src1_split = _mm_load2u_ps((float *) (src1) + i);  // a0a1a2a3, b0b1b2b3
             v4sfx2 src2_split = _mm_load2u_ps((float *) (src2) + i);  // c0c1c2c3 d0d1d2d3
-
-            v2sd src1_split_lowd_0 = _mm_cvtps_pd(src1_split.val[0]);
-            v2sd src1_split_lowd_1 = _mm_cvtps_pd(src1_split.val[1]);
-            v2sd src2_split_lowd_0 = _mm_cvtps_pd(src2_split.val[0]);
-            v2sd src2_split_lowd_1 = _mm_cvtps_pd(src2_split.val[1]);
-
-            v2sd src1_split_highd_0 = _mm_cvtps_pd(_mm_shuffle_ps(src1_split.val[0], src1_split.val[0], _MM_SHUFFLE(1, 0, 3, 2)));
-            v2sd src1_split_highd_1 = _mm_cvtps_pd(_mm_shuffle_ps(src1_split.val[1], src1_split.val[1], _MM_SHUFFLE(1, 0, 3, 2)));
-            v2sd src2_split_highd_0 = _mm_cvtps_pd(_mm_shuffle_ps(src2_split.val[0], src2_split.val[0], _MM_SHUFFLE(1, 0, 3, 2)));
-            v2sd src2_split_highd_1 = _mm_cvtps_pd(_mm_shuffle_ps(src2_split.val[1], src2_split.val[1], _MM_SHUFFLE(1, 0, 3, 2)));
+			v4sf src1_re = src1_split.val[0];
+			v4sf src1_im = src1_split.val[1];
+			v4sf src2_re = src2_split.val[0];
+			v4sf src2_im = src2_split.val[1];
+            v2sd src1_split_lowd_0 = _mm_cvtps_pd(src1_re);
+            v2sd src1_split_lowd_1 = _mm_cvtps_pd(src1_im);
+            v2sd src2_split_lowd_0 = _mm_cvtps_pd(src2_re);
+            v2sd src2_split_lowd_1 = _mm_cvtps_pd(src2_im);
+            v2sd src1_split_highd_0 = _mm_cvtps_pd_high(src1_re);
+            v2sd src1_split_highd_1 =  _mm_cvtps_pd_high(src1_im);
+            v2sd src2_split_highd_0 = _mm_cvtps_pd_high(src2_re);
+            v2sd src2_split_highd_1 = _mm_cvtps_pd_high(src2_im);
 
             v2sd ac_lowd = _mm_mul_pd(src1_split_lowd_0, src2_split_lowd_0);     // ac
             v2sd bc_lowd = _mm_mul_pd(src1_split_lowd_1, src2_split_lowd_0);     // bc
@@ -4151,8 +4155,8 @@ static inline void cplxconjvecmul128f_precise(complex32_t *src1, complex32_t *sr
             v2sd im_lowd = _mm_fnmadd_pd_custom(src1_split_lowd_0, src2_split_lowd_1, bc_lowd);
             v2sd im_highd = _mm_fnmadd_pd_custom(src1_split_highd_0, src2_split_highd_1, bc_highd);
 
-            dst_split.val[0] = _mm_movelh_ps(_mm_cvtpd_ps(re_lowd), _mm_cvtpd_ps(re_highd));
-            dst_split.val[1] = _mm_movelh_ps(_mm_cvtpd_ps(im_lowd), _mm_cvtpd_ps(im_highd));
+            dst_split.val[0] = _mm_cvtpd2_ps(re_lowd, re_highd);
+            dst_split.val[1] = _mm_cvtpd2_ps(im_lowd, im_highd);
 
             _mm_store2u_ps((float *) (dst) + i, dst_split);
         }
@@ -4294,10 +4298,10 @@ static inline void cplxconjvecmul128f_split_precise(float *src1Re, float *src1Im
             v2sd src2Re_lowd = _mm_cvtps_pd(src2Re_tmp);
             v2sd src2Im_lowd = _mm_cvtps_pd(src2Im_tmp);
 
-            v2sd src1Re_highd = _mm_cvtps_pd(_mm_shuffle_ps(src1Re_tmp, src1Re_tmp, _MM_SHUFFLE(1, 0, 3, 2)));
-            v2sd src1Im_highd = _mm_cvtps_pd(_mm_shuffle_ps(src1Im_tmp, src1Im_tmp, _MM_SHUFFLE(1, 0, 3, 2)));
-            v2sd src2Re_highd = _mm_cvtps_pd(_mm_shuffle_ps(src2Re_tmp, src2Re_tmp, _MM_SHUFFLE(1, 0, 3, 2)));
-            v2sd src2Im_highd = _mm_cvtps_pd(_mm_shuffle_ps(src2Im_tmp, src2Im_tmp, _MM_SHUFFLE(1, 0, 3, 2)));
+            v2sd src1Re_highd = _mm_cvtps_pd_high(src1Re_tmp);
+            v2sd src1Im_highd = _mm_cvtps_pd_high(src1Im_tmp);
+            v2sd src2Re_highd = _mm_cvtps_pd_high(src2Re_tmp);
+            v2sd src2Im_highd = _mm_cvtps_pd_high(src2Im_tmp);
 
             v2sd ac_lowd = _mm_mul_pd(src1Re_lowd, src2Re_lowd);
             v2sd bc_lowd = _mm_mul_pd(src1Im_lowd, src2Re_lowd);
@@ -4309,8 +4313,8 @@ static inline void cplxconjvecmul128f_split_precise(float *src1Re, float *src1Im
             v2sd dstRe_highd = _mm_fmadd_pd_custom(src1Im_highd, src2Im_highd, ac_highd);
             v2sd dstIm_highd = _mm_fnmadd_pd_custom(src1Re_highd, src2Im_highd, bc_highd);
 
-            v4sf dstRe_tmp = _mm_movelh_ps(_mm_cvtpd_ps(dstRe_lowd), _mm_cvtpd_ps(dstRe_highd));
-            v4sf dstIm_tmp = _mm_movelh_ps(_mm_cvtpd_ps(dstIm_lowd), _mm_cvtpd_ps(dstIm_highd));
+            v4sf dstRe_tmp = _mm_cvtpd2_ps(dstRe_lowd, dstRe_highd);
+            v4sf dstIm_tmp = _mm_cvtpd2_ps(dstIm_lowd, dstIm_highd);
             _mm_store_ps(dstRe + i, dstRe_tmp);  // ac + bd
             _mm_store_ps(dstIm + i, dstIm_tmp);  // bc - ad
         }
@@ -4326,10 +4330,10 @@ static inline void cplxconjvecmul128f_split_precise(float *src1Re, float *src1Im
             v2sd src2Re_lowd = _mm_cvtps_pd(src2Re_tmp);
             v2sd src2Im_lowd = _mm_cvtps_pd(src2Im_tmp);
 
-            v2sd src1Re_highd = _mm_cvtps_pd(_mm_shuffle_ps(src1Re_tmp, src1Re_tmp, _MM_SHUFFLE(1, 0, 3, 2)));
-            v2sd src1Im_highd = _mm_cvtps_pd(_mm_shuffle_ps(src1Im_tmp, src1Im_tmp, _MM_SHUFFLE(1, 0, 3, 2)));
-            v2sd src2Re_highd = _mm_cvtps_pd(_mm_shuffle_ps(src2Re_tmp, src2Re_tmp, _MM_SHUFFLE(1, 0, 3, 2)));
-            v2sd src2Im_highd = _mm_cvtps_pd(_mm_shuffle_ps(src2Im_tmp, src2Im_tmp, _MM_SHUFFLE(1, 0, 3, 2)));
+            v2sd src1Re_highd = _mm_cvtps_pd_high(src1Re_tmp);
+            v2sd src1Im_highd = _mm_cvtps_pd_high(src1Im_tmp);
+            v2sd src2Re_highd = _mm_cvtps_pd_high(src2Re_tmp);
+            v2sd src2Im_highd = _mm_cvtps_pd_high(src2Im_tmp);
 
             v2sd ac_lowd = _mm_mul_pd(src1Re_lowd, src2Re_lowd);
             v2sd bc_lowd = _mm_mul_pd(src1Im_lowd, src2Re_lowd);
@@ -4341,8 +4345,8 @@ static inline void cplxconjvecmul128f_split_precise(float *src1Re, float *src1Im
             v2sd dstRe_highd = _mm_fmadd_pd_custom(src1Im_highd, src2Im_highd, ac_highd);
             v2sd dstIm_highd = _mm_fnmadd_pd_custom(src1Re_highd, src2Im_highd, bc_highd);
 
-            v4sf dstRe_tmp = _mm_movelh_ps(_mm_cvtpd_ps(dstRe_lowd), _mm_cvtpd_ps(dstRe_highd));
-            v4sf dstIm_tmp = _mm_movelh_ps(_mm_cvtpd_ps(dstIm_lowd), _mm_cvtpd_ps(dstIm_highd));
+            v4sf dstRe_tmp = _mm_cvtpd2_ps(dstRe_lowd, dstRe_highd);
+            v4sf dstIm_tmp = _mm_cvtpd2_ps(dstIm_lowd, dstIm_highd);
             _mm_storeu_ps(dstRe + i, dstRe_tmp);  // ac + bd
             _mm_storeu_ps(dstIm + i, dstIm_tmp);  // bc - ad
         }

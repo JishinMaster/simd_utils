@@ -352,6 +352,23 @@ __m128i prod   = _mm_unpacklo_epi64(prod01,prod23);   // (ab3,ab2,ab1,ab0)
 #include "neon_mathfun.h"
 #endif /* ARM */
 
+//_mm_movehl_ps vs shuffle(1,0,3,2)?
+static inline v2sd _mm_cvtps_pd_high(v4sf in){
+#ifdef ARM
+    return vcvt_high_f64_f32(in);
+#else
+    return _mm_cvtps_pd(_mm_movehl_ps(in, in));
+#endif
+}
+
+static inline v4sf _mm_cvtpd2_ps(v2sd low, v2sd high){
+	#ifdef ARM
+    return vcombine_f32(vcvt_f32_f64(low), vcvt_f32_f64(high));
+#else
+    return  _mm_movelh_ps(_mm_cvtpd_ps(low), _mm_cvtpd_ps(high));
+#endif
+}
+
 static inline v4sfx2 _mm_load2_ps(float const *mem_addr)
 {
 #ifdef ARM

@@ -1368,7 +1368,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("fp32tofp16_C %d %lf\n", len, elapsed);
 
-#ifdef SSE
+#if defined(AVX)
     clock_gettime(CLOCK_REALTIME, &start);
     fp32tofp16128(inout,  (uint16_t *)inout_s1, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1386,7 +1386,7 @@ int main(int argc, char **argv)
 		if(inout_s1[i] != inout_sref[i])
 			printf("error at %d : %08x != %08x\n",i,inout_s1[i],inout_sref[i]);
 	}
-	
+
     clock_gettime(CLOCK_REALTIME, &start);
     fp32tofp16256(inout,  (uint16_t *)inout_s1, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1464,7 +1464,6 @@ int main(int argc, char **argv)
 	}
 #endif
 
-#endif
     inout -= offset;
     inout2 -= offset;
     inout3 -= offset;
