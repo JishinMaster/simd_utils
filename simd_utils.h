@@ -557,6 +557,9 @@ static inline v2sd _mm_cvtepi64_pd_signed_custom(v2sid x)
 
 static inline v2sid _mm_cvtpd_epi64_custom(v2sd x)
 {
+#ifdef ARM
+	return vcvtq_s64_f64(x);
+#else //ARM
     // Signed
 #if 1
     x = _mm_add_pd(x, *(v2sd *) _pd_epi64_mask);
@@ -570,6 +573,7 @@ static inline v2sid _mm_cvtpd_epi64_custom(v2sd x)
         _mm_castpd_si128(x),
         _mm_castpd_si128(*(v2sd *) _pd_PDEPI64U));
 #endif
+#endif // ARM
 }
 
 #include "simd_utils_sse_double.h"
