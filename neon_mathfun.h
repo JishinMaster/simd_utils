@@ -295,8 +295,8 @@ static inline v4sf log_ps(v4sf x)
 
 
     v4sf y;
-    y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p1), vdupq_n_f32(c_cephes_log_p0), x);
-    y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p2), y, x);
+    y = vfmaq_n_f32(vdupq_n_f32(c_cephes_log_p1),x,c_cephes_log_p0);
+	y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p2), y, x);
     y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p3), y, x);
     y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p4), y, x);
     y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p5), y, x);
@@ -305,12 +305,12 @@ static inline v4sf log_ps(v4sf x)
     y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p8), y, x);
     y = vmulq_f32(y, x);
     y = vmulq_f32(y, z);
-    y = vfmaq_f32(y, e, vdupq_n_f32(c_cephes_log_q1));
-    y = vfmaq_f32(y, z, vdupq_n_f32(-0.5f));
+    y = vfmaq_n_f32(y, e, c_cephes_log_q1);
+    y = vfmaq_n_f32(y, z, -0.5f);
 
 
-    tmp = vmulq_f32(e, vdupq_n_f32(c_cephes_log_q2));
-    x = vfmaq_f32(x, e, vdupq_n_f32(c_cephes_log_q2));
+    tmp = vmulq_n_f32(e, c_cephes_log_q2);
+    x = vfmaq_n_f32(x, e, c_cephes_log_q2);
     x = vaddq_f32(x, y);
 
     x = vreinterpretq_f32_u32(vorrq_u32(vreinterpretq_u32_f32(x), invalid_mask));  // negative arg will be NAN
@@ -327,10 +327,10 @@ static inline v4sf exp_ps(v4sf x)
     x = vmaxq_f32(x, vdupq_n_f32(c_exp_lo));
 
     /* express exp(x) as exp(g + n*log(2)) */
-    fx = vmlaq_f32(vdupq_n_f32(0.5f), x, vdupq_n_f32(c_cephes_LOG2EF));
+    fx = vfmaq_n_f32(vdupq_n_f32(0.5f), x, c_cephes_LOG2EF);
 
     /* perform a floorf */
-    tmp = vcvtq_f32_s32(vcvtq_s32_f32(fx));
+    tmp = vrndmq_f32(fx);
 
     /* if greater, substract 1 */
     v4su mask = vcgtq_f32(tmp, fx);
@@ -347,14 +347,14 @@ static inline v4sf exp_ps(v4sf x)
     x = vfmaq_f32(x, fx, vdupq_n_f32(-c_cephes_exp_C2));
 
     static const float cephes_exp_p[6] = {c_cephes_exp_p0, c_cephes_exp_p1, c_cephes_exp_p2, c_cephes_exp_p3, c_cephes_exp_p4, c_cephes_exp_p5};
-    v4sf y = vld1q_dup_f32(cephes_exp_p + 0);
+    v4sf y;
     v4sf c1 = vld1q_dup_f32(cephes_exp_p + 1);
     v4sf c2 = vld1q_dup_f32(cephes_exp_p + 2);
     v4sf c3 = vld1q_dup_f32(cephes_exp_p + 3);
     v4sf c4 = vld1q_dup_f32(cephes_exp_p + 4);
     v4sf c5 = vld1q_dup_f32(cephes_exp_p + 5);
 
-    y = vfmaq_f32(c1, y, x);
+    y = vfmaq_n_f32(c1, x, c_cephes_exp_p0);
     y = vfmaq_f32(c2, y, x);
     y = vfmaq_f32(c3, y, x);
     y = vfmaq_f32(c4, y, x);

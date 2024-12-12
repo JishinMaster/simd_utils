@@ -1,4 +1,3 @@
-
 #ifndef SSE2NEON_H
 #define SSE2NEON_H
 
@@ -111,7 +110,7 @@
 #warning "GCC versions earlier than 10 are not supported."
 #endif
 
-#ifdef __OPTIMIZE__
+#if defined(__OPTIMIZE__) && !defined(SSE2NEON_SUPPRESS_WARNINGS)
 #warning \
     "Report any potential compiler optimization issues when using SSE2NEON. See the 'Optimization' section at https://github.com/DLTcollab/sse2neon."
 #endif
@@ -334,6 +333,15 @@ FORCE_INLINE void _sse2neon_smp_mb(void)
  */
 #define _MM_SHUFFLE(fp3, fp2, fp1, fp0) \
     (((fp3) << 6) | ((fp2) << 4) | ((fp1) << 2) | ((fp0)))
+
+/**
+ * MACRO for shuffle parameter for _mm_shuffle_pd().
+ * Argument fp1 is a digit[01] that represents the fp from argument "b"
+ * of mm_shuffle_pd that will be placed in fp1 of result.
+ * fp0 is a digit[01] that represents the fp from argument "a" of mm_shuffle_pd
+ * that will be placed in fp0 of result.
+ */
+#define _MM_SHUFFLE2(fp1, fp0) (((fp1) << 1) | (fp0))
 
 #if __has_builtin(__builtin_shufflevector)
 #define _sse2neon_shuffle(type, a, b, ...) \
@@ -5292,34 +5300,34 @@ FORCE_INLINE __m128i _mm_sll_epi64(__m128i a, __m128i count)
 // Shift packed 16-bit integers in a left by imm8 while shifting in zeros, and
 // store the results in dst.
 // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_slli_epi16
-FORCE_INLINE __m128i _mm_slli_epi16(__m128i a, int imm)
+FORCE_INLINE __m128i _mm_slli_epi16(__m128i a, const int imm)
 {
     if (_sse2neon_unlikely(imm & ~15))
         return _mm_setzero_si128();
     return vreinterpretq_m128i_s16(
-        vshlq_s16(vreinterpretq_s16_m128i(a), vdupq_n_s16(imm)));
+        vshlq_n_s16(vreinterpretq_s16_m128i(a), imm));
 }
 
 // Shift packed 32-bit integers in a left by imm8 while shifting in zeros, and
 // store the results in dst.
 // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_slli_epi32
-FORCE_INLINE __m128i _mm_slli_epi32(__m128i a, int imm)
+FORCE_INLINE __m128i _mm_slli_epi32(__m128i a, const int imm)
 {
     if (_sse2neon_unlikely(imm & ~31))
         return _mm_setzero_si128();
     return vreinterpretq_m128i_s32(
-        vshlq_s32(vreinterpretq_s32_m128i(a), vdupq_n_s32(imm)));
+        vshlq_n_s32(vreinterpretq_s32_m128i(a), imm));
 }
 
 // Shift packed 64-bit integers in a left by imm8 while shifting in zeros, and
 // store the results in dst.
 // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_slli_epi64
-FORCE_INLINE __m128i _mm_slli_epi64(__m128i a, int imm)
+FORCE_INLINE __m128i _mm_slli_epi64(__m128i a, const int imm)
 {
     if (_sse2neon_unlikely(imm & ~63))
         return _mm_setzero_si128();
     return vreinterpretq_m128i_s64(
-        vshlq_s64(vreinterpretq_s64_m128i(a), vdupq_n_s64(imm)));
+        vshlq_n_s64(vreinterpretq_s64_m128i(a), imm));
 }
 
 // Shift a left by imm8 bytes while shifting in zeros, and store the results in
@@ -5464,7 +5472,7 @@ FORCE_INLINE __m128i _mm_srl_epi64(__m128i a, __m128i count)
             ret = _mm_setzero_si128();                                        \
         } else {                                                              \
             ret = vreinterpretq_m128i_u16(                                    \
-                vshlq_u16(vreinterpretq_u16_m128i(_a), vdupq_n_s16(-(imm)))); \
+                vshrq_n_s16(vreinterpretq_u16_m128i(_a), imm)); \
         } _sse2neon_return(ret);)
 
 // Shift packed 32-bit integers in a right by imm8 while shifting in zeros, and
@@ -5477,7 +5485,7 @@ FORCE_INLINE __m128i _mm_srl_epi64(__m128i a, __m128i count)
             ret = _mm_setzero_si128();                                        \
         } else {                                                              \
             ret = vreinterpretq_m128i_u32(                                    \
-                vshlq_u32(vreinterpretq_u32_m128i(_a), vdupq_n_s32(-(imm)))); \
+                vshrq_n_s32(vreinterpretq_u32_m128i(_a), imm)); \
         } _sse2neon_return(ret);)
 
 // Shift packed 64-bit integers in a right by imm8 while shifting in zeros, and
@@ -5489,7 +5497,7 @@ FORCE_INLINE __m128i _mm_srl_epi64(__m128i a, __m128i count)
             ret = _mm_setzero_si128();                                        \
         } else {                                                              \
             ret = vreinterpretq_m128i_u64(                                    \
-                vshlq_u64(vreinterpretq_u64_m128i(_a), vdupq_n_s64(-(imm)))); \
+                vshrq_n_s64(vreinterpretq_u64_m128i(_a), imm)); \
         } _sse2neon_return(ret);)
 
 // Shift a right by imm8 bytes while shifting in zeros, and store the results in
