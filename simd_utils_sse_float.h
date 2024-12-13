@@ -252,10 +252,6 @@ static inline void exp128f(float *src, float *dst, int len)
     }
 }
 
-
-
-#ifndef ARM // seems to be a problem with sse2neon for this function, disabling at the moment
-
 // rewritten alternate version which properly returns MAXNUMF or 0.0 outside of boundaries
 static inline v4sf exp_ps_alternate(v4sf x)
 {
@@ -269,7 +265,7 @@ static inline v4sf exp_ps_alternate(v4sf x)
     /* Express e**x = e**g 2**n
      *   = e**g e**( n loge(2) )
      *   = e**( g + n loge(2) )
-     */
+     */ 
     fx = _mm_fmadd_ps_custom(x, *(v4sf *) _ps_cephes_LOG2EF, *(v4sf *) _ps_0p5);
     z = _mm_round_ps(fx, _MM_FROUND_FLOOR);  // round to floor
 
@@ -302,14 +298,6 @@ static inline v4sf exp_ps_alternate(v4sf x)
 #endif
     return z;
 }
-
-#else //ARM
-
-static inline v4sf exp_ps_alternate(v4sf x)
-{
-	return exp_ps(x);
-}
-#endif // ARM
 
 static inline void exp128f_(float *src, float *dst, int len)
 {

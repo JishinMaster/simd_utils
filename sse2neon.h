@@ -7545,12 +7545,16 @@ FORCE_INLINE __m128d _mm_round_pd(__m128d a, int rounding)
 #if defined(__aarch64__) || defined(_M_ARM64)
     switch (rounding) {
     case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC):
+	case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_RAISE_EXC):
         return vreinterpretq_m128d_f64(vrndnq_f64(vreinterpretq_f64_m128d(a)));
     case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC):
+	case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_RAISE_EXC):
         return _mm_floor_pd(a);
     case (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC):
+	case (_MM_FROUND_TO_POS_INF | _MM_FROUND_RAISE_EXC):
         return _mm_ceil_pd(a);
     case (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC):
+	case (_MM_FROUND_TO_ZERO | _MM_FROUND_RAISE_EXC):
         return vreinterpretq_m128d_f64(vrndq_f64(vreinterpretq_f64_m128d(a)));
     default:  //_MM_FROUND_CUR_DIRECTION
         return vreinterpretq_m128d_f64(vrndiq_f64(vreinterpretq_f64_m128d(a)));
@@ -7615,12 +7619,16 @@ FORCE_INLINE __m128 _mm_round_ps(__m128 a, int rounding)
     defined(__ARM_FEATURE_DIRECTED_ROUNDING)
     switch (rounding) {
     case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC):
+	case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_RAISE_EXC):
         return vreinterpretq_m128_f32(vrndnq_f32(vreinterpretq_f32_m128(a)));
     case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC):
+	case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_RAISE_EXC):
         return _mm_floor_ps(a);
     case (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC):
+	case (_MM_FROUND_TO_POS_INF | _MM_FROUND_RAISE_EXC):
         return _mm_ceil_ps(a);
     case (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC):
+	case (_MM_FROUND_TO_ZERO | _MM_FROUND_RAISE_EXC):
         return vreinterpretq_m128_f32(vrndq_f32(vreinterpretq_f32_m128(a)));
     default:  //_MM_FROUND_CUR_DIRECTION
         return vreinterpretq_m128_f32(vrndiq_f32(vreinterpretq_f32_m128(a)));
