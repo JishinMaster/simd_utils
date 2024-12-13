@@ -45,7 +45,7 @@ static inline v4sf log10_ps(v4sf x)
     x = _mm_add_ps(x, tmp);
 
     v4sf z = _mm_mul_ps(x, x);
-    v4sf y = _mm_fmadd_ps_custom(*(v4sf *) _ps_cephes_log_p0, x, *(v4sf *) _ps_cephes_log_p1);
+    v4sf y = _mm_fmadd1_ps_custom(x, *(v4sf *) _ps_cephes_log_p0, *(v4sf *) _ps_cephes_log_p1);
     y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p2);
     y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p3);
     y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p4);
@@ -56,15 +56,15 @@ static inline v4sf log10_ps(v4sf x)
     y = _mm_mul_ps(y, x);
     y = _mm_mul_ps(y, z);
 
-    y = _mm_fnmadd_ps_custom(z, *(v4sf *) _ps_0p5, y);
+    y = _mm_fnmadd1_ps_custom(z, *(v4sf *) _ps_0p5, y);
 
     // Could it be improved with more parallelism or would it worsen precision?
     tmp = _mm_add_ps(x, y);
-    z = _mm_mul_ps(tmp, *(v4sf *) _ps_cephes_L10EB);
-    z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_cephes_L10EA, z);
-    z = _mm_fmadd_ps_custom(x, *(v4sf *) _ps_cephes_L10EA, z);
-    z = _mm_fmadd_ps_custom(e, *(v4sf *) _ps_cephes_L102B, z);
-    x = _mm_fmadd_ps_custom(e, *(v4sf *) _ps_cephes_L102A, z);
+    z = _mm_mul1_ps(tmp, *(v4sf *) _ps_cephes_L10EB);
+    z = _mm_fmadd1_ps_custom(y, *(v4sf *) _ps_cephes_L10EA, z);
+    z = _mm_fmadd1_ps_custom(x, *(v4sf *) _ps_cephes_L10EA, z);
+    z = _mm_fmadd1_ps_custom(e, *(v4sf *) _ps_cephes_L102B, z);
+    x = _mm_fmadd1_ps_custom(e, *(v4sf *) _ps_cephes_L102A, z);
 
     x = _mm_or_ps(x, invalid_mask);  // negative arg will be NAN
 #ifdef LLVMMCA
@@ -96,7 +96,7 @@ static inline v4sf log2_ps(v4sf x)
     x = _mm_add_ps(x, tmp);
 
     v4sf z = _mm_mul_ps(x, x);
-    v4sf y = _mm_fmadd_ps_custom(*(v4sf *) _ps_cephes_log_p0, x, *(v4sf *) _ps_cephes_log_p1);
+    v4sf y = _mm_fmadd1_ps_custom(x, *(v4sf *) _ps_cephes_log_p0, *(v4sf *) _ps_cephes_log_p1);
     y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p2);
     y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p3);
     y = _mm_fmadd_ps_custom(y, x, *(v4sf *) _ps_cephes_log_p4);
@@ -107,12 +107,12 @@ static inline v4sf log2_ps(v4sf x)
     y = _mm_mul_ps(y, x);
     y = _mm_mul_ps(y, z);
 
-    y = _mm_fnmadd_ps_custom(z, *(v4sf *) _ps_0p5, y);
+    y = _mm_fnmadd1_ps_custom(z, *(v4sf *) _ps_0p5, y);
 
     // Could it be improved with more parallelism or would it worsen precision?
     tmp = _mm_add_ps(y, x);
-    z = _mm_mul_ps(y, *(v4sf *) _ps_cephes_LOG2EA);
-    z = _mm_fmadd_ps_custom(x, *(v4sf *) _ps_cephes_LOG2EA, z);
+    z = _mm_mul1_ps(y, *(v4sf *) _ps_cephes_LOG2EA);
+    z = _mm_fmadd1_ps_custom(x, *(v4sf *) _ps_cephes_LOG2EA, z);
     z = _mm_add_ps(z, tmp);
     x = _mm_add_ps(z, e);
     x = _mm_or_ps(x, invalid_mask);  // negative arg will be NAN
@@ -253,6 +253,12 @@ static inline void exp128f(float *src, float *dst, int len)
 }
 
 // rewritten alternate version which properly returns MAXNUMF or 0.0 outside of boundaries
+
+#if defined(ARM) && !defined(__aarch64__) // wrong behavior on ARMV7
+static inline v4sf exp_ps_alternate(v4sf x){
+	return exp_ps(x);
+}
+#else//ARMV7
 static inline v4sf exp_ps_alternate(v4sf x)
 {
     v4sf z_tmp, z, fx;
@@ -266,11 +272,11 @@ static inline v4sf exp_ps_alternate(v4sf x)
      *   = e**g e**( n loge(2) )
      *   = e**( g + n loge(2) )
      */ 
-    fx = _mm_fmadd_ps_custom(x, *(v4sf *) _ps_cephes_LOG2EF, *(v4sf *) _ps_0p5);
-    z = _mm_round_ps(fx, _MM_FROUND_FLOOR);  // round to floor
+    fx = _mm_fmadd1_ps_custom(x, *(v4sf *) _ps_cephes_LOG2EF, *(v4sf *) _ps_0p5);
+    z = _mm_floor_ps(fx);  // round to floor
 
-    x = _mm_fmadd_ps_custom(z, *(v4sf *) _ps_cephes_exp_minC1, x);
-    x = _mm_fmadd_ps_custom(z, *(v4sf *) _ps_cephes_exp_minC2, x);
+    x = _mm_fmadd1_ps_custom(z, *(v4sf *) _ps_cephes_exp_minC1, x);
+    x = _mm_fmadd1_ps_custom(z, *(v4sf *) _ps_cephes_exp_minC2, x);
 
     n = _mm_cvttps_epi32(z); 
 	n = _mm_add_epi32(n, *(v4si *) _pi32_0x7f);
@@ -279,7 +285,7 @@ static inline v4sf exp_ps_alternate(v4sf x)
 
     z = _mm_mul_ps(x, x);
 
-    z_tmp = _mm_fmadd_ps_custom(*(v4sf *) _ps_cephes_exp_p0, x, *(v4sf *) _ps_cephes_exp_p1);
+    z_tmp = _mm_fmadd1_ps_custom(x, *(v4sf *) _ps_cephes_exp_p0, *(v4sf *) _ps_cephes_exp_p1);
     z_tmp = _mm_fmadd_ps_custom(z_tmp, x, *(v4sf *) _ps_cephes_exp_p2);
     z_tmp = _mm_fmadd_ps_custom(z_tmp, x, *(v4sf *) _ps_cephes_exp_p3);
     z_tmp = _mm_fmadd_ps_custom(z_tmp, x, *(v4sf *) _ps_cephes_exp_p4);
@@ -298,6 +304,8 @@ static inline v4sf exp_ps_alternate(v4sf x)
 #endif
     return z;
 }
+#endif //ARMV7
+
 
 static inline void exp128f_(float *src, float *dst, int len)
 {
@@ -410,7 +418,7 @@ static inline v4sf cbrtf_ps(v4sf xx)
     /* Approximate cube root of number between .5 and 1,
      * peak relative error = 9.2e-6
      */
-    tmp = _mm_fmadd_ps_custom(*(v4sf *) _ps_CBRTF_P0, x, *(v4sf *) _ps_CBRTF_P1);
+    tmp = _mm_fmadd1_ps_custom(x, *(v4sf *) _ps_CBRTF_P0, *(v4sf *) _ps_CBRTF_P1);
     tmp = _mm_fmadd_ps_custom(x, tmp, *(v4sf *) _ps_CBRTF_P2);
     tmp = _mm_fmadd_ps_custom(x, tmp, *(v4sf *) _ps_CBRTF_P3);
     x = _mm_fmadd_ps_custom(x, tmp, *(v4sf *) _ps_CBRTF_P4);
@@ -420,9 +428,9 @@ static inline v4sf cbrtf_ps(v4sf xx)
     e = _mm_and_ps(e, *(v4sf *) _ps_pos_sign_mask);
 
     rem = e;
-    e = _mm_mul_ps(e, *(v4sf *) _ps_0p3);
+    e = _mm_mul1_ps(e, *(v4sf *) _ps_0p3);
     e = _mm_round_ps(e, ROUNDTOZERO);
-    rem = _mm_fnmadd_ps_custom(*(v4sf *) _ps_3, e, rem);
+    rem = _mm_fnmadd1_ps_custom(e, *(v4sf *) _ps_3, rem);
 
     v4sf mul1, mul2;
     v4sf mul_cst1 = _mm_blendv_ps(*(v4sf *) _ps_cephes_invCBRT2, *(v4sf *) _ps_cephes_CBRT2, e_sign);
@@ -453,7 +461,7 @@ static inline v4sf cbrtf_ps(v4sf xx)
     tmp2 = _mm_mul_ps(x, x);
     tmp2 = _mm_div_ps(z, tmp2);
     tmp2 = _mm_sub_ps(x, tmp2);
-    x = _mm_fnmadd_ps_custom(tmp2, *(v4sf *) _ps_0p3, x);
+    x = _mm_fnmadd1_ps_custom(tmp2, *(v4sf *) _ps_0p3, x);
 
     // x = _mm_blendv_ps(_mm_mul_ps(x, *(v4sf *) _ps_min1), x, sign);
     x = _mm_xor_ps(x, sign);
@@ -742,8 +750,8 @@ static inline void mulc128f(float *src, float value, float *dst, int len)
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp1 = _mm_load_ps(src + i);
             v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
-            v4sf dst_tmp1 = _mm_mul_ps(tmp, src_tmp1);
-            v4sf dst_tmp2 = _mm_mul_ps(tmp, src_tmp2);
+            v4sf dst_tmp1 = _mm_mul1_ps(src_tmp1, tmp);
+            v4sf dst_tmp2 = _mm_mul1_ps(src_tmp2, tmp);
             _mm_store_ps(dst + i, dst_tmp1);
             _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
@@ -751,8 +759,8 @@ static inline void mulc128f(float *src, float value, float *dst, int len)
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp1 = _mm_loadu_ps(src + i);
             v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
-            v4sf dst_tmp1 = _mm_mul_ps(tmp, src_tmp1);
-            v4sf dst_tmp2 = _mm_mul_ps(tmp, src_tmp2);
+            v4sf dst_tmp1 = _mm_mul1_ps(src_tmp1, tmp);
+            v4sf dst_tmp2 = _mm_mul1_ps(src_tmp2, tmp);
             _mm_storeu_ps(dst + i, dst_tmp1);
             _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
@@ -813,13 +821,13 @@ static inline void mulcadd128f(float *_a, float _b, float *_c, float *dst, int l
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf a = _mm_load_ps(_a + i);
             v4sf c = _mm_load_ps(_c + i);
-            _mm_store_ps(dst + i, _mm_fmadd_ps_custom(a, b, c));
+            _mm_store_ps(dst + i, _mm_fmadd1_ps_custom(a, b, c));
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf a = _mm_loadu_ps(_a + i);
             v4sf c = _mm_loadu_ps(_c + i);
-            _mm_storeu_ps(dst + i, _mm_fmadd_ps_custom(a, b, c));
+            _mm_storeu_ps(dst + i, _mm_fmadd1_ps_custom(a, b, c));
         }
     }
 
@@ -839,12 +847,12 @@ static inline void mulcaddc128f(float *_a, float _b, float _c, float *dst, int l
     if (areAligned2((uintptr_t) (_a), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf a = _mm_load_ps(_a + i);
-            _mm_store_ps(dst + i, _mm_fmadd_ps_custom(a, b, c));
+            _mm_store_ps(dst + i, _mm_fmadd1_ps_custom(a, b, c));
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf a = _mm_loadu_ps(_a + i);
-            _mm_storeu_ps(dst + i, _mm_fmadd_ps_custom(a, b, c));
+            _mm_storeu_ps(dst + i, _mm_fmadd1_ps_custom(a, b, c));
         }
     }
 
@@ -969,10 +977,10 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
               v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
               v4sf src_tmp3 = _mm_load_ps(src + i + 2 * SSE_LEN_FLOAT);
               v4sf src_tmp4 = _mm_load_ps(src + i + 3 * SSE_LEN_FLOAT);
-              v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
-              v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
-              v4sf tmp3 = _mm_mul_ps(src_tmp3, scale_fact_vec);
-              v4sf tmp4 = _mm_mul_ps(src_tmp4, scale_fact_vec);
+              v4sf tmp1 = _mm_mul1_ps(src_tmp1, scale_fact_vec);
+              v4sf tmp2 = _mm_mul1_ps(src_tmp2, scale_fact_vec);
+              v4sf tmp3 = _mm_mul1_ps(src_tmp3, scale_fact_vec);
+              v4sf tmp4 = _mm_mul1_ps(src_tmp4, scale_fact_vec);
               v4si tmp1_int = _mm_cvtps_epi32(tmp1);
               v4si tmp2_int = _mm_cvtps_epi32(tmp2);
               v4si tmp3_int = _mm_cvtps_epi32(tmp3);
@@ -988,10 +996,10 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
               v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
               v4sf src_tmp3 = _mm_loadu_ps(src + i + 2 * SSE_LEN_FLOAT);
               v4sf src_tmp4 = _mm_loadu_ps(src + i + 3 * SSE_LEN_FLOAT);
-              v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
-              v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
-              v4sf tmp3 = _mm_mul_ps(src_tmp3, scale_fact_vec);
-              v4sf tmp4 = _mm_mul_ps(src_tmp4, scale_fact_vec);
+              v4sf tmp1 = _mm_mul1_ps(src_tmp1, scale_fact_vec);
+              v4sf tmp2 = _mm_mul1_ps(src_tmp2, scale_fact_vec);
+              v4sf tmp3 = _mm_mul1_ps(src_tmp3, scale_fact_vec);
+              v4sf tmp4 = _mm_mul1_ps(src_tmp4, scale_fact_vec);
               v4si tmp1_int = _mm_cvtps_epi32(tmp1);
               v4si tmp2_int = _mm_cvtps_epi32(tmp2);
               v4si tmp3_int = _mm_cvtps_epi32(tmp3);
@@ -1009,10 +1017,10 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
               v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
               v4sf src_tmp3 = _mm_load_ps(src + i + 2 * SSE_LEN_FLOAT);
               v4sf src_tmp4 = _mm_load_ps(src + i + 3 * SSE_LEN_FLOAT);
-              v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
-              v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
-              v4sf tmp3 = _mm_mul_ps(src_tmp3, scale_fact_vec);
-              v4sf tmp4 = _mm_mul_ps(src_tmp4, scale_fact_vec);
+              v4sf tmp1 = _mm_mul1_ps(src_tmp1, scale_fact_vec);
+              v4sf tmp2 = _mm_mul1_ps(src_tmp2, scale_fact_vec);
+              v4sf tmp3 = _mm_mul1_ps(src_tmp3, scale_fact_vec);
+              v4sf tmp4 = _mm_mul1_ps(src_tmp4, scale_fact_vec);
               v4sf spe1 = _mm_and_ps(tmp1, *(v4sf*)_ps_sign_mask);
               spe1 = _mm_or_ps(spe1,*(v4sf*)_ps_mid_mask);
               tmp1 = _mm_add_ps(tmp1, spe1);
@@ -1044,10 +1052,10 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
               v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
               v4sf src_tmp3 = _mm_loadu_ps(src + i + 2 * SSE_LEN_FLOAT);
               v4sf src_tmp4 = _mm_loadu_ps(src + i + 3 * SSE_LEN_FLOAT);
-              v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
-              v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
-              v4sf tmp3 = _mm_mul_ps(src_tmp3, scale_fact_vec);
-              v4sf tmp4 = _mm_mul_ps(src_tmp4, scale_fact_vec);
+              v4sf tmp1 = _mm_mul1_ps(src_tmp1, scale_fact_vec);
+              v4sf tmp2 = _mm_mul1_ps(src_tmp2, scale_fact_vec);
+              v4sf tmp3 = _mm_mul1_ps(src_tmp3, scale_fact_vec);
+              v4sf tmp4 = _mm_mul1_ps(src_tmp4, scale_fact_vec);
               v4sf spe1 = _mm_and_ps(tmp1, *(v4sf*)_ps_sign_mask);
               spe1 = _mm_or_ps(spe1,*(v4sf*)_ps_mid_mask);
               tmp1 = _mm_add_ps(tmp1, spe1);
@@ -1118,10 +1126,10 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
               v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
               v4sf src_tmp3 = _mm_load_ps(src + i + 2 * SSE_LEN_FLOAT);
               v4sf src_tmp4 = _mm_load_ps(src + i + 3 * SSE_LEN_FLOAT);
-              v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
-              v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
-              v4sf tmp3 = _mm_mul_ps(src_tmp3, scale_fact_vec);
-              v4sf tmp4 = _mm_mul_ps(src_tmp4, scale_fact_vec);
+              v4sf tmp1 = _mm_mul1_ps(src_tmp1, scale_fact_vec);
+              v4sf tmp2 = _mm_mul1_ps(src_tmp2, scale_fact_vec);
+              v4sf tmp3 = _mm_mul1_ps(src_tmp3, scale_fact_vec);
+              v4sf tmp4 = _mm_mul1_ps(src_tmp4, scale_fact_vec);
               v4si tmp1_int = _mm_cvtps_epi32(tmp1);
               v4si tmp2_int = _mm_cvtps_epi32(tmp2);
               v4si tmp3_int = _mm_cvtps_epi32(tmp3);
@@ -1137,10 +1145,10 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
               v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
               v4sf src_tmp3 = _mm_loadu_ps(src + i + 2 * SSE_LEN_FLOAT);
               v4sf src_tmp4 = _mm_loadu_ps(src + i + 3 * SSE_LEN_FLOAT);
-              v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
-              v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
-              v4sf tmp3 = _mm_mul_ps(src_tmp3, scale_fact_vec);
-              v4sf tmp4 = _mm_mul_ps(src_tmp4, scale_fact_vec);
+              v4sf tmp1 = _mm_mul1_ps(src_tmp1, scale_fact_vec);
+              v4sf tmp2 = _mm_mul1_ps(src_tmp2, scale_fact_vec);
+              v4sf tmp3 = _mm_mul1_ps(src_tmp3, scale_fact_vec);
+              v4sf tmp4 = _mm_mul1_ps(src_tmp4, scale_fact_vec);
               v4si tmp1_int = _mm_cvtps_epi32(tmp1);
               v4si tmp2_int = _mm_cvtps_epi32(tmp2);
               v4si tmp3_int = _mm_cvtps_epi32(tmp3);
@@ -1158,10 +1166,10 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
               v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
               v4sf src_tmp3 = _mm_load_ps(src + i + 2 * SSE_LEN_FLOAT);
               v4sf src_tmp4 = _mm_load_ps(src + i + 3 * SSE_LEN_FLOAT);
-              v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
-              v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
-              v4sf tmp3 = _mm_mul_ps(src_tmp3, scale_fact_vec);
-              v4sf tmp4 = _mm_mul_ps(src_tmp4, scale_fact_vec);
+              v4sf tmp1 = _mm_mul1_ps(src_tmp1, scale_fact_vec);
+              v4sf tmp2 = _mm_mul1_ps(src_tmp2, scale_fact_vec);
+              v4sf tmp3 = _mm_mul1_ps(src_tmp3, scale_fact_vec);
+              v4sf tmp4 = _mm_mul1_ps(src_tmp4, scale_fact_vec);
               v4sf spe1 = _mm_and_ps(tmp1, *(v4sf*)_ps_sign_mask);
               spe1 = _mm_or_ps(spe1,*(v4sf*)_ps_mid_mask);
               tmp1 = _mm_add_ps(tmp1, spe1);
@@ -1193,10 +1201,10 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
               v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
               v4sf src_tmp3 = _mm_loadu_ps(src + i + 2 * SSE_LEN_FLOAT);
               v4sf src_tmp4 = _mm_loadu_ps(src + i + 3 * SSE_LEN_FLOAT);
-              v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
-              v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
-              v4sf tmp3 = _mm_mul_ps(src_tmp3, scale_fact_vec);
-              v4sf tmp4 = _mm_mul_ps(src_tmp4, scale_fact_vec);
+              v4sf tmp1 = _mm_mul1_ps(src_tmp1, scale_fact_vec);
+              v4sf tmp2 = _mm_mul1_ps(src_tmp2, scale_fact_vec);
+              v4sf tmp3 = _mm_mul1_ps(src_tmp3, scale_fact_vec);
+              v4sf tmp4 = _mm_mul1_ps(src_tmp4, scale_fact_vec);
               v4sf spe1 = _mm_and_ps(tmp1, *(v4sf*)_ps_sign_mask);
               spe1 = _mm_or_ps(spe1,*(v4sf*)_ps_mid_mask);
               tmp1 = _mm_add_ps(tmp1, spe1);
@@ -1266,8 +1274,8 @@ static inline void convertFloat32ToU16_128(float *src, uint16_t *dst, int len, i
           for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
               v4sf src_tmp1 = _mm_load_ps(src + i);
               v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
-              v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
-              v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+              v4sf tmp1 = _mm_mul1_ps(src_tmp1, scale_fact_vec);
+              v4sf tmp2 = _mm_mul1_ps(src_tmp2, scale_fact_vec);
               v4si tmp1_int = _mm_cvtps_epi32(tmp1);
               v4si tmp2_int = _mm_cvtps_epi32(tmp2);
               v4si tmp5 = _mm_packus_epi32(tmp1_int, tmp2_int);
@@ -1277,8 +1285,8 @@ static inline void convertFloat32ToU16_128(float *src, uint16_t *dst, int len, i
           for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
               v4sf src_tmp1 = _mm_loadu_ps(src + i);
               v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
-              v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
-              v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+              v4sf tmp1 = _mm_mul1_ps(src_tmp1, scale_fact_vec);
+              v4sf tmp2 = _mm_mul1_ps(src_tmp2, scale_fact_vec);
               v4si tmp1_int = _mm_cvtps_epi32(tmp1);
               v4si tmp2_int = _mm_cvtps_epi32(tmp2);
               v4si tmp5 = _mm_packus_epi32(tmp1_int, tmp2_int);
@@ -1290,8 +1298,8 @@ static inline void convertFloat32ToU16_128(float *src, uint16_t *dst, int len, i
           for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
               v4sf src_tmp1 = _mm_load_ps(src + i);
               v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
-              v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
-              v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+              v4sf tmp1 = _mm_mul1_ps(src_tmp1, scale_fact_vec);
+              v4sf tmp2 = _mm_mul1_ps(src_tmp2, scale_fact_vec);
               v4sf spe1 = _mm_and_ps(tmp1, *(v4sf*)_ps_sign_mask);
               spe1 = _mm_or_ps(spe1,*(v4sf*)_ps_mid_mask);
               tmp1 = _mm_add_ps(tmp1, spe1);
@@ -1309,8 +1317,8 @@ static inline void convertFloat32ToU16_128(float *src, uint16_t *dst, int len, i
           for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
               v4sf src_tmp1 = _mm_loadu_ps(src + i);
               v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
-              v4sf tmp1 = _mm_mul_ps(src_tmp1, scale_fact_vec);
-              v4sf tmp2 = _mm_mul_ps(src_tmp2, scale_fact_vec);
+              v4sf tmp1 = _mm_mul1_ps(src_tmp1, scale_fact_vec);
+              v4sf tmp2 = _mm_mul1_ps(src_tmp2, scale_fact_vec);
               v4sf spe1 = _mm_and_ps(tmp1, *(v4sf*)_ps_sign_mask);
               spe1 = _mm_or_ps(spe1,*(v4sf*)_ps_mid_mask);
               tmp1 = _mm_add_ps(tmp1, spe1);
@@ -1360,8 +1368,8 @@ static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, 
             high = _mm_srai_epi32(high, 0x10);                 // make high 5 -1 6 -1 7 -1 8 -1
 
             // convert the vector to float and scale it
-            v4sf floatlo = _mm_mul_ps(_mm_cvtepi32_ps(low), scale_fact_vec);
-            v4sf floathi = _mm_mul_ps(_mm_cvtepi32_ps(high), scale_fact_vec);
+            v4sf floatlo = _mm_mul1_ps(_mm_cvtepi32_ps(low), scale_fact_vec);
+            v4sf floathi = _mm_mul1_ps(_mm_cvtepi32_ps(high), scale_fact_vec);
 
             _mm_store_ps(dst + i, floatlo);
             _mm_store_ps(dst + i + SSE_LEN_FLOAT, floathi);
@@ -1375,8 +1383,8 @@ static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, 
             high = _mm_srai_epi32(high, 0x10);                  // make high 5 -1 6 -1 7 -1 8 -1
 
             // convert the vector to float and scale it
-            v4sf floatlo = _mm_mul_ps(_mm_cvtepi32_ps(low), scale_fact_vec);
-            v4sf floathi = _mm_mul_ps(_mm_cvtepi32_ps(high), scale_fact_vec);
+            v4sf floatlo = _mm_mul1_ps(_mm_cvtepi32_ps(low), scale_fact_vec);
+            v4sf floathi = _mm_mul1_ps(_mm_cvtepi32_ps(high), scale_fact_vec);
 
             _mm_storeu_ps(dst + i, floatlo);
             _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, floathi);
@@ -2245,7 +2253,7 @@ static inline v4sf sinhf_ps(v4sf x)
     zsup1 = _mm_cmpgt_ps(z, *(v4sf *) _ps_1);
     z_first_branch = exp_ps_alternate(z);
     tmp = _mm_div_ps(*(v4sf *) _ps_min0p5, z_first_branch);
-    z_first_branch = _mm_fmadd_ps_custom(*(v4sf *) _ps_0p5, z_first_branch, tmp);
+    z_first_branch = _mm_fmadd1_ps_custom(z_first_branch, *(v4sf *) _ps_0p5, tmp);
 
 #if 1
     z_first_branch = _mm_xor_ps(z_first_branch, sign);
@@ -2256,7 +2264,7 @@ static inline v4sf sinhf_ps(v4sf x)
 
     // Second branch
     tmp = _mm_mul_ps(x, x);
-    z_second_branch = _mm_fmadd_ps_custom(*(v4sf *) _ps_SINH_P0, tmp, *(v4sf *) _ps_SINH_P1);
+    z_second_branch = _mm_fmadd1_ps_custom(tmp, *(v4sf *) _ps_SINH_P0, *(v4sf *) _ps_SINH_P1);
     z_second_branch = _mm_fmadd_ps_custom(z_second_branch, tmp, *(v4sf *) _ps_SINH_P2);
     z_second_branch = _mm_mul_ps(z_second_branch, tmp);
     z_second_branch = _mm_fmadd_ps_custom(z_second_branch, x, x);
@@ -2307,7 +2315,7 @@ static inline v4sf acoshf_ps(v4sf x)
     zinf0p5 = _mm_cmplt_ps(z, *(v4sf *) _ps_0p5);  // first and second branch
 
     // First Branch (z < 0.5)
-    z_first_branch = _mm_fmadd_ps_custom(*(v4sf *) _ps_ACOSH_P0, z, *(v4sf *) _ps_ACOSH_P1);
+    z_first_branch = _mm_fmadd1_ps_custom(z, *(v4sf *) _ps_ACOSH_P0, *(v4sf *) _ps_ACOSH_P1);
     z_first_branch = _mm_fmadd_ps_custom(z_first_branch, z, *(v4sf *) _ps_ACOSH_P2);
     z_first_branch = _mm_fmadd_ps_custom(z_first_branch, z, *(v4sf *) _ps_ACOSH_P3);
     z_first_branch = _mm_fmadd_ps_custom(z_first_branch, z, *(v4sf *) _ps_ACOSH_P4);
@@ -2369,7 +2377,7 @@ static inline v4sf asinhf_ps(v4sf xx)
 
     tmp = _mm_mul_ps(x, x);
     // First Branch (x < 0.5)
-    z_first_branch = _mm_fmadd_ps_custom(*(v4sf *) _ps_ASINH_P0, tmp, *(v4sf *) _ps_ASINH_P1);
+    z_first_branch = _mm_fmadd1_ps_custom(tmp, *(v4sf *) _ps_ASINH_P0, *(v4sf *) _ps_ASINH_P1);
     z_first_branch = _mm_fmadd_ps_custom(z_first_branch, tmp, *(v4sf *) _ps_ASINH_P2);
     z_first_branch = _mm_fmadd_ps_custom(z_first_branch, tmp, *(v4sf *) _ps_ASINH_P3);
     z_first_branch = _mm_mul_ps(z_first_branch, tmp);
@@ -2424,7 +2432,7 @@ static inline v4sf atanhf_ps(v4sf x)
 
     // First branch
     tmp = _mm_mul_ps(x, x);
-    z_first_branch = _mm_fmadd_ps_custom(*(v4sf *) _ps_ATANH_P0, tmp, *(v4sf *) _ps_ATANH_P1);
+    z_first_branch = _mm_fmadd1_ps_custom(tmp, *(v4sf *) _ps_ATANH_P0, *(v4sf *) _ps_ATANH_P1);
     z_first_branch = _mm_fmadd_ps_custom(z_first_branch, tmp, *(v4sf *) _ps_ATANH_P2);
     z_first_branch = _mm_fmadd_ps_custom(z_first_branch, tmp, *(v4sf *) _ps_ATANH_P3);
     z_first_branch = _mm_fmadd_ps_custom(z_first_branch, tmp, *(v4sf *) _ps_ATANH_P4);
@@ -2437,7 +2445,7 @@ static inline v4sf atanhf_ps(v4sf x)
     tmp2 = _mm_rcp_ps(tmp);
     tmp = _mm_fmadd_ps_custom(tmp2, x, tmp2);
     z_second_branch = log_ps(tmp);
-    z_second_branch = _mm_mul_ps(*(v4sf *) _ps_0p5, z_second_branch);
+    z_second_branch = _mm_mul1_ps(z_second_branch, *(v4sf *) _ps_0p5);
 
     z = _mm_blendv_ps(z_second_branch, z_first_branch, zinf0p5);
     z = _mm_blendv_ps(z, x, zinf1emin4);
@@ -2496,7 +2504,7 @@ static inline v4sf atanf_ps(v4sf xx)
 
     z = _mm_mul_ps(x, x);
 
-    tmp = _mm_fmadd_ps_custom(*(v4sf *) _ps_ATAN_P0, z, *(v4sf *) _ps_ATAN_P1);
+    tmp = _mm_fmadd1_ps_custom(z, *(v4sf *) _ps_ATAN_P0, *(v4sf *) _ps_ATAN_P1);
     tmp = _mm_fmadd_ps_custom(tmp, z, *(v4sf *) _ps_ATAN_P2);
     tmp = _mm_fmadd_ps_custom(tmp, z, *(v4sf *) _ps_ATAN_P3);
     tmp = _mm_mul_ps(z, tmp);
@@ -2643,11 +2651,11 @@ static inline v4sf asinf_ps(v4sf xx)
     asup0p5 = _mm_cmpgt_ps(a, *(v4sf *) _ps_0p5);  // if( a > 0.5f ) flag = 1 else 0
     // TODO : optimise with fmsub?
     z_tmp = _mm_sub_ps(*(v4sf *) _ps_1, a);
-    z_tmp = _mm_mul_ps(*(v4sf *) _ps_0p5, z_tmp);
+    z_tmp = _mm_mul1_ps(z_tmp, *(v4sf *) _ps_0p5);
     z = _mm_blendv_ps(_mm_mul_ps(a, a), z_tmp, asup0p5);
     x = _mm_blendv_ps(a, _mm_sqrt_ps(z), asup0p5);
 
-    tmp = _mm_fmadd_ps_custom(*(v4sf *) _ps_ASIN_P0, z, *(v4sf *) _ps_ASIN_P1);
+    tmp = _mm_fmadd1_ps_custom(z, *(v4sf *) _ps_ASIN_P0, *(v4sf *) _ps_ASIN_P1);
     tmp = _mm_fmadd_ps_custom(z, tmp, *(v4sf *) _ps_ASIN_P2);
     tmp = _mm_fmadd_ps_custom(z, tmp, *(v4sf *) _ps_ASIN_P3);
     tmp = _mm_fmadd_ps_custom(z, tmp, *(v4sf *) _ps_ASIN_P4);
@@ -2715,7 +2723,7 @@ static inline v4sf tanhf_ps(v4sf xx)
     // z = x * x;
     z = _mm_mul_ps(x, x);
 
-    z_second_branch = _mm_fmadd_ps_custom(z, *(v4sf *) _ps_TANH_P0, *(v4sf *) _ps_TANH_P1);
+    z_second_branch = _mm_fmadd1_ps_custom(z, *(v4sf *) _ps_TANH_P0, *(v4sf *) _ps_TANH_P1);
     z_second_branch = _mm_fmadd_ps_custom(z_second_branch, z, *(v4sf *) _ps_TANH_P2);
     z_second_branch = _mm_fmadd_ps_custom(z_second_branch, z, *(v4sf *) _ps_TANH_P3);
     z_second_branch = _mm_fmadd_ps_custom(z_second_branch, z, *(v4sf *) _ps_TANH_P4);
@@ -2769,7 +2777,7 @@ static inline v4sf tanf_ps(v4sf xx)
     sign = _mm_and_ps(xx, *(v4sf *) _ps_sign_mask);
 
     /* compute x mod PIO4 */
-    tmp = _mm_mul_ps(*(v4sf *) _ps_FOPI, x);
+    tmp = _mm_mul1_ps(x, *(v4sf *) _ps_FOPI);
     j = _mm_cvttps_epi32(tmp);
 #if 1  // convert is faster than round on some targets
     y = _mm_cvtepi32_ps(j);
@@ -2783,14 +2791,14 @@ static inline v4sf tanf_ps(v4sf xx)
     tmpi = _mm_and_si128(*(v4si *) _pi32_1, jandone);
     j = _mm_add_epi32(j, tmpi);
 
-    z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP1, x);
-    z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP2, z);
-    z = _mm_fmadd_ps_custom(y, *(v4sf *) _ps_DP3, z);
+    z = _mm_fmadd1_ps_custom(y, *(v4sf *) _ps_DP1, x);
+    z = _mm_fmadd1_ps_custom(y, *(v4sf *) _ps_DP2, z);
+    z = _mm_fmadd1_ps_custom(y, *(v4sf *) _ps_DP3, z);
     zz = _mm_mul_ps(z, z);  // z*z
 
     // TODO : should not be computed if X < 10e-4
     /* 1.7e-8 relative error in [-pi/4, +pi/4] */
-    tmp = _mm_fmadd_ps_custom(*(v4sf *) _ps_TAN_P0, zz, *(v4sf *) _ps_TAN_P1);
+    tmp = _mm_fmadd1_ps_custom(zz, *(v4sf *) _ps_TAN_P0, *(v4sf *) _ps_TAN_P1);
     tmp = _mm_fmadd_ps_custom(tmp, zz, *(v4sf *) _ps_TAN_P2);
     tmp = _mm_fmadd_ps_custom(tmp, zz, *(v4sf *) _ps_TAN_P3);
     tmp = _mm_fmadd_ps_custom(tmp, zz, *(v4sf *) _ps_TAN_P4);

@@ -5304,8 +5304,13 @@ FORCE_INLINE __m128i _mm_slli_epi16(__m128i a, const int imm)
 {
     if (_sse2neon_unlikely(imm & ~15))
         return _mm_setzero_si128();
+#if defined(__aarch64__)
     return vreinterpretq_m128i_s16(
         vshlq_n_s16(vreinterpretq_s16_m128i(a), imm));
+#else
+    return vreinterpretq_m128i_s16(
+        vshlq_s16(vreinterpretq_s16_m128i(a), vdupq_n_s16(imm)));	
+#endif	
 }
 
 // Shift packed 32-bit integers in a left by imm8 while shifting in zeros, and
@@ -5315,8 +5320,13 @@ FORCE_INLINE __m128i _mm_slli_epi32(__m128i a, const int imm)
 {
     if (_sse2neon_unlikely(imm & ~31))
         return _mm_setzero_si128();
+#if defined(__aarch64__)	
     return vreinterpretq_m128i_s32(
         vshlq_n_s32(vreinterpretq_s32_m128i(a), imm));
+#else
+    return vreinterpretq_m128i_s32(
+        vshlq_s32(vreinterpretq_s32_m128i(a), vdupq_n_s32(imm)));
+#endif		
 }
 
 // Shift packed 64-bit integers in a left by imm8 while shifting in zeros, and
@@ -5326,8 +5336,13 @@ FORCE_INLINE __m128i _mm_slli_epi64(__m128i a, const int imm)
 {
     if (_sse2neon_unlikely(imm & ~63))
         return _mm_setzero_si128();
+#if defined(__aarch64__)
     return vreinterpretq_m128i_s64(
         vshlq_n_s64(vreinterpretq_s64_m128i(a), imm));
+#else		
+    return vreinterpretq_m128i_s64(
+        vshlq_s64(vreinterpretq_s64_m128i(a), vdupq_n_s64(imm)));
+#endif
 }
 
 // Shift a left by imm8 bytes while shifting in zeros, and store the results in
@@ -5466,40 +5481,51 @@ FORCE_INLINE __m128i _mm_srl_epi64(__m128i a, __m128i count)
 // Shift packed 16-bit integers in a right by imm8 while shifting in zeros, and
 // store the results in dst.
 // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_srli_epi16
-#define _mm_srli_epi16(a, imm)                                                \
-    _sse2neon_define0(                                                        \
-        __m128i, a, __m128i ret; if (_sse2neon_unlikely((imm) & ~15)) {       \
-            ret = _mm_setzero_si128();                                        \
-        } else {                                                              \
-            ret = vreinterpretq_m128i_u16(                                    \
-                vshrq_n_s16(vreinterpretq_u16_m128i(_a), imm)); \
-        } _sse2neon_return(ret);)
+FORCE_INLINE __m128i _mm_srli_epi16(__m128i a, const int imm)
+{
+    if (_sse2neon_unlikely(imm & ~15))
+        return _mm_setzero_si128();
+#if defined(__aarch64__)
+    return vreinterpretq_m128i_s16(
+        vshlq_n_s16(vreinterpretq_s16_m128i(a), -imm));
+#else
+    return vreinterpretq_m128i_s16(
+        vshlq_s16(vreinterpretq_s16_m128i(a), vdupq_n_s16(-imm)));	
+#endif	
+}
 
 // Shift packed 32-bit integers in a right by imm8 while shifting in zeros, and
 // store the results in dst.
 // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_srli_epi32
 // FORCE_INLINE __m128i _mm_srli_epi32(__m128i a, __constrange(0,255) int imm)
-#define _mm_srli_epi32(a, imm)                                                \
-    _sse2neon_define0(                                                        \
-        __m128i, a, __m128i ret; if (_sse2neon_unlikely((imm) & ~31)) {       \
-            ret = _mm_setzero_si128();                                        \
-        } else {                                                              \
-            ret = vreinterpretq_m128i_u32(                                    \
-                vshrq_n_s32(vreinterpretq_u32_m128i(_a), imm)); \
-        } _sse2neon_return(ret);)
+FORCE_INLINE __m128i _mm_srli_epi32(__m128i a, const int imm)
+{
+    if (_sse2neon_unlikely(imm & ~31))
+        return _mm_setzero_si128();
+#if defined(__aarch64__)	
+    return vreinterpretq_m128i_s32(
+        vshlq_n_s32(vreinterpretq_s32_m128i(a), -imm));
+#else
+    return vreinterpretq_m128i_s32(
+        vshlq_s32(vreinterpretq_s32_m128i(a), vdupq_n_s32(-imm)));
+#endif		
+}
 
 // Shift packed 64-bit integers in a right by imm8 while shifting in zeros, and
 // store the results in dst.
 // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_srli_epi64
-#define _mm_srli_epi64(a, imm)                                                \
-    _sse2neon_define0(                                                        \
-        __m128i, a, __m128i ret; if (_sse2neon_unlikely((imm) & ~63)) {       \
-            ret = _mm_setzero_si128();                                        \
-        } else {                                                              \
-            ret = vreinterpretq_m128i_u64(                                    \
-                vshrq_n_s64(vreinterpretq_u64_m128i(_a), imm)); \
-        } _sse2neon_return(ret);)
-
+FORCE_INLINE __m128i _mm_srli_epi64(__m128i a, const int imm)
+{
+    if (_sse2neon_unlikely(imm & ~63))
+        return _mm_setzero_si128();
+#if defined(__aarch64__)
+    return vreinterpretq_m128i_s64(
+        vshlq_n_s64(vreinterpretq_s64_m128i(a), -imm));
+#else		
+    return vreinterpretq_m128i_s64(
+        vshlq_s64(vreinterpretq_s64_m128i(a), vdupq_n_s64(-imm)));
+#endif
+}
 // Shift a right by imm8 bytes while shifting in zeros, and store the results in
 // dst.
 // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_srli_si128

@@ -74,8 +74,8 @@ static inline v4sf log_ps(v4sf x)
 
     v4sf z = vmulq_f32(x, x);
 
-    v4sf y = vdupq_n_f32(c_cephes_log_p0);
-    y = vmulq_f32(y, x);
+    v4sf y;
+    y = vmulq_n_f32(x, c_cephes_log_p0);
     y = vaddq_f32(y, vdupq_n_f32(c_cephes_log_p1));
     y = vmulq_f32(y, x);
     y = vaddq_f32(y, vdupq_n_f32(c_cephes_log_p2));
@@ -96,14 +96,14 @@ static inline v4sf log_ps(v4sf x)
     y = vmulq_f32(y, z);
 
 
-    tmp = vmulq_f32(e, vdupq_n_f32(c_cephes_log_q1));
+    tmp = vmulq_n_f32(e, c_cephes_log_q1);
     y = vaddq_f32(y, tmp);
 
 
-    tmp = vmulq_f32(z, vdupq_n_f32(0.5f));
+    tmp = vmulq_n_f32(z, 0.5f);
     y = vsubq_f32(y, tmp);
 
-    tmp = vmulq_f32(e, vdupq_n_f32(c_cephes_log_q2));
+    tmp = vmulq_n_f32(e, c_cephes_log_q2);
     x = vaddq_f32(x, y);
     x = vaddq_f32(x, tmp);
     x = vreinterpretq_f32_u32(vorrq_u32(vreinterpretq_u32_f32(x), invalid_mask));  // negative arg will be NAN
@@ -120,7 +120,7 @@ static inline v4sf exp_ps(v4sf x)
     x = vmaxq_f32(x, vdupq_n_f32(c_exp_lo));
 
     /* express exp(x) as exp(g + n*log(2)) */
-    fx = vmlaq_f32(vdupq_n_f32(0.5f), x, vdupq_n_f32(c_cephes_LOG2EF));
+    fx = vmlaq_n_f32(vdupq_n_f32(0.5f), x, c_cephes_LOG2EF);
 
     /* perform a floorf */
     tmp = vcvtq_f32_s32(vcvtq_s32_f32(fx));
@@ -132,20 +132,20 @@ static inline v4sf exp_ps(v4sf x)
 
     fx = vsubq_f32(tmp, vreinterpretq_f32_u32(mask));
 
-    tmp = vmulq_f32(fx, vdupq_n_f32(c_cephes_exp_C1));
-    v4sf z = vmulq_f32(fx, vdupq_n_f32(c_cephes_exp_C2));
+    tmp = vmulq_n_f32(fx, c_cephes_exp_C1);
+    v4sf z = vmulq_n_f32(fx, c_cephes_exp_C2);
     x = vsubq_f32(x, tmp);
     x = vsubq_f32(x, z);
 
     static const float cephes_exp_p[6] = {c_cephes_exp_p0, c_cephes_exp_p1, c_cephes_exp_p2, c_cephes_exp_p3, c_cephes_exp_p4, c_cephes_exp_p5};
-    v4sf y = vld1q_dup_f32(cephes_exp_p + 0);
     v4sf c1 = vld1q_dup_f32(cephes_exp_p + 1);
     v4sf c2 = vld1q_dup_f32(cephes_exp_p + 2);
     v4sf c3 = vld1q_dup_f32(cephes_exp_p + 3);
     v4sf c4 = vld1q_dup_f32(cephes_exp_p + 4);
     v4sf c5 = vld1q_dup_f32(cephes_exp_p + 5);
 
-    y = vmulq_f32(y, x);
+    v4sf y;
+    y = vmulq_n_f32(x, c_cephes_exp_p0);
     z = vmulq_f32(x, x);
     y = vaddq_f32(y, c1);
     y = vmulq_f32(y, x);
@@ -198,7 +198,7 @@ static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
     x = vabsq_f32(x);
 
     /* scale by 4/Pi */
-    y = vmulq_f32(x, vdupq_n_f32(c_cephes_FOPI));
+    y = vmulq_n_f32(x, c_cephes_FOPI);
 
     /* store the integer part of y in mm0 */
     emm2 = vcvtq_u32_f32(y);

@@ -354,7 +354,7 @@ __m128i prod   = _mm_unpacklo_epi64(prod01,prod23);   // (ab3,ab2,ab1,ab0)
 
 //_mm_movehl_ps vs shuffle(1,0,3,2)?
 static inline v2sd _mm_cvtps_pd_high(v4sf in){
-#ifdef ARM
+#if defined(__aarch64__)
     return vcvt_high_f64_f32(in);
 #else
     return _mm_cvtps_pd(_mm_movehl_ps(in, in));
@@ -362,7 +362,7 @@ static inline v2sd _mm_cvtps_pd_high(v4sf in){
 }
 
 static inline v4sf _mm_cvtpd2_ps(v2sd low, v2sd high){
-	#ifdef ARM
+#if defined(__aarch64__)
     return vcombine_f32(vcvt_f32_f64(low), vcvt_f32_f64(high));
 #else
     return  _mm_movelh_ps(_mm_cvtpd_ps(low), _mm_cvtpd_ps(high));
@@ -484,6 +484,24 @@ static inline __m128 _mm_fmadd_ps_custom(__m128 a, __m128 b, __m128 c)
 #endif
 }
 
+//B is a scalar, some optimizations for ARM NEON
+static inline __m128 _mm_fmadd1_ps_custom(__m128 a, __m128 b, __m128 c)
+{
+#if defined(ARM)
+    return _mm_fmadd1_ps(a, b, c);
+#else
+    return _mm_fmadd_ps_custom(a,b,c);
+#endif
+}
+
+#ifndef ARM
+//B is a scalar, some optimizations for ARM NEON
+static inline __m128 _mm_mul1_ps(__m128 a, __m128 b)
+{
+    return _mm_mul_ps(a, b);
+}
+#endif
+
 static inline __m128 _mm_fmaddsub_ps_custom(__m128 a, __m128 b, __m128 c)
 {
 #ifndef FMA  // Haswell comes with avx2 and fma
@@ -511,6 +529,16 @@ static inline __m128 _mm_fnmadd_ps_custom(__m128 a, __m128 b, __m128 c)
     return _mm_fnmadd_ps(a, b, c);
 #else
     return _mm_sub_ps(c, _mm_mul_ps(a, b));
+#endif
+}
+
+//B is a scalar, some optimizations for ARM NEON
+static inline __m128 _mm_fnmadd1_ps_custom(__m128 a, __m128 b, __m128 c)
+{
+#if defined(ARM)
+    return _mm_fnmadd1_ps(a, b, c);
+#else
+    return _mm_fnmadd_ps_custom(a,b,c);
 #endif
 }
 
@@ -557,7 +585,7 @@ static inline v2sd _mm_cvtepi64_pd_signed_custom(v2sid x)
 
 static inline v2sid _mm_cvtpd_epi64_custom(v2sd x)
 {
-#ifdef ARM
+#if defined(__aarch64__)
 	return vcvtq_s64_f64(x);
 #else //ARM
     // Signed
