@@ -1464,6 +1464,366 @@ int main(int argc, char **argv)
 	}
 #endif
 
+    printf("\n");
+    ////////////////////////////////////////////////// POWF ////////////////////////////////////////////////////////////////////
+    printf("POWF\n");
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) i + 1E-38f;
+        inout2[i] = (float)i * 0.00007f;
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    powf_c(inout, inout2, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("powf_c %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powf_c(inout, inout2, inout_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powf_c %d %lf\n", len, elapsed);
+
+#if defined(IPP)
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsPow_32f_A24(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("ippsPow_32f_A24 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsPow_32f_A24(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsPow_32f_A24 %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+#if defined(SSE)
+    clock_gettime(CLOCK_REALTIME, &start);
+    pow128f(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("pow128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        pow128f(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("pow128f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    pow128f_precise(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("pow128f_precise %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        pow128f_precise(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("pow128f_precise %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+#if defined(AVX)
+    clock_gettime(CLOCK_REALTIME, &start);
+    pow256f(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("pow256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        pow256f(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("pow256f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+#if defined(AVX512)
+    clock_gettime(CLOCK_REALTIME, &start);
+    pow512f(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("pow512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        pow512f(inout, inout2, inout2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("pow512f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+    printf("\n");
+    ////////////////////////////////////////////////// POW ////////////////////////////////////////////////////////////////////
+    printf("POW\n");
+
+    for (int i = 0; i < len; i++) {
+        inoutd[i] = (double) i + 1E-38f;
+        inoutd2[i] = (double)i * 0.00007;
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    powd_c(inoutd, inoutd2, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("powd_c %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powd_c(inoutd, inoutd2, inoutd_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powd_c %d %lf\n", len, elapsed);
+
+#if defined(IPP)
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsPow_64f_A53(inoutd, inoutd2, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("ippsPow_64f_A53 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsPow_64f_A53(inoutd, inoutd2, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsPow_64f_A53 %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2_ref, len);
+#endif
+
+#if defined(SSE)
+    clock_gettime(CLOCK_REALTIME, &start);
+    pow128d(inoutd, inoutd2, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("pow128d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        pow128d(inoutd, inoutd2, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("pow128d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2_ref, len);
+#endif
+
+#if defined(AVX)
+    clock_gettime(CLOCK_REALTIME, &start);
+    pow256d(inoutd, inoutd2, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("pow256d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        pow256d(inoutd, inoutd2, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("pow256d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2_ref, len);
+#endif
+
+#if defined(AVX512)
+    clock_gettime(CLOCK_REALTIME, &start);
+    pow512d(inoutd, inoutd2, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("pow512d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        pow512d(inoutd, inoutd2, inoutd2_ref, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("pow512d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2_ref, len);
+#endif
+
+
+    printf("\n");
+    ////////////////////////////////////////////////// POWCPLXF ////////////////////////////////////////////////////////////////////
+    printf("POWCPLXF\n");
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) i + 1E-38f;
+        inout2[i] = (float)i * 0.00007f;
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    powcplxf_c((complex32_t*)inout, (complex32_t*)inout2, (complex32_t*)inout_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("powcplxf_c %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powcplxf_c((complex32_t*)inout, (complex32_t*)inout2, (complex32_t*)inout_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powcplxf_c %d %lf\n", len, elapsed);
+
+#if defined(IPP)
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsPow_32fc_A24((Ipp32fc*)inout, (Ipp32fc*)inout2, (Ipp32fc*)inout2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("ippsPow_32fc_A24 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsPow_32fc_A24((Ipp32fc*)inout, (Ipp32fc*)inout2, (Ipp32fc*)inout2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsPow_32fc_A24 %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+#if defined(SSE)
+    clock_gettime(CLOCK_REALTIME, &start);
+    powcplx128f((complex32_t*)inout, (complex32_t*)inout2, (complex32_t*)inout2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("powcplx128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powcplx128f((complex32_t*)inout, (complex32_t*)inout2, (complex32_t*)inout2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powcplx128f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+#if defined(AVX)
+    clock_gettime(CLOCK_REALTIME, &start);
+    powcplx256f((complex32_t*)inout, (complex32_t*)inout2, (complex32_t*)inout2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("powcplx256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powcplx256f((complex32_t*)inout, (complex32_t*)inout2, (complex32_t*)inout2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powcplx256f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+#if defined(AVX512)
+    clock_gettime(CLOCK_REALTIME, &start);
+    powcplx512f((complex32_t*)inout, (complex32_t*)inout2, (complex32_t*)inout2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("powcplx512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powcplx512f((complex32_t*)inout, (complex32_t*)inout2, (complex32_t*)inout2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powcplx512f %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+
+    printf("\n");
+    ////////////////////////////////////////////////// POW ////////////////////////////////////////////////////////////////////
+    printf("POW\n");
+
+    for (int i = 0; i < len; i++) {
+        inoutd[i] = (double) i + 1E-38f;
+        inoutd2[i] = (double)i * 0.00007;
+    }
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    powcplxd_c((complex64_t*)inoutd, (complex64_t*)inoutd2, (complex64_t*)inoutd_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("powcplxd_c %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powcplxd_c((complex64_t*)inoutd, (complex64_t*)inoutd2, (complex64_t*)inoutd_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powcplxd_c %d %lf\n", len, elapsed);
+
+#if defined(IPP)
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsPow_64fc_A53((const Ipp64fc*)inoutd, (const Ipp64fc*)inoutd2,(Ipp64fc*)inoutd2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("ippsPow_64fc_A53 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsPow_64fc_A53((const Ipp64fc*)inoutd, (const Ipp64fc*)inoutd2,(Ipp64fc*)inoutd2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsPow_64fc_A53 %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2_ref, len);
+#endif
+
+#if defined(SSE)
+    clock_gettime(CLOCK_REALTIME, &start);
+    powcplx128d((complex64_t*)inoutd, (complex64_t*)inoutd2, (complex64_t*)inoutd2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("powcplx128d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powcplx128d((complex64_t*)inoutd, (complex64_t*)inoutd2, (complex64_t*)inoutd2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powcplx128d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2_ref, len);
+#endif
+
+#if defined(AVX)
+    clock_gettime(CLOCK_REALTIME, &start);
+    powcplx256d((complex64_t*)inoutd, (complex64_t*)inoutd2, (complex64_t*)inoutd2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("powcplx256d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powcplx256d((complex64_t*)inoutd, (complex64_t*)inoutd2, (complex64_t*)inoutd2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powcplx256d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2_ref, len);
+#endif
+
+#if defined(AVX512)
+    clock_gettime(CLOCK_REALTIME, &start);
+    powcplx512d((complex64_t*)inoutd, (complex64_t*)inoutd2, (complex64_t*)inoutd2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("powcplx512d %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        powcplx512d((complex64_t*)inoutd, (complex64_t*)inoutd2, (complex64_t*)inoutd2_ref, len/2);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("powcplx512d %d %lf\n", len, elapsed);
+    l2_errd(inoutd_ref, inoutd2_ref, len);
+#endif
+
     inout -= offset;
     inout2 -= offset;
     inout3 -= offset;

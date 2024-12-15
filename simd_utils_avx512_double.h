@@ -1344,3 +1344,120 @@ static inline void tan512d(double *src, double *dst, int len)
         dst[i] = tan(src[i]);
     }
 }
+
+static inline v8sd pow512_pd(v8sd x, v8sd y)
+{
+    v8sd logvec = log512_pd(x);
+    v8sd expvec = _mm512_mul_pd(logvec, y);
+    v8sd ret = exp512_pd(expvec);
+    return ret;
+}
+
+static inline void pow512d(double *x, double *y, double *dst, int len)
+{
+    int stop_len = len / (2* AVX512_LEN_DOUBLE);
+    stop_len *= ( 2*AVX512_LEN_DOUBLE);
+
+    if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_DOUBLE) {
+            v8sd x_tmp = _mm512_load_pd(x + i);
+            v8sd y_tmp = _mm512_load_pd(y + i);	
+			v8sd x_tmp2 = _mm512_load_pd(x + i + AVX512_LEN_DOUBLE);
+            v8sd y_tmp2 = _mm512_load_pd(y + i + AVX512_LEN_DOUBLE);						
+            v8sd dst_tmp = pow512_pd(x_tmp, y_tmp);
+            v8sd dst_tmp2 = pow512_pd(x_tmp2, y_tmp2);
+            _mm512_store_pd(dst + i, dst_tmp);
+            _mm512_store_pd(dst + i + AVX512_LEN_DOUBLE, dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_DOUBLE) {
+            v8sd x_tmp = _mm512_loadu_pd(x + i);
+            v8sd y_tmp = _mm512_loadu_pd(y + i);	
+			v8sd x_tmp2 = _mm512_loadu_pd(x + i + AVX512_LEN_DOUBLE);
+            v8sd y_tmp2 = _mm512_loadu_pd(y + i + AVX512_LEN_DOUBLE);						
+            v8sd dst_tmp = pow512_pd(x_tmp, y_tmp);
+            v8sd dst_tmp2 = pow512_pd(x_tmp2, y_tmp2);
+            _mm512_storeu_pd(dst + i, dst_tmp);
+            _mm512_storeu_pd(dst + i + AVX512_LEN_DOUBLE, dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = pow(x[i], y[i]);
+    }
+}
+
+
+static inline void powcplx512d(complex64_t *x, complex64_t *y, complex64_t *dst, int len)
+{
+    int stop_len = len / (2* AVX512_LEN_DOUBLE);
+    stop_len *= ( 2*AVX512_LEN_DOUBLE);
+
+    if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_DOUBLE) {
+            v8sdx2 x_tmp = _mm512_load2_pd((double const *) (x) + i);
+            v8sdx2 y_tmp = _mm512_load2_pd((double const *) (y) + i);
+            v8sd x_tmp_re2 = _mm512_mul_pd(x_tmp.val[0], x_tmp.val[0]);
+            v8sd modx = _mm512_fmadd_pd_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
+			modx = _mm512_sqrt_pd(modx);
+			v8sdx2 logx;
+			logx.val[0] = log512_pd(modx);
+			logx.val[1] = atan2512_pd(x_tmp.val[1], x_tmp.val[0]);
+			v8sdx2 ylogx;
+            v8sd ac = _mm512_mul_pd(logx.val[0], y_tmp.val[0]);     // ac
+            v8sd ad = _mm512_mul_pd(logx.val[0], y_tmp.val[1]);     // ad
+            ylogx.val[0] = _mm512_fnmadd_pd_custom(logx.val[1], y_tmp.val[1], ac);
+            ylogx.val[1] = _mm512_fmadd_pd_custom(logx.val[1], y_tmp.val[0], ad);
+			v8sd ex = exp512_pd(ylogx.val[0]);
+			v8sd cosylogx, sinylogx;
+			sincos512_pd(ylogx.val[1], &sinylogx, &cosylogx);
+			v8sdx2 dst_tmp;
+			dst_tmp.val[0] = _mm512_mul_pd(ex,cosylogx);
+			dst_tmp.val[1] = _mm512_mul_pd(ex,sinylogx);
+            _mm512_store2_pd((double*)(dst) + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_DOUBLE) {
+            v8sdx2 x_tmp = _mm512_load2u_pd((double const *) (x) + i);
+            v8sdx2 y_tmp = _mm512_load2u_pd((double const *) (y) + i);
+            v8sd x_tmp_re2 = _mm512_mul_pd(x_tmp.val[0], x_tmp.val[0]);
+            v8sd modx = _mm512_fmadd_pd_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
+			modx = _mm512_sqrt_pd(modx);
+			v8sdx2 logx;
+			logx.val[0] = log512_pd(modx);
+			logx.val[1] = atan2512_pd(x_tmp.val[1], x_tmp.val[0]);
+			v8sdx2 ylogx;
+            v8sd ac = _mm512_mul_pd(logx.val[0], y_tmp.val[0]);     // ac
+            v8sd ad = _mm512_mul_pd(logx.val[0], y_tmp.val[1]);     // ad
+            ylogx.val[0] = _mm512_fnmadd_pd_custom(logx.val[1], y_tmp.val[1], ac);
+            ylogx.val[1] = _mm512_fmadd_pd_custom(logx.val[1], y_tmp.val[0], ad);
+			v8sd ex = exp512_pd(ylogx.val[0]);
+			v8sd cosylogx, sinylogx;
+			sincos512_pd(ylogx.val[1], &sinylogx, &cosylogx);
+			v8sdx2 dst_tmp;
+			dst_tmp.val[0] = _mm512_mul_pd(ex,cosylogx);
+			dst_tmp.val[1] = _mm512_mul_pd(ex,sinylogx);
+            _mm512_store2u_pd((double*)(dst) + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+		double x_tmp_re2 = x[i].re * x[i].re;
+		double modx = (x[i].im * x[i].im) + x_tmp_re2;
+		modx = sqrt(modx);
+		complex64_t logx;
+		logx.re = log(modx);
+		logx.im = atan2(x[i].im, x[i].re);
+		complex64_t ylogx;
+		double ac = logx.re * y[i].re;     // ac
+		double ad = logx.re * y[i].im;     // ad
+		ylogx.re = ac - (logx.im * y[i].im);
+		ylogx.im = (logx.im *  y[i].re) +  ad;
+		double ex = exp(ylogx.re);
+		double cosylogx, sinylogx;
+        sinylogx = sin(ylogx.im);	
+        cosylogx = cos(ylogx.im);		
+		dst[i].re = ex * cosylogx;
+		dst[i].im = ex * sinylogx;
+    }
+}

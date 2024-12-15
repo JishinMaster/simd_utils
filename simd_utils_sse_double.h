@@ -1457,3 +1457,119 @@ static inline void tan128d(double *src, double *dst, int len)
         dst[i] = tan(src[i]);
     }
 }
+
+static inline v2sd pow_pd(v2sd x, v2sd y)
+{
+    v2sd logvec = log_pd(x);
+    v2sd expvec = _mm_mul_pd(logvec, y);
+    v2sd ret = exp_pd(expvec);
+    return ret;
+}
+
+static inline void pow128d(double *x, double *y, double *dst, int len)
+{
+    int stop_len = len / (2* SSE_LEN_DOUBLE);
+    stop_len *= ( 2*SSE_LEN_DOUBLE);
+
+    if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
+            v2sd x_tmp = _mm_load_pd(x + i);
+            v2sd y_tmp = _mm_load_pd(y + i);	
+			v2sd x_tmp2 = _mm_load_pd(x + i + SSE_LEN_DOUBLE);
+            v2sd y_tmp2 = _mm_load_pd(y + i + SSE_LEN_DOUBLE);						
+            v2sd dst_tmp = pow_pd(x_tmp, y_tmp);
+            v2sd dst_tmp2 = pow_pd(x_tmp2, y_tmp2);
+            _mm_store_pd(dst + i, dst_tmp);
+            _mm_store_pd(dst + i + SSE_LEN_DOUBLE, dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
+            v2sd x_tmp = _mm_loadu_pd(x + i);
+            v2sd y_tmp = _mm_loadu_pd(y + i);	
+			v2sd x_tmp2 = _mm_loadu_pd(x + i + SSE_LEN_DOUBLE);
+            v2sd y_tmp2 = _mm_loadu_pd(y + i + SSE_LEN_DOUBLE);						
+            v2sd dst_tmp = pow_pd(x_tmp, y_tmp);
+            v2sd dst_tmp2 = pow_pd(x_tmp2, y_tmp2);
+            _mm_storeu_pd(dst + i, dst_tmp);
+            _mm_storeu_pd(dst + i + SSE_LEN_DOUBLE, dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = pow(x[i], y[i]);
+    }
+}
+
+static inline void powcplx128d(complex64_t *x, complex64_t *y, complex64_t *dst, int len)
+{
+    int stop_len = len / (2* SSE_LEN_DOUBLE);
+    stop_len *= ( 2*SSE_LEN_DOUBLE);
+
+    if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
+            v2sdx2 x_tmp = _mm_load2_pd((double const *) (x) + i);
+            v2sdx2 y_tmp = _mm_load2_pd((double const *) (y) + i);
+            v2sd x_tmp_re2 = _mm_mul_pd(x_tmp.val[0], x_tmp.val[0]);
+            v2sd modx = _mm_fmadd_pd_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
+			modx = _mm_sqrt_pd(modx);
+			v2sdx2 logx;
+			logx.val[0] = log_pd(modx);
+			logx.val[1] = atan2_pd(x_tmp.val[1], x_tmp.val[0]);
+			v2sdx2 ylogx;
+            v2sd ac = _mm_mul_pd(logx.val[0], y_tmp.val[0]);     // ac
+            v2sd ad = _mm_mul_pd(logx.val[0], y_tmp.val[1]);     // ad
+            ylogx.val[0] = _mm_fnmadd_pd_custom(logx.val[1], y_tmp.val[1], ac);
+            ylogx.val[1] = _mm_fmadd_pd_custom(logx.val[1], y_tmp.val[0], ad);
+			v2sd ex = exp_pd(ylogx.val[0]);
+			v2sd cosylogx, sinylogx;
+			sincos_pd(ylogx.val[1], &sinylogx, &cosylogx);
+			v2sdx2 dst_tmp;
+			dst_tmp.val[0] = _mm_mul_pd(ex,cosylogx);
+			dst_tmp.val[1] = _mm_mul_pd(ex,sinylogx);
+            _mm_store2_pd((double*)(dst) + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
+            v2sdx2 x_tmp = _mm_load2u_pd((double const *) (x) + i);
+            v2sdx2 y_tmp = _mm_load2u_pd((double const *) (y) + i);
+            v2sd x_tmp_re2 = _mm_mul_pd(x_tmp.val[0], x_tmp.val[0]);
+            v2sd modx = _mm_fmadd_pd_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
+			modx = _mm_sqrt_pd(modx);
+			v2sdx2 logx;
+			logx.val[0] = log_pd(modx);
+			logx.val[1] = atan2_pd(x_tmp.val[1], x_tmp.val[0]);
+			v2sdx2 ylogx;
+            v2sd ac = _mm_mul_pd(logx.val[0], y_tmp.val[0]);     // ac
+            v2sd ad = _mm_mul_pd(logx.val[0], y_tmp.val[1]);     // ad
+            ylogx.val[0] = _mm_fnmadd_pd_custom(logx.val[1], y_tmp.val[1], ac);
+            ylogx.val[1] = _mm_fmadd_pd_custom(logx.val[1], y_tmp.val[0], ad);
+			v2sd ex = exp_pd(ylogx.val[0]);
+			v2sd cosylogx, sinylogx;
+			sincos_pd(ylogx.val[1], &sinylogx, &cosylogx);
+			v2sdx2 dst_tmp;
+			dst_tmp.val[0] = _mm_mul_pd(ex,cosylogx);
+			dst_tmp.val[1] = _mm_mul_pd(ex,sinylogx);
+            _mm_store2u_pd((double*)(dst) + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+		double x_tmp_re2 = x[i].re * x[i].re;
+		double modx = (x[i].im * x[i].im) + x_tmp_re2;
+		modx = sqrt(modx);
+		complex64_t logx;
+		logx.re = log(modx);
+		logx.im = atan2(x[i].im, x[i].re);
+		complex64_t ylogx;
+		double ac = logx.re * y[i].re;     // ac
+		double ad = logx.re * y[i].im;     // ad
+		ylogx.re = ac - (logx.im * y[i].im);
+		ylogx.im = (logx.im *  y[i].re) +  ad;
+		double ex = exp(ylogx.re);
+		double cosylogx, sinylogx;
+        sinylogx = sin(ylogx.im);	
+        cosylogx = cos(ylogx.im);		
+		dst[i].re = ex * cosylogx;
+		dst[i].im = ex * sinylogx;
+    }
+}

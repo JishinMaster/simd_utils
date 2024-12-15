@@ -4734,3 +4734,158 @@ static inline void modf128f(float *src, float *integer, float *remainder, int le
         remainder[i] = modff(src[i], &(integer[i]));
     }
 }
+
+
+static inline v4sf pow_ps(v4sf x, v4sf y)
+{
+    v4sf logvec = log_ps(x);
+    v4sf expvec = _mm_mul_ps(logvec, y);
+    v4sf ret = exp_ps(expvec);
+    return ret;
+}
+
+static inline void pow128f(float *x, float *y, float *dst, int len)
+{
+    int stop_len = len / (2* SSE_LEN_FLOAT);
+    stop_len *= ( 2*SSE_LEN_FLOAT);
+
+    if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf x_tmp = _mm_load_ps(x + i);
+            v4sf y_tmp = _mm_load_ps(y + i);	
+			v4sf x_tmp2 = _mm_load_ps(x + i + SSE_LEN_FLOAT);
+            v4sf y_tmp2 = _mm_load_ps(y + i + SSE_LEN_FLOAT);						
+            v4sf dst_tmp = pow_ps(x_tmp, y_tmp);
+            v4sf dst_tmp2 = pow_ps(x_tmp2, y_tmp2);
+            _mm_store_ps(dst + i, dst_tmp);
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf x_tmp = _mm_loadu_ps(x + i);
+            v4sf y_tmp = _mm_loadu_ps(y + i);	
+			v4sf x_tmp2 = _mm_loadu_ps(x + i + SSE_LEN_FLOAT);
+            v4sf y_tmp2 = _mm_loadu_ps(y + i + SSE_LEN_FLOAT);						
+            v4sf dst_tmp = pow_ps(x_tmp, y_tmp);
+            v4sf dst_tmp2 = pow_ps(x_tmp2, y_tmp2);
+            _mm_storeu_ps(dst + i, dst_tmp);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = powf(x[i], y[i]);
+    }
+}
+
+static inline void pow128f_precise(float *x, float *y, float *dst, int len)
+{
+    int stop_len = len / (SSE_LEN_FLOAT);
+    stop_len *= ( SSE_LEN_FLOAT);
+
+    if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+            v4sf x_tmp = _mm_load_ps(x + i);
+            v4sf y_tmp = _mm_load_ps(y + i);
+			v2sd x_tmpd_lo = _mm_cvtps_pd(x_tmp);
+			v2sd y_tmpd_lo = _mm_cvtps_pd(y_tmp);
+			v2sd x_tmpd_hi = _mm_cvtps_pd_high(x_tmp);				
+			v2sd y_tmpd_hi = _mm_cvtps_pd_high(y_tmp);			
+            v2sd dst_tmp_lo = pow_pd(x_tmpd_lo, y_tmpd_lo);
+            v2sd dst_tmp_hi = pow_pd(x_tmpd_hi, y_tmpd_hi);
+			v4sf dst_tmp = _mm_cvtpd2_ps(dst_tmp_lo, dst_tmp_hi);
+            _mm_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf x_tmp = _mm_loadu_ps(x + i);
+            v4sf y_tmp = _mm_loadu_ps(y + i);
+			v2sd x_tmpd_lo = _mm_cvtps_pd(x_tmp);
+			v2sd y_tmpd_lo = _mm_cvtps_pd(y_tmp);
+			v2sd x_tmpd_hi = _mm_cvtps_pd_high(x_tmp);				
+			v2sd y_tmpd_hi = _mm_cvtps_pd_high(y_tmp);				
+            v2sd dst_tmp_lo = pow_pd(x_tmpd_lo, y_tmpd_lo);
+            v2sd dst_tmp_hi = pow_pd(x_tmpd_hi, y_tmpd_hi);
+			v4sf dst_tmp = _mm_cvtpd2_ps(dst_tmp_lo, dst_tmp_hi);
+            _mm_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = powf(x[i], y[i]);
+    }
+}
+
+
+static inline void powcplx128f(complex32_t *x, complex32_t *y, complex32_t *dst, int len)
+{
+    int stop_len = len / (2* SSE_LEN_FLOAT);
+    stop_len *= ( 2*SSE_LEN_FLOAT);
+
+    if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sfx2 x_tmp = _mm_load2_ps((float const *) (x) + i);
+            v4sfx2 y_tmp = _mm_load2_ps((float const *) (y) + i);
+            v4sf x_tmp_re2 = _mm_mul_ps(x_tmp.val[0], x_tmp.val[0]);
+            v4sf modx = _mm_fmadd_ps_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
+			modx = _mm_sqrt_ps(modx);
+			v4sfx2 logx;
+			logx.val[0] = log_ps(modx);
+			logx.val[1] = atan2f_ps(x_tmp.val[1], x_tmp.val[0]);
+			v4sfx2 ylogx;
+            v4sf ac = _mm_mul_ps(logx.val[0], y_tmp.val[0]);     // ac
+            v4sf ad = _mm_mul_ps(logx.val[0], y_tmp.val[1]);     // ad
+            ylogx.val[0] = _mm_fnmadd_ps_custom(logx.val[1], y_tmp.val[1], ac);
+            ylogx.val[1] = _mm_fmadd_ps_custom(logx.val[1], y_tmp.val[0], ad);
+			v4sf ex = exp_ps(ylogx.val[0]);
+			v4sf cosylogx, sinylogx;
+			sincos_ps(ylogx.val[1], &sinylogx, &cosylogx);
+			v4sfx2 dst_tmp;
+			dst_tmp.val[0] = _mm_mul_ps(ex,cosylogx);
+			dst_tmp.val[1] = _mm_mul_ps(ex,sinylogx);
+            _mm_store2_ps((float*)(dst) + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sfx2 x_tmp = _mm_load2u_ps((float const *) (x) + i);
+            v4sfx2 y_tmp = _mm_load2u_ps((float const *) (y) + i);
+            v4sf x_tmp_re2 = _mm_mul_ps(x_tmp.val[0], x_tmp.val[0]);
+            v4sf modx = _mm_fmadd_ps_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
+			modx = _mm_sqrt_ps(modx);
+			v4sfx2 logx;
+			logx.val[0] = log_ps(modx);
+			logx.val[1] = atan2f_ps(x_tmp.val[1], x_tmp.val[0]);
+			v4sfx2 ylogx;
+            v4sf ac = _mm_mul_ps(logx.val[0], y_tmp.val[0]);     // ac
+            v4sf ad = _mm_mul_ps(logx.val[0], y_tmp.val[1]);     // ad
+            ylogx.val[0] = _mm_fnmadd_ps_custom(logx.val[1], y_tmp.val[1], ac);
+            ylogx.val[1] = _mm_fmadd_ps_custom(logx.val[1], y_tmp.val[0], ad);
+			v4sf ex = exp_ps(ylogx.val[0]);
+			v4sf cosylogx, sinylogx;
+			sincos_ps(ylogx.val[1], &sinylogx, &cosylogx);
+			v4sfx2 dst_tmp;
+			dst_tmp.val[0] = _mm_mul_ps(ex,cosylogx);
+			dst_tmp.val[1] = _mm_mul_ps(ex,sinylogx);
+            _mm_store2u_ps((float*)(dst) + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+		float x_tmp_re2 = x[i].re * x[i].re;
+		float modx = (x[i].im * x[i].im) + x_tmp_re2;
+		modx = sqrtf(modx);
+		complex32_t logx;
+		logx.re = logf(modx);
+		logx.im = atan2f(x[i].im, x[i].re);
+		complex32_t ylogx;
+		float ac = logx.re * y[i].re;     // ac
+		float ad = logx.re * y[i].im;     // ad
+		ylogx.re = ac - (logx.im * y[i].im);
+		ylogx.im = (logx.im *  y[i].re) +  ad;
+		float ex = expf(ylogx.re);
+		float cosylogx, sinylogx;
+		mysincosf(ylogx.im, &sinylogx, &cosylogx);
+		dst[i].re = ex * cosylogx;
+		dst[i].im = ex * sinylogx;
+    }
+}

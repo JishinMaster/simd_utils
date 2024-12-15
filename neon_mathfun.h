@@ -432,15 +432,6 @@ static inline v4sf cos_ps(v4sf x)
     return ycos;
 }
 
-
-static inline v4sf pow_ps(v4sf y, v4sf x)
-{
-    v4sf logvec = log_ps(y);
-    v4sf expvec = vmulq_f32(logvec, x);
-    v4sf ret = exp_ps(expvec);
-    return ret;
-}
-
 static inline v4sf sqrt_ps(v4sf val)
 {
 #if defined(__aarch64__)

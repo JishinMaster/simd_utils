@@ -3635,3 +3635,119 @@ static inline void modf512f(float *src, float *integer, float *remainder, int le
         remainder[i] = modff(src[i], &(integer[i]));
     }
 }
+
+
+static inline v16sf pow512_ps(v16sf x, v16sf y)
+{
+    v16sf logvec = log512_ps(x);
+    v16sf expvec = _mm512_mul_ps(logvec, y);
+    v16sf ret = exp512_ps(expvec);
+    return ret;
+}
+
+static inline void pow512f(float *x, float *y, float *dst, int len)
+{
+    int stop_len = len / (2* AVX512_LEN_FLOAT);
+    stop_len *= ( 2*AVX512_LEN_FLOAT);
+
+    if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf x_tmp = _mm512_load_ps(x + i);
+            v16sf y_tmp = _mm512_load_ps(y + i);	
+			v16sf x_tmp2 = _mm512_load_ps(x + i + AVX512_LEN_FLOAT);
+            v16sf y_tmp2 = _mm512_load_ps(y + i + AVX512_LEN_FLOAT);						
+            v16sf dst_tmp = pow512_ps(x_tmp, y_tmp);
+            v16sf dst_tmp2 = pow512_ps(x_tmp2, y_tmp2);
+            _mm512_store_ps(dst + i, dst_tmp);
+            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sf x_tmp = _mm512_loadu_ps(x + i);
+            v16sf y_tmp = _mm512_loadu_ps(y + i);	
+			v16sf x_tmp2 = _mm512_loadu_ps(x + i + AVX512_LEN_FLOAT);
+            v16sf y_tmp2 = _mm512_loadu_ps(y + i + AVX512_LEN_FLOAT);						
+            v16sf dst_tmp = pow512_ps(x_tmp, y_tmp);
+            v16sf dst_tmp2 = pow512_ps(x_tmp2, y_tmp2);
+            _mm512_storeu_ps(dst + i, dst_tmp);
+            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, dst_tmp2);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = powf(x[i], y[i]);
+    }
+}
+
+static inline void powcplx512f(complex32_t *x, complex32_t *y, complex32_t *dst, int len)
+{
+    int stop_len = len / (2* AVX512_LEN_FLOAT);
+    stop_len *= ( 2*AVX512_LEN_FLOAT);
+
+    if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sfx2 x_tmp = _mm512_load2_ps((float const *) (x) + i);
+            v16sfx2 y_tmp = _mm512_load2_ps((float const *) (y) + i);
+            v16sf x_tmp_re2 = _mm512_mul_ps(x_tmp.val[0], x_tmp.val[0]);
+            v16sf modx = _mm512_fmadd_ps_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
+			modx = _mm512_sqrt_ps(modx);
+			v16sfx2 logx;
+			logx.val[0] = log512_ps(modx);
+			logx.val[1] = atan2512f_ps(x_tmp.val[1], x_tmp.val[0]);
+			v16sfx2 ylogx;
+            v16sf ac = _mm512_mul_ps(logx.val[0], y_tmp.val[0]);     // ac
+            v16sf ad = _mm512_mul_ps(logx.val[0], y_tmp.val[1]);     // ad
+            ylogx.val[0] = _mm512_fnmadd_ps_custom(logx.val[1], y_tmp.val[1], ac);
+            ylogx.val[1] = _mm512_fmadd_ps_custom(logx.val[1], y_tmp.val[0], ad);
+			v16sf ex = exp512_ps(ylogx.val[0]);
+			v16sf cosylogx, sinylogx;
+			sincos512_ps(ylogx.val[1], &sinylogx, &cosylogx);
+			v16sfx2 dst_tmp;
+			dst_tmp.val[0] = _mm512_mul_ps(ex,cosylogx);
+			dst_tmp.val[1] = _mm512_mul_ps(ex,sinylogx);
+            _mm512_store2_ps((float*)(dst) + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16sfx2 x_tmp = _mm512_load2u_ps((float const *) (x) + i);
+            v16sfx2 y_tmp = _mm512_load2u_ps((float const *) (y) + i);
+            v16sf x_tmp_re2 = _mm512_mul_ps(x_tmp.val[0], x_tmp.val[0]);
+            v16sf modx = _mm512_fmadd_ps_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
+			modx = _mm512_sqrt_ps(modx);
+			v16sfx2 logx;
+			logx.val[0] = log512_ps(modx);
+			logx.val[1] = atan2512f_ps(x_tmp.val[1], x_tmp.val[0]);
+			v16sfx2 ylogx;
+            v16sf ac = _mm512_mul_ps(logx.val[0], y_tmp.val[0]);     // ac
+            v16sf ad = _mm512_mul_ps(logx.val[0], y_tmp.val[1]);     // ad
+            ylogx.val[0] = _mm512_fnmadd_ps_custom(logx.val[1], y_tmp.val[1], ac);
+            ylogx.val[1] = _mm512_fmadd_ps_custom(logx.val[1], y_tmp.val[0], ad);
+			v16sf ex = exp512_ps(ylogx.val[0]);
+			v16sf cosylogx, sinylogx;
+			sincos512_ps(ylogx.val[1], &sinylogx, &cosylogx);
+			v16sfx2 dst_tmp;
+			dst_tmp.val[0] = _mm512_mul_ps(ex,cosylogx);
+			dst_tmp.val[1] = _mm512_mul_ps(ex,sinylogx);
+            _mm512_store2u_ps((float*)(dst) + i, dst_tmp);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+		float x_tmp_re2 = x[i].re * x[i].re;
+		float modx = (x[i].im * x[i].im) + x_tmp_re2;
+		modx = sqrtf(modx);
+		complex32_t logx;
+		logx.re = logf(modx);
+		logx.im = atan2f(x[i].im, x[i].re);
+		complex32_t ylogx;
+		float ac = logx.re * y[i].re;     // ac
+		float ad = logx.re * y[i].im;     // ad
+		ylogx.re = ac - (logx.im * y[i].im);
+		ylogx.im = (logx.im *  y[i].re) +  ad;
+		float ex = expf(ylogx.re);
+		float cosylogx, sinylogx;
+		mysincosf(ylogx.im, &sinylogx, &cosylogx);
+		dst[i].re = ex * cosylogx;
+		dst[i].im = ex * sinylogx;
+    }
+}

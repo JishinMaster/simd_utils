@@ -3565,6 +3565,71 @@ static inline void floodFill_8C_c_32f(float* srcDst,  int imageStep, point_t roi
 	}		
 }
 
+static inline void powf_c(float *x, float *y, float *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = powf(x[i], y[i]);
+    }
+}
+
+static inline void powd_c(double *x, double *y, double *dst, int len)
+{
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = pow(x[i], y[i]);
+    }
+}
+
+
+static inline void powcplxf_c(complex32_t *x, complex32_t *y, complex32_t *dst, int len)
+{
+    for (int i = 0; i < len; i++) {
+		float x_tmp_re2 = x[i].re * x[i].re;
+		float modx = (x[i].im * x[i].im) + x_tmp_re2;
+		modx = sqrtf(modx);
+		complex32_t logx;
+		logx.re = logf(modx);
+		logx.im = atan2f(x[i].im, x[i].re);
+		complex32_t ylogx;
+		float ac = logx.re * y[i].re;     // ac
+		float ad = logx.re * y[i].im;     // ad
+		ylogx.re = ac - (logx.im * y[i].im);
+		ylogx.im = (logx.im *  y[i].re) +  ad;
+		float ex = expf(ylogx.re);
+		float cosylogx, sinylogx;
+		mysincosf(ylogx.im, &sinylogx, &cosylogx);
+		dst[i].re = ex * cosylogx;
+		dst[i].im = ex * sinylogx;
+    }
+}
+
+static inline void powcplxd_c(complex64_t *x, complex64_t *y, complex64_t *dst, int len)
+{
+    for (int i = 0; i < len; i++) {
+		double x_tmp_re2 = x[i].re * x[i].re;
+		double modx = (x[i].im * x[i].im) + x_tmp_re2;
+		modx = sqrt(modx);
+		complex64_t logx;
+		logx.re = log(modx);
+		logx.im = atan2(x[i].im, x[i].re);
+		complex64_t ylogx;
+		double ac = logx.re * y[i].re;     // ac
+		double ad = logx.re * y[i].im;     // ad
+		ylogx.re = ac - (logx.im * y[i].im);
+		ylogx.im = (logx.im *  y[i].re) +  ad;
+		double ex = exp(ylogx.re);
+		double cosylogx, sinylogx;
+        sinylogx = sin(ylogx.im);	
+        cosylogx = cos(ylogx.im);		
+		dst[i].re = ex * cosylogx;
+		dst[i].im = ex * sinylogx;
+    }
+}
 
 #ifdef __cplusplus
 }
