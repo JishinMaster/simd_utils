@@ -5304,7 +5304,7 @@ FORCE_INLINE __m128i _mm_slli_epi16(__m128i a, const int imm)
 {
     if (_sse2neon_unlikely(imm & ~15))
         return _mm_setzero_si128();
-#if defined(__aarch64__)
+#if defined(__aarch64__) && !defined(__clang__)
     return vreinterpretq_m128i_s16(
         vshlq_n_s16(vreinterpretq_s16_m128i(a), imm));
 #else
@@ -5320,7 +5320,7 @@ FORCE_INLINE __m128i _mm_slli_epi32(__m128i a, const int imm)
 {
     if (_sse2neon_unlikely(imm & ~31))
         return _mm_setzero_si128();
-#if defined(__aarch64__)	
+#if defined(__aarch64__) && !defined(__clang__)
     return vreinterpretq_m128i_s32(
         vshlq_n_s32(vreinterpretq_s32_m128i(a), imm));
 #else
@@ -5336,7 +5336,7 @@ FORCE_INLINE __m128i _mm_slli_epi64(__m128i a, const int imm)
 {
     if (_sse2neon_unlikely(imm & ~63))
         return _mm_setzero_si128();
-#if defined(__aarch64__)
+#if defined(__aarch64__) && !defined(__clang__)
     return vreinterpretq_m128i_s64(
         vshlq_n_s64(vreinterpretq_s64_m128i(a), imm));
 #else		
@@ -5485,7 +5485,7 @@ FORCE_INLINE __m128i _mm_srli_epi16(__m128i a, const int imm)
 {
     if (_sse2neon_unlikely(imm & ~15))
         return _mm_setzero_si128();
-#if defined(__aarch64__)
+#if defined(__aarch64__) && !defined(__clang__)
     return vreinterpretq_m128i_s16(
         vshlq_n_s16(vreinterpretq_s16_m128i(a), -imm));
 #else
@@ -5502,7 +5502,7 @@ FORCE_INLINE __m128i _mm_srli_epi32(__m128i a, const int imm)
 {
     if (_sse2neon_unlikely(imm & ~31))
         return _mm_setzero_si128();
-#if defined(__aarch64__)	
+#if defined(__aarch64__) && !defined(__clang__)
     return vreinterpretq_m128i_s32(
         vshlq_n_s32(vreinterpretq_s32_m128i(a), -imm));
 #else
@@ -5518,7 +5518,7 @@ FORCE_INLINE __m128i _mm_srli_epi64(__m128i a, const int imm)
 {
     if (_sse2neon_unlikely(imm & ~63))
         return _mm_setzero_si128();
-#if defined(__aarch64__)
+#if defined(__aarch64__) && !defined(__clang__)
     return vreinterpretq_m128i_s64(
         vshlq_n_s64(vreinterpretq_s64_m128i(a), -imm));
 #else		

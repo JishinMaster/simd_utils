@@ -256,9 +256,48 @@ FORCE_INLINE __m128d _mm_fnmadd_pd(__m128d a, __m128d b, __m128d c)
                                              vreinterpretq_f64_m128d(b),
                                              vreinterpretq_f64_m128d(a)));
 #else
-    return _mm_add_pd(c, _mm_mul_pd(a, b));
+    return _mm_sub_pd(c, _mm_mul_pd(a, b));
 #endif
 }
+
+//B is scalar
+FORCE_INLINE __m128d _mm_fmadd1_pd(__m128d a, __m128d b, __m128d c)
+{
+#if defined(__aarch64__)
+	double *bs = (double *) &b;
+    return vreinterpretq_m128d_f64(vfmaq_n_f64(vreinterpretq_f64_m128d(c),
+                                            vreinterpretq_f64_m128d(a),
+                                            *bs));
+#else
+    return _mm_fmadd_pd(a,b,c);
+#endif
+}
+
+//B is scalar
+FORCE_INLINE __m128d _mm_fnmadd1_pd(__m128d a, __m128d b, __m128d c)
+{
+#if defined(__aarch64__)
+	double *bs = (double *) &b;
+    return vreinterpretq_m128d_f64(vfmsq_n_f64(vreinterpretq_f64_m128d(c),
+                                            vreinterpretq_f64_m128d(a),
+                                            *bs));
+#else
+    return _mm_fnmadd_pd(a,b,c);
+#endif
+}
+
+//B is a scalar, some optimizations for ARM NEON
+FORCE_INLINE __m128d _mm_mul1_pd(__m128d a, __m128d b)
+{
+#if defined(__aarch64__)
+	double *bs = (double *) &b;
+    return vreinterpretq_m128d_f64(vmulq_n_f64(vreinterpretq_f64_m128d(a),
+                                            *bs));
+#else
+	return _mm_mul_pd(a,b);
+#endif
+}
+
 
 #if defined(__GNUC__) || defined(__clang__)
 #pragma pop_macro("ALIGN_STRUCT")

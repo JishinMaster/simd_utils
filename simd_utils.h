@@ -560,6 +560,35 @@ static inline __m128d _mm_fnmadd_pd_custom(__m128d a, __m128d b, __m128d c)
 #endif /* FMA */
 }
 
+//B is a scalar, some optimizations for ARM NEON
+static inline __m128d _mm_fmadd1_pd_custom(__m128d a, __m128d b, __m128d c)
+{
+#if defined(ARM)
+    return _mm_fmadd1_pd(a, b, c);
+#else
+    return _mm_fmadd_pd_custom(a,b,c);
+#endif
+}
+
+//B is a scalar, some optimizations for ARM NEON
+static inline __m128d _mm_fnmadd1_pd_custom(__m128d a, __m128d b, __m128d c)
+{
+#if defined(ARM)
+    return _mm_fnmadd1_pd(a, b, c);
+#else
+    return _mm_fnmadd_pd_custom(a,b,c);
+#endif
+}
+
+#ifndef ARM
+//B is a scalar, some optimizations for ARM NEON
+static inline __m128d _mm_mul1_pd(__m128d a, __m128d b)
+{
+    return _mm_mul_pd(a, b);
+}
+#endif
+
+
 // Work in progress
 // in SSE, missing _mm_cvtepi64_pd, _mm_cvttpd_epi64
 // See : https://stackoverflow.com/questions/41144668/how-to-efficiently-perform-double-int64-conversions-with-sse-avx

@@ -209,11 +209,11 @@ static inline void mulc128d(double *src, double value, double *dst, int len)
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
-            _mm_store_pd(dst + i, _mm_mul_pd(tmp, _mm_load_pd(src + i)));
+            _mm_store_pd(dst + i, _mm_mul1_pd(tmp, _mm_load_pd(src + i)));
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
-            _mm_storeu_pd(dst + i, _mm_mul_pd(tmp, _mm_loadu_pd(src + i)));
+            _mm_storeu_pd(dst + i, _mm_mul1_pd(tmp, _mm_loadu_pd(src + i)));
         }
     }
 
@@ -260,13 +260,13 @@ static inline void mulcadd128d(double *_a, double _b, double *_c, double *dst, i
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             v2sd a = _mm_load_pd(_a + i);
             v2sd c = _mm_load_pd(_c + i);
-            _mm_store_pd(dst + i, _mm_fmadd_pd_custom(a, b, c));
+            _mm_store_pd(dst + i, _mm_fmadd1_pd_custom(a, b, c));
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             v2sd a = _mm_loadu_pd(_a + i);
             v2sd c = _mm_loadu_pd(_c + i);
-            _mm_storeu_pd(dst + i, _mm_fmadd_pd_custom(a, b, c));
+            _mm_storeu_pd(dst + i, _mm_fmadd1_pd_custom(a, b, c));
         }
     }
 
@@ -286,12 +286,12 @@ static inline void mulcaddc128d(double *_a, double _b, double _c, double *dst, i
     if (areAligned2((uintptr_t) (_a), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             v2sd a = _mm_load_pd(_a + i);
-            _mm_store_pd(dst + i, _mm_fmadd_pd_custom(a, b, c));
+            _mm_store_pd(dst + i, _mm_fmadd1_pd_custom(a, b, c));
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             v2sd a = _mm_loadu_pd(_a + i);
-            _mm_storeu_pd(dst + i, _mm_fmadd_pd_custom(a, b, c));
+            _mm_storeu_pd(dst + i, _mm_fmadd1_pd_custom(a, b, c));
         }
     }
 
@@ -573,7 +573,7 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     sign_bit_sin = _mm_and_pd(sign_bit_sin, *(v2sd *) _pd_sign_mask);
 
     /* scale by 4/Pi */
-    y = _mm_mul_pd(x, *(v2sd *) _pd_cephes_FOPI);
+    y = _mm_mul1_pd(x, *(v2sd *) _pd_cephes_FOPI);
     y = _mm_round_pd(y, ROUNDTOFLOOR);
     /* strip high bits of integer part to prevent integer overflow */
     // v2sd ldexpmin4 = _mm_set1_pd(1.0/(16.0));
@@ -608,9 +608,9 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     // print2i(emm2);
     /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
-    x = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP1, x);
-    x = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP2, x);
-    x = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP3, x);
+    x = _mm_fmadd1_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP1, x);
+    x = _mm_fmadd1_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP2, x);
+    x = _mm_fmadd1_pd_custom(y, *(v2sd *) _pd_minus_cephes_DP3, x);
 
     emm4 = _mm_sub_epi64(emm4, *(v2sid *) _pi64_2);
     emm4 = _mm_andnot_si128(emm4, *(v2sid *) _pi64_4);
@@ -622,18 +622,18 @@ static inline void sincos_pd(v2sd x, v2sd *s, v2sd *c)
     /* Evaluate the first polynom  (0 <= x <= Pi/4) */
     z = _mm_mul_pd(x, x);
 
-    y = _mm_fmadd_pd_custom(*(v2sd *) _pd_coscof_p0, z, *(v2sd *) _pd_coscof_p1);
+    y = _mm_fmadd1_pd_custom(z, *(v2sd *) _pd_coscof_p0, *(v2sd *) _pd_coscof_p1);
     y = _mm_fmadd_pd_custom(y, z, *(v2sd *) _pd_coscof_p2);
     y = _mm_fmadd_pd_custom(y, z, *(v2sd *) _pd_coscof_p3);
     y = _mm_fmadd_pd_custom(y, z, *(v2sd *) _pd_coscof_p4);
     y = _mm_fmadd_pd_custom(y, z, *(v2sd *) _pd_coscof_p5);
     y = _mm_mul_pd(y, z);
     y = _mm_mul_pd(y, z);
-    y = _mm_fnmadd_pd_custom(z, *(v2sd *) _pd_0p5, y);
+    y = _mm_fnmadd1_pd_custom(z, *(v2sd *) _pd_0p5, y);
     y = _mm_add_pd(y, *(v2sd *) _pd_1);
 
     /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
-    v2sd y2 = _mm_fmadd_pd_custom(*(v2sd *) _pd_sincof_p0, z, *(v2sd *) _pd_sincof_p1);
+    v2sd y2 = _mm_fmadd1_pd_custom(z, *(v2sd *) _pd_sincof_p0, *(v2sd *) _pd_sincof_p1);
     y2 = _mm_fmadd_pd_custom(y2, z, *(v2sd *) _pd_sincof_p2);
     y2 = _mm_fmadd_pd_custom(y2, z, *(v2sd *) _pd_sincof_p3);
     y2 = _mm_fmadd_pd_custom(y2, z, *(v2sd *) _pd_sincof_p4);
@@ -747,7 +747,7 @@ static inline v2sd asin_pd(v2sd x)
 
     // fist branch
     zz_first_branch = _mm_sub_pd(*(v2sd *) _pd_1, a);
-    p = _mm_fmadd_pd_custom(*(v2sd *) _pd_ASIN_R0, zz_first_branch, *(v2sd *) _pd_ASIN_R1);
+    p = _mm_fmadd1_pd_custom(zz_first_branch, *(v2sd *) _pd_ASIN_R0, *(v2sd *) _pd_ASIN_R1);
     p = _mm_fmadd_pd_custom(p, zz_first_branch, *(v2sd *) _pd_ASIN_R2);
     p = _mm_fmadd_pd_custom(p, zz_first_branch, *(v2sd *) _pd_ASIN_R3);
     p = _mm_fmadd_pd_custom(p, zz_first_branch, *(v2sd *) _pd_ASIN_R4);
@@ -767,7 +767,7 @@ static inline v2sd asin_pd(v2sd x)
 
     // second branch
     zz_second_branch = _mm_mul_pd(a, a);
-    z_second_branch = _mm_fmadd_pd_custom(*(v2sd *) _pd_ASIN_P0, zz_second_branch, *(v2sd *) _pd_ASIN_P1);
+    z_second_branch = _mm_fmadd_pd_custom(zz_second_branch, *(v2sd *) _pd_ASIN_P0, *(v2sd *) _pd_ASIN_P1);
     z_second_branch = _mm_fmadd_pd_custom(z_second_branch, zz_second_branch, *(v2sd *) _pd_ASIN_P2);
     z_second_branch = _mm_fmadd_pd_custom(z_second_branch, zz_second_branch, *(v2sd *) _pd_ASIN_P3);
     z_second_branch = _mm_fmadd_pd_custom(z_second_branch, zz_second_branch, *(v2sd *) _pd_ASIN_P4);
@@ -844,7 +844,7 @@ static inline v2sd atan_pd(v2sd xx)
     z = _mm_mul_pd(x, x);  // z = x*x
 
     // z = z * polevl(z, P_, 4)
-    tmp = _mm_fmadd_pd_custom(*(v2sd *) _pd_ATAN_P0, z, *(v2sd *) _pd_ATAN_P1);
+    tmp = _mm_fmadd1_pd_custom(z, *(v2sd *) _pd_ATAN_P0, *(v2sd *) _pd_ATAN_P1);
     tmp = _mm_fmadd_pd_custom(tmp, z, *(v2sd *) _pd_ATAN_P2);
     tmp = _mm_fmadd_pd_custom(tmp, z, *(v2sd *) _pd_ATAN_P3);
     tmp = _mm_fmadd_pd_custom(tmp, z, *(v2sd *) _pd_ATAN_P4);
@@ -1184,26 +1184,26 @@ static inline v2sd exp_pd(v2sd x)
     v2sd px, xx, tmp, tmp2;
     v2sid n;
 
-    px = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_LOG2E, x, *(v2sd *) _pd_0p5);
+    px = _mm_fmadd1_pd_custom(x, *(v2sd *) _pd_cephes_LOG2E, *(v2sd *) _pd_0p5);
     px = _mm_round_pd(px, ROUNDTOFLOOR);
     n = _mm_cvtpd_epi64_custom(px);  // n = px;
-    x = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_exp_minC1, px, x);
-    x = _mm_fmadd_pd_custom(*(v2sd *) _pd_cephes_exp_minC2, px, x);
+    x = _mm_fmadd1_pd_custom(px, *(v2sd *) _pd_cephes_exp_minC1, x);
+    x = _mm_fmadd1_pd_custom(px, *(v2sd *) _pd_cephes_exp_minC2, x);
 
     /* rational approximation for exponential
      * of the fractional part:
      * e**x = 1 + 2x P(x**2)/( Q(x**2) - P(x**2) )
      */
     xx = _mm_mul_pd(x, x);
-    tmp = _mm_fmadd_pd_custom(xx, *(v2sd *) _pd_cephes_exp_p0, *(v2sd *) _pd_cephes_exp_p1);
+    tmp = _mm_fmadd1_pd_custom(xx, *(v2sd *) _pd_cephes_exp_p0, *(v2sd *) _pd_cephes_exp_p1);
     tmp = _mm_fmadd_pd_custom(xx, tmp, *(v2sd *) _pd_cephes_exp_p2);
     px = _mm_mul_pd(tmp, x);
-    tmp2 = _mm_fmadd_pd_custom(xx, *(v2sd *) _pd_cephes_exp_q0, *(v2sd *) _pd_cephes_exp_q1);
+    tmp2 = _mm_fmadd1_pd_custom(xx, *(v2sd *) _pd_cephes_exp_q0, *(v2sd *) _pd_cephes_exp_q1);
     tmp2 = _mm_fmadd_pd_custom(xx, tmp2, *(v2sd *) _pd_cephes_exp_q2);
     tmp2 = _mm_fmadd_pd_custom(xx, tmp2, *(v2sd *) _pd_cephes_exp_q3);
     tmp2 = _mm_sub_pd(tmp2, px);
     x = _mm_div_pd(px, tmp2);
-    x = _mm_fmadd_pd_custom(x, *(v2sd *) _pd_2, *(v2sd *) _pd_1);
+    x = _mm_fmadd1_pd_custom(x, *(v2sd *) _pd_2, *(v2sd *) _pd_1);
     // print2(x);
     // print2xi(n);
     /* build 2^n */
@@ -1268,8 +1268,8 @@ static inline v2sd log_pd(v2sd x)
     // if(x < SQRTH) z_abseinf2 = (x-0.5), else x-1
     z_abseinf2 = _mm_blendv_pd(_mm_sub_pd(x, *(v2sd *) _pd_1), _mm_sub_pd(x, *(v2sd *) _pd_0p5), xinfsqrth);
 
-    tmp_abseinf2 = _mm_fmadd_pd_custom(z_abseinf2, *(v2sd *) _pd_0p5, *(v2sd *) _pd_0p5);
-    tmp2_abseinf2 = _mm_fmadd_pd_custom(x, *(v2sd *) _pd_0p5, *(v2sd *) _pd_0p5);
+    tmp_abseinf2 = _mm_fmadd1_pd_custom(z_abseinf2, *(v2sd *) _pd_0p5, *(v2sd *) _pd_0p5);
+    tmp2_abseinf2 = _mm_fmadd1_pd_custom(x, *(v2sd *) _pd_0p5, *(v2sd *) _pd_0p5);
 
     // if(x < SQRTH) y_abseinf2 = z*0.5 + 0.5, else = x*0.5 + 0.5
     y_abseinf2 = _mm_blendv_pd(tmp2_abseinf2, tmp_abseinf2, xinfsqrth);
@@ -1277,7 +1277,7 @@ static inline v2sd log_pd(v2sd x)
     z_abseinf2 = _mm_mul_pd(x_abseinf2, x_abseinf2);  // z = x*x;
 
     // z = x * ( z * polevl( z, R, 2 ) / p1evl( z, S, 3 ) );
-    tmp_abseinf2 = _mm_fmadd_pd_custom(z_abseinf2, *(v2sd *) _pd_cephes_log_r0, *(v2sd *) _pd_cephes_log_r1);
+    tmp_abseinf2 = _mm_fmadd1_pd_custom(z_abseinf2, *(v2sd *) _pd_cephes_log_r0, *(v2sd *) _pd_cephes_log_r1);
     tmp_abseinf2 = _mm_fmadd_pd_custom(z_abseinf2, tmp_abseinf2, *(v2sd *) _pd_cephes_log_r2);
     tmp2_abseinf2 = _mm_add_pd(z_abseinf2, *(v2sd *) _pd_cephes_log_s0);
     tmp2_abseinf2 = _mm_fmadd_pd_custom(z_abseinf2, tmp2_abseinf2, *(v2sd *) _pd_cephes_log_s1);
@@ -1288,19 +1288,19 @@ static inline v2sd log_pd(v2sd x)
 
     // convert e to double
     // y = e
-    z_abseinf2 = _mm_fmadd_pd_custom(e, *(v2sd *) _pd_min_212emin4, z_abseinf2);  // z = z - y * 2.121944400546905827679e-4;
+    z_abseinf2 = _mm_fmadd1_pd_custom(e, *(v2sd *) _pd_min_212emin4, z_abseinf2);  // z = z - y * 2.121944400546905827679e-4;
     z_abseinf2 = _mm_add_pd(z_abseinf2, x_abseinf2);                              // z = z + x;
 
     /* logarithm using log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
     v2sd tmp3, tmp4;
-    tmp3 = _mm_fmadd_pd_custom(x, *(v2sd *) _pd_2, *(v2sd *) _pd_min1);  //	  x = 2.0*x - 1.0; /*  2x - 1  */
+    tmp3 = _mm_fmadd1_pd_custom(x, *(v2sd *) _pd_2, *(v2sd *) _pd_min1);  //	  x = 2.0*x - 1.0; /*  2x - 1  */
     tmp4 = _mm_sub_pd(x, *(v2sd *) _pd_1);                               // x = x - 1.0;
     x = _mm_blendv_pd(tmp4, tmp3, xinfsqrth);
 
     /* rational form */
     z = _mm_mul_pd(x, x);  // z = x*x;
     //  y = x * ( z * polevl( x, P, 5 ) / p1evl( x, Q, 5 ) );
-    tmp3 = _mm_fmadd_pd_custom(x, *(v2sd *) _pd_cephes_log_p0, *(v2sd *) _pd_cephes_log_p1);
+    tmp3 = _mm_fmadd1_pd_custom(x, *(v2sd *) _pd_cephes_log_p0, *(v2sd *) _pd_cephes_log_p1);
     tmp3 = _mm_fmadd_pd_custom(x, tmp3, *(v2sd *) _pd_cephes_log_p2);
     tmp3 = _mm_fmadd_pd_custom(x, tmp3, *(v2sd *) _pd_cephes_log_p3);
     tmp3 = _mm_fmadd_pd_custom(x, tmp3, *(v2sd *) _pd_cephes_log_p4);
@@ -1316,13 +1316,13 @@ static inline v2sd log_pd(v2sd x)
     y = _mm_mul_pd(x, tmp3);
 
     // if( e) => no need, if e==0 it still works
-    z = _mm_fmadd_pd_custom(e, *(v2sd *) _pd_min_212emin4, z);  // z = z - e * 2.121944400546905827679e-4;
-    y = _mm_fmadd_pd_custom(z, *(v2sd *) _pd_min0p5, y);        // y = y - 0.5*z;
+    z = _mm_fmadd1_pd_custom(e, *(v2sd *) _pd_min_212emin4, z);  // z = z - e * 2.121944400546905827679e-4;
+    y = _mm_fmadd1_pd_custom(z, *(v2sd *) _pd_min0p5, y);        // y = y - 0.5*z;
     z = _mm_add_pd(x, y);                                       // z = x + y;
     // if( e) => no need, if e==0 it still works
 
     z = _mm_blendv_pd(z, z_abseinf2, abseinf2);         // if fabs(e) < 2 z = z_abseinf2
-    z = _mm_fmadd_pd_custom(e, *(v2sd *) _pd_0p69, z);  // z + e * 0.693359375;
+    z = _mm_fmadd1_pd_custom(e, *(v2sd *) _pd_0p69, z);  // z + e * 0.693359375;
 
     return (z);
 }
@@ -1370,16 +1370,16 @@ static inline v2sd tan_pd(v2sd xx)
 #endif
 
     /* compute x mod PIO4 */
-    y = _mm_mul_pd(x, *(v2sd *) _pd_cephes_FOPI);
+    y = _mm_mul1_pd(x, *(v2sd *) _pd_cephes_FOPI);
 
     // useful?
     y = _mm_round_pd(y, ROUNDTOFLOOR);
 
     /* strip high bits of integer part */
-    z = _mm_mul_pd(y, *(v2sd *) _pd_0p125);
+    z = _mm_mul1_pd(y, *(v2sd *) _pd_0p125);
     // useful?
     z = _mm_round_pd(z, ROUNDTOFLOOR);
-    z = _mm_fmadd_pd_custom(z, *(v2sd *) _pd_min8, y);
+    z = _mm_fmadd1_pd_custom(z, *(v2sd *) _pd_min8, y);
 
     /* integer and fractional part modulo one octant */
     j = _mm_cvtpd_epi64_custom(z);
@@ -1399,13 +1399,13 @@ static inline v2sd tan_pd(v2sd xx)
 
     jandtwo = _mm_cmpgt_epi64(_mm_and_si128(j, *(v2sid *) _pi64_2), _mm_setzero_si128());
 
-    z = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_TAN_mDP1, x);
-    z = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_TAN_mDP2, z);
-    z = _mm_fmadd_pd_custom(y, *(v2sd *) _pd_TAN_mDP3, z);
+    z = _mm_fmadd1_pd_custom(y, *(v2sd *) _pd_TAN_mDP1, x);
+    z = _mm_fmadd1_pd_custom(y, *(v2sd *) _pd_TAN_mDP2, z);
+    z = _mm_fmadd1_pd_custom(y, *(v2sd *) _pd_TAN_mDP3, z);
     zz = _mm_mul_pd(z, z);
 
     zzsup1m14 = _mm_cmpgt_pd(zz, *(v2sd *) _pd_1m14);
-    tmp = _mm_fmadd_pd_custom(zz, *(v2sd *) _pd_TAN_P0, *(v2sd *) _pd_TAN_P1);
+    tmp = _mm_fmadd1_pd_custom(zz, *(v2sd *) _pd_TAN_P0, *(v2sd *) _pd_TAN_P1);
     tmp = _mm_fmadd_pd_custom(zz, tmp, *(v2sd *) _pd_TAN_P2);
     tmp2 = _mm_add_pd(zz, *(v2sd *) _pd_TAN_Q0);
     tmp2 = _mm_fmadd_pd_custom(zz, tmp2, *(v2sd *) _pd_TAN_Q1);
