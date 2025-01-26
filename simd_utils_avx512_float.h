@@ -847,6 +847,44 @@ static inline void convertInt16ToFloat32_512(int16_t *src, float *dst, int len, 
     }
 }
 
+// Allow for integer up to 24bits without overflow
+static inline void convertInt32ToFloat32_512(int32_t *src, float *dst, int len, int scale_factor)
+{
+    int stop_len = len / (2 * AVX512_LEN_FLOAT);
+    stop_len *= (2 * AVX512_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v16sf scale_fact_vec = _mm512_set1_ps(scale_fact_mult);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16si vec = _mm512_load_si512((v16si *) (src + i)); 
+			v16si vec1 = _mm512_load_si512((v16si *) (src + i + AVX512_LEN_FLOAT)); 
+			
+            // convert the vector to float and scale it
+            v16sf floatlo = _mm512_mul_ps(_mm512_cvtepi32_ps(vec), scale_fact_vec);
+            v16sf floathi = _mm512_mul_ps(_mm512_cvtepi32_ps(vec1), scale_fact_vec);
+            _mm512_store_ps(dst + i, floatlo);
+            _mm512_store_ps(dst + i + AVX512_LEN_FLOAT, floathi);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * AVX512_LEN_FLOAT) {
+            v16si vec = _mm512_loadu_si512((v16si *) (src + i)); 
+			v16si vec1 = _mm512_loadu_si512((v16si *) (src + i + AVX512_LEN_FLOAT)); 
+			
+            // convert the vector to float and scale it
+            v16sf floatlo = _mm512_mul_ps(_mm512_cvtepi32_ps(vec), scale_fact_vec);
+            v16sf floathi = _mm512_mul_ps(_mm512_cvtepi32_ps(vec1), scale_fact_vec);
+            _mm512_storeu_ps(dst + i, floatlo);
+            _mm512_storeu_ps(dst + i + AVX512_LEN_FLOAT, floathi);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = (float) src[i] * scale_fact_mult;
+    }
+}
+
 static inline void convertFloat32ToU8_512(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
 {
     int stop_len = len / (4 * AVX512_LEN_FLOAT);

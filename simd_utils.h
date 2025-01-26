@@ -1549,6 +1549,19 @@ static inline void convertInt16ToFloat32_C(int16_t *src, float *dst, int len, in
     }
 }
 
+// Allow for integer up to 24bits without overflow
+static inline void convertInt32ToFloat32_C(int32_t *src, float *dst, int len, int scale_factor)
+{
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+
+#ifdef OMP
+#pragma omp simd
+#endif
+    for (int i = 0; i < len; i++) {
+        dst[i] = (float) src[i] * scale_fact_mult;
+    }
+}
+
 static inline void threshold_gt_f_C(float *src, float *dst, int len, float value)
 {
 #ifdef OMP

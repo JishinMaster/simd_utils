@@ -1361,7 +1361,7 @@ static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, 
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
-            v4si vec = _mm_load_si128((__m128i *) (src + i));  // loads 1 2 3 4 5 6 7 8 8
+            v4si vec = _mm_load_si128((__m128i *) (src + i));  // loads 1 2 3 4 5 6 7 8
             v4si low = _mm_unpacklo_epi16(vec, vec);           // low 1 1 2 2 3 3 4 4
             v4si high = _mm_unpackhi_epi16(vec, vec);          // high 5 5 6 6 7 7 8 8
             low = _mm_srai_epi32(low, 0x10);                   // make low 1 -1 2 -1 3 -1 4 -4
@@ -1370,6 +1370,48 @@ static inline void convertInt16ToFloat32_128(int16_t *src, float *dst, int len, 
             // convert the vector to float and scale it
             v4sf floatlo = _mm_mul1_ps(_mm_cvtepi32_ps(low), scale_fact_vec);
             v4sf floathi = _mm_mul1_ps(_mm_cvtepi32_ps(high), scale_fact_vec);
+
+            _mm_store_ps(dst + i, floatlo);
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, floathi);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4si vec = _mm_loadu_si128((__m128i *) (src + i));  // loads 1 2 3 4 5 6 7 8 8
+            v4si low = _mm_unpacklo_epi16(vec, vec);            // low 1 1 2 2 3 3 4 4
+            v4si high = _mm_unpackhi_epi16(vec, vec);           // high 5 5 6 6 7 7 8 8
+            low = _mm_srai_epi32(low, 0x10);                    // make low 1 -1 2 -1 3 -1 4 -4
+            high = _mm_srai_epi32(high, 0x10);                  // make high 5 -1 6 -1 7 -1 8 -1
+
+            // convert the vector to float and scale it
+            v4sf floatlo = _mm_mul1_ps(_mm_cvtepi32_ps(low), scale_fact_vec);
+            v4sf floathi = _mm_mul1_ps(_mm_cvtepi32_ps(high), scale_fact_vec);
+
+            _mm_storeu_ps(dst + i, floatlo);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, floathi);
+        }
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = (float) src[i] * scale_fact_mult;
+    }
+}
+
+// Allow for integer up to 24bits without overflow
+static inline void convertInt32ToFloat32_128(int32_t *src, float *dst, int len, int scale_factor)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    v4sf scale_fact_vec = _mm_set1_ps(scale_fact_mult);
+
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4si vec = _mm_load_si128((__m128i *) (src + i)); 
+			v4si vec1 = _mm_load_si128((__m128i *) (src + i + SSE_LEN_FLOAT)); 
+            // convert the vector to float and scale it
+            v4sf floatlo = _mm_mul1_ps(_mm_cvtepi32_ps(vec), scale_fact_vec);
+            v4sf floathi = _mm_mul1_ps(_mm_cvtepi32_ps(vec1), scale_fact_vec);
 
             _mm_store_ps(dst + i, floatlo);
             _mm_store_ps(dst + i + SSE_LEN_FLOAT, floathi);

@@ -4,8 +4,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
+
 #include <time.h>
+#include <sys/time.h>
+#ifdef CLOCKSTUB
+#undef clock_gettime
+int clock_gettime(clockid_t clockid, struct timespec *tp)
+{
+   struct timeval tv;
+   gettimeofday(&tv,NULL);
+   tp->tv_sec = tv.tv_sec;
+   tp->tv_nsec = tv.tv_usec/1000ULL;
+   return 0;
+}
+
+#undef posix_memalign
+int posix_memalign(void **memptr, size_t alignment, size_t size){
+        *memptr = aligned_alloc(alignment, size);
+        return 0;
+}
+
+int _isatty(int fd){
+	return 1;
+}
+#endif
+
 #include "simd_utils.h"
 
 #ifdef __MACH__
@@ -71,7 +94,7 @@ int64_t ulpsDistance64(const double a, const double b)
     if ((ia < 0) != (ib < 0))
         return -1;
 
-    int64_t dist = labs(ia - ib);
+    int64_t dist = llabs(ia - ib);
     return dist;
 }
 

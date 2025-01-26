@@ -3225,6 +3225,94 @@ for (int i = 0; i < len; i++){
 #endif
 
 
+    printf("\n");
+    /////////////////////////////////////////////////////////// CONVERTINT32_FLOAT32 //////////////////////////////////////////////////////////////////////////////
+    printf("CONVERTINT32_FLOAT32\n");
+
+    for (int i = 0; i < len; i++)
+        inout_i1[i] = -len/2 + i;
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    convertInt32ToFloat32_C(inout_i1, inout2_ref, len, 4);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("convertInt32ToFloat32_C %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        convertInt32ToFloat32_C(inout_i1, inout2_ref, len, 4);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("convertInt32ToFloat32_C %d %lf\n", len, elapsed);
+
+#ifdef IPP
+    clock_gettime(CLOCK_REALTIME, &start);
+    ippsConvert_32s32f_Sfs(inout_i1, inout_ref, len, 4);  // ippRndFinancial ippRndZero ippRndFinancial
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("ippsConvert_32s32f_Sfs %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        ippsConvert_32s32f_Sfs(inout_i1, inout_ref, len, 4);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("ippsConvert_32s32f_Sfs %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
+#if defined(SSE) || defined(ALTIVEC)
+#ifndef __MACH__
+    clock_gettime(CLOCK_REALTIME, &start);
+    convertInt32ToFloat32_128(inout_i1, inout_ref, len, 4);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("convertInt32ToFloat32_128 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        convertInt32ToFloat32_128(inout_i1, inout_ref, len, 4);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("convertInt32ToFloat32_128 %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+#endif
+
+#ifdef AVX
+#ifdef __AVX2__
+    clock_gettime(CLOCK_REALTIME, &start);
+    convertInt32ToFloat32_256(inout_i1, inout_ref, len, 4);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("convertInt32ToFloat32_256 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        convertInt32ToFloat32_256(inout_i1, inout_ref, len, 4);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("convertInt32ToFloat32_256 %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+#endif
+
+#ifdef AVX512
+    clock_gettime(CLOCK_REALTIME, &start);
+    convertInt32ToFloat32_512(inout_i1, inout_ref, len, 4);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("convertInt32ToFloat32_512 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        convertInt32ToFloat32_512(inout_i1, inout_ref, len, 4);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("convertInt32ToFloat32_512 %d %lf\n", len, elapsed);
+    l2_err(inout_ref, inout2_ref, len);
+#endif
+
     /*for(int i = 0; i < len; i++)
         printf("%d %f %f %f\n" ,inout_s1[i], (float)inout_s1[i]/(1 << 4),inout_ref[i],inout2_ref[i]);*/
 
