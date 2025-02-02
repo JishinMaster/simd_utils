@@ -1311,13 +1311,15 @@ static inline void convertFloat32ToI16_256(float *src, int16_t *dst, int len, in
     if (rounding_mode == RndFinancial) {
         for (int i = stop_len; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
+            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  
+			dst[i] = (int16_t) (tmp < -32768.0f ? -32768.0f : tmp);  
         }
     } else {
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
             float tmp = rintf(src[i] * scale_fact_mult);
             dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
+			dst[i] = (int16_t) (tmp < -32768.0f ? -32768.0f : tmp);  
         }
         _MM_SET_ROUNDING_MODE(_mm_rounding_ori);  // restore previous rounding mode
         fesetround(rounding_ori);

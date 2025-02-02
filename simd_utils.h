@@ -1482,6 +1482,7 @@ static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int 
         for (int i = 0; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
             dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
+			dst[i] = (int16_t) (tmp < -32768.0f ? -32768.0f : tmp);  
         }
     } else {
         if (rounding_mode == RndZero) {
@@ -1497,6 +1498,7 @@ static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int 
         for (int i = 0; i < len; i++) {
             float tmp = rintf(src[i] * scale_fact_mult);
             dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
+			dst[i] = (int16_t) (tmp < -32768.0f ? -32768.0f : tmp);  
         }
     }
     fesetround(rounding_ori);
