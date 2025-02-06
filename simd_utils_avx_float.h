@@ -4175,7 +4175,7 @@ static inline void modf256f(float *src, float *integer, float *remainder, int le
 }
 
 //F16C introduced in the same time as AVX, so not SSE code
-void fp32tofp16128 (float* src, uint16_t* dst, size_t len)
+static inline void fp32tofp16128 (float* src, uint16_t* dst, size_t len)
 {
     int stop_len = len / (2*SSE_LEN_FLOAT);
     stop_len *= (2*SSE_LEN_FLOAT);
@@ -4205,7 +4205,7 @@ void fp32tofp16128 (float* src, uint16_t* dst, size_t len)
     }	
 }
 
-void fp32tofp16256 (float* src, uint16_t* dst, size_t len)
+static inline void fp32tofp16256 (float* src, uint16_t* dst, size_t len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
@@ -4230,7 +4230,7 @@ void fp32tofp16256 (float* src, uint16_t* dst, size_t len)
 }
 
 //F16C introduced in the same time as AVX, so not SSE code
-void fp16tofp32128 (uint16_t* src, float* dst, size_t len)
+static inline  void fp16tofp32128 (uint16_t* src, float* dst, size_t len)
 {
     int stop_len = len / (2*SSE_LEN_FLOAT);
     stop_len *= (2*SSE_LEN_FLOAT);
@@ -4260,7 +4260,7 @@ void fp16tofp32128 (uint16_t* src, float* dst, size_t len)
     }	
 }
 
-void fp16tofp32256 (uint16_t* src, float* dst, size_t len)
+static inline void fp16tofp32256 (uint16_t* src, float* dst, size_t len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;

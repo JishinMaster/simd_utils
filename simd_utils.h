@@ -13,7 +13,7 @@ extern "C" {
 
 #define MAJOR_VERSION 0
 #define MINOR_VERSION 2
-#define SUB_VERSION 5
+#define SUB_VERSION 6
 
 #ifdef OMP
 #include <omp.h>
@@ -165,12 +165,14 @@ static inline uint32_t Float16ToFloat32(uint16_t x)
 
 static inline uint32_t float_as_uint32 (float a)
 {
-    return *(uint32_t *)&a;
+	float* ret = &a;
+    return *((uint32_t *)ret);
 }
 
 static inline float uint32_as_float (uint32_t a)
 {
-    return *(float *)&a;
+	uint32_t* ret = &a;
+    return *((float *)ret);
 }
 
 //From https://stackoverflow.com/questions/76799117/how-to-convert-a-float-to-a-half-type-and-the-other-way-around-in-c

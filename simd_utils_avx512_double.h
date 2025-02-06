@@ -836,7 +836,6 @@ static inline void sincos512_pd(v8sd x, v8sd *s, v8sd *c)
 {
     v8sd xmm1, xmm2, sign_bit_sin, y;
     v8sid emm0, emm2, emm4;
-    __mmask8 cmpeq_mask;
 
     sign_bit_sin = x;
     /* take the absolute value */

@@ -69,8 +69,7 @@ static inline v16sf log512_ps(v16sf x)
 
 static inline v16sf exp512_ps(v16sf x)
 {
-    v16sf tmp, fx;
-    v16si imm0;
+    v16sf fx;
 
     x = _mm512_min_ps(x, *(v16sf *) _ps512_exp_hi);
     x = _mm512_max_ps(x, *(v16sf *) _ps512_exp_lo);
