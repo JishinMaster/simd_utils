@@ -1146,7 +1146,6 @@ static inline v8sd tan512_pd(v8sd xx)
 static inline v8sd exp512_pd(v8sd x)
 {
     v8sd px, xx, tmp, tmp2;
-    v8sid n;
 
     px = _mm512_fmadd_pd(*(v8sd *) _pd512_cephes_LOG2E, x, *(v8sd *) _pd512_0p5);
     px = _mm512_roundscale_pd(px, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
