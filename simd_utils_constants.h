@@ -1128,36 +1128,24 @@ static const int64_t inv_sign_maskd = ~SIGN_MASKD;
 #define M_PI 3.14159265358979323846264338327950288
 #endif
 
-typedef union {
-    struct {
-        int16_t re;
-        int16_t im;
-    };
-    int16_t c[2];
+typedef struct {
+	int16_t re;
+	int16_t im;
 } complex16s_t;
 
-typedef union {
-    struct {
-        int32_t re;
-        int32_t im;
-    };
-    int32_t c[2];
+typedef struct {
+	int32_t re;
+	int32_t im;
 } complex32s_t;
 
-typedef union {
-    struct {
-        float re;
-        float im;
-    };
-    float c[2];
+typedef struct {
+	float re;
+	float im;
 } complex32_t;
 
-typedef union {
-    struct {
-        double re;
-        double im;
-    };
-    double c[2];
+typedef struct {
+	double re;
+	double im;
 } complex64_t;
 
 typedef enum {
@@ -1172,8 +1160,8 @@ typedef  struct {
 } point_t;
 
 typedef struct {
-        point_t* modified_points;
-        int counter;
+	point_t* modified_points;
+	int counter;
 } modified_t;
 
 #ifndef max
