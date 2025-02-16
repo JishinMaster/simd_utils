@@ -7,6 +7,8 @@
 
 #include "common_test.h"
 
+#include <strings.h>
+
 int main(int argc, char **argv)
 {
 #ifdef IPP
@@ -1822,6 +1824,81 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("powcplx512d %d %lf\n", len, elapsed);
     l2_errd(inoutd_ref, inoutd2_ref, len);
+#endif
+
+    printf("\n");
+    ////////////////////////////////////////////////// STRNLEN_S ////////////////////////////////////////////////////////////////////
+    printf("STRNLEN_S\n");
+
+	for(int i = 0; i < len; i++)
+		inout_u1[i] =  'a';
+	inout_u1[len-3] =  '\0';
+
+	size_t lengthstr_ref;
+    clock_gettime(CLOCK_REALTIME, &start);
+    lengthstr_ref = strnlen(inout_u1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("strnlen_s %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        lengthstr_ref = strnlen(inout_u1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("strnlen_s %d %lf\n", len, elapsed);
+
+#if defined(SSE)
+	size_t lengthstr;
+    clock_gettime(CLOCK_REALTIME, &start);
+    lengthstr = strnlen_s_128(inout_u1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("strnlen_s_128 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        lengthstr = strnlen_s_128(inout_u1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("strnlen_s_128 %d %lf\n", len, elapsed);
+	printf("%lu %lu\n",lengthstr_ref, lengthstr_ref);
+#endif
+
+#if defined(AVX)
+#ifdef __AVX2__
+	lengthstr;
+    clock_gettime(CLOCK_REALTIME, &start);
+    lengthstr = strnlen_s_256(inout_u1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("strnlen_s_256 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        lengthstr = strnlen_s_256(inout_u1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("strnlen_s_256 %d %lf\n", len, elapsed);
+	printf("%lu %lu\n",lengthstr_ref, lengthstr_ref);
+#endif
+#endif
+
+#if defined(AVX512)
+	lengthstr;
+    clock_gettime(CLOCK_REALTIME, &start);
+    lengthstr = strnlen_s_512(inout_u1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("strnlen_s_512 %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+        lengthstr = strnlen_s_512(inout_u1, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("strnlen_s_512 %d %lf\n", len, elapsed);
+	printf("%lu %lu\n",lengthstr_ref, lengthstr_ref);
 #endif
 
     inout -= offset;

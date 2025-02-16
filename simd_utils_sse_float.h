@@ -3381,8 +3381,10 @@ static inline void dotc128f(complex32_t *src1, complex32_t *src2, int len, compl
     v4sfx2 vec_acc1 = {{_mm_setzero_ps(), _mm_setzero_ps()}};  // initialize the vector accumulator
     v4sfx2 vec_acc2 = {{_mm_setzero_ps(), _mm_setzero_ps()}};  // initialize the vector accumulator
 
-    complex32_t dst_tmp = {{0.0f, 0.0f}};
-
+    complex32_t dst_tmp;
+	dst_tmp.re = 0.0f;
+	dst_tmp.im = 0.0f;
+	
     __attribute__((aligned(SSE_LEN_BYTES))) float accumulateRe[SSE_LEN_FLOAT];
     __attribute__((aligned(SSE_LEN_BYTES))) float accumulateIm[SSE_LEN_FLOAT];
 

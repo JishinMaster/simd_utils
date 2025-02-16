@@ -2571,7 +2571,9 @@ static inline void dotf_C_precise(float *src1, float *src2, int len, float *dst)
 
 static inline void dotcf_C(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
 {
-    complex32_t dst_tmp = {{0.0f, 0.0f}};
+    complex32_t dst_tmp;
+	dst_tmp.re = 0.0f;
+	dst_tmp.im = 0.0f;
 
 #ifdef OMP
 #pragma omp simd
@@ -2587,7 +2589,10 @@ static inline void dotcf_C(complex32_t *src1, complex32_t *src2, int len, comple
 
 static inline void dotcf_C_precise(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
 {
-    complex64_t dst_tmp = {{0.0, 0.0}};
+    complex64_t dst_tmp;
+	dst_tmp.re = 0.0;
+	dst_tmp.im = 0.0;
+	
 
 #ifdef OMP
 #pragma omp simd

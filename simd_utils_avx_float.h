@@ -3338,7 +3338,9 @@ static inline void dotc256f(complex32_t *src1, complex32_t *src2, int len, compl
     v8sfx2 vec_acc1 = {{_mm256_setzero_ps(), _mm256_setzero_ps()}};  // initialize the vector accumulator
     v8sfx2 vec_acc2 = {{_mm256_setzero_ps(), _mm256_setzero_ps()}};  // initialize the vector accumulator
 
-    complex32_t dst_tmp = {{0.0f, 0.0f}};
+    complex32_t dst_tmp;
+	dst_tmp.re = 0.0f;
+	dst_tmp.im = 0.0f;
 
     __attribute__((aligned(AVX_LEN_BYTES))) float accumulateRe[AVX_LEN_FLOAT];
     __attribute__((aligned(AVX_LEN_BYTES))) float accumulateIm[AVX_LEN_FLOAT];
