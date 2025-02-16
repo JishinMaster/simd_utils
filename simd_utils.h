@@ -639,6 +639,7 @@ static inline v2sid _mm_cvtpd_epi64_custom(v2sd x)
 
 #include "simd_utils_sse_float.h"
 #include "simd_utils_sse_int32.h"
+#include "simd_utils_sse_strings.h"
 
 #endif /* SSE */
 
@@ -816,6 +817,8 @@ static inline void _mm256_store2u_pd(double *mem_addr, v4sdx2 a)
 #include "simd_utils_avx_float.h"
 #include "simd_utils_avx_int32.h"
 
+#include "simd_utils_avx_strings.h"
+
 #endif /* AVX */
 
 #ifdef AVX512
@@ -925,6 +928,7 @@ static inline void _mm512_store2u_pd(double *mem_addr, v8sdx2 a)
 #include "simd_utils_avx512_double.h"
 #include "simd_utils_avx512_float.h"
 #include "simd_utils_avx512_int32.h"
+#include "simd_utils_avx512_strings.h"
 
 #endif /* AVX512 */
 
