@@ -209,11 +209,11 @@ static inline void mulc128d(double *src, double value, double *dst, int len)
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
-            _mm_store_pd(dst + i, _mm_mul1_pd(tmp, _mm_load_pd(src + i)));
+            _mm_store_pd(dst + i, _mm_mul1_pd(_mm_load_pd(src + i), tmp));
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
-            _mm_storeu_pd(dst + i, _mm_mul1_pd(tmp, _mm_loadu_pd(src + i)));
+            _mm_storeu_pd(dst + i, _mm_mul1_pd(_mm_loadu_pd(src + i), tmp));
         }
     }
 
