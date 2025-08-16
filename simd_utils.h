@@ -999,6 +999,11 @@ static inline void _MM_SET_ROUNDING_MODE(uint32_t mode)
 
 #endif /* RISCV */
 
+#ifdef SVE2 /* SVE2 */
+#include "simd_utils_sve_float.h"
+#endif /* SVE2 */
+
+
 #ifdef ALTIVEC
 #include <altivec.h>
 // Compare and perm operations => perm unit

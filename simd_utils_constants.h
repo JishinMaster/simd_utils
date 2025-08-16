@@ -20,6 +20,95 @@
 #endif
 #endif
 
+#ifdef SVE2
+#include <arm_sve.h>
+#define V_ELT_FLOAT svfloat32_t
+#define VLOAD_FLOAT(a,b) svld1_f32((b),(a))
+#define VLOAD1_FLOAT(a,b) svdup_n_f32((a))
+#define VSTORE_FLOAT(a,b,c) svst1_f32((c),(a),(b))
+#define V_ELT_INT svint32_t
+#define V_ELT_UINT svuint32_t
+#define VINTERP_INT_FLOAT svreinterpret_f32_s32
+#define VINTERP_FLOAT_INT svreinterpret_s32_f32
+#define VAND1_INT(a,b,c) svand_n_u32_x((c),(a),(b))
+#define VMUL1_FLOAT(a,b,c) svmul_n_f32_x((c),(a),(b))
+#define VMUL1_FLOAT_MASK(a,b,c,d) svmul_n_f32_x((a),(b),(c))
+#define VMUL_FLOAT(a,b,c) svmul_f32_x((c),(a),(b))
+#define VDIV_FLOAT(a,b,c) svdiv_f32_x((c),(a),(b))
+#define VADD1_FLOAT(a,b,c) svadd_n_f32_x((c),(a),(b))
+#define VADD1_FLOAT_MASK(a,b,c,d) svadd_n_f32_x((a),(b),(c))
+#define VADD1_INT(a,b,c) svadd_n_s32_x((c),(a),(b))
+#define VADD1_INT_MASK(a,b,c,d) svadd_n_s32_x((a),(b),(c))
+#define VSUB1_INT_MASK(a,b,c,d) svsub_n_s32_x((a),(b),(c))
+#define VADD_FLOAT(a,b,c) svadd_f32_x((c),(a),(b))
+#define VSUB_FLOAT(a,b,c) svsub_f32_x((c),(a),(b))
+#define VSUB1_FLOAT(a,b,c) svsub_n_f32_x((c),(a),(b))
+#define VSUB1_INT(a,b,c) svsub_n_s32_x((c),(a),(b))
+#define VSLL1_INT(a,b,c) svlsl_n_s32_x((c),(a),(b))
+#define VCVT_INT_FLOAT(a,b) svcvt_f32_s32_x((b),(a))
+#define VCVT_FLOAT_INT(a,b) svcvt_s32_f32_x((b),(a))
+#define VCVT_RTZ_FLOAT_INT VCVT_FLOAT_INT
+// x current exact, a nearest away from zero, i current mode inexact, m mininf,
+// n nearest even, p plusinf
+#define VR_FLOAT(a,b) svrintx_f32_x((b),(a))
+#define VRTZ_FLOAT(a,b) svrintz_f32_x((b),(a))
+#define VRNE_FLOAT(a,b) svrintn_f32_x((b),(a))
+#define VRMINF_FLOAT(a,b) svrintm_f32_x((b),(a))
+#define VRINF_FLOAT(a,b) svrintp_f32_x((b),(a))
+#define VRNA_FLOAT(a,b) svrinta_f32_x((b),(a))
+
+#define V_ELT_BOOL32 svbool_t
+#define VEQ1_INT_BOOL(a,b,c) svcmpeq_n_s32((c),(a),(b))
+#define VGT1_FLOAT_BOOL(a,b,c) svcmpgt_n_f32((c),(a),(b))
+#define VLT1_FLOAT_BOOL(a,b,c) svcmplt_n_f32((c),(a),(b))
+//#define VFMACC1_FLOAT(a,b,c,d) svmad_n_f32_m((d),(b),(c),(a)) // op3 + op1[i]*op2[i]
+#define VFMACC1_FLOAT(a,b,c,d) svmla_n_f32_x((d),(a),(c),(b)) // op1[i] + op2[i] * op3
+#define VFMACC_FLOAT(a,b,c,d) svmla_f32_x((d),(a),(c),(b)) // op1[i] + op2[i] * op3[i]
+#define VFMADD1_FLOAT(a,b,c,d) svmla_n_f32_x((d),(c),(a),(b)) //  op1[i] + op2[i] * op3
+
+//SVE2 computes a - b*c where riscv does b*c - a! 
+#define VFMSUB_FLOAT(a,b,c,d) svmls_f32_x((d),(c),(a),(b)) //  op1[i] - op2[i] * op3[i]
+
+#define VFMADD_FLOAT(a,b,c,d) svmad_f32_x((d),(a),(b),(c)) // op1[i] * op2[i] + op3[i]
+#define VMERGE_FLOAT(mask, t, f,i) svsel_f32((mask), (f), (t))     /* select */
+#define VMERGE1_FLOAT(mask, v, f) svsel_f32((mask), svdup_n_f32((float)(f)),(v))
+#define VXOR_INT(a,b,c)  sveor_s32_m((c),(a),(b))
+#define VNOT_INT(a,b)  svnot_s32_x((b),(a))
+#define VXOR1_INT(a,b,c)  sveor_s32_x((c),(a),(b))
+#define VCLEAR_BOOL(a) svpfalse_b()
+
+#define VXOR_BOOL(a,b,c)  sveor_b_z((c),(a),(b))
+#define VOR_BOOL(a,b,c)  svorr_b_z((c),(a),(b))
+#define VGT1_INT_BOOL(a,b,c) svcmpgt_n_s32((c),(a),(b))
+#define VNE1_INT_BOOL(a,b,c) svcmpne_n_s32((c),(a),(b))
+
+#define VRDIV1_FLOAT(a,b,c) svdivr_n_f32_z((c),(a),(b))
+#define VRSUB1_FLOAT(a,b,c) svsubr_n_f32_z((c),(a),(b))
+
+#define V_ELT_FLOAT2 svfloat32x2_t
+#define VSTORE_FLOAT2SPLIT(a,b,c,d) svst2_f32((d),(float*)(a),(V_ELT_FLOAT2){b,c})
+#define VSTORE_FLOAT2(a,b,c) svst2_f32((c),(float*)(a),(b))
+#define VLOAD_FLOAT2(a,b) svld2_f32((b),(float*)(a))
+
+#define VREDSUM_FLOAT(a,b)  svaddv_f32((b),(a))
+#define VREDSUMORD_FLOAT(a,b,c)  svadda_f32((c),(a),(b))
+
+// returns dst = dst  + a*b
+inline V_ELT_FLOAT VMUL_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i){
+	dst = svcmla_f32_x(i,dst,a,b,0);
+	dst = svcmla_f32_x(i,dst,a,b,90);
+	return dst;
+}
+
+//returns dst = dst + conj(a)*b
+inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i){
+	dst = svcmla_f32_x(i,dst,a,b,0);
+	dst = svcmla_f32_x(i,dst,a,b,270);
+	return dst;
+}
+
+#endif // SVE2
+
 #ifdef RISCV
 #include <riscv_vector.h>
 
