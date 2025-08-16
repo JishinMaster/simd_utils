@@ -497,7 +497,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     atanhf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -696,7 +696,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     asinhf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -897,7 +897,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     acoshf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1136,7 +1136,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     asinf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1617,7 +1617,7 @@ for (int i = 0; i < len; i++){
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     atanf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1813,7 +1813,7 @@ for (int i = 0; i < len; i++){
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     atan2f_vec(inout, inout2, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1906,7 +1906,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout2_ref, inout_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     atan2f_interleaved_vec((complex32_t *) inout, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2414,7 +2414,7 @@ for (int i = 0; i < len; i++){
         printf("\n\n");*/
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxtorealf_vec((complex32_t *) inout, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2546,7 +2546,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout, inout_ref, 2 * len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     realtocplxf_vec(inout3, inout4, (complex32_t *) inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);

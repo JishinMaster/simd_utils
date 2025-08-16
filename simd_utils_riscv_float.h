@@ -2198,7 +2198,6 @@ static inline V_ELT_FLOATH exp_ps(V_ELT_FLOATH x,
      *   = e**g e**( n loge(2) )
      *   = e**( g + n loge(2) )
      */
-    fx = x;
     fx = VFMADD1_FLOATH(x, c_cephes_LOG2EF, Op5_vec, i);
     z = VCVT_INTH_FLOATH(VCVT_FLOATH_INTH(fx, i), i);	
     n = VCVT_FLOATH_INTH(z, i);

@@ -2021,7 +2021,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     lnf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2270,7 +2270,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     log2f_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2551,7 +2551,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     log10f_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2800,7 +2800,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     expf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -4998,7 +4998,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     tanhf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -5192,7 +5192,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     sinhf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -5436,7 +5436,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     coshf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);

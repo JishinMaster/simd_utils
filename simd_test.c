@@ -735,7 +735,7 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     threshold_lt_f_vec(inout, inout2, len, 0.07f);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -852,7 +852,7 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     threshold_gt_f_vec(inout, inout2, len, 0.07f);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -968,7 +968,7 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     threshold_gtabs_f_vec(inout, inout2, len, 0.07f);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1087,7 +1087,7 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     threshold_ltabs_f_vec(inout, inout2, len, 0.07f);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1195,7 +1195,7 @@ int main(int argc, char **argv)
     l2_err(inout2, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     threshold_ltval_gtval_f_vec(inout, inout2, len, 0.5f, 0.35f, 0.7f, 0.77f);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1426,7 +1426,7 @@ int main(int argc, char **argv)
     l2_err(inout3, inout_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     maxeveryf_vec(inout, inout2, inout3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1540,7 +1540,7 @@ int main(int argc, char **argv)
     l2_err(inout3, inout_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     mineveryf_vec(inout, inout2, inout3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1659,7 +1659,7 @@ int main(int argc, char **argv)
     printf("%f %f || %f %f\n", min_ref, min, max_ref, max);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     minmaxf_vec(inout, len, &min, &max);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2165,7 +2165,7 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     magnitudef_split_vec(inout, inout2, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2310,7 +2310,7 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     magnitudef_interleaved_vec((complex32_t *) inout, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2445,7 +2445,7 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     powerspectf_split_vec(inout, inout2, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2582,7 +2582,7 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     powerspectf_interleaved_vec((complex32_t *) inout, inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3592,7 +3592,7 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxconjf_vec((complex32_t *) inout, (complex32_t *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);

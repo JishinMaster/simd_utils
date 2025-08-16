@@ -60,7 +60,10 @@
 #define V_ELT_BOOL32 svbool_t
 #define VEQ1_INT_BOOL(a,b,c) svcmpeq_n_s32((c),(a),(b))
 #define VGT1_FLOAT_BOOL(a,b,c) svcmpgt_n_f32((c),(a),(b))
+#define VGE1_FLOAT_BOOL(a,b,c) svcmpge_n_f32((c),(a),(b))
 #define VLT1_FLOAT_BOOL(a,b,c) svcmplt_n_f32((c),(a),(b))
+#define VLE1_FLOAT_BOOL(a,b,c) svcmple_n_f32((c),(a),(b))
+#define VEQ1_FLOAT_BOOL(a,b,c) svcmpeq_n_f32((c),(a),(b))
 //#define VFMACC1_FLOAT(a,b,c,d) svmad_n_f32_m((d),(b),(c),(a)) // op3 + op1[i]*op2[i]
 #define VFMACC1_FLOAT(a,b,c,d) svmla_n_f32_x((d),(a),(c),(b)) // op1[i] + op2[i] * op3
 #define VFMACC_FLOAT(a,b,c,d) svmla_f32_x((d),(a),(c),(b)) // op1[i] + op2[i] * op3[i]
@@ -70,15 +73,20 @@
 #define VFMSUB_FLOAT(a,b,c,d) svmls_f32_x((d),(c),(a),(b)) //  op1[i] - op2[i] * op3[i]
 
 #define VFMADD_FLOAT(a,b,c,d) svmad_f32_x((d),(a),(b),(c)) // op1[i] * op2[i] + op3[i]
-#define VMERGE_FLOAT(mask, t, f,i) svsel_f32((mask), (f), (t))     /* select */
-#define VMERGE1_FLOAT(mask, v, f) svsel_f32((mask), svdup_n_f32((float)(f)),(v))
+#define VMERGE_FLOAT(mask, t, f, i) svsel_f32((mask), (f), (t))     /* select */
+#define VMERGE1_FLOAT(mask, v, f, i) svsel_f32((mask), svdup_n_f32((float)(f)),(v))
 #define VXOR_INT(a,b,c)  sveor_s32_m((c),(a),(b))
+#define VOR_INT(a,b,c)  svorr_s32_m((c),(a),(b))
+#define VOR1_INT(a,b,c)  svorr_n_s32_x((c),(a),(b))
 #define VNOT_INT(a,b)  svnot_s32_x((b),(a))
-#define VXOR1_INT(a,b,c)  sveor_s32_x((c),(a),(b))
+#define VXOR1_INT(a,b,c)  sveor_n_s32_x((c),(a),(b))
 #define VCLEAR_BOOL(a) svpfalse_b()
 
 #define VXOR_BOOL(a,b,c)  sveor_b_z((c),(a),(b))
 #define VOR_BOOL(a,b,c)  svorr_b_z((c),(a),(b))
+#define VAND_BOOL(a,b,c)  svand_b_z((c),(a),(b))
+#define VOR_BOOL(a,b,c)  svorr_b_z((c),(a),(b))
+#define VNOT_BOOL(a,b)  svnot_b_z((b),(a))
 #define VGT1_INT_BOOL(a,b,c) svcmpgt_n_s32((c),(a),(b))
 #define VNE1_INT_BOOL(a,b,c) svcmpne_n_s32((c),(a),(b))
 
@@ -92,16 +100,24 @@
 
 #define VREDSUM_FLOAT(a,b)  svaddv_f32((b),(a))
 #define VREDSUMORD_FLOAT(a,b,c)  svadda_f32((c),(a),(b))
-
+#define VSQRT_FLOAT(a,b) svsqrt_f32_x((b),(a))
+#define VMAX_FLOAT(a,b,c) svmax_f32_x((c),(a),(b))
+#define VMIN_FLOAT(a,b,c) svmin_f32_x((c),(a),(b))
+#define VMAX1_FLOAT(a,b,c) svmax_n_f32_x((c),(a),(b))
+#define VMIN1_FLOAT(a,b,c) svmin_n_f32_x((c),(a),(b))
+#define VREDMAX_FLOAT(a,b) svmaxv_f32((b),(a))
+#define VREDMIN_FLOAT(a,b) svminv_f32((b),(a))
+#define VABS_FLOAT(a,b) svabs_f32_x((b),(a))
+#define VSRA1_INT(a,b,c) svasr_n_s32_x((c),(a),(b))
 // returns dst = dst  + a*b
-inline V_ELT_FLOAT VMUL_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i){
+static inline V_ELT_FLOAT VMUL_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i){
 	dst = svcmla_f32_x(i,dst,a,b,0);
 	dst = svcmla_f32_x(i,dst,a,b,90);
 	return dst;
 }
 
 //returns dst = dst + conj(a)*b
-inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i){
+static inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i){
 	dst = svcmla_f32_x(i,dst,a,b,0);
 	dst = svcmla_f32_x(i,dst,a,b,270);
 	return dst;
