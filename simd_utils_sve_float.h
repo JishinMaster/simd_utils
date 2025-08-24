@@ -2010,6 +2010,105 @@ static inline void tanhf_vec(float *src, float *dst, int len)
     }
 }
 
+#if 1 //generated using chat gpt, should be tested on real HW for performance review
+static inline void vectorSlopef_vec(float *dst, int len, float offset, float slope)
+{
+    int index_base = 0; // current index offset
+    while (index_base < len) {
+        // Predicate for active lanes
+        svbool_t pg = svwhilelt_b32(index_base, len);
+        // lane indices: [0,1,2,...]
+        svuint32_t idx = svindex_u32(0, 1);
+        // absolute indices = index_base + idx
+        svuint32_t abs_idx = svadd_u32_z(pg, svdup_u32(index_base), idx);
+        // convert to float
+        svfloat32_t fidx = svcvt_f32_u32_z(pg, abs_idx);
+        // compute: offset + slope * index
+        svfloat32_t slope_vec = svdup_f32(slope);
+        svfloat32_t offs_vec  = svdup_f32(offset);
+        svfloat32_t val = svmad_f32_x(pg, fidx, slope_vec, offs_vec);
+        // store
+        svst1(pg, dst + index_base, val);
+        // advance by VL
+        index_base += svcntw();
+    }
+}
+
+#else
+static inline void vectorSlopef_vec(float *dst, int len, float offset, float slope)
+{
+    float __attribute__((aligned(128))) coef_max[MAX_ELTS32];
+
+	size_t n = (size_t)(len);
+	V_ELT_FLOAT dummy;
+	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
+	uint64_t numVals = svlen_f32(dummy);
+	
+    for (int s = 0; s < numVals; s++) {
+        coef_max[s] = (float) (s) *slope;
+    }
+
+    V_ELT_FLOAT coef = VLOAD_FLOAT(coef_max, i);
+    V_ELT_FLOAT slope_vec = VLOAD1_FLOAT((float) (numVals) *slope, i);
+    V_ELT_FLOAT curVal = VADD1_FLOAT(coef, offset, i);
+    VSTORE_FLOAT(dst, curVal, i);
+	for (size_t l=numVals; l<n; l+=numVals) {
+		i = svwhilelt_b32_s32(l, n);	
+        curVal = VADD_FLOAT(curVal, slope_vec, i);
+        VSTORE_FLOAT(dst+l, curVal, i);
+    }
+}
+#endif
+
+static inline void setf_vec(float *dst, float value, int len)
+{
+	size_t n = (size_t)(len);
+	V_ELT_FLOAT dummy;
+	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
+	uint64_t numVals = svlen_f32(dummy);
+
+	for (size_t l=0; l<n; l+=numVals) {
+		i = svwhilelt_b32_s32(l, n);	
+        VSTORE_FLOAT(dst+l, VLOAD1_FLOAT(value, i), i);
+    }
+}
+
+static inline void zerof_vec(float *dst, int len)
+{
+    setf_vec(dst, 0.0f, len);
+}
+
+static inline void copyf_vec(float *src, float *dst, int len)
+{
+	size_t n = (size_t)(len);
+	V_ELT_FLOAT dummy;
+	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
+	uint64_t numVals = svlen_f32(dummy);
+
+	for (size_t l=0; l<n; l+=numVals) {
+		i = svwhilelt_b32_s32(l, n);	
+        VSTORE_FLOAT(dst+l, VLOAD_FLOAT(src+l, i), i);
+    }
+}
+
+static inline void modf_vec(float *src, float *integer, float *remainder, int len)
+{
+	size_t n = (size_t)(len);
+	V_ELT_FLOAT dummy;
+	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
+	uint64_t numVals = svlen_f32(dummy);
+
+	for (size_t l=0; l<n; l+=numVals) {
+		i = svwhilelt_b32_s32(l, n);	
+        V_ELT_FLOAT src_vec, integer_vec, remainer_vec;
+        src_vec = VLOAD_FLOAT(src+l, i);
+        integer_vec = VRTZ_FLOAT(src_vec, i);	
+        VSTORE_FLOAT(integer+l, integer_vec, i);
+        remainer_vec = VSUB_FLOAT(src_vec, integer_vec, i);
+        VSTORE_FLOAT(remainder+l, remainer_vec, i);
+    }
+}
+
 // IEEE 754 round to nearest even
 static inline void rintf_vec(float *src, float *dst, int len)
 {
@@ -2094,5 +2193,390 @@ static inline void truncf_vec(float *src, float *dst, int len)
         a = VLOAD_FLOAT(src+l, i);
         b = VRTZ_FLOAT(a, i);
         VSTORE_FLOAT(dst+l, b, i);
+    }
+}
+
+//generated using chat gpt, should be tested on real HW for performance review
+static inline void flipf_vec(const float *src, float *dst, int len)
+{
+    int remaining = len;
+    int dst_off   = 0;
+
+    while (remaining > 0) {
+        // Predicate for active lanes
+        svbool_t pg = svwhilelt_b32((uint32_t)0, (uint32_t)remaining);
+
+        // Number of active lanes this iteration
+        uint32_t n = svcntp_b32(svptrue_b32(), pg);
+
+        // Load 'n' floats from the tail of src
+        const float *src_chunk = src + (remaining - n);
+        svfloat32_t a = svld1(pg, src_chunk);
+
+        // Build reversed *byte* offsets: (n-1-i) * sizeof(float)
+        svuint32_t idx   = svindex_u32(0, 1);
+        svuint32_t n_1   = svdup_u32(n - 1);
+        svuint32_t ridx  = svsub_u32_z(pg, n_1, idx);      // (n-1-i)
+        svuint32_t offs  = svlsl_n_u32_z(pg, ridx, 2);     // *4 bytes
+
+        // Scatter-store reversed into dst
+        svst1_scatter_offset(pg, dst + dst_off, offs, a);
+
+        dst_off   += n;
+        remaining -= n;
+    }
+}
+
+// Work in progress
+static inline V_ELT_FLOAT power_of_twof(V_ELT_INT b, V_ELT_BOOL32 i)
+{
+    V_ELT_INT exp = VADD1_INT(b, 127, i);
+    V_ELT_FLOAT f = VINTERP_INT_FLOAT(VSLL1_INT(exp, 23, i));
+    return f;
+}
+
+static inline void cbrtf_vec(float *src, float *dst, int len)
+{
+
+	size_t n = (size_t)len;	
+	// get the vector length being used, so we know how to increment the loop (1)
+	V_ELT_FLOAT dummy;
+	uint64_t numVals = svlen_f32(dummy);
+	
+	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
+    V_ELT_FLOAT invCBRT2_vec = VLOAD1_FLOAT(cephes_invCBRT2, i);
+    V_ELT_FLOAT invCBRT4_vec = VLOAD1_FLOAT(cephes_invCBRT4, i);
+    V_ELT_FLOAT CBRTF_P1_vec = VLOAD1_FLOAT(CBRTF_P1, i);
+    V_ELT_FLOAT CBRTF_P2_vec = VLOAD1_FLOAT(CBRTF_P2, i);
+    V_ELT_FLOAT CBRTF_P3_vec = VLOAD1_FLOAT(CBRTF_P3, i);
+    V_ELT_FLOAT CBRTF_P4_vec = VLOAD1_FLOAT(CBRTF_P4, i);
+
+    const float Op5 = 0.5f;
+
+	for (size_t l=0; l<n; l+=numVals) {
+		// set predicate 
+		i = svwhilelt_b32_s32(l, n);
+        V_ELT_FLOAT xx = VLOAD_FLOAT(src+l, i);
+
+        V_ELT_INT sign;
+        V_ELT_FLOAT x, z, e, rem;
+        V_ELT_FLOAT tmp, tmp2;
+
+        x = VINTERP_INT_FLOAT(VAND1_INT(VINTERP_FLOAT_INT(xx), inv_sign_mask, i));
+        sign = VAND1_INT(VINTERP_FLOAT_INT(xx), sign_mask, i);
+
+        z = x;
+        /* extract power of 2, leaving
+         * mantissa between 0.5 and 1
+         */
+        // x = frexpf(x, &e);
+        // solve problem for zero
+        V_ELT_INT emm0 = VSRA1_INT(VINTERP_FLOAT_INT(x), 23, i);
+        x = VINTERP_INT_FLOAT(VAND1_INT(VINTERP_FLOAT_INT(x), c_inv_mant_mask, i));
+        x = VINTERP_INT_FLOAT(VOR1_INT(VINTERP_FLOAT_INT(x), *(int32_t *) &Op5, i));
+        emm0 = VSUB1_INT(emm0, 0x7e, i);
+        e = VCVT_INT_FLOAT(emm0, i);
+
+        /* Approximate cube root of number between .5 and 1,
+         * peak relative error = 9.2e-6
+         */
+        tmp = x;
+        tmp = VFMADD1_FLOAT(tmp, CBRTF_P0, CBRTF_P1_vec, i);
+        tmp = VFMADD_FLOAT(tmp, x, CBRTF_P2_vec, i);
+        tmp = VFMADD_FLOAT(tmp, x, CBRTF_P3_vec, i);
+        x = VFMADD_FLOAT(x, tmp, CBRTF_P4_vec, i);
+
+        /* exponent divided by 3 */
+        V_ELT_BOOL32 e_sign = VGE1_FLOAT_BOOL(e, 0.0f, i);
+        e = VINTERP_INT_FLOAT(VAND1_INT(VINTERP_FLOAT_INT(e), inv_sign_mask, i));
+        rem = e;
+        e = VMUL1_FLOAT(e, 0.333333333333f, i);	
+        V_ELT_INT e_int = VCVT_FLOAT_INT(e, i);	
+        e = VCVT_INT_FLOAT(e_int, i);
+        V_ELT_FLOAT e_tmp = VMUL1_FLOAT(e, 3.0f, i);
+        rem = VSUB_FLOAT(rem, e_tmp, i);
+
+        V_ELT_FLOAT mul1, mul2;
+        V_ELT_FLOAT mul_cst1 = VMERGE1_FLOAT(e_sign, invCBRT2_vec, cephes_CBRT2, i);
+        V_ELT_FLOAT mul_cst2 = VMERGE1_FLOAT(e_sign, invCBRT4_vec, cephes_CBRT4, i);
+        mul1 = VMUL_FLOAT(x, mul_cst1, i);
+        mul2 = VMUL_FLOAT(x, mul_cst2, i);
+
+        V_ELT_INT remi = VCVT_FLOAT_INT(rem, i);  // rem integer
+        V_ELT_BOOL32 rem1 = VEQ1_INT_BOOL(remi, 1, i);
+        V_ELT_BOOL32 rem2 = VEQ1_INT_BOOL(remi, 2, i);
+
+        x = VMERGE_FLOAT(rem1, x, mul1, i);  // rem==1
+        x = VMERGE_FLOAT(rem2, x, mul2, i);  // rem==2
+
+        /* multiply by power of 2 */
+        //  x = ldexpf(x, e);
+        // x= x* (1 >> e)
+        V_ELT_FLOAT cst = power_of_twof(e_int, i);
+
+        // blend sign of e
+        tmp = VMUL_FLOAT(x, cst, i);
+        tmp2 = VDIV_FLOAT(x, cst, i);
+        x = VMERGE_FLOAT(e_sign, tmp2, tmp, i);
+
+        /* Newton iteration */
+        // x -= (x - (z / (x * x))) * 0.333333333333;
+        tmp2 = VMUL_FLOAT(x, x, i);
+        tmp2 = VDIV_FLOAT(z, tmp2, i);
+        tmp2 = VSUB_FLOAT(x, tmp2, i);
+        tmp2 = VMUL1_FLOAT(tmp2, 0.333333333333f, i);
+        x = VSUB_FLOAT(x, tmp2, i);
+        x = VINTERP_INT_FLOAT(VXOR_INT(VINTERP_FLOAT_INT(x), sign, i));
+
+        VSTORE_FLOAT(dst+l, x, i);
+    }
+}
+
+static inline void convertInt16ToFloat32_vec(int16_t *src, float *dst, int len, int scale_factor)
+{
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+
+    int i = 0;
+    while (i < len) {
+        V_ELT_BOOL16 pg = svwhilelt_b16_s32(i, len);
+        V_ELT_SHORT v_i16 = VLOAD_SHORT(src + i,pg);
+        V_ELT_INT v_i32_lo = VCVT_SHORT_INT_LOW(v_i16);
+        V_ELT_INT v_i32_hi = VCVT_SHORT_INT_HIGH(v_i16);
+        V_ELT_BOOL32 pg_lo = svwhilelt_b32_s32(i, len);
+        V_ELT_BOOL32 pg_hi = svwhilelt_b32_s32(i + svcntw(), len);
+        V_ELT_FLOAT v_f32_lo = VCVT_INT_FLOAT(v_i32_lo, pg_lo);
+        V_ELT_FLOAT v_f32_hi = VCVT_INT_FLOAT(v_i32_hi, pg_hi);
+		v_f32_lo = VMUL1_FLOAT(v_f32_lo, scale_fact_mult, pg_lo);
+		v_f32_hi = VMUL1_FLOAT(v_f32_hi, scale_fact_mult, pg_lo);		
+        VSTORE_FLOAT(dst + i, v_f32_lo,pg_lo);
+        VSTORE_FLOAT(dst + i + svcntw(), v_f32_hi,pg_hi);
+        i += svcntw() * 2; // we processed 2×VL16 elements
+    }
+}
+
+//TODO : check whether float16 offers good enough precision
+static inline void convertFloat32ToI16_vec(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int i = 0;
+	
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+	float16_t scale_fact_mult_16 = (float16_t)scale_fact_mult;
+	uint32_t reg_ori = fegetround();
+    if (rounding_mode == RndZero) {
+		fesetround(FE_TOWARDZERO);
+		while (i < len) {
+			V_ELT_BOOL32 pg0 = svwhilelt_b32_s32(i, len);
+			V_ELT_BOOL32 pg1 = svwhilelt_b32_s32(i+svcntw(), len);		
+			V_ELT_FLOAT f0 = VLOAD_FLOAT(src + i, pg0);
+			V_ELT_FLOAT f1 = VLOAD_FLOAT(src + i + svcntw(), pg1);
+			svfloat16_t lo = svcvt_f16_f32_z(pg0, f0);
+			svfloat16_t hi = svcvt_f16_f32_z(pg1, f1);
+			svfloat16_t h = svuzp1_f16(lo, hi);
+			V_ELT_BOOL16 pg16 = svwhilelt_b16(i, len);
+			h = VMUL1_FLOAT16(h, scale_fact_mult_16, pg16);			
+			V_ELT_SHORT s16 = VCVT_FLOAT16_SHORT(h, pg16);
+			VSTORE_SHORT(dst + i, s16, pg16);
+			i += svcnth(); // VL 16-bit elements processed
+		}
+    } else if (rounding_mode == RndFinancial) {
+		while (i < len) {
+			V_ELT_BOOL32 pg0 = svwhilelt_b32_s32(i, len);
+			V_ELT_BOOL32 pg1 = svwhilelt_b32_s32(i+svcntw(), len);		
+			V_ELT_FLOAT f0 = VLOAD_FLOAT(src + i, pg0);
+			V_ELT_FLOAT f1 = VLOAD_FLOAT(src + i + svcntw(), pg1);
+			svfloat16_t lo = svcvt_f16_f32_z(pg0, f0);
+			svfloat16_t hi = svcvt_f16_f32_z(pg1, f1);
+			svfloat16_t h = svuzp1_f16(lo, hi);
+			V_ELT_BOOL16 pg16 = svwhilelt_b16(i, len);
+			h = VMUL1_FLOAT16(h, scale_fact_mult_16, pg16);
+			h  = svrinta_f16_z(pg16, h);
+			V_ELT_SHORT s16 = VCVT_FLOAT16_SHORT(h, pg16);
+			VSTORE_SHORT(dst + i, s16, pg16);
+			i += svcnth(); // VL 16-bit elements processed
+		}		
+    } else {
+		fesetround(FE_TONEAREST);
+		while (i < len) {
+			V_ELT_BOOL32 pg0 = svwhilelt_b32_s32(i, len);
+			V_ELT_BOOL32 pg1 = svwhilelt_b32_s32(i+svcntw(), len);		
+			V_ELT_FLOAT f0 = VLOAD_FLOAT(src + i, pg0);
+			V_ELT_FLOAT f1 = VLOAD_FLOAT(src + i + svcntw(), pg1);
+			svfloat16_t lo = svcvt_f16_f32_z(pg0, f0);
+			svfloat16_t hi = svcvt_f16_f32_z(pg1, f1);
+			svfloat16_t h = svuzp1_f16(lo, hi);
+			V_ELT_BOOL16 pg16 = svwhilelt_b16(i, len);
+			h = VMUL1_FLOAT16(h, scale_fact_mult_16, pg16);
+			h  = svrintn_f16_z(pg16, h);
+			V_ELT_SHORT s16 = VCVT_FLOAT16_SHORT(h, pg16);
+			VSTORE_SHORT(dst + i, s16, pg16);
+			i += svcnth(); // VL 16-bit elements processed
+		}		
+    }	
+	fesetround(reg_ori);	
+}
+
+static inline void convertFloat32ToU16_vec(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
+{
+    int i = 0;
+	
+    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+	float16_t scale_fact_mult_16 = (float16_t)scale_fact_mult;
+	uint32_t reg_ori = fegetround();
+    if (rounding_mode == RndZero) {
+		fesetround(FE_TOWARDZERO);
+		while (i < len) {
+			V_ELT_BOOL32 pg0 = svwhilelt_b32_s32(i, len);
+			V_ELT_BOOL32 pg1 = svwhilelt_b32_s32(i+svcntw(), len);		
+			V_ELT_FLOAT f0 = VLOAD_FLOAT(src + i, pg0);
+			V_ELT_FLOAT f1 = VLOAD_FLOAT(src + i + svcntw(), pg1);
+			svfloat16_t lo = svcvt_f16_f32_z(pg0, f0);
+			svfloat16_t hi = svcvt_f16_f32_z(pg1, f1);
+			svfloat16_t h = svuzp1_f16(lo, hi);
+			V_ELT_BOOL16 pg16 = svwhilelt_b16(i, len);
+			h = VMUL1_FLOAT16(h, scale_fact_mult_16, pg16);			
+			V_ELT_USHORT u16 = VCVT_FLOAT16_USHORT(h, pg16);
+			VSTORE_USHORT(dst + i, u16, pg16);
+			i += svcnth(); // VL 16-bit elements processed
+		}
+    } else if (rounding_mode == RndFinancial) {
+		while (i < len) {
+			V_ELT_BOOL32 pg0 = svwhilelt_b32_s32(i, len);
+			V_ELT_BOOL32 pg1 = svwhilelt_b32_s32(i+svcntw(), len);		
+			V_ELT_FLOAT f0 = VLOAD_FLOAT(src + i, pg0);
+			V_ELT_FLOAT f1 = VLOAD_FLOAT(src + i + svcntw(), pg1);
+			svfloat16_t lo = svcvt_f16_f32_z(pg0, f0);
+			svfloat16_t hi = svcvt_f16_f32_z(pg1, f1);
+			svfloat16_t h = svuzp1_f16(lo, hi);
+			V_ELT_BOOL16 pg16 = svwhilelt_b16(i, len);
+			h = VMUL1_FLOAT16(h, scale_fact_mult_16, pg16);
+			h  = svrinta_f16_z(pg16, h);
+			V_ELT_USHORT u16 = VCVT_FLOAT16_USHORT(h, pg16);
+			VSTORE_USHORT(dst + i, u16, pg16);
+			i += svcnth(); // VL 16-bit elements processed
+		}		
+    } else {
+		fesetround(FE_TONEAREST);
+		while (i < len) {
+			V_ELT_BOOL32 pg0 = svwhilelt_b32_s32(i, len);
+			V_ELT_BOOL32 pg1 = svwhilelt_b32_s32(i+svcntw(), len);		
+			V_ELT_FLOAT f0 = VLOAD_FLOAT(src + i, pg0);
+			V_ELT_FLOAT f1 = VLOAD_FLOAT(src + i + svcntw(), pg1);
+			svfloat16_t lo = svcvt_f16_f32_z(pg0, f0);
+			svfloat16_t hi = svcvt_f16_f32_z(pg1, f1);
+			svfloat16_t h = svuzp1_f16(lo, hi);
+			V_ELT_BOOL16 pg16 = svwhilelt_b16(i, len);
+			h = VMUL1_FLOAT16(h, scale_fact_mult_16, pg16);
+			h  = svrintn_f16_z(pg16, h);
+			V_ELT_USHORT u16 = VCVT_FLOAT16_USHORT(h, pg16);
+			VSTORE_USHORT(dst + i, u16, pg16);
+			i += svcnth(); // VL 16-bit elements processed
+		}		
+    }	
+	fesetround(reg_ori);	
+}
+
+static inline void pol2cart2Df_vec(float *r, float *theta, float *x, float *y, int len)
+{
+	size_t n = (size_t)len;	
+	// get the vector length being used, so we know how to increment the loop (1)
+	V_ELT_FLOAT dummy;
+	uint64_t numVals = svlen_f32(dummy);
+	
+	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
+	
+    V_ELT_FLOAT coscof_1_vec = VLOAD1_FLOAT(coscof[1], i);
+    V_ELT_FLOAT coscof_2_vec = VLOAD1_FLOAT(coscof[2], i);
+    V_ELT_FLOAT sincof_1_vec = VLOAD1_FLOAT(sincof[1], i);
+    V_ELT_FLOAT sincof_2_vec = VLOAD1_FLOAT(sincof[2], i);
+
+	for (size_t l=0; l<n; l+=numVals) {
+		// set predicate 
+		i = svwhilelt_b32_s32(l, n);
+        V_ELT_FLOAT r_vec = VLOAD_FLOAT(r+l, i);
+        V_ELT_FLOAT theta_vec = VLOAD_FLOAT(theta+l, i);
+        V_ELT_FLOAT sin_vec, cos_vec;
+        sincosf_ps(theta_vec, &sin_vec, &cos_vec,
+                   coscof_1_vec, coscof_2_vec,
+                   sincof_1_vec, sincof_2_vec, i);
+        V_ELT_FLOAT x_vec = VMUL_FLOAT(r_vec, cos_vec, i);
+        V_ELT_FLOAT y_vec = VMUL_FLOAT(r_vec, sin_vec, i);
+        VSTORE_FLOAT(x+l, x_vec, i);
+        VSTORE_FLOAT(y+l, y_vec, i);
+    }
+}
+
+static inline void cart2pol2Df_vec(float *x, float *y, float *r, float *theta, int len)
+{
+	size_t n = (size_t)len;	
+	// get the vector length being used, so we know how to increment the loop (1)
+	V_ELT_FLOAT dummy;
+	uint64_t numVals = svlen_f32(dummy);
+	
+	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
+    V_ELT_FLOAT ATAN_P1_vec = VLOAD1_FLOAT(ATAN_P1, i);
+    V_ELT_FLOAT ATAN_P2_vec = VLOAD1_FLOAT(ATAN_P2, i);
+    V_ELT_FLOAT ATAN_P3_vec = VLOAD1_FLOAT(ATAN_P3, i);
+    V_ELT_FLOAT min1_vec = VLOAD1_FLOAT(-1.0f, i);
+
+	for (size_t l=0; l<n; l+=numVals) {
+		// set predicate 
+		i = svwhilelt_b32_s32(l, n);
+        V_ELT_FLOAT x_vec = VLOAD_FLOAT(x+l, i);
+        V_ELT_FLOAT y_vec = VLOAD_FLOAT(y+l, i);
+        V_ELT_FLOAT y_square = VMUL_FLOAT(y_vec, y_vec, i);
+        V_ELT_FLOAT r_vec = x_vec;
+        r_vec = VFMADD_FLOAT(r_vec, x_vec, y_square, i);
+        r_vec = VSQRT_FLOAT(r_vec, i);
+        V_ELT_FLOAT theta_vec = atan2f_ps(y_vec, x_vec,
+                                           ATAN_P1_vec, ATAN_P2_vec,
+                                           ATAN_P3_vec, min1_vec, i);
+        VSTORE_FLOAT(r+l, r_vec, i);
+        VSTORE_FLOAT(theta+l, theta_vec, i);
+    }
+}
+
+static inline void PReluf_vec(float *src, float *dst, float alpha, int len)
+{
+	size_t n = (size_t)len;	
+	// get the vector length being used, so we know how to increment the loop (1)
+	V_ELT_FLOAT dummy;
+	uint64_t numVals = svlen_f32(dummy);
+	
+	for (size_t l=0; l<n; l+=numVals) {
+		// set predicate 
+		V_ELT_BOOL32 i = svwhilelt_b32_s32(l, n);
+        V_ELT_FLOAT src_vec = VLOAD_FLOAT(src+l, i);
+        V_ELT_FLOAT tmp = VMUL1_FLOAT(src_vec, alpha, i);
+        V_ELT_BOOL32 mask = VGT1_FLOAT_BOOL(src_vec, 0.0f, i);
+        V_ELT_FLOAT dst_vec = VMERGE_FLOAT(mask, tmp, src_vec, i);
+        VSTORE_FLOAT(dst+l, dst_vec, i);
+    }
+}
+
+static inline void sigmoidf_vec(float *src, float *dst, int len)
+{
+	size_t n = (size_t)len;	
+	// get the vector length being used, so we know how to increment the loop (1)
+	V_ELT_FLOAT dummy;
+	uint64_t numVals = svlen_f32(dummy);
+	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
+    V_ELT_FLOAT cephes_exp_p1_vec = VLOAD1_FLOAT(c_cephes_exp_p1, i);
+    V_ELT_FLOAT cephes_exp_p2_vec = VLOAD1_FLOAT(c_cephes_exp_p2, i);
+    V_ELT_FLOAT cephes_exp_p3_vec = VLOAD1_FLOAT(c_cephes_exp_p3, i);
+    V_ELT_FLOAT cephes_exp_p4_vec = VLOAD1_FLOAT(c_cephes_exp_p4, i);
+    V_ELT_FLOAT cephes_exp_p5_vec = VLOAD1_FLOAT(c_cephes_exp_p5, i);
+    V_ELT_FLOAT Op5_vec = VLOAD1_FLOAT(0.5f, i);
+
+	for (size_t l=0; l<n; l+=numVals) {
+		// set predicate 
+		i = svwhilelt_b32_s32(l, n);
+        V_ELT_FLOAT x = VLOAD_FLOAT(src+l, i);
+        x = VINTERP_INT_FLOAT(VXOR1_INT(VINTERP_FLOAT_INT(x), neg_sign_mask, i));
+        x = exp_ps(x, Op5_vec, cephes_exp_p1_vec,
+                   cephes_exp_p2_vec, cephes_exp_p3_vec,
+                   cephes_exp_p4_vec, cephes_exp_p5_vec, i);
+        x = VADD1_FLOAT(x, 1.0f, i);
+        x = VRDIV1_FLOAT(x, 1.0f, i);  // 1/x
+        VSTORE_FLOAT(dst+l, x, i);
     }
 }

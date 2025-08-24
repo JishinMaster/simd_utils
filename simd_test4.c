@@ -784,7 +784,7 @@ int main(int argc, char **argv)
     l2_err(inout3, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     modf_vec(inout, inout2, inout3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -976,7 +976,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     cbrtf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1154,7 +1154,7 @@ int main(int argc, char **argv)
     l2_err(inout4, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     pol2cart2Df_vec(inout, inout2, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1332,7 +1332,7 @@ int main(int argc, char **argv)
     l2_err(inout4, inout2_ref, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     cart2pol2Df_vec(inout, inout2, inout3, inout4, len);
     clock_gettime(CLOCK_REALTIME, &stop);

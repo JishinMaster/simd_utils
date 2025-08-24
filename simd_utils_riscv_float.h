@@ -2442,7 +2442,7 @@ static inline void vectorSlopef_vec(float *dst, int len, float offset, float slo
     size_t i;
     float *dst_tmp = dst;
 
-    float coef_max[MAX_ELTS32];
+    float __attribute__((aligned(64))) coef_max[MAX_ELTS32];
 
     // to be improved!
     for (int s = 0; s < MAX_ELTS32; s++) {

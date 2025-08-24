@@ -3021,7 +3021,7 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     flipf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);

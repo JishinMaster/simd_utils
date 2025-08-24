@@ -22,40 +22,47 @@
 
 #ifdef SVE2
 #include <arm_sve.h>
+
+#define MAX_ELTS8 1024
+#define MAX_ELTS32 256
+#define MAX_ELTS64 128
+
 #define V_ELT_FLOAT svfloat32_t
 #define VLOAD_FLOAT(a,b) svld1_f32((b),(a))
+#define VLOAD_INT(a,b) svld1_s32((b),(a))
+#define VLOAD_UINT(a,b) svld1_u32((b),(a))
 #define VLOAD1_FLOAT(a,b) svdup_n_f32((a))
 #define VSTORE_FLOAT(a,b,c) svst1_f32((c),(a),(b))
 #define V_ELT_INT svint32_t
 #define V_ELT_UINT svuint32_t
 #define VINTERP_INT_FLOAT svreinterpret_f32_s32
 #define VINTERP_FLOAT_INT svreinterpret_s32_f32
-#define VAND1_INT(a,b,c) svand_n_u32_x((c),(a),(b))
-#define VMUL1_FLOAT(a,b,c) svmul_n_f32_x((c),(a),(b))
-#define VMUL1_FLOAT_MASK(a,b,c,d) svmul_n_f32_x((a),(b),(c))
-#define VMUL_FLOAT(a,b,c) svmul_f32_x((c),(a),(b))
-#define VDIV_FLOAT(a,b,c) svdiv_f32_x((c),(a),(b))
-#define VADD1_FLOAT(a,b,c) svadd_n_f32_x((c),(a),(b))
-#define VADD1_FLOAT_MASK(a,b,c,d) svadd_n_f32_x((a),(b),(c))
-#define VADD1_INT(a,b,c) svadd_n_s32_x((c),(a),(b))
-#define VADD1_INT_MASK(a,b,c,d) svadd_n_s32_x((a),(b),(c))
-#define VSUB1_INT_MASK(a,b,c,d) svsub_n_s32_x((a),(b),(c))
-#define VADD_FLOAT(a,b,c) svadd_f32_x((c),(a),(b))
-#define VSUB_FLOAT(a,b,c) svsub_f32_x((c),(a),(b))
-#define VSUB1_FLOAT(a,b,c) svsub_n_f32_x((c),(a),(b))
-#define VSUB1_INT(a,b,c) svsub_n_s32_x((c),(a),(b))
-#define VSLL1_INT(a,b,c) svlsl_n_s32_x((c),(a),(b))
-#define VCVT_INT_FLOAT(a,b) svcvt_f32_s32_x((b),(a))
-#define VCVT_FLOAT_INT(a,b) svcvt_s32_f32_x((b),(a))
+#define VAND1_INT(a,b,c) svand_n_u32_z((c),(a),(b))
+#define VMUL1_FLOAT(a,b,c) svmul_n_f32_z((c),(a),(b))
+#define VMUL1_FLOAT_MASK(a,b,c,d) svmul_n_f32_z((a),(b),(c))
+#define VMUL_FLOAT(a,b,c) svmul_f32_z((c),(a),(b))
+#define VDIV_FLOAT(a,b,c) svdiv_f32_z((c),(a),(b))
+#define VADD1_FLOAT(a,b,c) svadd_n_f32_z((c),(a),(b))
+#define VADD1_FLOAT_MASK(a,b,c,d) svadd_n_f32_z((a),(b),(c))
+#define VADD1_INT(a,b,c) svadd_n_s32_z((c),(a),(b))
+#define VADD1_INT_MASK(a,b,c,d) svadd_n_s32_z((a),(b),(c))
+#define VSUB1_INT_MASK(a,b,c,d) svsub_n_s32_z((a),(b),(c))
+#define VADD_FLOAT(a,b,c) svadd_f32_z((c),(a),(b))
+#define VSUB_FLOAT(a,b,c) svsub_f32_z((c),(a),(b))
+#define VSUB1_FLOAT(a,b,c) svsub_n_f32_z((c),(a),(b))
+#define VSUB1_INT(a,b,c) svsub_n_s32_z((c),(a),(b))
+#define VSLL1_INT(a,b,c) svlsl_n_s32_z((c),(a),(b))
+#define VCVT_INT_FLOAT(a,b) svcvt_f32_s32_z((b),(a))
+#define VCVT_FLOAT_INT(a,b) svcvt_s32_f32_z((b),(a))
 #define VCVT_RTZ_FLOAT_INT VCVT_FLOAT_INT
 // x current exact, a nearest away from zero, i current mode inexact, m mininf,
 // n nearest even, p plusinf
-#define VR_FLOAT(a,b) svrintx_f32_x((b),(a))
-#define VRTZ_FLOAT(a,b) svrintz_f32_x((b),(a))
-#define VRNE_FLOAT(a,b) svrintn_f32_x((b),(a))
-#define VRMINF_FLOAT(a,b) svrintm_f32_x((b),(a))
-#define VRINF_FLOAT(a,b) svrintp_f32_x((b),(a))
-#define VRNA_FLOAT(a,b) svrinta_f32_x((b),(a))
+#define VR_FLOAT(a,b) svrintx_f32_z((b),(a))
+#define VRTZ_FLOAT(a,b) svrintz_f32_z((b),(a))
+#define VRNE_FLOAT(a,b) svrintn_f32_z((b),(a))
+#define VRMINF_FLOAT(a,b) svrintm_f32_z((b),(a))
+#define VRINF_FLOAT(a,b) svrintp_f32_z((b),(a))
+#define VRNA_FLOAT(a,b) svrinta_f32_z((b),(a))
 
 #define V_ELT_BOOL32 svbool_t
 #define VEQ1_INT_BOOL(a,b,c) svcmpeq_n_s32((c),(a),(b))
@@ -65,21 +72,21 @@
 #define VLE1_FLOAT_BOOL(a,b,c) svcmple_n_f32((c),(a),(b))
 #define VEQ1_FLOAT_BOOL(a,b,c) svcmpeq_n_f32((c),(a),(b))
 //#define VFMACC1_FLOAT(a,b,c,d) svmad_n_f32_m((d),(b),(c),(a)) // op3 + op1[i]*op2[i]
-#define VFMACC1_FLOAT(a,b,c,d) svmla_n_f32_x((d),(a),(c),(b)) // op1[i] + op2[i] * op3
-#define VFMACC_FLOAT(a,b,c,d) svmla_f32_x((d),(a),(c),(b)) // op1[i] + op2[i] * op3[i]
-#define VFMADD1_FLOAT(a,b,c,d) svmla_n_f32_x((d),(c),(a),(b)) //  op1[i] + op2[i] * op3
+#define VFMACC1_FLOAT(a,b,c,d) svmla_n_f32_z((d),(a),(c),(b)) // op1[i] + op2[i] * op3
+#define VFMACC_FLOAT(a,b,c,d) svmla_f32_z((d),(a),(c),(b)) // op1[i] + op2[i] * op3[i]
+#define VFMADD1_FLOAT(a,b,c,d) svmla_n_f32_z((d),(c),(a),(b)) //  op1[i] + op2[i] * op3
 
 //SVE2 computes a - b*c where riscv does b*c - a! 
-#define VFMSUB_FLOAT(a,b,c,d) svmls_f32_x((d),(c),(a),(b)) //  op1[i] - op2[i] * op3[i]
+#define VFMSUB_FLOAT(a,b,c,d) svmls_f32_z((d),(c),(a),(b)) //  op1[i] - op2[i] * op3[i]
 
-#define VFMADD_FLOAT(a,b,c,d) svmad_f32_x((d),(a),(b),(c)) // op1[i] * op2[i] + op3[i]
+#define VFMADD_FLOAT(a,b,c,d) svmad_f32_z((d),(a),(b),(c)) // op1[i] * op2[i] + op3[i]
 #define VMERGE_FLOAT(mask, t, f, i) svsel_f32((mask), (f), (t))     /* select */
 #define VMERGE1_FLOAT(mask, v, f, i) svsel_f32((mask), svdup_n_f32((float)(f)),(v))
 #define VXOR_INT(a,b,c)  sveor_s32_m((c),(a),(b))
 #define VOR_INT(a,b,c)  svorr_s32_m((c),(a),(b))
-#define VOR1_INT(a,b,c)  svorr_n_s32_x((c),(a),(b))
-#define VNOT_INT(a,b)  svnot_s32_x((b),(a))
-#define VXOR1_INT(a,b,c)  sveor_n_s32_x((c),(a),(b))
+#define VOR1_INT(a,b,c)  svorr_n_s32_z((c),(a),(b))
+#define VNOT_INT(a,b)  svnot_s32_z((b),(a))
+#define VXOR1_INT(a,b,c)  sveor_n_s32_z((c),(a),(b))
 #define VCLEAR_BOOL(a) svpfalse_b()
 
 #define VXOR_BOOL(a,b,c)  sveor_b_z((c),(a),(b))
@@ -100,26 +107,157 @@
 
 #define VREDSUM_FLOAT(a,b)  svaddv_f32((b),(a))
 #define VREDSUMORD_FLOAT(a,b,c)  svadda_f32((c),(a),(b))
-#define VSQRT_FLOAT(a,b) svsqrt_f32_x((b),(a))
-#define VMAX_FLOAT(a,b,c) svmax_f32_x((c),(a),(b))
-#define VMIN_FLOAT(a,b,c) svmin_f32_x((c),(a),(b))
-#define VMAX1_FLOAT(a,b,c) svmax_n_f32_x((c),(a),(b))
-#define VMIN1_FLOAT(a,b,c) svmin_n_f32_x((c),(a),(b))
+#define VSQRT_FLOAT(a,b) svsqrt_f32_z((b),(a))
+#define VMAX_FLOAT(a,b,c) svmax_f32_z((c),(a),(b))
+#define VMIN_FLOAT(a,b,c) svmin_f32_z((c),(a),(b))
+#define VMAX1_FLOAT(a,b,c) svmax_n_f32_z((c),(a),(b))
+#define VMIN1_FLOAT(a,b,c) svmin_n_f32_z((c),(a),(b))
 #define VREDMAX_FLOAT(a,b) svmaxv_f32((b),(a))
 #define VREDMIN_FLOAT(a,b) svminv_f32((b),(a))
-#define VABS_FLOAT(a,b) svabs_f32_x((b),(a))
-#define VSRA1_INT(a,b,c) svasr_n_s32_x((c),(a),(b))
+#define VABS_FLOAT(a,b) svabs_f32_z((b),(a))
+#define VSRA1_INT(a,b,c) svasr_n_s32_z((c),(a),(b))
+
+#define VGATHER_FLOAT(a,b,c) svld1_gather_s32offset_f32((c),(a),(b))
+
+#define VCVT_DOUBLE_FLOAT(a,b) svcvt_f64_f32_z((b),(a))
+#define VCVT_FLOAT_DOUBLE(a,b) svcvt_f32_f64_z((b),(a))
 // returns dst = dst  + a*b
 static inline V_ELT_FLOAT VMUL_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i){
-	dst = svcmla_f32_x(i,dst,a,b,0);
-	dst = svcmla_f32_x(i,dst,a,b,90);
+	dst = svcmla_f32_z(i,dst,a,b,0);
+	dst = svcmla_f32_z(i,dst,a,b,90);
 	return dst;
 }
 
 //returns dst = dst + conj(a)*b
 static inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i){
-	dst = svcmla_f32_x(i,dst,a,b,0);
-	dst = svcmla_f32_x(i,dst,a,b,270);
+	dst = svcmla_f32_z(i,dst,a,b,0);
+	dst = svcmla_f32_z(i,dst,a,b,270);
+	return dst;
+}
+
+/// 16 bits
+#define V_ELT_FLOAT16 svfloat16_t
+#define V_ELT_BOOL16 svbool_t
+#define V_ELT_SHORT svint16_t
+#define V_ELT_USHORT svuint16_t
+#define VCVT_SHORT_FLOAT16(a,b) svcvt_f16_s16_z((b),(a))
+#define VCVT_USHORT_FLOAT16(a,b) svcvt_f16_u16_z((b),(a))
+#define VCVT_SHORT_INT_LOW(a) svunpklo_s32((a))
+#define VCVT_SHORT_INT_HIGH(a) svunpkhi_s32((a))
+#define VLOAD_SHORT(a,b) svld1_s16((b),(a))
+#define VCVT_FLOAT16_SHORT(a,b) svcvt_s16_f16_z((b),(a))
+#define VCVT_FLOAT16_USHORT(a,b) svcvt_u16_f16_z((b),(a))
+#define VCVT_FLOAT16_FLOAT(a,b) svcvt_f32_f16_z((b),(a))
+#define VMUL1_FLOAT16(a,b,c) svmul_n_f16_z((c),(a),(b))
+#define VSTORE_SHORT(a,b,c) svst1_s16((c),(a),(b))
+#define VSTORE_USHORT(a,b,c) svst1_u16((c),(a),(b))
+
+///////////64bits
+#define V_ELT_DOUBLE svfloat64_t
+#define VLOAD_DOUBLE(a,b) svld1_f64((b),(a))
+#define VLOAD_INT64(a,b) svld1_s64((b),(a))
+#define VLOAD_UINT64(a,b) svld1_u64((b),(a))
+#define VLOAD1_DOUBLE(a,b) svdup_n_f64((a))
+#define VSTORE_DOUBLE(a,b,c) svst1_f64((c),(a),(b))
+#define V_ELT_INT64 svint64_t
+#define V_ELT_UINT64 svuint64_t
+#define VINT64ERP_INT64_DOUBLE svreinterpret_f64_s64
+#define VINT64ERP_DOUBLE_INT64 svreinterpret_s64_f64
+#define VAND1_INT64(a,b,c) svand_n_u64_z((c),(a),(b))
+#define VMUL1_DOUBLE(a,b,c) svmul_n_f64_z((c),(a),(b))
+#define VMUL1_DOUBLE_MASK(a,b,c,d) svmul_n_f64_z((a),(b),(c))
+#define VMUL_DOUBLE(a,b,c) svmul_f64_z((c),(a),(b))
+#define VDIV_DOUBLE(a,b,c) svdiv_f64_z((c),(a),(b))
+#define VADD1_DOUBLE(a,b,c) svadd_n_f64_z((c),(a),(b))
+#define VADD1_DOUBLE_MASK(a,b,c,d) svadd_n_f64_z((a),(b),(c))
+#define VADD1_INT64(a,b,c) svadd_n_s64_z((c),(a),(b))
+#define VADD1_INT64_MASK(a,b,c,d) svadd_n_s64_z((a),(b),(c))
+#define VSUB1_INT64_MASK(a,b,c,d) svsub_n_s64_z((a),(b),(c))
+#define VADD_DOUBLE(a,b,c) svadd_f64_z((c),(a),(b))
+#define VSUB_DOUBLE(a,b,c) svsub_f64_z((c),(a),(b))
+#define VSUB1_DOUBLE(a,b,c) svsub_n_f64_z((c),(a),(b))
+#define VSUB1_INT64(a,b,c) svsub_n_s64_z((c),(a),(b))
+#define VSLL1_INT64(a,b,c) svlsl_n_s64_z((c),(a),(b))
+#define VCVT_INT64_DOUBLE(a,b) svcvt_f64_s64_z((b),(a))
+#define VCVT_DOUBLE_INT64(a,b) svcvt_s64_f64_z((b),(a))
+#define VCVT_RTZ_DOUBLE_INT64 VCVT_DOUBLE_INT64
+// x current exact, a nearest away from zero, i current mode inexact, m mininf,
+// n nearest even, p plusinf
+#define VR_DOUBLE(a,b) svrintx_f64_z((b),(a))
+#define VRTZ_DOUBLE(a,b) svrintz_f64_z((b),(a))
+#define VRNE_DOUBLE(a,b) svrintn_f64_z((b),(a))
+#define VRMINF_DOUBLE(a,b) svrintm_f64_z((b),(a))
+#define VRINF_DOUBLE(a,b) svrintp_f64_z((b),(a))
+#define VRNA_DOUBLE(a,b) svrinta_f64_z((b),(a))
+
+#define V_ELT_BOOL64 svbool_t
+#define VEQ1_INT64_BOOL(a,b,c) svcmpeq_n_s64((c),(a),(b))
+#define VGT1_DOUBLE_BOOL(a,b,c) svcmpgt_n_f64((c),(a),(b))
+#define VGE1_DOUBLE_BOOL(a,b,c) svcmpge_n_f64((c),(a),(b))
+#define VLT1_DOUBLE_BOOL(a,b,c) svcmplt_n_f64((c),(a),(b))
+#define VLE1_DOUBLE_BOOL(a,b,c) svcmple_n_f64((c),(a),(b))
+#define VEQ1_DOUBLE_BOOL(a,b,c) svcmpeq_n_f64((c),(a),(b))
+//#define VFMACC1_DOUBLE(a,b,c,d) svmad_n_f64_m((d),(b),(c),(a)) // op3 + op1[i]*op2[i]
+#define VFMACC1_DOUBLE(a,b,c,d) svmla_n_f64_z((d),(a),(c),(b)) // op1[i] + op2[i] * op3
+#define VFMACC_DOUBLE(a,b,c,d) svmla_f64_z((d),(a),(c),(b)) // op1[i] + op2[i] * op3[i]
+#define VFMADD1_DOUBLE(a,b,c,d) svmla_n_f64_z((d),(c),(a),(b)) //  op1[i] + op2[i] * op3
+
+//SVE2 computes a - b*c where riscv does b*c - a! 
+#define VFMSUB_DOUBLE(a,b,c,d) svmls_f64_z((d),(c),(a),(b)) //  op1[i] - op2[i] * op3[i]
+
+#define VFMADD_DOUBLE(a,b,c,d) svmad_f64_z((d),(a),(b),(c)) // op1[i] * op2[i] + op3[i]
+#define VMERGE_DOUBLE(mask, t, f, i) svsel_f64((mask), (f), (t))     /* select */
+#define VMERGE1_DOUBLE(mask, v, f, i) svsel_f64((mask), svdup_n_f64((float)(f)),(v))
+#define VXOR_INT64(a,b,c)  sveor_s64_m((c),(a),(b))
+#define VOR_INT64(a,b,c)  svorr_s64_m((c),(a),(b))
+#define VOR1_INT64(a,b,c)  svorr_n_s64_z((c),(a),(b))
+#define VNOT_INT64(a,b)  svnot_s64_z((b),(a))
+#define VXOR1_INT64(a,b,c)  sveor_n_s64_z((c),(a),(b))
+#define VCLEAR_BOOL(a) svpfalse_b()
+
+#define VXOR_BOOL(a,b,c)  sveor_b_z((c),(a),(b))
+#define VOR_BOOL(a,b,c)  svorr_b_z((c),(a),(b))
+#define VAND_BOOL(a,b,c)  svand_b_z((c),(a),(b))
+#define VOR_BOOL(a,b,c)  svorr_b_z((c),(a),(b))
+#define VNOT_BOOL(a,b)  svnot_b_z((b),(a))
+#define VGT1_INT64_BOOL(a,b,c) svcmpgt_n_s64((c),(a),(b))
+#define VNE1_INT64_BOOL(a,b,c) svcmpne_n_s64((c),(a),(b))
+
+#define VRDIV1_DOUBLE(a,b,c) svdivr_n_f64_z((c),(a),(b))
+#define VRSUB1_DOUBLE(a,b,c) svsubr_n_f64_z((c),(a),(b))
+
+#define V_ELT_DOUBLE2 svfloat64x2_t
+#define VSTORE_DOUBLE2SPLIT(a,b,c,d) svst2_f64((d),(float*)(a),(V_ELT_DOUBLE2){b,c})
+#define VSTORE_DOUBLE2(a,b,c) svst2_f64((c),(float*)(a),(b))
+#define VLOAD_DOUBLE2(a,b) svld2_f64((b),(float*)(a))
+
+#define VREDSUM_DOUBLE(a,b)  svaddv_f64((b),(a))
+#define VREDSUMORD_DOUBLE(a,b,c)  svadda_f64((c),(a),(b))
+#define VSQRT_DOUBLE(a,b) svsqrt_f64_z((b),(a))
+#define VMAX_DOUBLE(a,b,c) svmax_f64_z((c),(a),(b))
+#define VMIN_DOUBLE(a,b,c) svmin_f64_z((c),(a),(b))
+#define VMAX1_DOUBLE(a,b,c) svmax_n_f64_z((c),(a),(b))
+#define VMIN1_DOUBLE(a,b,c) svmin_n_f64_z((c),(a),(b))
+#define VREDMAX_DOUBLE(a,b) svmaxv_f64((b),(a))
+#define VREDMIN_DOUBLE(a,b) svminv_f64((b),(a))
+#define VABS_DOUBLE(a,b) svabs_f64_z((b),(a))
+#define VSRA1_INT64(a,b,c) svasr_n_s64_z((c),(a),(b))
+
+#define VGATHER_DOUBLE(a,b,c) svld1_gather_s64offset_f64((c),(a),(b))
+
+#define VCVT_DOUBLE_DOUBLE(a,b) svcvt_f64_f64_z((b),(a))
+#define VCVT_DOUBLE_DOUBLE(a,b) svcvt_f64_f64_z((b),(a))
+// returns dst = dst  + a*b
+static inline V_ELT_DOUBLE VMUL_CDOUBLE(V_ELT_DOUBLE dst, V_ELT_DOUBLE a, V_ELT_DOUBLE b, V_ELT_BOOL64 i){
+	dst = svcmla_f64_z(i,dst,a,b,0);
+	dst = svcmla_f64_z(i,dst,a,b,90);
+	return dst;
+}
+
+//returns dst = dst + conj(a)*b
+static inline V_ELT_DOUBLE VMULCONJA_CDOUBLE(V_ELT_DOUBLE dst, V_ELT_DOUBLE a, V_ELT_DOUBLE b, V_ELT_BOOL64 i){
+	dst = svcmla_f64_z(i,dst,a,b,0);
+	dst = svcmla_f64_z(i,dst,a,b,270);
 	return dst;
 }
 
@@ -202,9 +340,9 @@ vfnmsub.vf vd, rs1, vs2, vm
 #endif
 
 #ifndef VECTOR_LENGTH
-#define MAX_ELTS8 1024  // 1024bits*4 registers(m4) => 512 int8
-#define MAX_ELTS32 256  // 1024bits*4 registers(m4) => 128 float/int32
-#define MAX_ELTS64 128  // 1024bits*4 registers(m4) => 64 double/int64
+#define MAX_ELTS8 128  // 1024bits*4 registers(m4) => 512 int8
+#define MAX_ELTS32 32  // 1024bits*4 registers(m4) => 128 float/int32
+#define MAX_ELTS64 16  // 1024bits*4 registers(m4) => 64 double/int64
 #define VECTOR_LENGTH 1024
 #else
 #define MAX_ELTS8 VECTOR_LENGTH
