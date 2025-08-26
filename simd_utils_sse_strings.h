@@ -17,7 +17,7 @@
 #include <math.h>
 #include <string.h>
 
-size_t strnlen_s_128(const char *s, size_t maxlen) {
+static inline size_t strnlen_s_128(const char *s, size_t maxlen) {
     if (s == NULL)
         return 0;
 

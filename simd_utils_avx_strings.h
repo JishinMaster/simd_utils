@@ -18,7 +18,7 @@
 #include <string.h>
 
 #ifdef __AVX2__
-size_t strnlen_s_256(const char *s, size_t maxlen) {
+static inline  size_t strnlen_s_256(const char *s, size_t maxlen) {
     if (s == NULL)
         return 0;
 
