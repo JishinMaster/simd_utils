@@ -4317,7 +4317,7 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
         for (int i = stop_len; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
             dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
-			=dst[i] = (int16_t) (tmp < -32768.0f ? -32768.0f : tmp);  
+			dst[i] = (int16_t) (tmp < -32768.0f ? -32768.0f : tmp);  
         }
     } else {
         // Default round toward zero
