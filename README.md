@@ -27,8 +27,10 @@ Supported targets are :
 - ARM Neon (through sse2neon plus some optimized functions).
 - RISC-V Vector extension 1.0
 - PowerPC Alitivec (no double precision suppport)
+- experimental ARM SVE2 support
+- experimental ARM Helium/MVE support
 
-128 bit functions (SSE, NEON, ALTIVEC) are name function128type, such as asin128f, which computes the arcsinus function on an float32 array. Float64 functions have the "d" suffix.
+128 bit functions (SSE, NEON, ALTIVEC, HELIUM) are name function128type, such as asin128f, which computes the arcsinus function on an float32 array. Float64 functions have the "d" suffix.
 256 bit functions (AVX/AVX2) have 256 instead of 128 in their name, such as asin256f.
 256 bit functions (AVX512) have 512 instead of 128 in their name, such as cos512f.
 Vector functions (RISCV) for which the SIMD length makes less sense, are name functionType_vec, such as subs_vec, which substract an int32 array from and other one.
@@ -39,11 +41,13 @@ The project has been tested on :
 - Intel Skylake Core-i7
 - Intel Cannonlake Core-i7
 - Intel SDE (emulator) for AVX-512
-- Qemu 5.X (emulator) )for arm/aarch64, ppc and riscv
+- Qemu 8.X (emulator) )for arm/aarch64, ppc and riscv
 - Cortex-a53 (Raspberry Pi 3B)
 - Cortex-a9 (ZYBO)
 - PowerPC G5 (iMac G5)
+- PowerPC G4 (Macbook G4)
 - RISCV Ox64 (C906 core)
+- Cortex-m55 (stm32n657)
 
 ## Building
 
@@ -58,6 +62,7 @@ Simply include simd_utils.h in your C/C++ file, and compile with :
 - ARM V8 NEON support : aarch64-linux-gnu-gcc -DARM -DFMA -DSSE -flax-vector-conversions -c file.c -I .
 - RISCV support : riscv64-unknown-linux-gnu-gcc -DRISCV -march=rv64gcv -c file.c-I .
 - ALTIVEC support : powerpc64-linux-gnu-gcc -DALTIVEC -DFMA -maltivec -flax-vector-conversions -c file.c -I .
+- SVE2 support :  aarch64-linux-gnu-gcc -DSVE2 -DFMA -flax-vector-conversions -c file.c -I .
 
 For FMA support you need to add -DFMA and -mfma to x86 targets, and -DFMA to Armv8 targets.
 For ARMV7 targets, you could also add -DSSE2NEON_PRECISE_SQRT for improved accuracy with sqrt and rsqrt
