@@ -4129,13 +4129,13 @@ static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int
     if (rounding_mode == RndFinancial) {
         for (int i = stop_len; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);  // round to nearest even with round(x/2)*2
+            dst[i] = (uint8_t)fminf(tmp,255.0f);  // round to nearest even with round(x/2)*2
         }
     } else {
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
             float tmp = nearbyintf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t) (tmp > 255.0f ? 255.0f : tmp);
+            dst[i] = (uint8_t)fminf(tmp,255.0f);
         }
         _FPU_SETCW(_mm_rounding_ori);  // restore previous rounding mode
         fesetround(rounding_ori);
@@ -4316,15 +4316,15 @@ static inline void convertFloat32ToI16_128(float *src, int16_t *dst, int len, in
     if (rounding_mode == RndFinancial) {
         for (int i = stop_len; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);  // round to nearest even with round(x/2)*2
-			dst[i] = (int16_t) (tmp < -32768.0f ? -32768.0f : tmp);  
+            tmp = (int16_t)fminf(tmp,32767.0f);
+			dst[i] = (int16_t)fmaxf(tmp,-32768.0f); 
         }
     } else {
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
             float tmp = nearbyintf(src[i] * scale_fact_mult);
-            dst[i] = (int16_t) (tmp > 32767.0f ? 32767.0f : tmp);
-			dst[i] = (int16_t) (tmp < -32768.0f ? -32768.0f : tmp);  			
+            tmp = (int16_t)fminf(tmp,32767.0f);
+			dst[i] = (int16_t)fmaxf(tmp,-32768.0f);		
         }
         _FPU_SETCW(_mm_rounding_ori);  // restore previous rounding mode
         fesetround(rounding_ori);
@@ -4507,13 +4507,13 @@ static inline void convertFloat32ToU16_128(float *src, uint16_t *dst, int len, i
     if (rounding_mode == RndFinancial) {
         for (int i = stop_len; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
+            dst[i] = (uint16_t)fminf(tmp,65535.0f); // round to nearest even with round(x/2)*2
         }
     } else {
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
             float tmp = nearbyintf(src[i] * scale_fact_mult);
-            dst[i] = (uint16_t) (tmp > 65535.0f ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
+            dst[i] = (uint16_t)fminf(tmp,65535.0f);  // round to nearest even with round(x/2)*2
         }
         _FPU_SETCW(_mm_rounding_ori);  // restore previous rounding mode
         fesetround(rounding_ori);

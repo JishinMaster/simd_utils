@@ -1197,14 +1197,14 @@ static inline void convertFloat32ToI16_128(const float  *__restrict__ src, int16
     if (rounding_mode == RndFinancial) {
         for (int i = stop_len; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (int16_t)fminf(tmp,32767.0f);
+            tmp = (int16_t)fminf(tmp,32767.0f);
 			dst[i] = (int16_t)fmaxf(-32768.0f, tmp);
         }
     } else {
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
             float tmp = rintf(src[i] * scale_fact_mult);
-            dst[i] = (int16_t)fminf(tmp,32767.0f);
+            tmp = (int16_t)fminf(tmp,32767.0f);
 			dst[i] = (int16_t)fmaxf(-32768.0f, tmp);
         }
         fesetround(rounding_ori);
