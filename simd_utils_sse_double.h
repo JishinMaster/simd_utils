@@ -350,7 +350,7 @@ static inline void rint128d(double *src, double *dst, int len)
     }
 }
 
-inline v2sd _mm_rounda_pd(v2sd x){
+static inline v2sd _mm_rounda_pd(v2sd x){
 #ifndef __aarch64__	
 	v2sd spe1 = _mm_and_pd(x, *(v2sd*)_pd_sign_mask);
 	spe1 = _mm_or_pd(spe1,*(v2sd*)_pd_mid_mask);

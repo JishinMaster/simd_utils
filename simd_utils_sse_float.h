@@ -3533,7 +3533,7 @@ static inline void rint128f(float *src, float *dst, int len)
 }
 
 // round away from zero, like roundf (not ieee)
-inline v4sf _mm_rounda_ps(v4sf x){
+static inline v4sf _mm_rounda_ps(v4sf x){
 #ifndef __aarch64__	
 	v4sf spe1 = _mm_and_ps(x, *(v4sf*)_ps_sign_mask);
 	spe1 = _mm_or_ps(spe1,*(v4sf*)_ps_mid_mask);
