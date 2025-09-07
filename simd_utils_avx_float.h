@@ -904,7 +904,11 @@ static inline void convertInt16ToFloat32_256(int16_t *src, float *dst, int len, 
     int stop_len = len / (2 * AVX_LEN_FLOAT);
     stop_len *= (2 * AVX_LEN_FLOAT);
 
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
     v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
@@ -954,7 +958,11 @@ static inline void convertInt16ToFloat32_256(int16_t *src, float *dst, int len, 
     int stop_len = len / (4 * AVX_LEN_FLOAT);
     stop_len *= (4 * AVX_LEN_FLOAT);
 
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
     v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
@@ -1030,7 +1038,11 @@ static inline void convertInt32ToFloat32_256(int32_t *src, float *dst, int len, 
     int stop_len = len / (2 * AVX_LEN_FLOAT);
     stop_len *= (2 * AVX_LEN_FLOAT);
 
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
     v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
@@ -1068,7 +1080,11 @@ static inline void convertFloat32ToU8_256(float *src, uint8_t *dst, int len, int
     int stop_len = len / (4 * AVX_LEN_FLOAT);
     stop_len *= (4 * AVX_LEN_FLOAT);
 
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
     v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
     v8si idx = _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0);
 
@@ -1224,7 +1240,11 @@ static inline void convertFloat32ToI16_256(float *src, int16_t *dst, int len, in
     int stop_len = len / (2 * AVX_LEN_FLOAT);
     stop_len *= (2 * AVX_LEN_FLOAT);
 
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
     v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
 
     int _mm_rounding_ori = _MM_GET_ROUNDING_MODE();  // save rounding mode
@@ -1331,7 +1351,11 @@ static inline void convertFloat32ToU16_256(float *src, uint16_t *dst, int len, i
     int stop_len = len / (2 * AVX_LEN_FLOAT);
     stop_len *= (2 * AVX_LEN_FLOAT);
 
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
     v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
 
     int _mm_rounding_ori = _MM_GET_ROUNDING_MODE();  // save rounding mode

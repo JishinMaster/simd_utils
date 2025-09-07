@@ -2334,7 +2334,11 @@ static inline void cbrtf_vec(float *src, float *dst, int len)
 
 static inline void convertInt16ToFloat32_vec(int16_t *src, float *dst, int len, int scale_factor)
 {
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
 
     int i = 0;
     while (i < len) {
@@ -2359,7 +2363,11 @@ static inline void convertFloat32ToI16_vec(float *src, int16_t *dst, int len, in
 {
     int i = 0;
 	
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
 	float16_t scale_fact_mult_16 = (float16_t)scale_fact_mult;
 	uint32_t reg_ori = fegetround();
     if (rounding_mode == RndZero) {
@@ -2419,7 +2427,11 @@ static inline void convertFloat32ToU16_vec(float *src, uint16_t *dst, int len, i
 {
     int i = 0;
 	
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
 	float16_t scale_fact_mult_16 = (float16_t)scale_fact_mult;
 	uint32_t reg_ori = fegetround();
     if (rounding_mode == RndZero) {

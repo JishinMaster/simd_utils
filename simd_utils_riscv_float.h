@@ -2774,7 +2774,11 @@ static inline void cbrtf_vec(float *src, float *dst, int len)
 
 static inline void convertInt16ToFloat32_vec(int16_t *src, float *dst, int len, int scale_factor)
 {
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
     size_t i;
     int16_t *src_tmp = src;
     float *dst_tmp = dst;
@@ -2795,7 +2799,11 @@ static inline void convertInt16ToFloat32_vec(int16_t *src, float *dst, int len, 
 // TODO: specific case for RISCV RndFinancial?
 static inline void convertFloat32ToI16_vec(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
 {
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
 
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
@@ -2833,7 +2841,11 @@ static inline void convertFloat32ToI16_vec(float *src, int16_t *dst, int len, in
 //  could scale factor come directly from VCVT_UINT_USHORTH? (shift parameter)
 static inline void convertFloat32ToU16_vec(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
 {
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
 
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
@@ -2869,7 +2881,11 @@ static inline void convertFloat32ToU16_vec(float *src, uint16_t *dst, int len, i
 
 static inline void convertFloat32ToU8_vec(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
 {
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
 
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();

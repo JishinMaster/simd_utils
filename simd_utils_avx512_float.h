@@ -803,7 +803,11 @@ static inline void convertInt16ToFloat32_512(int16_t *src, float *dst, int len, 
     int stop_len = len / (2 * AVX512_LEN_FLOAT);
     stop_len *= (2 * AVX512_LEN_FLOAT);
 
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
     v16sf scale_fact_vec = _mm512_set1_ps(scale_fact_mult);
 
     v16si idx_lo = _mm512_set_epi16(15, 15, 14, 14, 13, 13, 12, 12, 11, 11, 10, 10,
@@ -853,7 +857,11 @@ static inline void convertInt32ToFloat32_512(int32_t *src, float *dst, int len, 
     int stop_len = len / (2 * AVX512_LEN_FLOAT);
     stop_len *= (2 * AVX512_LEN_FLOAT);
 
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
     v16sf scale_fact_vec = _mm512_set1_ps(scale_fact_mult);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX512_LEN_BYTES)) {
@@ -890,7 +898,11 @@ static inline void convertFloat32ToU8_512(float *src, uint8_t *dst, int len, int
     int stop_len = len / (4 * AVX512_LEN_FLOAT);
     stop_len *= (4 * AVX512_LEN_FLOAT);
 
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
     v16sf scale_fact_vec = _mm512_set1_ps(scale_fact_mult);
 
     v16si idx = _mm512_set_epi32(15, 11, 7, 3, 14, 10, 6, 2, 13, 9, 5, 1, 12, 8, 4, 0);
@@ -1045,7 +1057,11 @@ static inline void convertFloat32ToU16_512(float *src, uint16_t *dst, int len, i
     int stop_len = len / (2 * AVX512_LEN_FLOAT);
     stop_len *= (2 * AVX512_LEN_FLOAT);
 
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
     v16sf scale_fact_vec = _mm512_set1_ps(scale_fact_mult);
 
     v16si idx = _mm512_set_epi64(7, 5, 3, 1, 6, 4, 2, 0);
@@ -1152,7 +1168,11 @@ static inline void convertFloat32ToI16_512(float *src, int16_t *dst, int len, in
     int stop_len = len / (2 * AVX512_LEN_FLOAT);
     stop_len *= (2 * AVX512_LEN_FLOAT);
 
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
     v16sf scale_fact_vec = _mm512_set1_ps(scale_fact_mult);
 
     v16si idx = _mm512_set_epi64(7, 5, 3, 1, 6, 4, 2, 0);

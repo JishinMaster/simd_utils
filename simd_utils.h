@@ -1448,7 +1448,11 @@ static inline void convert_32f64f_C(float *src, double *dst, int len)
 
 static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
 {
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
 
     int rounding_ori = fegetround();
     // Default bankers rounding => round to nearest even
@@ -1481,7 +1485,11 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 
 static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
 {
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
 
     int rounding_ori = fegetround();
 
@@ -1517,7 +1525,11 @@ static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int 
 
 static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
 {
-    float scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    float scale_fact_mult;
+    if(scale_factor >= 0)
+    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    else
+    	scale_fact_mult = (float) (1 << -scale_factor);
 
     int rounding_ori = fegetround();
 
@@ -2647,7 +2659,7 @@ static inline void maxeveryf_c(float *src1, float *src2, float *dst, int len)
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = src1[i] > src2[i] ? src1[i] : src2[i];
+        dst[i] = fmaxf(src1[i],src2[i]);
     }
 }
 
@@ -2657,7 +2669,7 @@ static inline void mineveryf_c(float *src1, float *src2, float *dst, int len)
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = src1[i] < src2[i] ? src1[i] : src2[i];
+        dst[i] = fminf(src1[i],src2[i]);
     }
 }
 
@@ -2670,8 +2682,8 @@ static inline void minmaxf_c(float *src, int len, float *min_value, float *max_v
 #pragma omp simd
 #endif
     for (int i = 1; i < len; i++) {
-        max_tmp = max_tmp > src[i] ? max_tmp : src[i];
-        min_tmp = min_tmp < src[i] ? min_tmp : src[i];
+		max_tmp =  fmaxf(max_tmp,src[i]);
+		min_tmp = fminf(min_tmp,src[i]);
     }
 
     *max_value = max_tmp;
