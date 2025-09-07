@@ -309,8 +309,7 @@ static inline v4sf log_ps(v4sf x)
     y = vfmaq_n_f32(y, z, -0.5f);
 
 
-    tmp = vmulq_n_f32(e, c_cephes_log_q2);
-    x = vfmaq_n_f32(x, e, c_cephes_log_q2);
+    y = vfmaq_n_f32(y, e, c_cephes_log_q2);
     x = vaddq_f32(x, y);
 
     x = vreinterpretq_f32_u32(vorrq_u32(vreinterpretq_u32_f32(x), invalid_mask));  // negative arg will be NAN
