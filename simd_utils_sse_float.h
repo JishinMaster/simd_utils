@@ -3532,6 +3532,18 @@ static inline void rint128f(float *src, float *dst, int len)
     }
 }
 
+// round away from zero, like roundf (not ieee)
+inline v4sf _mm_rounda_ps(v4sf x){
+#ifndef __aarch64__	
+	v4sf spe1 = _mm_and_ps(x, *(v4sf*)_ps_sign_mask);
+	spe1 = _mm_or_ps(spe1,*(v4sf*)_ps_mid_mask);
+	spe1 = _mm_add_ps(x, spe1);
+	return  _mm_round_ps(spe1, ROUNDTOZERO);
+#else // NEON AARCH64 can do it directly
+	return vrndaq_f32(x);
+#endif	
+}
+
 //rounds away from zero like IPP, whereas SSE/AVx/AVX512 rounds to nearest even (IEEE-754)
 static inline void round128f(float *src, float *dst, int len)
 {
@@ -3542,14 +3554,8 @@ static inline void round128f(float *src, float *dst, int len)
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
             v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
-            v4sf spe1 = _mm_and_ps(src_tmp, *(v4sf*)_ps_sign_mask);
-            spe1 = _mm_or_ps(spe1,*(v4sf*)_ps_mid_mask);
-            spe1 = _mm_add_ps(src_tmp, spe1);
-            v4sf spe2 = _mm_and_ps(src_tmp2, *(v4sf*)_ps_sign_mask);
-            spe2 = _mm_or_ps(spe2,*(v4sf*)_ps_mid_mask);
-            spe2 = _mm_add_ps(src_tmp2, spe2);
-            v4sf dst_tmp = _mm_round_ps(spe1, ROUNDTOZERO);
-            v4sf dst_tmp2 = _mm_round_ps(spe2, ROUNDTOZERO);
+            v4sf dst_tmp = _mm_rounda_ps(src_tmp);
+            v4sf dst_tmp2 = _mm_rounda_ps(src_tmp2);
             _mm_store_ps(dst + i, dst_tmp);
             _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }
@@ -3557,14 +3563,8 @@ static inline void round128f(float *src, float *dst, int len)
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
             v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
-            v4sf spe1 = _mm_and_ps(src_tmp, *(v4sf*)_ps_sign_mask);
-            spe1 = _mm_or_ps(spe1,*(v4sf*)_ps_mid_mask);
-            spe1 = _mm_add_ps(src_tmp, spe1);
-            v4sf spe2 = _mm_and_ps(src_tmp2, *(v4sf*)_ps_sign_mask);
-            spe2 = _mm_or_ps(spe2,*(v4sf*)_ps_mid_mask);
-            spe2 = _mm_add_ps(src_tmp2, spe2);
-            v4sf dst_tmp = _mm_round_ps(spe1, ROUNDTOZERO);
-            v4sf dst_tmp2 = _mm_round_ps(spe2, ROUNDTOZERO);
+            v4sf dst_tmp = _mm_rounda_ps(src_tmp);
+            v4sf dst_tmp2 = _mm_rounda_ps(src_tmp2);
             _mm_storeu_ps(dst + i, dst_tmp);
             _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
         }

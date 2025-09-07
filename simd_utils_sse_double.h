@@ -350,6 +350,17 @@ static inline void rint128d(double *src, double *dst, int len)
     }
 }
 
+inline v2sd _mm_rounda_pd(v2sd x){
+#ifndef __aarch64__	
+	v2sd spe1 = _mm_and_pd(x, *(v2sd*)_pd_sign_mask);
+	spe1 = _mm_or_pd(spe1,*(v2sd*)_pd_mid_mask);
+	spe1 = _mm_add_pd(x, spe1);
+	return  _mm_round_pd(spe1, ROUNDTOZERO);
+#else // NEON AARCH64 can do it directly
+	return vrndaq_f64(x);
+#endif	
+}
+
 static inline void round128d(double *src, double *dst, int len)
 {
     int stop_len = len / SSE_LEN_DOUBLE;
@@ -358,19 +369,13 @@ static inline void round128d(double *src, double *dst, int len)
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             v2sd src_tmp = _mm_load_pd(src + i);
-            v2sd spe1 = _mm_and_pd(src_tmp, *(v2sd*)_pd_sign_mask);
-            spe1 = _mm_or_pd(spe1,*(v2sd*)_pd_mid_mask);
-            spe1 = _mm_add_pd(src_tmp, spe1);
-            v2sd dst_tmp = _mm_round_pd(spe1, ROUNDTOZERO);
+            v2sd dst_tmp = _mm_rounda_pd(src_tmp);
             _mm_store_pd(dst + i, dst_tmp);
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_DOUBLE) {
             v2sd src_tmp = _mm_loadu_pd(src + i);
-            v2sd spe1 = _mm_and_pd(src_tmp, *(v2sd*)_pd_sign_mask);
-            spe1 = _mm_or_pd(spe1,*(v2sd*)_pd_mid_mask);
-            spe1 = _mm_add_pd(src_tmp, spe1);
-            v2sd dst_tmp = _mm_round_pd(spe1, ROUNDTOZERO);
+            v2sd dst_tmp = _mm_rounda_pd(src_tmp);
             _mm_storeu_pd(dst + i, dst_tmp);
         }
     }
