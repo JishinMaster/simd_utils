@@ -1901,6 +1901,87 @@ int main(int argc, char **argv)
 	printf("%lu %lu\n",lengthstr_ref, lengthstr_ref);
 #endif
 
+    printf("\n");
+    ////////////////////////////////////////////////// MODFF ////////////////////////////////////////////////////////////////////
+    printf("CHECK NANINFF\n");
+
+    for (int i = 0; i < len; i++) {
+        inout[i] = (float) (rand() % 10000) / 1235.6f;
+        if (i % 4 == 0)
+            inout[i] *= -1.0f;
+    }
+
+	inout[len/2] /= 0.0f;
+	inout[len/4] = NAN;
+    clock_gettime(CLOCK_REALTIME, &start);
+	int32_t nan, inf;
+    checkNanInff_c(inout,&nan, &inf, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3);
+    printf("checkNanInff_c %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+		checkNanInff_c(inout,&nan, &inf, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("checkNanInff_c %d %lf\n", len, elapsed);
+	printf(" nan %08x inf %08x\n",nan,inf);
+
+#if defined(SSE)
+    clock_gettime(CLOCK_REALTIME, &start);
+    checkNanInf128f(inout,&nan, &inf, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("checkNanInf128f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+		checkNanInf128f(inout,&nan, &inf, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("checkNanInf128f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+	printf(" nan %08x inf %08x\n",nan,inf);
+#endif
+
+#if defined(AVX)
+    clock_gettime(CLOCK_REALTIME, &start);
+    checkNanInf256f(inout,&nan, &inf, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("checkNanInf256f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+		checkNanInf256f(inout,&nan, &inf, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("checkNanInf256f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+	printf(" nan %08x inf %08x\n",nan,inf);
+#endif
+
+#if defined(AVX512)
+    clock_gettime(CLOCK_REALTIME, &start);
+    checkNanInf512f(inout,&nan, &inf, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+
+    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+    printf("checkNanInf512f %d %lf\n", len, elapsed);
+
+    clock_gettime(CLOCK_REALTIME, &start);
+    for (l = 0; l < loop; l++)
+		checkNanInf512f(inout,&nan, &inf, len);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+    printf("checkNanInf512f %d %lf %0.3lf GFlops/s\n", len, elapsed, flops / (elapsed * 1e3));
+
+	printf(" nan %08x inf %08x\n",nan,inf);
+#endif
+
     inout -= offset;
     inout2 -= offset;
     inout3 -= offset;

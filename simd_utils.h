@@ -1540,7 +1540,7 @@ static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (uint16_t)fminf(tmp, 65535.0f);// ? 65535.0f : tmp);  // round to nearest even with round(x/2)*2
+            dst[i] = (uint16_t)fminf(tmp, 65535.0f); // round to nearest even with round(x/2)*2
         }
     } else {
         if (rounding_mode == RndZero) {
@@ -3671,6 +3671,20 @@ static inline void powcplxd_c(complex64_t *x, complex64_t *y, complex64_t *dst, 
         cosylogx = cos(ylogx.im);		
 		dst[i].re = ex * cosylogx;
 		dst[i].im = ex * sinylogx;
+    }
+}
+
+static inline void checkNanInff_c(const float* __restrict__ src, int32_t* nan, int32_t* inf, int len)
+{
+	*nan = 0;
+	*inf = 0;
+    for (int i = 0; i < len; i++) {
+        if(src[i]!=src[i]) // NAN != NAN
+			*nan = 1;
+		int32_t *src_int = &src[i];
+		*src_int = *src_int & 0x7FFFFFFF; // clear off the sign to watch for +inf and -inf
+		if(*src_int == 0x7F800000)
+			*inf = 1;
     }
 }
 

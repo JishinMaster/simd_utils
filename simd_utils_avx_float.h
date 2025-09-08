@@ -4424,3 +4424,49 @@ static inline void powcplx256f(complex32_t *x, complex32_t *y, complex32_t *dst,
 		dst[i].im = ex * sinylogx;
     }
 }
+
+static inline void checkNanInf256f(const float* __restrict__ src, int32_t* nan, int32_t* inf, int len)
+{
+	int stop_len = len / (AVX_LEN_FLOAT);
+    stop_len *= (AVX_LEN_FLOAT);
+	
+	v8sf nan_vec = _mm256_setzero_ps(); 
+	v8si inf_vec = _mm256_setzero_si256(); 
+	*nan = 0;
+	*inf = 0;
+	v8si Ox7f = _mm256_set1_epi32(0x7FFFFFFF);
+	v8si Ox7f8 =  _mm256_set1_epi32(0x7F800000);
+    if (isAligned((uintptr_t) (src), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+			v8sf src_tmp = _mm256_load_ps(src + i);
+			v8sf nan_vec_tmp = _mm256_cmp_ps(src_tmp, src_tmp, _CMP_NEQ_UQ); 
+			nan_vec = _mm256_or_ps(nan_vec,nan_vec_tmp);
+			v8si src_tmpi = _mm256_castps_si256(src_tmp);
+			src_tmpi = _mm256_and_si256(src_tmpi, Ox7f);
+			v8si inf_vec_tmp = _mm256_cmpeq_epi32(src_tmpi, Ox7f8);
+			inf_vec = _mm256_or_si256(inf_vec,inf_vec_tmp);		
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+			v8sf src_tmp = _mm256_loadu_ps(src + i);
+			v8sf nan_vec_tmp = _mm256_cmp_ps(src_tmp, src_tmp, _CMP_NEQ_UQ); 
+			nan_vec = _mm256_or_ps(nan_vec,nan_vec_tmp);
+			v8si src_tmpi = _mm256_castps_si256(src_tmp);
+			src_tmpi = _mm256_and_si256(src_tmpi, Ox7f);
+			v8si inf_vec_tmp = _mm256_cmpeq_epi32(src_tmpi, Ox7f8);
+			inf_vec = _mm256_or_si256(inf_vec,inf_vec_tmp);		
+        }
+    }
+
+	*nan = _mm256_movemask_ps(nan_vec);
+	*inf = _mm256_movemask_epi8(inf_vec);
+
+    for (int i = stop_len; i < len; i++) {
+        if(src[i]!=src[i]) // NAN != NAN
+			*nan = 1;
+		int32_t *src_int = &src[i];
+		*src_int = *src_int & 0x7FFFFFFF; // clear off the sign to watch for +inf and -inf
+		if(*src_int == 0x7F800000)
+			*inf = 1;
+    }
+}

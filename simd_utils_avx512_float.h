@@ -3811,3 +3811,49 @@ static inline void powcplx512f(complex32_t *x, complex32_t *y, complex32_t *dst,
 		dst[i].im = ex * sinylogx;
     }
 }
+
+static inline void checkNanInf512f(const float* __restrict__ src, int32_t* nan, int32_t* inf, int len)
+{
+	int stop_len = len / (AVX512_LEN_FLOAT);
+    stop_len *= (AVX512_LEN_FLOAT);
+	
+	__mmask16 nan_vec = 0; 
+	__mmask16 inf_vec = 0; 
+	*nan = 0;
+	*inf = 0;
+	v16si Ox7f = _mm512_set1_epi32(0x7FFFFFFF);
+	v16si Ox7f8 =  _mm512_set1_epi32(0x7F800000);
+    if (isAligned((uintptr_t) (src), AVX512_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+			v16sf src_tmp = _mm512_load_ps(src + i);
+			__mmask16 nan_vec_tmp = _mm512_cmp_ps_mask(src_tmp, src_tmp, _CMP_NEQ_UQ); 
+			nan_vec = _mm512_kor(nan_vec,nan_vec_tmp);
+			v16si src_tmpi = _mm512_castps_si512(src_tmp);
+			src_tmpi = _mm512_and_si512(src_tmpi, Ox7f);
+			__mmask16 inf_vec_tmp = _mm512_cmp_epi32_mask(src_tmpi, Ox7f8, _MM_CMPINT_EQ);
+			inf_vec = _mm512_kor(inf_vec,inf_vec_tmp);		
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX512_LEN_FLOAT) {
+			v16sf src_tmp = _mm512_loadu_ps(src + i);
+			__mmask16 nan_vec_tmp = _mm512_cmp_ps_mask(src_tmp, src_tmp, _CMP_NEQ_UQ); 
+			nan_vec = _mm512_kor(nan_vec,nan_vec_tmp);
+			v16si src_tmpi = _mm512_castps_si512(src_tmp);
+			src_tmpi = _mm512_and_si512(src_tmpi, Ox7f);
+			__mmask16 inf_vec_tmp = _mm512_cmp_epi32_mask(src_tmpi, Ox7f8, _MM_CMPINT_EQ);
+			inf_vec = _mm512_kor(inf_vec,inf_vec_tmp);		
+        }
+    }
+
+	*nan =  (uint16_t)nan_vec;
+	*inf = (uint16_t)inf_vec;	
+
+    for (int i = stop_len; i < len; i++) {
+        if(src[i]!=src[i]) // NAN != NAN
+			*nan = 1;
+		int32_t *src_int = &src[i];
+		*src_int = *src_int & 0x7FFFFFFF; // clear off the sign to watch for +inf and -inf
+		if(*src_int == 0x7F800000)
+			*inf = 1;
+    }
+}
