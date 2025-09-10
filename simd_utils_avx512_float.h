@@ -3851,7 +3851,7 @@ static inline void checkNanInf512f(const float* __restrict__ src, int32_t* nan, 
     for (int i = stop_len; i < len; i++) {
         if(src[i]!=src[i]) // NAN != NAN
 			*nan = 1;
-		int32_t *src_int = &src[i];
+		int32_t *src_int = (int32_t*)&src[i];
 		*src_int = *src_int & 0x7FFFFFFF; // clear off the sign to watch for +inf and -inf
 		if(*src_int == 0x7F800000)
 			*inf = 1;

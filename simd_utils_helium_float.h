@@ -1061,6 +1061,28 @@ static inline void cplxvecmul128f(complex32_t *src1, complex32_t *src2, complex3
     }
 }
 
+static inline void cplxconjvecmul128f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= 2 * SSE_LEN_FLOAT;
+
+	for (int i = 0; i < 2 * stop_len; i += 2 * SSE_LEN_FLOAT) {
+		v4sfx2 src1_split = vld2q_f32((float *) (src1) + i);  // a0a1a2a3, b0b1b2b3
+		v4sfx2 src2_split = vld2q_f32((float *) (src2) + i);  // c0c1c2c3 d0d1d2d3
+		v4sfx2 dst_split;
+		dst_split.val[0] = vmulq_f32(src1_split.val[1], src2_split.val[1]); //bd
+		dst_split.val[1] = vmulq_f32(src2_split.val[0], src1_split.val[1]); //bc
+		dst_split.val[0] = vfmaq_f32(dst_split.val[0], src1_split.val[0], src2_split.val[0]); // ac + bd
+		dst_split.val[1] = vfmsq_f32(dst_split.val[1], src1_split.val[0], src2_split.val[1]); // bc - ad
+		vst2q_f32((float *) (dst) + i, dst_split);
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i].re = src1[i].re * src2[i].re + (src1[i].im * src2[i].im);
+        dst[i].im = -src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
+    }
+}
+
 static inline void cplxvecdiv128f(complex32_t *src1, complex32_t *src2, complex32_t *dst, int len)
 {
     int stop_len = len / (2 * SSE_LEN_FLOAT);

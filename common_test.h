@@ -66,6 +66,19 @@ int _isatty(int fd){
 #include <mkl_vml.h>
 #endif
 
+
+static inline uint32_t float_to_ordered_int(float f) {
+    uint32_t u;
+    memcpy(&u, &f, sizeof(u));  // reinterpret bits safely
+
+    // If sign bit is set, flip all bits => negatives come before positives
+    if (u & 0x80000000U)
+        return ~u + 1U;  // two's complement trick
+    else
+        return u | 0x80000000U; // shift positives up
+}
+
+#if 0
 // Does not take care of NAN and INF
 int32_t ulpsDistance32(const float a, const float b)
 {
@@ -81,7 +94,23 @@ int32_t ulpsDistance32(const float a, const float b)
     int32_t dist = abs(ia - ib);
     return dist;
 }
+#else
 
+#define INT_MAX  0x7FFFFFFF
+#define INT_MIN  0x80000000
+
+static inline int32_t  ulpsDistance32(float a, float b) {
+    // Handle NaN and Inf specially
+    if (isnanf(a) || isnanf(b)) return INT_MAX;
+    if (isinf(a) || isinf(b)) return (a == b ? 0 : INT_MAX);
+
+    uint32_t ia = float_to_ordered_int(a);
+    uint32_t ib = float_to_ordered_int(b);
+
+    return (int32_t)abs((int64_t)ia - (int64_t)ib);
+}
+	
+#endif
 // Does not take care of NAN and INF
 int64_t ulpsDistance64(const double a, const double b)
 {
@@ -107,18 +136,30 @@ float l2_err(float *test, float *ref, int len)
     float sum = 0.0f;
     int sup1ulps = 0;
     float sup1ulps_percent = 0.0f;
-
+    int sup3ulps = 0;
+    float sup3ulps_percent = 0.0f;	
+    int sup5ulps = 0;
+    float sup5ulps_percent = 0.0f;	
+	
     for (int i = 0; i < len; i++) {
         l2_rel_err += (ref[i] - test[i]) * (ref[i] - test[i]);
         sum += ref[i]*ref[i];
         int32_t dist = ulpsDistance32(ref[i], test[i]);
         if (dist > 1)
             sup1ulps++;
+	    if (dist > 3){
+			//printf("%.9g %.9g\n",ref[i],test[i]);
+            sup3ulps++;
+		}			
+	    if (dist > 5)
+            sup5ulps++;			
     }
 
     sup1ulps_percent = (float) sup1ulps / (float) len * 100.0f;
+    sup3ulps_percent = (float) sup3ulps / (float) len * 100.0f;	
+    sup5ulps_percent = (float) sup5ulps / (float) len * 100.0f;		
     l2_rel_err =  sqrtf(l2_rel_err)/sqrtf(sum);
-    printf("L2 REL ERR %0.9g SUP_1ULPS %2.4g %% \n", l2_rel_err, sup1ulps_percent);
+    printf("L2 REL ERR %0.9g SUP_1ULPS %2.4g %% SUP_3ULPS %2.4g %% SUP_5ULPS %2.4g %%\n", l2_rel_err, sup1ulps_percent, sup3ulps_percent, sup5ulps_percent);
     return l2_rel_err;
 }
 

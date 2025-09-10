@@ -2981,7 +2981,7 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2_ref, 2 * len);
 
     /*for(int i = 0; i < 2*len; i+=2){
-      printf("%f %f %f %f ||| %f %f || %f %f\n", inout[i], inout[i+1],inout2[i], inout2[i+1],\
+      printf("%g %g %g %g ||| %g %g || %g %g\n", inout[i], inout[i+1],inout2[i], inout2[i+1],\
               inout_ref[i], inout2_ref[i], inout_ref[i+1], inout2_ref[i+1]);
     }*/
 #endif
@@ -3047,10 +3047,10 @@ int main(int argc, char **argv)
     printf("CPLXVECMUL_SPLIT\n");
 
     for (int i = 0; i < len; i++) {
-        inout[i] = (float) i / 300.0f;  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
-        inout2[i] = (float) i / (-127.577f);
-        inout3[i] = (float) i / 1024.0f;  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
-        inout4[i] = (float) i / (-11112.577f);
+        inout[i] = (float) (2*i) / 300.0f;  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+		inout2[i] = (float) (2*i+1) /300.0f;
+        inout3[i] = (float) (2*i) /  (-127.577f);  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+        inout4[i] = (float) (2*i+1) /  (-127.577f);
     }
 
     clock_gettime(CLOCK_REALTIME, &start);
@@ -3096,6 +3096,11 @@ int main(int argc, char **argv)
 
     l2_err(inout_ref, inout5, len);
     l2_err(inout2_ref, inout6, len);
+			
+    /*for(int i = 0; i < len; i++){
+      printf("%g %g %g %g ||| %g %g || %g %g\n", inout[i], inout2[i],inout3[i], inout4[i],\
+              inout_ref[i], inout5[i], inout2_ref[i], inout6[i]);
+    }*/	
 #endif
 
 #ifdef AVX
