@@ -3837,15 +3837,15 @@ static inline void cplxvecmul128f(complex32_t *src1, complex32_t *src2, complex3
             v4sfx2 src1_split2 = _mm_load2_ps((float *) (src1) + i + 2 * SSE_LEN_FLOAT);
             v4sfx2 src2_split2 = _mm_load2_ps((float *) (src2) + i + 2 * SSE_LEN_FLOAT);
             v4sf ac = _mm_mul_ps(src1_split.val[0], src2_split.val[0]);     // ac
-            v4sf ad = _mm_mul_ps(src1_split.val[0], src2_split.val[1]);     // ad
+            v4sf bc = _mm_mul_ps(src1_split.val[1], src2_split.val[0]);     // bc
             v4sf ac2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[0]);  // ac
-            v4sf ad2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[1]);  // ad
+            v4sf bc2 = _mm_mul_ps(src1_split2.val[1], src2_split2.val[0]);  // bc
             v4sfx2 dst_split;
             v4sfx2 dst_split2;
             dst_split.val[0] = _mm_fnmadd_ps_custom(src1_split.val[1], src2_split.val[1], ac);
-            dst_split.val[1] = _mm_fmadd_ps_custom(src1_split.val[1], src2_split.val[0], ad);
+ 		    dst_split.val[1] = _mm_fmadd_ps_custom(src1_split.val[0], src2_split.val[1], bc);
             dst_split2.val[0] = _mm_fnmadd_ps_custom(src1_split2.val[1], src2_split2.val[1], ac2);
-            dst_split2.val[1] = _mm_fmadd_ps_custom(src1_split2.val[1], src2_split2.val[0], ad2);
+            dst_split2.val[1] = _mm_fmadd_ps_custom(src1_split2.val[0], src2_split2.val[1], bc2);
 
             _mm_store2_ps((float *) (dst) + i, dst_split);
             _mm_store2_ps((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2);
@@ -3857,22 +3857,22 @@ static inline void cplxvecmul128f(complex32_t *src1, complex32_t *src2, complex3
             v4sfx2 src1_split2 = _mm_load2u_ps((float *) (src1) + i + 2 * SSE_LEN_FLOAT);
             v4sfx2 src2_split2 = _mm_load2u_ps((float *) (src2) + i + 2 * SSE_LEN_FLOAT);
             v4sf ac = _mm_mul_ps(src1_split.val[0], src2_split.val[0]);     // ac
-            v4sf ad = _mm_mul_ps(src1_split.val[0], src2_split.val[1]);     // ad
+            v4sf bc = _mm_mul_ps(src1_split.val[1], src2_split.val[0]);     // bc
             v4sf ac2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[0]);  // ac
-            v4sf ad2 = _mm_mul_ps(src1_split2.val[0], src2_split2.val[1]);  // ad
+            v4sf bc2 = _mm_mul_ps(src1_split2.val[1], src2_split2.val[0]);  // bc
             v4sfx2 dst_split;
             v4sfx2 dst_split2;
             dst_split.val[0] = _mm_fnmadd_ps_custom(src1_split.val[1], src2_split.val[1], ac);
-            dst_split.val[1] = _mm_fmadd_ps_custom(src1_split.val[1], src2_split.val[0], ad);
+ 		    dst_split.val[1] = _mm_fmadd_ps_custom(src1_split.val[0], src2_split.val[1], bc);
             dst_split2.val[0] = _mm_fnmadd_ps_custom(src1_split2.val[1], src2_split2.val[1], ac2);
-            dst_split2.val[1] = _mm_fmadd_ps_custom(src1_split2.val[1], src2_split2.val[0], ad2);
+            dst_split2.val[1] = _mm_fmadd_ps_custom(src1_split2.val[0], src2_split2.val[1], bc2);
 
             _mm_store2u_ps((float *) (dst) + i, dst_split);
             _mm_store2u_ps((float *) (dst) + i + 2 * SSE_LEN_FLOAT, dst_split2);
         }
     }
 
-    for (int i = stop_len; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         dst[i].re = (src1[i].re * src2[i].re) - src1[i].im * src2[i].im;
         dst[i].im = src1[i].re * src2[i].im + (src2[i].re * src1[i].im);
     }
