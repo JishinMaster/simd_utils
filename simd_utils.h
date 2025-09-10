@@ -733,6 +733,7 @@ static inline v4sd _mm256_cvtepi64_pd_signed_custom(v4sid x)
 
 #include "avx_mathfun.h"
 
+#if 0
 static inline v8sfx2 _mm256_load2_ps(float const *mem_addr)
 {
     v4sfx2 src_1 = _mm_load2_ps(mem_addr);
@@ -752,6 +753,37 @@ static inline v8sfx2 _mm256_load2u_ps(float const *mem_addr)
     ret.val[1] = _mm256_set_m128(src_2.val[1], src_1.val[1]);
     return ret;
 }
+
+#else
+
+static inline v8sfx2 _mm256_load2_ps(float const *mem_addr)
+{
+    v8sf src_lo = _mm256_load_ps(mem_addr);
+    v8sf src_hi = _mm256_load_ps(mem_addr + AVX_LEN_FLOAT);
+	v8sfx2 ret;	
+    // Extract real parts
+    v8sf re01 = _mm256_shuffle_ps(src_lo, src_hi, 0x88);  // pick low floats (0,2) from each
+    ret.val[0] = _mm256_castpd_ps(_mm256_permute4x64_pd(_mm256_castps_pd(re01), 0xD8));  // reorder 64b lanes
+    // Extract imag parts
+    v8sf im01 = _mm256_shuffle_ps(src_lo, src_hi, 0xDD);  // pick high floats (1,3) from each
+    ret.val[1] = _mm256_castpd_ps(_mm256_permute4x64_pd(_mm256_castps_pd(im01), 0xD8));
+	return ret;	
+}
+
+static inline v8sfx2 _mm256_load2u_ps(float const *mem_addr)
+{
+    v8sf src_lo = _mm256_loadu_ps(mem_addr);
+    v8sf src_hi = _mm256_loadu_ps(mem_addr + AVX_LEN_FLOAT);
+	v8sfx2 ret;	
+    // Extract real parts
+    v8sf re01 = _mm256_shuffle_ps(src_lo, src_hi, 0x88);  // pick low floats (0,2) from each
+    ret.val[0] = _mm256_castpd_ps(_mm256_permute4x64_pd(_mm256_castps_pd(re01), 0xD8));  // reorder 64b lanes
+    // Extract imag parts
+    v8sf im01 = _mm256_shuffle_ps(src_lo, src_hi, 0xDD);  // pick high floats (1,3) from each
+    ret.val[1] = _mm256_castpd_ps(_mm256_permute4x64_pd(_mm256_castps_pd(im01), 0xD8));
+	return ret;	
+}
+#endif
 
 static inline void _mm256_store2_ps(float *mem_addr, v8sfx2 a)
 {
@@ -773,6 +805,7 @@ static inline void _mm256_store2u_ps(float *mem_addr, v8sfx2 a)
     _mm256_storeu_ps(mem_addr + AVX_LEN_FLOAT, perm1);
 }
 
+#if 0
 static inline v4sdx2 _mm256_load2_pd(double const *mem_addr)
 {
     v2sdx2 src_1 = _mm_load2_pd(mem_addr);
@@ -792,6 +825,31 @@ static inline v4sdx2 _mm256_load2u_pd(double const *mem_addr)
     ret.val[1] = _mm256_set_m128d(src_2.val[1], src_1.val[1]);
     return ret;
 }
+#else
+static inline v4sdx2 _mm256_load2_pd(double const *mem_addr)
+{
+	v4sd src_lo = _mm256_load_pd(mem_addr);
+	v4sd src_hi = _mm256_load_pd(mem_addr + AVX_LEN_DOUBLE);	
+    v4sdx2 ret;
+    ret.val[0] =  _mm256_unpacklo_pd(src_lo, src_hi); // re0,re2,re1,re3
+	ret.val[0] = _mm256_permute4x64_pd(ret.val[0],  _MM_SHUFFLE( 3, 1, 2, 0));
+    ret.val[1] =  _mm256_unpackhi_pd(src_lo, src_hi); // im0,im2,im1,im3
+	ret.val[1] = _mm256_permute4x64_pd(ret.val[1],  _MM_SHUFFLE( 3, 1, 2, 0));	
+    return ret;
+}
+
+static inline v4sdx2 _mm256_load2u_pd(double const *mem_addr)
+{
+	v4sd src_lo = _mm256_loadu_pd(mem_addr);
+	v4sd src_hi = _mm256_loadu_pd(mem_addr + AVX_LEN_DOUBLE);	
+    v4sdx2 ret;
+    ret.val[0] =  _mm256_unpacklo_pd(src_lo, src_hi); // re0,re2,re1,re3
+	ret.val[0] = _mm256_permute4x64_pd(ret.val[0],  _MM_SHUFFLE( 3, 1, 2, 0));
+    ret.val[1] =  _mm256_unpackhi_pd(src_lo, src_hi); // im0,im2,im1,im3
+	ret.val[1] = _mm256_permute4x64_pd(ret.val[1],  _MM_SHUFFLE( 3, 1, 2, 0));	
+    return ret;
+}	
+#endif
 
 static inline void _mm256_store2_pd(double *mem_addr, v4sdx2 a)
 {
@@ -1593,7 +1651,7 @@ static inline void threshold_gt_f_C(float *src, float *dst, int len, float value
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = src[i] < value ? src[i] : value;
+        dst[i] = fminf(src[i],value);
     }
 }
 
@@ -1604,9 +1662,9 @@ static inline void threshold_gtabs_f_C(float *src, float *dst, int len, float va
 #endif
     for (int i = 0; i < len; i++) {
         if (src[i] >= 0.0f) {
-            dst[i] = src[i] > value ? value : src[i];
+            dst[i] = fminf(src[i],value);
         } else {
-            dst[i] = src[i] < (-value) ? (-value) : src[i];
+            dst[i] = fmaxf(src[i], -value);
         }
     }
 }
@@ -1617,7 +1675,7 @@ static inline void threshold_lt_f_C(float *src, float *dst, int len, float value
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = src[i] > value ? src[i] : value;
+        dst[i] = fmaxf(src[i], value);
     }
 }
 
@@ -1628,9 +1686,9 @@ static inline void threshold_ltabs_f_C(float *src, float *dst, int len, float va
 #endif
     for (int i = 0; i < len; i++) {
         if (src[i] >= 0.0f) {
-            dst[i] = src[i] < value ? value : src[i];
+            dst[i] = fmaxf(src[i],value);
         } else {
-            dst[i] = src[i] > (-value) ? (-value) : src[i];
+            dst[i] = fminf(src[i], -value);
         }
     }
 }
