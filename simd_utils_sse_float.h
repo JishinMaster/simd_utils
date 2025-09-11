@@ -4566,14 +4566,14 @@ static inline void softmax128f(float *src, float *dst, int len)
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_load_ps(src + i);
-            v4sf dst_tmp = exp_ps_alternate(src_tmp);
+            v4sf dst_tmp = exp_ps(src_tmp);
             vec_acc1 = _mm_add_ps(vec_acc1, dst_tmp);
             _mm_store_ps(dst + i, dst_tmp);
         }
     } else {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf src_tmp = _mm_loadu_ps(src + i);
-            v4sf dst_tmp = exp_ps_alternate(src_tmp);
+            v4sf dst_tmp = exp_ps(src_tmp);
             vec_acc1 = _mm_add_ps(vec_acc1, dst_tmp);
             _mm_storeu_ps(dst + i, dst_tmp);
         }

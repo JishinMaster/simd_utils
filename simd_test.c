@@ -1900,7 +1900,7 @@ int main(int argc, char **argv)
     l2_err(inout, inout_ref, len);
 #endif
 
-#if defined(RISCV) && (ELEN >= 64)
+#if (defined(RISCV) && (ELEN >= 64)) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     convert_64f32f_vec(inoutd, inout, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1915,6 +1915,7 @@ int main(int argc, char **argv)
     printf("convert_64f32f_vec %d %lf\n", len, elapsed);
 
     l2_err(inout, inout_ref, len);
+	
 #endif
 
     printf("\n");

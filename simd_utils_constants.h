@@ -39,6 +39,7 @@
 #define VINTERP_FLOAT_INT svreinterpret_s32_f32
 #define VAND1_INT(a,b,c) svand_n_u32_z((c),(a),(b))
 #define VMUL1_FLOAT(a,b,c) svmul_n_f32_z((c),(a),(b))
+#define VDIV1_FLOAT(a,b,c) svdiv_n_f32_z((c),(a),(b))
 #define VMUL1_FLOAT_MASK(a,b,c,d) svmul_n_f32_z((a),(b),(c))
 #define VMUL_FLOAT(a,b,c) svmul_f32_z((c),(a),(b))
 #define VDIV_FLOAT(a,b,c) svdiv_f32_z((c),(a),(b))
@@ -119,8 +120,10 @@
 
 #define VGATHER_FLOAT(a,b,c) svld1_gather_s32offset_f32((c),(a),(b))
 
-#define VCVT_DOUBLE_FLOAT(a,b) svcvt_f64_f32_z((b),(a))
-#define VCVT_FLOAT_DOUBLE(a,b) svcvt_f32_f64_z((b),(a))
+//converts only to even index! svcvtlt for odd
+// needs zip1 zip2 to interleave properly
+#define VCVT_DOUBLE_FLOAT(a,b) svcvt_f32_f64_z((b),(a))
+#define VCVT_FLOAT_DOUBLE(a,b) svcvt_f64_f32_z((b),(a))
 // returns dst = dst  + a*b
 static inline V_ELT_FLOAT VMUL_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i){
 	dst = svcmla_f32_z(i,dst,a,b,0);
@@ -227,9 +230,9 @@ static inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT
 #define VRSUB1_DOUBLE(a,b,c) svsubr_n_f64_z((c),(a),(b))
 
 #define V_ELT_DOUBLE2 svfloat64x2_t
-#define VSTORE_DOUBLE2SPLIT(a,b,c,d) svst2_f64((d),(float*)(a),(V_ELT_DOUBLE2){b,c})
-#define VSTORE_DOUBLE2(a,b,c) svst2_f64((c),(float*)(a),(b))
-#define VLOAD_DOUBLE2(a,b) svld2_f64((b),(float*)(a))
+#define VSTORE_DOUBLE2SPLIT(a,b,c,d) svst2_f64((d),(double*)(a),(V_ELT_DOUBLE2){b,c})
+#define VSTORE_DOUBLE2(a,b,c) svst2_f64((c),(double*)(a),(b))
+#define VLOAD_DOUBLE2(a,b) svld2_f64((b),(double*)(a))
 
 #define VREDSUM_DOUBLE(a,b)  svaddv_f64((b),(a))
 #define VREDSUMORD_DOUBLE(a,b,c)  svadda_f64((c),(a),(b))

@@ -4050,8 +4050,6 @@ static inline void softmax256f(float *src, float *dst, int len)
             _mm256_storeu_ps(dst + i, dst_tmp);
         }
     }
-
-    _mm256_store_ps(accumulate, vec_acc1);
     
     //From GCC _mm512_reduce_add_ps
     __m128 tmp1 = _mm256_extractf128_ps (vec_acc1, 1);

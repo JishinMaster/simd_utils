@@ -2920,7 +2920,7 @@ int main(int argc, char **argv)
     }*/
 #endif
 
-#if defined(RISCV) && (ELEN >= 64)
+#if (defined(RISCV) && (ELEN >= 64)) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     convert_32f64f_vec(inout, inoutd, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2933,7 +2933,6 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_REALTIME, &stop);
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("convert_32f64f_vec %d %lf\n", len, elapsed);
-
     l2_errd(inoutd, inoutd_ref, len);
 #endif
 

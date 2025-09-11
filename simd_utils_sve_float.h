@@ -2592,3 +2592,88 @@ static inline void sigmoidf_vec(float *src, float *dst, int len)
         VSTORE_FLOAT(dst+l, x, i);
     }
 }
+
+static inline void softmaxf_vec(float *src, float *dst, int len)
+{
+	size_t n = (size_t)len;	
+	// get the vector length being used, so we know how to increment the loop (1)
+	V_ELT_FLOAT dummy;
+	uint64_t numVals = svlen_f32(dummy);
+	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
+    V_ELT_FLOAT cephes_exp_p1_vec = VLOAD1_FLOAT(c_cephes_exp_p1, i);
+    V_ELT_FLOAT cephes_exp_p2_vec = VLOAD1_FLOAT(c_cephes_exp_p2, i);
+    V_ELT_FLOAT cephes_exp_p3_vec = VLOAD1_FLOAT(c_cephes_exp_p3, i);
+    V_ELT_FLOAT cephes_exp_p4_vec = VLOAD1_FLOAT(c_cephes_exp_p4, i);
+    V_ELT_FLOAT cephes_exp_p5_vec = VLOAD1_FLOAT(c_cephes_exp_p5, i);
+    V_ELT_FLOAT Op5_vec = VLOAD1_FLOAT(0.5f, i);
+
+    V_ELT_FLOAT vacc = VLOAD1_FLOAT(0.0f, i);
+    float acc = 0.0f;
+
+	for (size_t l=0; l<n; l+=numVals) {
+		i = svwhilelt_b32_s32(l, n);		
+        V_ELT_FLOAT va = VLOAD_FLOAT(src+l, i);
+        va = exp_ps(va, Op5_vec, cephes_exp_p1_vec,
+                    cephes_exp_p2_vec, cephes_exp_p3_vec,
+                    cephes_exp_p4_vec, cephes_exp_p5_vec, i);
+        vacc = VADD_FLOAT(vacc, va, i);
+        VSTORE_FLOAT(dst+l, va, i);
+    }
+    acc = VREDSUM_FLOAT(vacc, i);
+
+	for (size_t l=0; l<n; l+=numVals) {
+		i = svwhilelt_b32_s32(l, n);			
+        V_ELT_FLOAT dst_vec = VLOAD_FLOAT(dst+l, i);
+        dst_vec = VDIV1_FLOAT(dst_vec, acc, i);
+        VSTORE_FLOAT(dst+l, dst_vec, i);
+    }
+}
+
+static inline void convert_32f64f_vec(float *src, double *dst, int len)
+{
+	size_t n = (size_t)len;	
+	// get the vector length being used, so we know how to increment the loop (1)
+	V_ELT_FLOAT dummy;
+	uint64_t numVals = svlen_f32(dummy);
+	V_ELT_BOOL32 i;
+	
+	for (size_t l=0; l<n; l+=numVals) {
+		i = svwhilelt_b32_s32(l, n);
+		unsigned long active_f = svcntp_b32(svptrue_b32(), i);
+        unsigned long even_cnt = (active_f + 1u) / 2u;
+        unsigned long odd_cnt  = active_f / 2u;
+        svbool_t pg64_even = svwhilelt_b64((size_t)0, even_cnt);
+        svbool_t pg64_odd  = svwhilelt_b64((size_t)0, odd_cnt);
+		V_ELT_FLOAT src_vec = VLOAD_FLOAT(src+l, i);
+        svfloat64_t even = svcvt_f64_f32_x(pg64_even, src_vec);
+        svfloat64_t odd = svcvtlt_f64_f32_x(pg64_odd, src_vec);
+        svfloat64_t lo = svzip1_f64(even, odd);
+        svfloat64_t hi = svzip2_f64(even, odd);		
+        svst1(pg64_even, &dst[l], lo);
+		svst1(pg64_odd, &dst[l + svcntd()], hi);
+    }
+}
+
+static inline void convert_64f32f_vec(double *src, float *dst, int len)
+{
+	size_t n = (size_t)len;	
+	// get the vector length being used, so we know how to increment the loop (1)
+	V_ELT_DOUBLE dummy;
+	V_ELT_FLOAT dummyf;
+	uint64_t numVals = svlen_f64(dummy);
+	V_ELT_BOOL64 ilo,ihi;
+	V_ELT_BOOL32 i32;
+	svuint32_t idx = svindex_u32(0,1); // indices 0,1,2,3 for contiguous packing
+	
+	for (size_t l=0; l<n; l+=(2*numVals)) {
+		ilo = svwhilelt_b64_s64(l, n);	
+		ihi = svwhilelt_b64_s64(l+numVals, n);			
+		i32 = svwhilelt_b32_s32(l, n);
+		V_ELT_DOUBLE src_tmp_lo = VLOAD_DOUBLE(src+l, ilo);
+		V_ELT_DOUBLE src_tmp_hi = VLOAD_DOUBLE(src+l+numVals, ihi);			
+		V_ELT_FLOAT dstlo = svcvt_f32_f64_x(ilo,src_tmp_lo);		
+		V_ELT_FLOAT dsthi = svcvt_f32_f64_x(ihi,src_tmp_hi);
+		V_ELT_FLOAT dst_tmp = svuzp1_f32(dstlo,dsthi);
+        VSTORE_FLOAT(dst+l, dst_tmp, i32);
+    }
+}

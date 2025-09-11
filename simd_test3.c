@@ -3712,6 +3712,7 @@ for (int i = 0; i < len; i++){
             inout[i] = -inout[i];
     }
 
+	memset(inout2,0,len*sizeof(float));
     clock_gettime(CLOCK_REALTIME, &start);
     softmaxf_C(inout, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3789,7 +3790,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     softmaxf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
