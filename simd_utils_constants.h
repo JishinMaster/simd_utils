@@ -33,6 +33,7 @@
 #define VLOAD_UINT(a,b) svld1_u32((b),(a))
 #define VLOAD1_FLOAT(a,b) svdup_n_f32((a))
 #define VSTORE_FLOAT(a,b,c) svst1_f32((c),(a),(b))
+#define VSTORE_INT(a,b,c) svst1_s32((c),(a),(b))
 #define V_ELT_INT svint32_t
 #define V_ELT_UINT svuint32_t
 #define VINTERP_INT_FLOAT svreinterpret_f32_s32
@@ -40,14 +41,14 @@
 #define VAND1_INT(a,b,c) svand_n_u32_z((c),(a),(b))
 #define VMUL1_FLOAT(a,b,c) svmul_n_f32_z((c),(a),(b))
 #define VDIV1_FLOAT(a,b,c) svdiv_n_f32_z((c),(a),(b))
-#define VMUL1_FLOAT_MASK(a,b,c,d) svmul_n_f32_z((a),(b),(c))
+#define VMUL1_FLOAT_MASK(a,b,c,d) svmul_n_f32_m((a),(b),(c))
 #define VMUL_FLOAT(a,b,c) svmul_f32_z((c),(a),(b))
 #define VDIV_FLOAT(a,b,c) svdiv_f32_z((c),(a),(b))
 #define VADD1_FLOAT(a,b,c) svadd_n_f32_z((c),(a),(b))
-#define VADD1_FLOAT_MASK(a,b,c,d) svadd_n_f32_z((a),(b),(c))
+#define VADD1_FLOAT_MASK(a,b,c,d) svadd_n_f32_m((a),(b),(c))
 #define VADD1_INT(a,b,c) svadd_n_s32_z((c),(a),(b))
-#define VADD1_INT_MASK(a,b,c,d) svadd_n_s32_z((a),(b),(c))
-#define VSUB1_INT_MASK(a,b,c,d) svsub_n_s32_z((a),(b),(c))
+#define VADD1_INT_MASK(a,b,c,d) svadd_n_s32_m((a),(b),(c))
+#define VSUB1_INT_MASK(a,b,c,d) svsub_n_s32_m((a),(b),(c))
 #define VADD_FLOAT(a,b,c) svadd_f32_z((c),(a),(b))
 #define VSUB_FLOAT(a,b,c) svsub_f32_z((c),(a),(b))
 #define VSUB1_FLOAT(a,b,c) svsub_n_f32_z((c),(a),(b))
@@ -73,6 +74,7 @@
 #define VLE1_FLOAT_BOOL(a,b,c) svcmple_n_f32((c),(a),(b))
 #define VEQ1_FLOAT_BOOL(a,b,c) svcmpeq_n_f32((c),(a),(b))
 //#define VFMACC1_FLOAT(a,b,c,d) svmad_n_f32_m((d),(b),(c),(a)) // op3 + op1[i]*op2[i]
+#define VFMASQ1_FLOAT(a,b,c,d) svmad_n_f32_x((d),(a),(b),(c)) 
 #define VFMACC1_FLOAT(a,b,c,d) svmla_n_f32_z((d),(a),(c),(b)) // op1[i] + op2[i] * op3
 #define VFMACC_FLOAT(a,b,c,d) svmla_f32_z((d),(a),(c),(b)) // op1[i] + op2[i] * op3[i]
 #define VFMADD1_FLOAT(a,b,c,d) svmla_n_f32_z((d),(c),(a),(b)) //  op1[i] + op2[i] * op3
@@ -150,10 +152,12 @@ static inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT
 #define VLOAD_SHORT(a,b) svld1_s16((b),(a))
 #define VCVT_FLOAT16_SHORT(a,b) svcvt_s16_f16_z((b),(a))
 #define VCVT_FLOAT16_USHORT(a,b) svcvt_u16_f16_z((b),(a))
+#define VCVT_FLOAT16_UBYTE(a,b) svcvt_u8_f16_z((b),(a))
 #define VCVT_FLOAT16_FLOAT(a,b) svcvt_f32_f16_z((b),(a))
 #define VMUL1_FLOAT16(a,b,c) svmul_n_f16_z((c),(a),(b))
 #define VSTORE_SHORT(a,b,c) svst1_s16((c),(a),(b))
 #define VSTORE_USHORT(a,b,c) svst1_u16((c),(a),(b))
+#define VSTORE_UBYTE(a,b,c) svst1_u8((c),(a),(b))
 
 ///////////64bits
 #define V_ELT_DOUBLE svfloat64_t
@@ -161,21 +165,23 @@ static inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT
 #define VLOAD_INT64(a,b) svld1_s64((b),(a))
 #define VLOAD_UINT64(a,b) svld1_u64((b),(a))
 #define VLOAD1_DOUBLE(a,b) svdup_n_f64((a))
+#define VLOAD1_INT64(a,b) svdup_n_s64((a))
 #define VSTORE_DOUBLE(a,b,c) svst1_f64((c),(a),(b))
+#define VSTORE_INT64(a,b,c) svst1_s64((c),(a),(b))
 #define V_ELT_INT64 svint64_t
 #define V_ELT_UINT64 svuint64_t
-#define VINT64ERP_INT64_DOUBLE svreinterpret_f64_s64
-#define VINT64ERP_DOUBLE_INT64 svreinterpret_s64_f64
+#define VINTERP_INT64_DOUBLE svreinterpret_f64_s64
+#define VINTERP_DOUBLE_INT64 svreinterpret_s64_f64
 #define VAND1_INT64(a,b,c) svand_n_u64_z((c),(a),(b))
 #define VMUL1_DOUBLE(a,b,c) svmul_n_f64_z((c),(a),(b))
-#define VMUL1_DOUBLE_MASK(a,b,c,d) svmul_n_f64_z((a),(b),(c))
+#define VMUL1_DOUBLE_MASK(a,b,c,d) svmul_n_f64_m((a),(b),(c))
 #define VMUL_DOUBLE(a,b,c) svmul_f64_z((c),(a),(b))
 #define VDIV_DOUBLE(a,b,c) svdiv_f64_z((c),(a),(b))
 #define VADD1_DOUBLE(a,b,c) svadd_n_f64_z((c),(a),(b))
-#define VADD1_DOUBLE_MASK(a,b,c,d) svadd_n_f64_z((a),(b),(c))
+#define VADD1_DOUBLE_MASK(a,b,c,d) svadd_n_f64_m((a),(b),(c))
 #define VADD1_INT64(a,b,c) svadd_n_s64_z((c),(a),(b))
-#define VADD1_INT64_MASK(a,b,c,d) svadd_n_s64_z((a),(b),(c))
-#define VSUB1_INT64_MASK(a,b,c,d) svsub_n_s64_z((a),(b),(c))
+#define VADD1_INT64_MASK(a,b,c,d) svadd_n_s64_m((a),(b),(c))
+#define VSUB1_INT64_MASK(a,b,c,d) svsub_n_s64_m((a),(b),(c))
 #define VADD_DOUBLE(a,b,c) svadd_f64_z((c),(a),(b))
 #define VSUB_DOUBLE(a,b,c) svsub_f64_z((c),(a),(b))
 #define VSUB1_DOUBLE(a,b,c) svsub_n_f64_z((c),(a),(b))
@@ -184,6 +190,14 @@ static inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT
 #define VCVT_INT64_DOUBLE(a,b) svcvt_f64_s64_z((b),(a))
 #define VCVT_DOUBLE_INT64(a,b) svcvt_s64_f64_z((b),(a))
 #define VCVT_RTZ_DOUBLE_INT64 VCVT_DOUBLE_INT64
+#define VGT1_INT64_BOOL(a,b,c) svcmpgt_n_s64((c),(a),(b))
+#define VNE1_INT64_BOOL(a,b,c) svcmpne_n_s64((c),(a),(b))
+#define VSLL1_INT64(a,b,c) svlsl_n_s64_z((c),(a),(b))
+
+#warning "SSE andnot => ( not a) and b, vbic => a & (not b)
+#define VANDNOT1_INT64(a,b,c) svbic_n_s64_z((c),(a),(b))
+#define VANDNOT_INT64(a,b,c) svbic_s64_z((c),(b),(a)) //equivalent to andnot
+
 // x current exact, a nearest away from zero, i current mode inexact, m mininf,
 // n nearest even, p plusinf
 #define VR_DOUBLE(a,b) svrintx_f64_z((b),(a))
@@ -200,7 +214,9 @@ static inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT
 #define VLT1_DOUBLE_BOOL(a,b,c) svcmplt_n_f64((c),(a),(b))
 #define VLE1_DOUBLE_BOOL(a,b,c) svcmple_n_f64((c),(a),(b))
 #define VEQ1_DOUBLE_BOOL(a,b,c) svcmpeq_n_f64((c),(a),(b))
-//#define VFMACC1_DOUBLE(a,b,c,d) svmad_n_f64_m((d),(b),(c),(a)) // op3 + op1[i]*op2[i]
+
+//(svbool_t pg, svfloat64_t op1, svfloat64_t op2, float64_t op3) //op3 + op1[i]*op2[i]
+#define VFMASQ1_DOUBLE(a,b,c,d) svmad_n_f64_x((d),(a),(b),(c)) 
 #define VFMACC1_DOUBLE(a,b,c,d) svmla_n_f64_z((d),(a),(c),(b)) // op1[i] + op2[i] * op3
 #define VFMACC_DOUBLE(a,b,c,d) svmla_f64_z((d),(a),(c),(b)) // op1[i] + op2[i] * op3[i]
 #define VFMADD1_DOUBLE(a,b,c,d) svmla_n_f64_z((d),(c),(a),(b)) //  op1[i] + op2[i] * op3
@@ -211,10 +227,11 @@ static inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT
 #define VFMADD_DOUBLE(a,b,c,d) svmad_f64_z((d),(a),(b),(c)) // op1[i] * op2[i] + op3[i]
 #define VMERGE_DOUBLE(mask, t, f, i) svsel_f64((mask), (f), (t))     /* select */
 #define VMERGE1_DOUBLE(mask, v, f, i) svsel_f64((mask), svdup_n_f64((float)(f)),(v))
-#define VXOR_INT64(a,b,c)  sveor_s64_m((c),(a),(b))
 #define VOR_INT64(a,b,c)  svorr_s64_m((c),(a),(b))
 #define VOR1_INT64(a,b,c)  svorr_n_s64_z((c),(a),(b))
 #define VNOT_INT64(a,b)  svnot_s64_z((b),(a))
+#define VXOR_INT64(a,b,c)  sveor_s64_z((c),(a),(b))
+//#define VXOR_DOUBLE(a,b,c)  sveor_f64((c),(a),(b))
 #define VXOR1_INT64(a,b,c)  sveor_n_s64_z((c),(a),(b))
 #define VCLEAR_BOOL(a) svpfalse_b()
 
@@ -2886,6 +2903,76 @@ static inline void print_vec_uint(V_ELT_UINT vec, int l)
 
 #endif
 
+#if defined(SVE2)
+
+static inline void print_vec(V_ELT_FLOAT vec, V_ELT_BOOL64 l)
+{
+    float observ[32];
+    VSTORE_FLOAT(observ, vec, l);
+	V_ELT_FLOAT dummy;
+	uint64_t numVals = svlen_f32(dummy);
+    for (int i = 0; i < numVals; i++)
+        printf("%3.4g ", observ[i]);
+    printf("\n");
+}
+
+static inline void print_vec64(V_ELT_DOUBLE vec, V_ELT_BOOL64 l)
+{
+    double observ[16];
+    VSTORE_DOUBLE(observ, vec, l);
+	V_ELT_DOUBLE dummy;
+	uint64_t numVals = svlen_f64(dummy);	
+    for (int i = 0; i < numVals; i++)
+        printf("%13.8g ", observ[i]);
+    printf("\n");
+}
+
+static inline void print_vec64x(V_ELT_DOUBLE vec, V_ELT_BOOL64 l)
+{
+    double observ[16];
+    VSTORE_DOUBLE(observ, vec, l);
+	V_ELT_DOUBLE dummy;
+	uint64_t numVals = svlen_f64(dummy);	
+    for (int i = 0; i < numVals; i++)
+        printf("%16lx ", observ[i]);
+    printf("\n");
+}
+
+static inline void print_vec_int(V_ELT_INT vec, V_ELT_BOOL64 l)
+{
+    int observ[32];
+    VSTORE_INT(observ, vec, l);
+	V_ELT_INT dummy;
+	uint64_t numVals = svlen_s32(dummy);		
+    for (int i = 0; i < numVals; i++)
+        printf("%x ", observ[i]);
+    printf("\n");
+}
+
+static inline void print_vec_int64(V_ELT_INT64 vec, V_ELT_BOOL64 l)
+{
+    long int observ[16];
+    VSTORE_INT64(observ, vec, l);
+	V_ELT_INT64 dummy;
+	uint64_t numVals = svlen_s64(dummy);		
+    for (int i = 0; i < numVals; i++)
+        printf("%ld ", observ[i]);
+    printf("\n");
+}
+
+static inline void print_vec_int64x(V_ELT_INT64 vec, V_ELT_BOOL64 l)
+{
+    long int observ[16];
+    VSTORE_INT64(observ, vec, l);
+	V_ELT_INT64 dummy;
+	uint64_t numVals = svlen_s64(dummy);		
+    for (int i = 0; i < numVals; i++)
+        printf("%16lx ", observ[i]);
+    printf("\n");
+}
+
+#endif
+
 #if defined(SSE) || defined(ALTIVEC)
 
 static inline void print4_4digits(v4sf v)
@@ -2989,7 +3076,16 @@ static inline void print2(__m128d v)
 #ifndef USE_SSE2
     _mm_empty();
 #endif
-    printf("[%13.8g, %13.8g]", p[0], p[1]);
+    printf("[%13.8g, %13.8g]\n", p[0], p[1]);
+}
+
+static inline void print2x(__m128d v)
+{
+    double *p = (double *) &v;
+#ifndef USE_SSE2
+    _mm_empty();
+#endif
+    printf("[%16lx, %16lx]\n", p[0], p[1]);
 }
 
 static inline void print2i(__m128i v)
@@ -2998,7 +3094,7 @@ static inline void print2i(__m128i v)
 #ifndef USE_SSE2
     _mm_empty();
 #endif
-    printf("[%ld, %ld]", p[0], p[1]);
+    printf("[%ld, %ld]\n", p[0], p[1]);
 }
 
 static inline void print2xi(__m128i v)
@@ -3007,7 +3103,7 @@ static inline void print2xi(__m128i v)
 #ifndef USE_SSE2
     _mm_empty();
 #endif
-    printf("[%16lx, %16lx]", p[0], p[1]);
+    printf("[%16lx, %16lx]\n", p[0], p[1]);
 }
 
 #endif

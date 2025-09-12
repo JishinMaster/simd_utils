@@ -222,7 +222,7 @@ static inline void mulcf_vec(float *src, float value, float *dst, int len)
     }
 }
 
-
+#warning "to be improved with fma"
 static inline void sinf_vec(float *src, float *dst, int len)
 {
 	size_t n = (size_t)len;
@@ -319,9 +319,7 @@ static inline void cosf_vec(float *src, float *dst, int len)
 {
 
     V_ELT_FLOAT c_coscof_p1_vec = VLOAD1_FLOAT(c_coscof_p1, i);
-    V_ELT_FLOAT c_coscof_p2_vec = VLOAD1_FLOAT(c_coscof_p2, i);
     V_ELT_FLOAT c_sincof_p1_vec = VLOAD1_FLOAT(c_sincof_p1, i);
-    V_ELT_FLOAT c_sincof_p2_vec = VLOAD1_FLOAT(c_sincof_p2, i);
 
 	size_t n = (size_t)len;
 	
@@ -373,7 +371,7 @@ static inline void cosf_vec(float *src, float *dst, int len)
 
         y = z;
         y = VFMADD1_FLOAT(y, c_coscof_p0, c_coscof_p1_vec, i);
-        y = VFMADD_FLOAT(y, z, c_coscof_p2_vec, i);
+        y = VFMASQ1_FLOAT(y, z, c_coscof_p2, i);
         y = VMUL_FLOAT(y, z, i);
         y = VMUL_FLOAT(y, z, i);
         y = VFMACC1_FLOAT(y, -0.5f, z, i);  // y = y -0.5*z
@@ -382,7 +380,7 @@ static inline void cosf_vec(float *src, float *dst, int len)
         /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
         V_ELT_FLOAT y2 = z;
         y2 = VFMADD1_FLOAT(y2, c_sincof_p0, c_sincof_p1_vec, i);
-        y2 = VFMADD_FLOAT(y2, z, c_sincof_p2_vec, i);
+        y2 = VFMASQ1_FLOAT(y2, z, c_sincof_p2, i);
         y2 = VMUL_FLOAT(y2, z, i);
         y2 = VFMADD_FLOAT(y2, x, x, i);
 
@@ -401,9 +399,7 @@ void sincosf_ps(V_ELT_FLOAT x,
                               V_ELT_FLOAT *sin_tmp,
                               V_ELT_FLOAT *cos_tmp,
                               V_ELT_FLOAT coscof_1_vec,
-                              V_ELT_FLOAT coscof_2_vec,
                               V_ELT_FLOAT sincof_1_vec,
-                              V_ELT_FLOAT sincof_2_vec,
                               V_ELT_BOOL32 i)
 {
     V_ELT_FLOAT y, sign_bit_sin;
@@ -451,7 +447,7 @@ void sincosf_ps(V_ELT_FLOAT x,
     V_ELT_FLOAT z = VMUL_FLOAT(x, x, i);
     y = z;
     y = VFMADD1_FLOAT(y, coscof[0], coscof_1_vec, i);
-    y = VFMADD_FLOAT(y, z, coscof_2_vec, i);
+    y = VFMASQ1_FLOAT(y, z, coscof[2], i);
     y = VMUL_FLOAT(y, z, i);
     y = VMUL_FLOAT(y, z, i);
     y = VFMACC1_FLOAT(y, -0.5f, z, i);  // y = y -0.5*z
@@ -461,7 +457,7 @@ void sincosf_ps(V_ELT_FLOAT x,
     V_ELT_FLOAT y2;
     y2 = z;
     y2 = VFMADD1_FLOAT(y2, sincof[0], sincof_1_vec, i);
-    y2 = VFMADD_FLOAT(y2, z, sincof_2_vec, i);
+    y2 = VFMASQ1_FLOAT(y2, z, sincof[2], i);
     y2 = VMUL_FLOAT(y2, z, i);
     y2 = VFMADD_FLOAT(y2, x, x, i);
 	
@@ -477,9 +473,7 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
 {
     size_t i;
     V_ELT_FLOAT coscof_1_vec = VLOAD1_FLOAT(coscof[1], i);
-    V_ELT_FLOAT coscof_2_vec = VLOAD1_FLOAT(coscof[2], i);
     V_ELT_FLOAT sincof_1_vec = VLOAD1_FLOAT(sincof[1], i);
-    V_ELT_FLOAT sincof_2_vec = VLOAD1_FLOAT(sincof[2], i);
 
 	size_t n = (size_t)len;
 	// get the vector length being used, so we know how to increment the loop (1)
@@ -492,8 +486,7 @@ static inline void sincosf_vec(float *src, float *s, float *c, int len)
         V_ELT_FLOAT x = VLOAD_FLOAT(src+l, i);
         V_ELT_FLOAT y_sin, y_cos;
         sincosf_ps(x, &y_sin, &y_cos,
-                   coscof_1_vec, coscof_2_vec,
-                   sincof_1_vec, sincof_2_vec, i);
+                   coscof_1_vec, sincof_1_vec, i);
         VSTORE_FLOAT(s+l, y_sin, i);
         VSTORE_FLOAT(c+l, y_cos, i);
     }
@@ -503,9 +496,7 @@ static inline void sincosf_interleaved_vec(float *src, complex32_t *dst, int len
 {
     size_t i;
     V_ELT_FLOAT coscof_1_vec = VLOAD1_FLOAT(coscof[1], i);
-    V_ELT_FLOAT coscof_2_vec = VLOAD1_FLOAT(coscof[2], i);
     V_ELT_FLOAT sincof_1_vec = VLOAD1_FLOAT(sincof[1], i);
-    V_ELT_FLOAT sincof_2_vec = VLOAD1_FLOAT(sincof[2], i);
 
 	size_t n = (size_t)len;
 	// get the vector length being used, so we know how to increment the loop (1)
@@ -517,8 +508,7 @@ static inline void sincosf_interleaved_vec(float *src, complex32_t *dst, int len
         V_ELT_FLOAT x = VLOAD_FLOAT(src+l, i);
         V_ELT_FLOAT y_sin, y_cos;
         sincosf_ps(x, &y_sin, &y_cos,
-                   coscof_1_vec, coscof_2_vec,
-                   sincof_1_vec, sincof_2_vec, i);
+                   coscof_1_vec, sincof_1_vec, i);
 		VSTORE_FLOAT2SPLIT(dst+l,y_cos,y_sin,i);
     }
 }
@@ -527,11 +517,7 @@ static inline void tanf_vec(float *src, float *dst, int len)
 {
     size_t i;
     V_ELT_FLOAT TAN_P1_vec = VLOAD1_FLOAT(TAN_P1, i);
-    V_ELT_FLOAT TAN_P2_vec = VLOAD1_FLOAT(TAN_P2, i);
-    V_ELT_FLOAT TAN_P3_vec = VLOAD1_FLOAT(TAN_P3, i);
-    V_ELT_FLOAT TAN_P4_vec = VLOAD1_FLOAT(TAN_P4, i);
-    V_ELT_FLOAT TAN_P5_vec = VLOAD1_FLOAT(TAN_P5, i);
-
+	
 	size_t n = (size_t)len;
 	// get the vector length being used, so we know how to increment the loop (1)
 	V_ELT_FLOAT dummy;
@@ -547,7 +533,7 @@ static inline void tanf_vec(float *src, float *dst, int len)
         V_ELT_FLOAT tmp;
         V_ELT_INT tmpi;
         V_ELT_BOOL32 jandone, jandtwo, xsupem4;
-
+		
         x = VINTERP_INT_FLOAT(VAND1_INT(VINTERP_FLOAT_INT(xx), inv_sign_mask, i));
         sign = VAND1_INT(VINTERP_FLOAT_INT(xx), sign_mask, i);
 
@@ -555,24 +541,22 @@ static inline void tanf_vec(float *src, float *dst, int len)
         tmp = VMUL1_FLOAT(x, FOPI, i);
         j = VCVT_RTZ_FLOAT_INT(tmp, i);	
         y = VRTZ_FLOAT(tmp, i);
-
         jandone = VGT1_INT_BOOL(VAND1_INT(j, 1, i), 0, i);
         y = VADD1_FLOAT_MASK(jandone, y, 1.0f, i);
         j = VADD1_INT_MASK(jandone, j, 1, i);
         z = x;
-        z = VFMACC1_FLOAT(z, minus_cephes_DP1, y, i);
+        z = VFMACC1_FLOAT(z, minus_cephes_DP1, y, i);	
         z = VFMACC1_FLOAT(z, minus_cephes_DP2, y, i);
         z = VFMACC1_FLOAT(z, minus_cephes_DP3, y, i);
         zz = VMUL_FLOAT(z, z, i);  // z*z
-
         // TODO : sould not be computed if X < 10e-4
         // 1.7e-8 relative error in [-pi/4, +pi/4]
         tmp = zz;
         tmp = VFMADD1_FLOAT(tmp, TAN_P0, TAN_P1_vec, i);
-        tmp = VFMADD_FLOAT(tmp, zz, TAN_P2_vec, i);
-        tmp = VFMADD_FLOAT(tmp, zz, TAN_P3_vec, i);
-        tmp = VFMADD_FLOAT(tmp, zz, TAN_P4_vec, i);
-        tmp = VFMADD_FLOAT(tmp, zz, TAN_P5_vec, i);
+        tmp = VFMASQ1_FLOAT(tmp, zz, TAN_P2, i);
+        tmp = VFMASQ1_FLOAT(tmp, zz, TAN_P3, i);
+        tmp = VFMASQ1_FLOAT(tmp, zz, TAN_P4, i);
+        tmp = VFMASQ1_FLOAT(tmp, zz, TAN_P5, i);
         tmp = VMUL_FLOAT(zz, tmp, i);
 
         tmp = VFMADD_FLOAT(tmp, z, z, i);
@@ -1157,13 +1141,6 @@ static inline void log10f_vec(float *src, float *dst, int len)
 
     V_ELT_FLOAT zero_vec = VLOAD1_FLOAT(0.0f, i);
     V_ELT_FLOAT c_cephes_log_p1_vec = VLOAD1_FLOAT(c_cephes_log_p1, i);
-    V_ELT_FLOAT c_cephes_log_p2_vec = VLOAD1_FLOAT(c_cephes_log_p2, i);
-    V_ELT_FLOAT c_cephes_log_p3_vec = VLOAD1_FLOAT(c_cephes_log_p3, i);
-    V_ELT_FLOAT c_cephes_log_p4_vec = VLOAD1_FLOAT(c_cephes_log_p4, i);
-    V_ELT_FLOAT c_cephes_log_p5_vec = VLOAD1_FLOAT(c_cephes_log_p5, i);
-    V_ELT_FLOAT c_cephes_log_p6_vec = VLOAD1_FLOAT(c_cephes_log_p6, i);
-    V_ELT_FLOAT c_cephes_log_p7_vec = VLOAD1_FLOAT(c_cephes_log_p7, i);
-    V_ELT_FLOAT c_cephes_log_p8_vec = VLOAD1_FLOAT(c_cephes_log_p8, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
 		i = svwhilelt_b32_s32(l, n);	
@@ -1195,13 +1172,13 @@ static inline void log10f_vec(float *src, float *dst, int len)
         V_ELT_FLOAT z = VMUL_FLOAT(x, x, i);
         V_ELT_FLOAT y = x;
         y = VFMADD1_FLOAT(y, c_cephes_log_p0, c_cephes_log_p1_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p2_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p3_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p4_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p5_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p6_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p7_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p8_vec, i);
+        y = VFMASQ1_FLOAT(y, x, c_cephes_log_p2, i);
+        y = VFMASQ1_FLOAT(y, x, c_cephes_log_p3, i);
+        y = VFMASQ1_FLOAT(y, x, c_cephes_log_p4, i);
+        y = VFMASQ1_FLOAT(y, x, c_cephes_log_p5, i);
+        y = VFMASQ1_FLOAT(y, x, c_cephes_log_p6, i);
+        y = VFMASQ1_FLOAT(y, x, c_cephes_log_p7, i);
+        y = VFMASQ1_FLOAT(y, x, c_cephes_log_p8, i);
         y = VMUL_FLOAT(y, x, i);
         y = VMUL_FLOAT(y, z, i);
         y = VFMACC1_FLOAT(y, -0.5f, z, i);  // y = y -0.5*z
@@ -1226,13 +1203,6 @@ static inline void log10f_vec(float *src, float *dst, int len)
 static inline V_ELT_FLOAT log_ps(V_ELT_FLOAT x,
                                   V_ELT_FLOAT zero_vec,
                                   V_ELT_FLOAT c_cephes_log_p1_vec,
-                                  V_ELT_FLOAT c_cephes_log_p2_vec,
-                                  V_ELT_FLOAT c_cephes_log_p3_vec,
-                                  V_ELT_FLOAT c_cephes_log_p4_vec,
-                                  V_ELT_FLOAT c_cephes_log_p5_vec,
-                                  V_ELT_FLOAT c_cephes_log_p6_vec,
-                                  V_ELT_FLOAT c_cephes_log_p7_vec,
-                                  V_ELT_FLOAT c_cephes_log_p8_vec,
                                   V_ELT_BOOL32 i)
 {
     V_ELT_INT imm0;
@@ -1261,13 +1231,13 @@ static inline V_ELT_FLOAT log_ps(V_ELT_FLOAT x,
     V_ELT_FLOAT z = VMUL_FLOAT(x, x, i);
     V_ELT_FLOAT y = x;
     y = VFMADD1_FLOAT(y, c_cephes_log_p0, c_cephes_log_p1_vec, i);
-    y = VFMADD_FLOAT(y, x, c_cephes_log_p2_vec, i);
-    y = VFMADD_FLOAT(y, x, c_cephes_log_p3_vec, i);
-    y = VFMADD_FLOAT(y, x, c_cephes_log_p4_vec, i);
-    y = VFMADD_FLOAT(y, x, c_cephes_log_p5_vec, i);
-    y = VFMADD_FLOAT(y, x, c_cephes_log_p6_vec, i);
-    y = VFMADD_FLOAT(y, x, c_cephes_log_p7_vec, i);
-    y = VFMADD_FLOAT(y, x, c_cephes_log_p8_vec, i);
+    y = VFMASQ1_FLOAT(y, x, c_cephes_log_p2, i);
+    y = VFMASQ1_FLOAT(y, x, c_cephes_log_p3, i);
+    y = VFMASQ1_FLOAT(y, x, c_cephes_log_p4, i);
+    y = VFMASQ1_FLOAT(y, x, c_cephes_log_p5, i);
+    y = VFMASQ1_FLOAT(y, x, c_cephes_log_p6, i);
+    y = VFMASQ1_FLOAT(y, x, c_cephes_log_p7, i);
+    y = VFMASQ1_FLOAT(y, x, c_cephes_log_p8, i);
     y = VMUL_FLOAT(y, x, i);
     y = VMUL_FLOAT(y, z, i);
 
@@ -1290,22 +1260,12 @@ static inline void lnf_vec(float *src, float *dst, int len)
 
     V_ELT_FLOAT zero_vec = VLOAD1_FLOAT(0.0f, i);
     V_ELT_FLOAT c_cephes_log_p1_vec = VLOAD1_FLOAT(c_cephes_log_p1, i);
-    V_ELT_FLOAT c_cephes_log_p2_vec = VLOAD1_FLOAT(c_cephes_log_p2, i);
-    V_ELT_FLOAT c_cephes_log_p3_vec = VLOAD1_FLOAT(c_cephes_log_p3, i);
-    V_ELT_FLOAT c_cephes_log_p4_vec = VLOAD1_FLOAT(c_cephes_log_p4, i);
-    V_ELT_FLOAT c_cephes_log_p5_vec = VLOAD1_FLOAT(c_cephes_log_p5, i);
-    V_ELT_FLOAT c_cephes_log_p6_vec = VLOAD1_FLOAT(c_cephes_log_p6, i);
-    V_ELT_FLOAT c_cephes_log_p7_vec = VLOAD1_FLOAT(c_cephes_log_p7, i);
-    V_ELT_FLOAT c_cephes_log_p8_vec = VLOAD1_FLOAT(c_cephes_log_p8, i);
+
 
 	for (size_t l=0; l<n; l+=numVals) {
 		i = svwhilelt_b32_s32(l, n);	
         V_ELT_FLOAT x = VLOAD_FLOAT(src+l, i);
-        x = log_ps(x, zero_vec, c_cephes_log_p1_vec,
-                   c_cephes_log_p2_vec, c_cephes_log_p3_vec,
-                   c_cephes_log_p4_vec, c_cephes_log_p5_vec,
-                   c_cephes_log_p6_vec, c_cephes_log_p7_vec,
-                   c_cephes_log_p8_vec, i);
+        x = log_ps(x, zero_vec, c_cephes_log_p1_vec, i);
         VSTORE_FLOAT(dst+l, x, i);
     }
 }
@@ -1319,13 +1279,6 @@ static inline void log2f_vec(float *src, float *dst, int len)
 
     V_ELT_FLOAT zero_vec = VLOAD1_FLOAT(0.0f, i);
     V_ELT_FLOAT c_cephes_log_p1_vec = VLOAD1_FLOAT(c_cephes_log_p1, i);
-    V_ELT_FLOAT c_cephes_log_p2_vec = VLOAD1_FLOAT(c_cephes_log_p2, i);
-    V_ELT_FLOAT c_cephes_log_p3_vec = VLOAD1_FLOAT(c_cephes_log_p3, i);
-    V_ELT_FLOAT c_cephes_log_p4_vec = VLOAD1_FLOAT(c_cephes_log_p4, i);
-    V_ELT_FLOAT c_cephes_log_p5_vec = VLOAD1_FLOAT(c_cephes_log_p5, i);
-    V_ELT_FLOAT c_cephes_log_p6_vec = VLOAD1_FLOAT(c_cephes_log_p6, i);
-    V_ELT_FLOAT c_cephes_log_p7_vec = VLOAD1_FLOAT(c_cephes_log_p7, i);
-    V_ELT_FLOAT c_cephes_log_p8_vec = VLOAD1_FLOAT(c_cephes_log_p8, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
 		i = svwhilelt_b32_s32(l, n);	
@@ -1356,14 +1309,14 @@ static inline void log2f_vec(float *src, float *dst, int len)
 
         V_ELT_FLOAT z = VMUL_FLOAT(x, x, i);
         V_ELT_FLOAT y = x;
-        y = VFMADD1_FLOAT(y, c_cephes_log_p0, c_cephes_log_p1_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p2_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p3_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p4_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p5_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p6_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p7_vec, i);
-        y = VFMADD_FLOAT(y, x, c_cephes_log_p8_vec, i);
+		y = VFMADD1_FLOAT(y, c_cephes_log_p0, c_cephes_log_p1_vec, i);
+		y = VFMASQ1_FLOAT(y, x, c_cephes_log_p2, i);
+		y = VFMASQ1_FLOAT(y, x, c_cephes_log_p3, i);
+		y = VFMASQ1_FLOAT(y, x, c_cephes_log_p4, i);
+		y = VFMASQ1_FLOAT(y, x, c_cephes_log_p5, i);
+		y = VFMASQ1_FLOAT(y, x, c_cephes_log_p6, i);
+		y = VFMASQ1_FLOAT(y, x, c_cephes_log_p7, i);
+		y = VFMASQ1_FLOAT(y, x, c_cephes_log_p8, i);
         y = VMUL_FLOAT(y, x, i);
         y = VMUL_FLOAT(y, z, i);
         y = VFMACC1_FLOAT(y, -0.5f, z, i);  // y = y -0.5*z
@@ -1384,8 +1337,6 @@ static inline void log2f_vec(float *src, float *dst, int len)
 
 static inline V_ELT_FLOAT atanf_ps(V_ELT_FLOAT xx,
                                     V_ELT_FLOAT ATAN_P1_vec,
-                                    V_ELT_FLOAT ATAN_P2_vec,
-                                    V_ELT_FLOAT ATAN_P3_vec,
                                     V_ELT_FLOAT min1_vec,
                                     V_ELT_BOOL32 i)
 {
@@ -1419,8 +1370,8 @@ static inline V_ELT_FLOAT atanf_ps(V_ELT_FLOAT xx,
 
     tmp = z;
     tmp = VFMADD1_FLOAT(tmp, ATAN_P0, ATAN_P1_vec, i);
-    tmp = VFMADD_FLOAT(tmp, z, ATAN_P2_vec, i);
-    tmp = VFMADD_FLOAT(tmp, z, ATAN_P3_vec, i);
+    tmp = VFMASQ1_FLOAT(tmp, z, ATAN_P2, i);
+    tmp = VFMASQ1_FLOAT(tmp, z, ATAN_P3, i);
     tmp = VMUL_FLOAT(z, tmp, i);
     tmp = VFMADD_FLOAT(tmp, x, x, i);
     y = VADD_FLOAT(y, tmp, i);
@@ -1435,21 +1386,18 @@ static inline void atanf_vec(float *src, float *dst, int len)
 	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
 	uint64_t numVals = svlen_f32(dummy);
     V_ELT_FLOAT ATAN_P1_vec = VLOAD1_FLOAT(ATAN_P1, i);
-    V_ELT_FLOAT ATAN_P2_vec = VLOAD1_FLOAT(ATAN_P2, i);
-    V_ELT_FLOAT ATAN_P3_vec = VLOAD1_FLOAT(ATAN_P3, i);
     V_ELT_FLOAT min1_vec = VLOAD1_FLOAT(-1.0f, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
 		i = svwhilelt_b32_s32(l, n);	
         V_ELT_FLOAT xx = VLOAD_FLOAT(src+l, i);
         V_ELT_FLOAT y;
-        y = atanf_ps(xx, ATAN_P1_vec, ATAN_P2_vec, ATAN_P3_vec, min1_vec, i);
+        y = atanf_ps(xx, ATAN_P1_vec, min1_vec, i);
         VSTORE_FLOAT(dst+l, y, i);
     }
 }
 
-static inline V_ELT_FLOAT atan2f_ps(V_ELT_FLOAT y, V_ELT_FLOAT x, V_ELT_FLOAT ATAN_P1_vec, V_ELT_FLOAT ATAN_P2_vec,\
-								    V_ELT_FLOAT ATAN_P3_vec, V_ELT_FLOAT min1_vec, V_ELT_BOOL32 i)
+static inline V_ELT_FLOAT atan2f_ps(V_ELT_FLOAT y, V_ELT_FLOAT x, V_ELT_FLOAT ATAN_P1_vec, V_ELT_FLOAT min1_vec, V_ELT_BOOL32 i)
 {
     V_ELT_FLOAT z, w;
     V_ELT_BOOL32 xinfzero, yinfzero, xeqzero, yeqzero;
@@ -1477,7 +1425,7 @@ static inline V_ELT_FLOAT atan2f_ps(V_ELT_FLOAT y, V_ELT_FLOAT x, V_ELT_FLOAT AT
     w = VMERGE1_FLOAT(VAND_BOOL(yinfzero, xinfzero, i), w, mPIF, i);                // y < 0 && x<0
 
     tmp = VDIV_FLOAT(y, x, i);
-    tmp = atanf_ps(tmp, ATAN_P1_vec, ATAN_P2_vec, ATAN_P3_vec, min1_vec, i);
+    tmp = atanf_ps(tmp, ATAN_P1_vec, min1_vec, i);
     tmp = VADD_FLOAT(w, tmp, i);
     z = VMERGE_FLOAT(specialcase, tmp, z, i);  // atanf(y/x) if not in special case
     return z;
@@ -1490,8 +1438,6 @@ static inline void atan2f_vec(float *src1, float *src2, float *dst, int len)
 	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
 	uint64_t numVals = svlen_f32(dummy);
     V_ELT_FLOAT ATAN_P1_vec = VLOAD1_FLOAT(ATAN_P1, i);
-    V_ELT_FLOAT ATAN_P2_vec = VLOAD1_FLOAT(ATAN_P2, i);
-    V_ELT_FLOAT ATAN_P3_vec = VLOAD1_FLOAT(ATAN_P3, i);
     V_ELT_FLOAT min1_vec = VLOAD1_FLOAT(-1.0f, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
@@ -1500,8 +1446,7 @@ static inline void atan2f_vec(float *src1, float *src2, float *dst, int len)
         V_ELT_FLOAT x = VLOAD_FLOAT(src2+l, i);
 
         V_ELT_FLOAT z = atan2f_ps(y, x,
-                                   ATAN_P1_vec, ATAN_P2_vec,
-                                   ATAN_P3_vec, min1_vec, i);
+                                   ATAN_P1_vec, min1_vec, i);
         VSTORE_FLOAT(dst+l, z, i);
     }
 }
@@ -1513,8 +1458,6 @@ static inline void atan2f_interleaved_vec(complex32_t *src, float *dst, int len)
 	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
 	uint64_t numVals = svlen_f32(dummy);
     V_ELT_FLOAT ATAN_P1_vec = VLOAD1_FLOAT(ATAN_P1, i);
-    V_ELT_FLOAT ATAN_P2_vec = VLOAD1_FLOAT(ATAN_P2, i);
-    V_ELT_FLOAT ATAN_P3_vec = VLOAD1_FLOAT(ATAN_P3, i);
     V_ELT_FLOAT min1_vec = VLOAD1_FLOAT(-1.0f, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
@@ -1523,8 +1466,7 @@ static inline void atan2f_interleaved_vec(complex32_t *src, float *dst, int len)
 	    V_ELT_FLOAT x = svget2_f32(src_vec,0);
         V_ELT_FLOAT y = svget2_f32(src_vec,1);		
         V_ELT_FLOAT z = atan2f_ps(y, x,
-                                   ATAN_P1_vec, ATAN_P2_vec,
-                                   ATAN_P3_vec, min1_vec, i);
+                                   ATAN_P1_vec, min1_vec, i);
         VSTORE_FLOAT(dst+l, z, i);
     }
 }
@@ -1536,9 +1478,6 @@ static inline void asinf_vec(float *src, float *dst, int len)
 	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
 	uint64_t numVals = svlen_f32(dummy);
     V_ELT_FLOAT ASIN_P1_vec = VLOAD1_FLOAT(ASIN_P1, i);
-    V_ELT_FLOAT ASIN_P2_vec = VLOAD1_FLOAT(ASIN_P2, i);
-    V_ELT_FLOAT ASIN_P3_vec = VLOAD1_FLOAT(ASIN_P3, i);
-    V_ELT_FLOAT ASIN_P4_vec = VLOAD1_FLOAT(ASIN_P4, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
 		i = svwhilelt_b32_s32(l, n);	
@@ -1562,9 +1501,9 @@ static inline void asinf_vec(float *src, float *dst, int len)
 
         tmp = z;
         tmp = VFMADD1_FLOAT(tmp, ASIN_P0, ASIN_P1_vec, i);
-        tmp = VFMADD_FLOAT(tmp, z, ASIN_P2_vec, i);
-        tmp = VFMADD_FLOAT(tmp, z, ASIN_P3_vec, i);
-        tmp = VFMADD_FLOAT(tmp, z, ASIN_P4_vec, i);
+        tmp = VFMASQ1_FLOAT(tmp, z, ASIN_P2, i);
+        tmp = VFMASQ1_FLOAT(tmp, z, ASIN_P3, i);
+        tmp = VFMASQ1_FLOAT(tmp, z, ASIN_P4, i);
         tmp = VMUL_FLOAT(z, tmp, i);
         tmp = VFMADD_FLOAT(tmp, x, x, i);
 
@@ -1591,18 +1530,9 @@ static inline void acoshf_vec(float *src, float *dst, int len)
 	uint64_t numVals = svlen_f32(dummy);
     V_ELT_FLOAT zero_vec = VLOAD1_FLOAT(0.0f, i);
     V_ELT_FLOAT c_cephes_log_p1_vec = VLOAD1_FLOAT(c_cephes_log_p1, i);
-    V_ELT_FLOAT c_cephes_log_p2_vec = VLOAD1_FLOAT(c_cephes_log_p2, i);
-    V_ELT_FLOAT c_cephes_log_p3_vec = VLOAD1_FLOAT(c_cephes_log_p3, i);
-    V_ELT_FLOAT c_cephes_log_p4_vec = VLOAD1_FLOAT(c_cephes_log_p4, i);
-    V_ELT_FLOAT c_cephes_log_p5_vec = VLOAD1_FLOAT(c_cephes_log_p5, i);
-    V_ELT_FLOAT c_cephes_log_p6_vec = VLOAD1_FLOAT(c_cephes_log_p6, i);
-    V_ELT_FLOAT c_cephes_log_p7_vec = VLOAD1_FLOAT(c_cephes_log_p7, i);
-    V_ELT_FLOAT c_cephes_log_p8_vec = VLOAD1_FLOAT(c_cephes_log_p8, i);
 
     V_ELT_FLOAT ACOSH_P1_vec = VLOAD1_FLOAT(ACOSH_P1, i);
-    V_ELT_FLOAT ACOSH_P2_vec = VLOAD1_FLOAT(ACOSH_P2, i);
-    V_ELT_FLOAT ACOSH_P3_vec = VLOAD1_FLOAT(ACOSH_P3, i);
-    V_ELT_FLOAT ACOSH_P4_vec = VLOAD1_FLOAT(ACOSH_P4, i);
+
 
 	for (size_t l=0; l<n; l+=numVals) {
 		i = svwhilelt_b32_s32(l, n);	
@@ -1619,27 +1549,19 @@ static inline void acoshf_vec(float *src, float *dst, int len)
 
         // First Branch (z < 0.5)
         z_first_branch = VFMADD1_FLOAT(z, ACOSH_P0, ACOSH_P1_vec, i);
-        z_first_branch = VFMADD_FLOAT(z_first_branch, z, ACOSH_P2_vec, i);
-        z_first_branch = VFMADD_FLOAT(z_first_branch, z, ACOSH_P3_vec, i);
-        z_first_branch = VFMADD_FLOAT(z_first_branch, z, ACOSH_P4_vec, i);
+        z_first_branch = VFMASQ1_FLOAT(z_first_branch, z, ACOSH_P2, i);
+        z_first_branch = VFMASQ1_FLOAT(z_first_branch, z, ACOSH_P3, i);
+        z_first_branch = VFMASQ1_FLOAT(z_first_branch, z, ACOSH_P4, i);
         z_first_branch = VMUL_FLOAT(z_first_branch, VSQRT_FLOAT(z, i), i);
 
         // Second Branch
         z_second_branch = VFMADD_FLOAT(z, x, z, i);
         z_second_branch = VSQRT_FLOAT(z_second_branch, i);
         z_second_branch = VADD_FLOAT(x, z_second_branch, i);
-        z_second_branch = log_ps(z_second_branch, zero_vec, c_cephes_log_p1_vec,
-                                 c_cephes_log_p2_vec, c_cephes_log_p3_vec,
-                                 c_cephes_log_p4_vec, c_cephes_log_p5_vec,
-                                 c_cephes_log_p6_vec, c_cephes_log_p7_vec,
-                                 c_cephes_log_p8_vec, i);
+        z_second_branch = log_ps(z_second_branch, zero_vec, c_cephes_log_p1_vec, i);
 
         z = VMERGE_FLOAT(zinf0p5, z_second_branch, z_first_branch, i);
-        tmp = log_ps(x, zero_vec, c_cephes_log_p1_vec,
-                     c_cephes_log_p2_vec, c_cephes_log_p3_vec,
-                     c_cephes_log_p4_vec, c_cephes_log_p5_vec,
-                     c_cephes_log_p6_vec, c_cephes_log_p7_vec,
-                     c_cephes_log_p8_vec, i);
+        tmp = log_ps(x, zero_vec, c_cephes_log_p1_vec, i);
         tmp = VADD1_FLOAT(tmp, LOGE2F, i);
         z = VMERGE_FLOAT(xsup1500, z, tmp, i);
         z = VMERGE1_FLOAT(xinf1, z, 0.0f, i);
@@ -1655,17 +1577,8 @@ static inline void asinhf_vec(float *src, float *dst, int len)
 	uint64_t numVals = svlen_f32(dummy);
     V_ELT_FLOAT zero_vec = VLOAD1_FLOAT(0.0f, i);
     V_ELT_FLOAT c_cephes_log_p1_vec = VLOAD1_FLOAT(c_cephes_log_p1, i);
-    V_ELT_FLOAT c_cephes_log_p2_vec = VLOAD1_FLOAT(c_cephes_log_p2, i);
-    V_ELT_FLOAT c_cephes_log_p3_vec = VLOAD1_FLOAT(c_cephes_log_p3, i);
-    V_ELT_FLOAT c_cephes_log_p4_vec = VLOAD1_FLOAT(c_cephes_log_p4, i);
-    V_ELT_FLOAT c_cephes_log_p5_vec = VLOAD1_FLOAT(c_cephes_log_p5, i);
-    V_ELT_FLOAT c_cephes_log_p6_vec = VLOAD1_FLOAT(c_cephes_log_p6, i);
-    V_ELT_FLOAT c_cephes_log_p7_vec = VLOAD1_FLOAT(c_cephes_log_p7, i);
-    V_ELT_FLOAT c_cephes_log_p8_vec = VLOAD1_FLOAT(c_cephes_log_p8, i);
 
     V_ELT_FLOAT ASINH_P1_vec = VLOAD1_FLOAT(ASINH_P1, i);
-    V_ELT_FLOAT ASINH_P2_vec = VLOAD1_FLOAT(ASINH_P2, i);
-    V_ELT_FLOAT ASINH_P3_vec = VLOAD1_FLOAT(ASINH_P3, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
 		i = svwhilelt_b32_s32(l, n);	
@@ -1685,25 +1598,17 @@ static inline void asinhf_vec(float *src, float *dst, int len)
         // First Branch (x < 0.5)
         z_first_branch = tmp;
         z_first_branch = VFMADD1_FLOAT(z_first_branch, ASINH_P0, ASINH_P1_vec, i);
-        z_first_branch = VFMADD_FLOAT(z_first_branch, tmp, ASINH_P2_vec, i);
-        z_first_branch = VFMADD_FLOAT(z_first_branch, tmp, ASINH_P3_vec, i);
+        z_first_branch = VFMASQ1_FLOAT(z_first_branch, tmp, ASINH_P2, i);
+        z_first_branch = VFMASQ1_FLOAT(z_first_branch, tmp, ASINH_P3, i);
         z_first_branch = VMUL_FLOAT(z_first_branch, tmp, i);
         z_first_branch = VFMADD_FLOAT(z_first_branch, x, x, i);
 
         // Second Branch
         z_second_branch = VSQRT_FLOAT(VADD1_FLOAT(tmp, 1.0f, i), i);
-        z_second_branch = log_ps(VADD_FLOAT(z_second_branch, x, i), zero_vec, c_cephes_log_p1_vec,
-                                 c_cephes_log_p2_vec, c_cephes_log_p3_vec,
-                                 c_cephes_log_p4_vec, c_cephes_log_p5_vec,
-                                 c_cephes_log_p6_vec, c_cephes_log_p7_vec,
-                                 c_cephes_log_p8_vec, i);
+        z_second_branch = log_ps(VADD_FLOAT(z_second_branch, x, i), zero_vec, c_cephes_log_p1_vec, i);
 
         z = VMERGE_FLOAT(xinf0p5, z_second_branch, z_first_branch, i);
-        tmp = log_ps(x, zero_vec, c_cephes_log_p1_vec,
-                     c_cephes_log_p2_vec, c_cephes_log_p3_vec,
-                     c_cephes_log_p4_vec, c_cephes_log_p5_vec,
-                     c_cephes_log_p6_vec, c_cephes_log_p7_vec,
-                     c_cephes_log_p8_vec, i);
+        tmp = log_ps(x, zero_vec, c_cephes_log_p1_vec, i);
         tmp = VADD1_FLOAT(tmp, LOGE2F, i);
         z = VMERGE_FLOAT(xsup1500, z, tmp, i);
         z = VINTERP_INT_FLOAT(VXOR_INT(VINTERP_FLOAT_INT(z), xxinf0, i));
@@ -1719,18 +1624,8 @@ static inline void atanhf_vec(float *src, float *dst, int len)
 	uint64_t numVals = svlen_f32(dummy);
     V_ELT_FLOAT zero_vec = VLOAD1_FLOAT(0.0f, i);
     V_ELT_FLOAT c_cephes_log_p1_vec = VLOAD1_FLOAT(c_cephes_log_p1, i);
-    V_ELT_FLOAT c_cephes_log_p2_vec = VLOAD1_FLOAT(c_cephes_log_p2, i);
-    V_ELT_FLOAT c_cephes_log_p3_vec = VLOAD1_FLOAT(c_cephes_log_p3, i);
-    V_ELT_FLOAT c_cephes_log_p4_vec = VLOAD1_FLOAT(c_cephes_log_p4, i);
-    V_ELT_FLOAT c_cephes_log_p5_vec = VLOAD1_FLOAT(c_cephes_log_p5, i);
-    V_ELT_FLOAT c_cephes_log_p6_vec = VLOAD1_FLOAT(c_cephes_log_p6, i);
-    V_ELT_FLOAT c_cephes_log_p7_vec = VLOAD1_FLOAT(c_cephes_log_p7, i);
-    V_ELT_FLOAT c_cephes_log_p8_vec = VLOAD1_FLOAT(c_cephes_log_p8, i);
 
     V_ELT_FLOAT ATANH_P1_vec = VLOAD1_FLOAT(ATANH_P1, i);
-    V_ELT_FLOAT ATANH_P2_vec = VLOAD1_FLOAT(ATANH_P2, i);
-    V_ELT_FLOAT ATANH_P3_vec = VLOAD1_FLOAT(ATANH_P3, i);
-    V_ELT_FLOAT ATANH_P4_vec = VLOAD1_FLOAT(ATANH_P4, i);
     V_ELT_FLOAT one_vec = VLOAD1_FLOAT(1.0f, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
@@ -1750,9 +1645,9 @@ static inline void atanhf_vec(float *src, float *dst, int len)
         tmp = VMUL_FLOAT(x, x, i);
         z_first_branch = tmp;
         z_first_branch = VFMADD1_FLOAT(z_first_branch, ATANH_P0, ATANH_P1_vec, i);
-        z_first_branch = VFMADD_FLOAT(z_first_branch, tmp, ATANH_P2_vec, i);
-        z_first_branch = VFMADD_FLOAT(z_first_branch, tmp, ATANH_P3_vec, i);
-        z_first_branch = VFMADD_FLOAT(z_first_branch, tmp, ATANH_P4_vec, i);
+        z_first_branch = VFMASQ1_FLOAT(z_first_branch, tmp, ATANH_P2, i);
+        z_first_branch = VFMASQ1_FLOAT(z_first_branch, tmp, ATANH_P3, i);
+        z_first_branch = VFMASQ1_FLOAT(z_first_branch, tmp, ATANH_P4, i);
         z_first_branch = VMUL_FLOAT(z_first_branch, tmp, i);
         z_first_branch = VFMADD_FLOAT(z_first_branch, x, x, i);
 
@@ -1762,11 +1657,7 @@ static inline void atanhf_vec(float *src, float *dst, int len)
         tmp = VRSUB1_FLOAT(x, 1.0f, i);  // 1 -x
         tmp2 = VDIV_FLOAT(one_vec, tmp, i);
         tmp = VFMADD_FLOAT(tmp2, x, tmp2, i);
-        z_second_branch = log_ps(tmp, zero_vec, c_cephes_log_p1_vec,
-                                 c_cephes_log_p2_vec, c_cephes_log_p3_vec,
-                                 c_cephes_log_p4_vec, c_cephes_log_p5_vec,
-                                 c_cephes_log_p6_vec, c_cephes_log_p7_vec,
-                                 c_cephes_log_p8_vec, i);
+        z_second_branch = log_ps(tmp, zero_vec, c_cephes_log_p1_vec, i);
         z_second_branch = VMUL1_FLOAT(z_second_branch, 0.5f, i);
 
         z = VMERGE_FLOAT(zinf0p5, z_second_branch, z_first_branch, i);
@@ -1781,10 +1672,6 @@ static inline void atanhf_vec(float *src, float *dst, int len)
 static inline V_ELT_FLOAT exp_ps(V_ELT_FLOAT x,
                                   V_ELT_FLOAT Op5_vec,
                                   V_ELT_FLOAT cephes_exp_p1_vec,
-                                  V_ELT_FLOAT cephes_exp_p2_vec,
-                                  V_ELT_FLOAT cephes_exp_p3_vec,
-                                  V_ELT_FLOAT cephes_exp_p4_vec,
-                                  V_ELT_FLOAT cephes_exp_p5_vec,
                                   V_ELT_BOOL32 i)
 {
     V_ELT_FLOAT z_tmp, z, fx;
@@ -1813,10 +1700,10 @@ static inline V_ELT_FLOAT exp_ps(V_ELT_FLOAT x,
 
     z_tmp = x;
     z_tmp = VFMADD1_FLOAT(z_tmp, c_cephes_exp_p0, cephes_exp_p1_vec, i);
-    z_tmp = VFMADD_FLOAT(z_tmp, x, cephes_exp_p2_vec, i);
-    z_tmp = VFMADD_FLOAT(z_tmp, x, cephes_exp_p3_vec, i);
-    z_tmp = VFMADD_FLOAT(z_tmp, x, cephes_exp_p4_vec, i);
-    z_tmp = VFMADD_FLOAT(z_tmp, x, cephes_exp_p5_vec, i);
+    z_tmp = VFMASQ1_FLOAT(z_tmp, x, c_cephes_exp_p2, i);
+    z_tmp = VFMASQ1_FLOAT(z_tmp, x, c_cephes_exp_p3, i);
+    z_tmp = VFMASQ1_FLOAT(z_tmp, x, c_cephes_exp_p4, i);
+    z_tmp = VFMASQ1_FLOAT(z_tmp, x, c_cephes_exp_p5, i);
     z_tmp = VFMADD_FLOAT(z_tmp, z, x, i);
 
     /* build 2^n */
@@ -1836,18 +1723,12 @@ static inline void expf_vec(float *src, float *dst, int len)
 	uint64_t numVals = svlen_f32(dummy);
 
     V_ELT_FLOAT cephes_exp_p1_vec = VLOAD1_FLOAT(c_cephes_exp_p1, i);
-    V_ELT_FLOAT cephes_exp_p2_vec = VLOAD1_FLOAT(c_cephes_exp_p2, i);
-    V_ELT_FLOAT cephes_exp_p3_vec = VLOAD1_FLOAT(c_cephes_exp_p3, i);
-    V_ELT_FLOAT cephes_exp_p4_vec = VLOAD1_FLOAT(c_cephes_exp_p4, i);
-    V_ELT_FLOAT cephes_exp_p5_vec = VLOAD1_FLOAT(c_cephes_exp_p5, i);
     V_ELT_FLOAT Op5_vec = VLOAD1_FLOAT(0.5f, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
 		i = svwhilelt_b32_s32(l, n);	
         V_ELT_FLOAT x = VLOAD_FLOAT(src+l, i);
-        x = exp_ps(x, Op5_vec, cephes_exp_p1_vec,
-                   cephes_exp_p2_vec, cephes_exp_p3_vec,
-                   cephes_exp_p4_vec, cephes_exp_p5_vec, i);
+        x = exp_ps(x, Op5_vec, cephes_exp_p1_vec, i);
         VSTORE_FLOAT(dst+l, x, i);
     }
 }
@@ -1860,10 +1741,6 @@ static inline void coshf_vec(float *src, float *dst, int len)
 	uint64_t numVals = svlen_f32(dummy);
 
     V_ELT_FLOAT cephes_exp_p1_vec = VLOAD1_FLOAT(c_cephes_exp_p1, i);
-    V_ELT_FLOAT cephes_exp_p2_vec = VLOAD1_FLOAT(c_cephes_exp_p2, i);
-    V_ELT_FLOAT cephes_exp_p3_vec = VLOAD1_FLOAT(c_cephes_exp_p3, i);
-    V_ELT_FLOAT cephes_exp_p4_vec = VLOAD1_FLOAT(c_cephes_exp_p4, i);
-    V_ELT_FLOAT cephes_exp_p5_vec = VLOAD1_FLOAT(c_cephes_exp_p5, i);
     V_ELT_FLOAT Op5_vec = VLOAD1_FLOAT(0.5f, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
@@ -1876,9 +1753,7 @@ static inline void coshf_vec(float *src, float *dst, int len)
         x = VINTERP_INT_FLOAT(VAND1_INT(VINTERP_FLOAT_INT(xx), inv_sign_mask, i));
         xsupmaxlogf = VGT1_FLOAT_BOOL(x, MAXLOGF, i);
 
-        tmp = exp_ps(x, Op5_vec, cephes_exp_p1_vec,
-                     cephes_exp_p2_vec, cephes_exp_p3_vec,
-                     cephes_exp_p4_vec, cephes_exp_p5_vec, i);
+        tmp = exp_ps(x, Op5_vec, cephes_exp_p1_vec, i);
         x = VRDIV1_FLOAT(tmp, 0.5f, i);  // or 1/(2*y)
         x = VFMACC1_FLOAT(x, 0.5f, tmp, i);
         x = VMERGE1_FLOAT(xsupmaxlogf, x, MAXNUMF, i);
@@ -1894,12 +1769,7 @@ static inline void sinhf_vec(float *src, float *dst, int len)
 	uint64_t numVals = svlen_f32(dummy);
 
     V_ELT_FLOAT SINH_P1_vec = VLOAD1_FLOAT(SINH_P1, i);
-    V_ELT_FLOAT SINH_P2_vec = VLOAD1_FLOAT(SINH_P2, i);
     V_ELT_FLOAT cephes_exp_p1_vec = VLOAD1_FLOAT(c_cephes_exp_p1, i);
-    V_ELT_FLOAT cephes_exp_p2_vec = VLOAD1_FLOAT(c_cephes_exp_p2, i);
-    V_ELT_FLOAT cephes_exp_p3_vec = VLOAD1_FLOAT(c_cephes_exp_p3, i);
-    V_ELT_FLOAT cephes_exp_p4_vec = VLOAD1_FLOAT(c_cephes_exp_p4, i);
-    V_ELT_FLOAT cephes_exp_p5_vec = VLOAD1_FLOAT(c_cephes_exp_p5, i);
     V_ELT_FLOAT Op5_vec = VLOAD1_FLOAT(0.5f, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
@@ -1917,9 +1787,7 @@ static inline void sinhf_vec(float *src, float *dst, int len)
 
         // First branch
         zsup1 = VGT1_FLOAT_BOOL(z, 1.0f, i);
-        tmp = exp_ps(z, Op5_vec, cephes_exp_p1_vec,
-                     cephes_exp_p2_vec, cephes_exp_p3_vec,
-                     cephes_exp_p4_vec, cephes_exp_p5_vec, i);
+        tmp = exp_ps(z, Op5_vec, cephes_exp_p1_vec, i);
         z_first_branch = VRDIV1_FLOAT(tmp, -0.5f, i);
         z_first_branch = VFMACC1_FLOAT(z_first_branch, 0.5f, tmp, i);
 
@@ -1931,7 +1799,7 @@ static inline void sinhf_vec(float *src, float *dst, int len)
         tmp = VMUL_FLOAT(x, x, i);
         z_second_branch = tmp;
         z_second_branch = VFMADD1_FLOAT(z_second_branch, SINH_P0, SINH_P1_vec, i);
-        z_second_branch = VFMADD_FLOAT(z_second_branch, tmp, SINH_P2_vec, i);
+        z_second_branch = VFMASQ1_FLOAT(z_second_branch, tmp, SINH_P2, i);
         z_second_branch = VMUL_FLOAT(z_second_branch, tmp, i);
         z_second_branch = VFMADD_FLOAT(z_second_branch, x, x, i);
 
@@ -1955,15 +1823,8 @@ static inline void tanhf_vec(float *src, float *dst, int len)
 	uint64_t numVals = svlen_f32(dummy);
 
     V_ELT_FLOAT cephes_exp_p1_vec = VLOAD1_FLOAT(c_cephes_exp_p1, i);
-    V_ELT_FLOAT cephes_exp_p2_vec = VLOAD1_FLOAT(c_cephes_exp_p2, i);
-    V_ELT_FLOAT cephes_exp_p3_vec = VLOAD1_FLOAT(c_cephes_exp_p3, i);
-    V_ELT_FLOAT cephes_exp_p4_vec = VLOAD1_FLOAT(c_cephes_exp_p4, i);
-    V_ELT_FLOAT cephes_exp_p5_vec = VLOAD1_FLOAT(c_cephes_exp_p5, i);
     V_ELT_FLOAT Op5_vec = VLOAD1_FLOAT(0.5f, i);
     V_ELT_FLOAT TANH_P1_vec = VLOAD1_FLOAT(TANH_P1, i);
-    V_ELT_FLOAT TANH_P2_vec = VLOAD1_FLOAT(TANH_P2, i);
-    V_ELT_FLOAT TANH_P3_vec = VLOAD1_FLOAT(TANH_P3, i);
-    V_ELT_FLOAT TANH_P4_vec = VLOAD1_FLOAT(TANH_P4, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
 		i = svwhilelt_b32_s32(l, n);	
@@ -1977,9 +1838,7 @@ static inline void tanhf_vec(float *src, float *dst, int len)
 
         xsup0p625 = VGE1_FLOAT_BOOL(x, 0.625f, i);
         tmp = VADD_FLOAT(x, x, i);
-        tmp = exp_ps(tmp, Op5_vec, cephes_exp_p1_vec,
-                     cephes_exp_p2_vec, cephes_exp_p3_vec,
-                     cephes_exp_p4_vec, cephes_exp_p5_vec, i);
+        tmp = exp_ps(tmp, Op5_vec, cephes_exp_p1_vec, i);
         x = VMERGE_FLOAT(xsup0p625, x, tmp, i);
 
         // z = 1.0 - 2.0 / (x + 1.0);
@@ -1996,9 +1855,9 @@ static inline void tanhf_vec(float *src, float *dst, int len)
         z = VMUL_FLOAT(x, x, i);
         z_second_branch = z;
         z_second_branch = VFMADD1_FLOAT(z_second_branch, TANH_P0, TANH_P1_vec, i);
-        z_second_branch = VFMADD_FLOAT(z_second_branch, z, TANH_P2_vec, i);
-        z_second_branch = VFMADD_FLOAT(z_second_branch, z, TANH_P3_vec, i);
-        z_second_branch = VFMADD_FLOAT(z_second_branch, z, TANH_P4_vec, i);
+        z_second_branch = VFMASQ1_FLOAT(z_second_branch, z, TANH_P2, i);
+        z_second_branch = VFMASQ1_FLOAT(z_second_branch, z, TANH_P3, i);
+        z_second_branch = VFMASQ1_FLOAT(z_second_branch, z, TANH_P4, i);
         z_second_branch = VMUL_FLOAT(z_second_branch, z, i);
         z_second_branch = VFMADD_FLOAT(z_second_branch, xx, xx, i);
 
@@ -2247,9 +2106,6 @@ static inline void cbrtf_vec(float *src, float *dst, int len)
     V_ELT_FLOAT invCBRT2_vec = VLOAD1_FLOAT(cephes_invCBRT2, i);
     V_ELT_FLOAT invCBRT4_vec = VLOAD1_FLOAT(cephes_invCBRT4, i);
     V_ELT_FLOAT CBRTF_P1_vec = VLOAD1_FLOAT(CBRTF_P1, i);
-    V_ELT_FLOAT CBRTF_P2_vec = VLOAD1_FLOAT(CBRTF_P2, i);
-    V_ELT_FLOAT CBRTF_P3_vec = VLOAD1_FLOAT(CBRTF_P3, i);
-    V_ELT_FLOAT CBRTF_P4_vec = VLOAD1_FLOAT(CBRTF_P4, i);
 
     const float Op5 = 0.5f;
 
@@ -2282,9 +2138,9 @@ static inline void cbrtf_vec(float *src, float *dst, int len)
          */
         tmp = x;
         tmp = VFMADD1_FLOAT(tmp, CBRTF_P0, CBRTF_P1_vec, i);
-        tmp = VFMADD_FLOAT(tmp, x, CBRTF_P2_vec, i);
-        tmp = VFMADD_FLOAT(tmp, x, CBRTF_P3_vec, i);
-        x = VFMADD_FLOAT(x, tmp, CBRTF_P4_vec, i);
+        tmp = VFMASQ1_FLOAT(tmp, x, CBRTF_P2, i);
+        tmp = VFMASQ1_FLOAT(tmp, x, CBRTF_P3, i);
+        x = VFMASQ1_FLOAT(x, tmp, CBRTF_P4, i);
 
         /* exponent divided by 3 */
         V_ELT_BOOL32 e_sign = VGE1_FLOAT_BOOL(e, 0.0f, i);
@@ -2497,9 +2353,7 @@ static inline void pol2cart2Df_vec(float *r, float *theta, float *x, float *y, i
 	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
 	
     V_ELT_FLOAT coscof_1_vec = VLOAD1_FLOAT(coscof[1], i);
-    V_ELT_FLOAT coscof_2_vec = VLOAD1_FLOAT(coscof[2], i);
     V_ELT_FLOAT sincof_1_vec = VLOAD1_FLOAT(sincof[1], i);
-    V_ELT_FLOAT sincof_2_vec = VLOAD1_FLOAT(sincof[2], i);
 
 	for (size_t l=0; l<n; l+=numVals) {
 		// set predicate 
@@ -2508,8 +2362,7 @@ static inline void pol2cart2Df_vec(float *r, float *theta, float *x, float *y, i
         V_ELT_FLOAT theta_vec = VLOAD_FLOAT(theta+l, i);
         V_ELT_FLOAT sin_vec, cos_vec;
         sincosf_ps(theta_vec, &sin_vec, &cos_vec,
-                   coscof_1_vec, coscof_2_vec,
-                   sincof_1_vec, sincof_2_vec, i);
+                   coscof_1_vec, sincof_1_vec, i);
         V_ELT_FLOAT x_vec = VMUL_FLOAT(r_vec, cos_vec, i);
         V_ELT_FLOAT y_vec = VMUL_FLOAT(r_vec, sin_vec, i);
         VSTORE_FLOAT(x+l, x_vec, i);
@@ -2526,8 +2379,6 @@ static inline void cart2pol2Df_vec(float *x, float *y, float *r, float *theta, i
 	
 	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
     V_ELT_FLOAT ATAN_P1_vec = VLOAD1_FLOAT(ATAN_P1, i);
-    V_ELT_FLOAT ATAN_P2_vec = VLOAD1_FLOAT(ATAN_P2, i);
-    V_ELT_FLOAT ATAN_P3_vec = VLOAD1_FLOAT(ATAN_P3, i);
     V_ELT_FLOAT min1_vec = VLOAD1_FLOAT(-1.0f, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
@@ -2540,8 +2391,7 @@ static inline void cart2pol2Df_vec(float *x, float *y, float *r, float *theta, i
         r_vec = VFMADD_FLOAT(r_vec, x_vec, y_square, i);
         r_vec = VSQRT_FLOAT(r_vec, i);
         V_ELT_FLOAT theta_vec = atan2f_ps(y_vec, x_vec,
-                                           ATAN_P1_vec, ATAN_P2_vec,
-                                           ATAN_P3_vec, min1_vec, i);
+                                           ATAN_P1_vec, min1_vec, i);
         VSTORE_FLOAT(r+l, r_vec, i);
         VSTORE_FLOAT(theta+l, theta_vec, i);
     }
@@ -2573,10 +2423,6 @@ static inline void sigmoidf_vec(float *src, float *dst, int len)
 	uint64_t numVals = svlen_f32(dummy);
 	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
     V_ELT_FLOAT cephes_exp_p1_vec = VLOAD1_FLOAT(c_cephes_exp_p1, i);
-    V_ELT_FLOAT cephes_exp_p2_vec = VLOAD1_FLOAT(c_cephes_exp_p2, i);
-    V_ELT_FLOAT cephes_exp_p3_vec = VLOAD1_FLOAT(c_cephes_exp_p3, i);
-    V_ELT_FLOAT cephes_exp_p4_vec = VLOAD1_FLOAT(c_cephes_exp_p4, i);
-    V_ELT_FLOAT cephes_exp_p5_vec = VLOAD1_FLOAT(c_cephes_exp_p5, i);
     V_ELT_FLOAT Op5_vec = VLOAD1_FLOAT(0.5f, i);
 
 	for (size_t l=0; l<n; l+=numVals) {
@@ -2584,9 +2430,7 @@ static inline void sigmoidf_vec(float *src, float *dst, int len)
 		i = svwhilelt_b32_s32(l, n);
         V_ELT_FLOAT x = VLOAD_FLOAT(src+l, i);
         x = VINTERP_INT_FLOAT(VXOR1_INT(VINTERP_FLOAT_INT(x), neg_sign_mask, i));
-        x = exp_ps(x, Op5_vec, cephes_exp_p1_vec,
-                   cephes_exp_p2_vec, cephes_exp_p3_vec,
-                   cephes_exp_p4_vec, cephes_exp_p5_vec, i);
+        x = exp_ps(x, Op5_vec, cephes_exp_p1_vec, i);
         x = VADD1_FLOAT(x, 1.0f, i);
         x = VRDIV1_FLOAT(x, 1.0f, i);  // 1/x
         VSTORE_FLOAT(dst+l, x, i);
@@ -2601,10 +2445,6 @@ static inline void softmaxf_vec(float *src, float *dst, int len)
 	uint64_t numVals = svlen_f32(dummy);
 	V_ELT_BOOL32 i = svwhilelt_b32_s32(0, n);
     V_ELT_FLOAT cephes_exp_p1_vec = VLOAD1_FLOAT(c_cephes_exp_p1, i);
-    V_ELT_FLOAT cephes_exp_p2_vec = VLOAD1_FLOAT(c_cephes_exp_p2, i);
-    V_ELT_FLOAT cephes_exp_p3_vec = VLOAD1_FLOAT(c_cephes_exp_p3, i);
-    V_ELT_FLOAT cephes_exp_p4_vec = VLOAD1_FLOAT(c_cephes_exp_p4, i);
-    V_ELT_FLOAT cephes_exp_p5_vec = VLOAD1_FLOAT(c_cephes_exp_p5, i);
     V_ELT_FLOAT Op5_vec = VLOAD1_FLOAT(0.5f, i);
 
     V_ELT_FLOAT vacc = VLOAD1_FLOAT(0.0f, i);
@@ -2613,9 +2453,7 @@ static inline void softmaxf_vec(float *src, float *dst, int len)
 	for (size_t l=0; l<n; l+=numVals) {
 		i = svwhilelt_b32_s32(l, n);		
         V_ELT_FLOAT va = VLOAD_FLOAT(src+l, i);
-        va = exp_ps(va, Op5_vec, cephes_exp_p1_vec,
-                    cephes_exp_p2_vec, cephes_exp_p3_vec,
-                    cephes_exp_p4_vec, cephes_exp_p5_vec, i);
+        va = exp_ps(va, Op5_vec, cephes_exp_p1_vec, i);
         vacc = VADD_FLOAT(vacc, va, i);
         VSTORE_FLOAT(dst+l, va, i);
     }

@@ -1059,6 +1059,7 @@ static inline void _MM_SET_ROUNDING_MODE(uint32_t mode)
 
 #ifdef SVE2 /* SVE2 */
 #include "simd_utils_sve_float.h"
+#include "simd_utils_sve_double.h"
 #endif /* SVE2 */
 
 

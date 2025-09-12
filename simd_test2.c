@@ -1568,8 +1568,7 @@ int main(int argc, char **argv)
 
 #endif
 
-#ifdef RISCV
-#if ELEN >= 64
+#if (defined(RISCV) && (ELEN >= 64)) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     sincosd_vec(inoutd, inoutd2, inoutd3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -1585,9 +1584,8 @@ int main(int argc, char **argv)
     l2_errd(inoutd_ref, inoutd2, len);
     l2_errd(inoutd2_ref, inoutd3, len);
 #endif
-#endif
     /*for(int i = 0; i < len; i++){
-        printf("%lf || %lf %lf || %lf %lf || %g %g\n",inoutd[i], inoutd_ref[i],inoutd2[i], inoutd2_ref[i], inoutd3[i],
+        printf("%3.24g || %3.24g %3.24g || %3.24g %3.24g || %3.24g %3.24g\n",inoutd[i], inoutd_ref[i],inoutd2[i], inoutd2_ref[i], inoutd3[i],
 		fabs(inoutd_ref[i]-inoutd2[i]),fabs(inoutd2_ref[i]-inoutd3[i]));
     }*/
 
@@ -1700,7 +1698,7 @@ int main(int argc, char **argv)
     }*/
 
     printf("\n");
-    ///////////////////////////////////////////////// SINCOSF_INTERLEAVED //////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////// SINCOS_INTERLEAVED //////////////////////////////////////////////////////////////////////
     printf("SINCOS_INTERLEAVED\n");
 
     clock_gettime(CLOCK_REALTIME, &start);
@@ -1780,7 +1778,7 @@ int main(int argc, char **argv)
     l2_errd(inoutd_ref, inoutd2, 2 * len);
 #endif
 
-#if defined(RISCV)
+#if (defined(RISCV) && (ELEN >= 64)) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     sincosd_interleaved_vec(inoutd, (complex64_t *) inoutd2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3702,7 +3700,7 @@ int main(int argc, char **argv)
     l2_errd(inoutd_ref, inoutd2, len);    
 #endif
 
-#ifdef RISCV
+#if (defined(RISCV) && (ELEN >= 64)) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     roundd_vec(inoutd, inoutd2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3789,7 +3787,7 @@ int main(int argc, char **argv)
     l2_errd(inoutd_ref, inoutd2, len);    
 #endif
 
-#ifdef RISCV
+#if (defined(RISCV) && (ELEN >= 64)) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     rintd_vec(inoutd, inoutd2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -4151,6 +4149,10 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("tanf_vec %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
+	
+	for(int i = 0; i < len; i++){
+		printf("%g %g %g\n",inout[i], inout_ref[i], inout2[i]);
+	}
 #endif
 
 

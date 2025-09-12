@@ -78,6 +78,17 @@ static inline uint32_t float_to_ordered_int(float f) {
         return u | 0x80000000U; // shift positives up
 }
 
+static inline uint64_t double_to_ordered_int(double f) {
+    uint64_t u;
+    memcpy(&u, &f, sizeof(u));  // reinterpret bits safely
+
+    // If sign bit is set, flip all bits => negatives come before positives
+    if (u & 0x8000000000000000UL)
+        return ~u + 1U;  // two's complement trick
+    else
+        return u | 0x8000000000000000UL; // shift positives up
+}
+
 #if 0
 // Does not take care of NAN and INF
 int32_t ulpsDistance32(const float a, const float b)
@@ -102,7 +113,7 @@ int32_t ulpsDistance32(const float a, const float b)
 static inline int32_t  ulpsDistance32(float a, float b) {
     // Handle NaN and Inf specially
     if (isnanf(a) || isnanf(b)) return INT_MAX;
-    if (isinf(a) || isinf(b)) return (a == b ? 0 : INT_MAX);
+    if (isinff(a) || isinff(b)) return (a == b ? 0 : INT_MAX);
 
     uint32_t ia = float_to_ordered_int(a);
     uint32_t ib = float_to_ordered_int(b);
@@ -111,6 +122,8 @@ static inline int32_t  ulpsDistance32(float a, float b) {
 }
 	
 #endif
+
+#if 0
 // Does not take care of NAN and INF
 int64_t ulpsDistance64(const double a, const double b)
 {
@@ -126,6 +139,21 @@ int64_t ulpsDistance64(const double a, const double b)
     int64_t dist = llabs(ia - ib);
     return dist;
 }
+
+#else
+//#define INT64_MAX  0x7FFFFFFFFFFFFFFF
+//#define INT64_MIN  0x8000000000000000
+static inline int64_t  ulpsDistance64(double a, float b) {
+    // Handle NaN and Inf specially
+    if (isnan(a) || isnan(b)) return INT64_MAX;
+    if (isinf(a) || isinf(b)) return (a == b ? 0 : INT64_MAX);
+
+    uint64_t ia = double_to_ordered_int(a);
+    uint64_t ib = double_to_ordered_int(b);
+
+    return (int64_t)labs((int64_t)ia - (int64_t)ib);
+}	
+#endif
 
 //Relative Error
 // For complex arrays this is not the good way to compute the error
@@ -159,7 +187,8 @@ float l2_err(float *test, float *ref, int len)
     sup3ulps_percent = (float) sup3ulps / (float) len * 100.0f;	
     sup5ulps_percent = (float) sup5ulps / (float) len * 100.0f;		
     l2_rel_err =  sqrtf(l2_rel_err)/sqrtf(sum);
-    printf("L2 REL ERR %0.9g SUP_1ULPS %2.4g %% SUP_3ULPS %2.4g %% SUP_5ULPS %2.4g %%\n", l2_rel_err, sup1ulps_percent, sup3ulps_percent, sup5ulps_percent);
+    printf("L2 REL ERR %0.9g SUP_1ULPS %2.4g %% SUP_3ULPS %2.4g %% SUP_5ULPS %2.4g %%\n", l2_rel_err, sup1ulps_percent,\
+		   sup3ulps_percent, sup5ulps_percent);
     return l2_rel_err;
 }
 
@@ -169,6 +198,10 @@ double l2_errd(double *test, double *ref, int len)
     double sum = 0.0;
     int sup1ulps = 0;
     float sup1ulps_percent = 0.0f;
+    int sup3ulps = 0;
+    float sup3ulps_percent = 0.0f;	
+    int sup5ulps = 0;
+    float sup5ulps_percent = 0.0f;	
 
     for (int i = 0; i < len; i++) {
         l2_rel_err += (ref[i] - test[i]) * (ref[i] - test[i]);
@@ -176,11 +209,18 @@ double l2_errd(double *test, double *ref, int len)
         int64_t dist = ulpsDistance64(ref[i], test[i]);
         if (dist > 1)
             sup1ulps++;
+	    if (dist > 3){
+			//printf("%.9g %.9g\n",ref[i],test[i]);
+            sup3ulps++;
+		}			
+	    if (dist > 5)
+            sup5ulps++;		
     }
 
     sup1ulps_percent = (float) sup1ulps / (float) len * 100.0f;
     l2_rel_err =  sqrt(l2_rel_err)/sqrt(sum);
-    printf("L2 REL ERR %0.18g SUP_1ULPS %2.4g %% \n", l2_rel_err, sup1ulps_percent);
+    printf("L2 REL ERR %0.18g SUP_1ULPS %2.4g %% SUP_3ULPS %2.4g %% SUP_5ULPS %2.4g %%\n", l2_rel_err, sup1ulps_percent,\
+		   sup3ulps_percent, sup5ulps_percent);
     return l2_rel_err;
 }
 

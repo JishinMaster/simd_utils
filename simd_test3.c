@@ -2660,7 +2660,7 @@ for (int i = 0; i < len; i++){
     l2_errd(inoutd3, inoutd2_ref, len);
 #endif
 
-#if defined(RISCV)
+#if (defined(RISCV) && (ELEN >= 64)) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxtoreald_vec((complex64_t *) inoutd, inoutd2, inoutd3, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2754,7 +2754,7 @@ for (int i = 0; i < len; i++){
     l2_errd(inoutd, inoutd_ref, 2 * len);
 #endif
 
-#if defined(RISCV)
+#if (defined(RISCV) && (ELEN >= 64)) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     realtocplxd_vec(inoutd2, inoutd3, (complex64_t *) inoutd, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -2869,7 +2869,7 @@ for (int i = 0; i < len; i++){
     l2_err_u8(inout_u1, inout_u2, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV)
     clock_gettime(CLOCK_REALTIME, &start);
     convertFloat32ToU8_vec(inout, inout_u1, len, RndFinancial, 4);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3497,7 +3497,7 @@ for (int i = 0; i < len; i++){
     l2_errd(inoutd_ref, inoutd, len);
 #endif
 
-#if defined(RISCV) && (ELEN >= 64)
+#if (defined(RISCV) && (ELEN >= 64)) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     vectorSloped_vec(inoutd, len, 2.5, 3.0);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3602,7 +3602,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     sigmoidf_vec(inout, inout2, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3686,7 +3686,7 @@ for (int i = 0; i < len; i++){
     l2_err(inout_ref, inout2, len);
 #endif
 
-#ifdef RISCV
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     PReluf_vec(inout, inout2, 0.05f, len);
     clock_gettime(CLOCK_REALTIME, &stop);
