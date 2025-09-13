@@ -496,9 +496,9 @@ static inline void sincos_pd(V_ELT_DOUBLE x,
 	 
     /* The magic pass: "Extended precision modular arithmetic"
     x = ((x - y * DP1) - y * DP2) - y * DP3; */
-    x = VFMACC1_DOUBLE(x, minus_cephes_DP1, y, i);
-    x = VFMACC1_DOUBLE(x, minus_cephes_DP2, y, i);
-    x = VFMACC1_DOUBLE(x, minus_cephes_DP3, y, i);
+    x = VFMACC1_DOUBLE(x, minus_cephes_DP1d, y, i);
+    x = VFMACC1_DOUBLE(x, minus_cephes_DP2d, y, i);
+    x = VFMACC1_DOUBLE(x, minus_cephes_DP3d, y, i);
 	
     emm4 = VSUB1_INT64(emm4, (int64_t)2, i);
 

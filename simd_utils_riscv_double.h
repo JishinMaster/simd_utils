@@ -484,9 +484,9 @@ static inline void sincos_pd(V_ELT_DOUBLEH x,
 
     /* The magic pass: "Extended precision modular arithmetic"
     x = ((x - y * DP1) - y * DP2) - y * DP3; */
-    x = VFMACC1_DOUBLEH(x, minus_cephes_DP1, y, i);
-    x = VFMACC1_DOUBLEH(x, minus_cephes_DP2, y, i);
-    x = VFMACC1_DOUBLEH(x, minus_cephes_DP3, y, i);
+    x = VFMACC1_DOUBLEH(x, minus_cephes_DP1d, y, i);
+    x = VFMACC1_DOUBLEH(x, minus_cephes_DP2d, y, i);
+    x = VFMACC1_DOUBLEH(x, minus_cephes_DP3d, y, i);
 	//printf("x ");print_vec64h(x,i);
     /* Evaluate the first polynom  (0 <= x <= Pi/4) */
     V_ELT_DOUBLEH z = VMUL_DOUBLEH(x, x, i);
@@ -859,7 +859,7 @@ static inline V_ELT_DOUBLEH exp_pd(V_ELT_DOUBLEH x,
     x = VFMADD1_DOUBLEH(x, 2.0, one_vec, i);
 
 	/* build 2^n */
-    n = VADD1_INT64H(n, (unsigned int)1023, i);
+    n = VADD1_INT64H(n, (uint64_t)1023, i);
     n = VSLL1_INT64H(n, 52, i);
     V_ELT_DOUBLEH pow2n = VINTERP_INTH_DOUBLEH(n);
 

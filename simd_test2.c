@@ -4149,10 +4149,7 @@ int main(int argc, char **argv)
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("tanf_vec %d %lf\n", len, elapsed);
     l2_err(inout_ref, inout2, len);
-	
-	for(int i = 0; i < len; i++){
-		printf("%g %g %g\n",inout[i], inout_ref[i], inout2[i]);
-	}
+
 #endif
 
 

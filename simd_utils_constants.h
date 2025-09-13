@@ -370,9 +370,15 @@ vfnmsub.vf vd, rs1, vs2, vm
 #define MAX_ELTS64 VECTOR_LENGTH / 8
 #endif
 
-#if 1 // else in work in progress, for recent GCC and clang
 
+#if __riscv_v == 7000
 #define NO_RTZ
+#warning "RVV v0.7, NO_RTZ"
+#endif
+
+#if defined(__clang__) ||  (defined(__GNUC__) && __GNUC__ < 11)
+#warning "RVV intrinsics v0.10"
+
 #define vfcvt_rtz_x_f_v_i32m4 vfcvt_x_f_v_i32m4
 #define vfcvt_rtz_x_f_v_i32m2 vfcvt_x_f_v_i32m2
 
@@ -776,10 +782,8 @@ static inline vint64m2_t VSUB1_INT64H_MASK(vbool32_t mask, vint64m2_t op1, int64
 #endif  // ELEN >= 64
 
 
-#else // RVV >= 0.12
-
-
-
+#else
+#warning "RVV intrinsics v1.0"
 
 ///////////////////// FULL VECTOR  m4 //////////////
 #define VSETVL32 __riscv_vsetvl_e32m4
@@ -818,8 +822,14 @@ vfloat32m4_t vector, vfloat32m1_t scalar, size_t vl){
 #define VMAX1_FLOAT __riscv_vfmax_vf_f32m4
 #define VINTERP_FLOAT_INT __riscv_vreinterpret_v_f32m4_i32m4
 #define VINTERP_INT_FLOAT __riscv_vreinterpret_v_i32m4_f32m4
-#define VCVT_RTZ_FLOAT_INT __riscv_vfcvt_rtz_x_f_v_i32m4
+
 #define VCVT_FLOAT_INT __riscv_vfcvt_x_f_v_i32m4
+#ifdef NO_RTZ
+#define VCVT_RTZ_FLOAT_INT VCVT_FLOAT_INT
+#else
+#define VCVT_RTZ_FLOAT_INT __riscv_vfcvt_rtz_x_f_v_i32m4
+#endif
+
 #define VCVT_INT_FLOAT __riscv_vfcvt_f_x_v_f32m4
 static inline vfloat32m4_t VMERGE_FLOAT(vbool8_t mask, vfloat32m4_t op1,
 vfloat32m4_t op2, size_t vl){
@@ -979,8 +989,13 @@ vfloat32m2_t vector, vfloat32m1_t scalar, size_t vl){
 #define VMAX1_FLOATH __riscv_vfmax_vf_f32m2
 #define VINTERP_FLOATH_INTH __riscv_vreinterpret_v_f32m2_i32m2
 #define VINTERP_INTH_FLOATH __riscv_vreinterpret_v_i32m2_f32m2
-#define VCVT_RTZ_FLOATH_INTH __riscv_vfcvt_rtz_x_f_v_i32m2
 #define VCVT_FLOATH_INTH __riscv_vfcvt_x_f_v_i32m2
+#ifdef NO_RTZ
+#define VCVT_RTZ_FLOATH_INTH VCVT_FLOATH_INTH
+#else
+#define VCVT_RTZ_FLOATH_INTH __riscv_vfcvt_rtz_x_f_v_i32m2	
+#endif
+
 #define VCVT_INTH_FLOATH __riscv_vfcvt_f_x_v_f32m2
 static inline vfloat32m2_t VMERGE_FLOATH(vbool16_t mask, vfloat32m2_t op1,
 vfloat32m2_t op2, size_t vl){
@@ -1065,7 +1080,13 @@ vint32m2_t op2, size_t vl){
 static inline vint16m2_t VCVT_INT_SHORTH (vint32m4_t op1, size_t shift, size_t vl){
 	return __riscv_vnclip_wx_i16m2(op1, shift, __RISCV_VXRM_RNU, vl);
 }
+
+#if __riscv_v != 7000
 #define VCVT_SHORTH_INT __riscv_vsext_vf2_i32m4
+#else
+#define VCVT_SHORTH_INT(a, b)  __riscv_vwmul_vx_i32m4((a), 1, (b))
+#endif
+
 
 //// USHORTH
 #define V_ELT_USHORTH vuint16m2_t
@@ -1119,8 +1140,14 @@ static inline vuint8m1_t VCVT_USHORTH_UBYTEHH (vuint16m2_t op1, size_t shift, si
 #define VMAX1_DOUBLE __riscv_vfmax_vf_f64m4
 #define VINTERP_DOUBLE_INT __riscv_vreinterpret_v_f64m4_i64m4
 #define VINTERP_INT_DOUBLE __riscv_vreinterpret_v_i64m4_f64m4
-#define VCVT_RTZ_DOUBLE_INT __riscv_vfcvt_rtz_x_f_v_i64m4
 #define VCVT_DOUBLE_INT __riscv_vfcvt_x_f_v_i64m4
+
+#ifdef NO_RTZ
+#define VCVT_RTZ_DOUBLE_INT VCVT_DOUBLE_INT
+#else
+#define VCVT_RTZ_DOUBLE_INT __riscv_vfcvt_rtz_x_f_v_i64m4
+#endif
+
 #define VCVT_INT_DOUBLE __riscv_vfcvt_f_x_v_f64m4
 #define VABS_DOUBLE __riscv_vfabs_v_f64m4
 #define VSQRT_DOUBLE __riscv_vfsqrt_v_f64m4
@@ -1165,8 +1192,14 @@ static inline void VSTORE_DOUBLEH2(double* base, vfloat64m2_t v0, vfloat64m2_t v
 #define VMAX1_DOUBLEH __riscv_vfmax_vf_f64m2
 #define VINTERP_DOUBLEH_INTH __riscv_vreinterpret_v_f64m2_i64m2
 #define VINTERP_INTH_DOUBLEH __riscv_vreinterpret_v_i64m2_f64m2
-#define VCVT_RTZ_DOUBLEH_INTH __riscv_vfcvt_rtz_x_f_v_i64m2
+
 #define VCVT_DOUBLEH_INTH __riscv_vfcvt_x_f_v_i64m2
+#ifdef NO_RTZ
+#define VCVT_RTZ_DOUBLEH_INTH VCVT_DOUBLEH_INTH
+#else
+#define VCVT_RTZ_DOUBLEH_INTH __riscv_vfcvt_rtz_x_f_v_i64m2
+#endif
+
 #define VCVT_INTH_DOUBLEH __riscv_vfcvt_f_x_v_f64m2
 #define VABS_DOUBLEH __riscv_vfabs_v_f64m2
 #define VSQRT_DOUBLEH __riscv_vfsqrt_v_f64m2
