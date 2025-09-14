@@ -24,7 +24,7 @@ static inline void rintd_vec(double *src, double *dst, int len)
     for (; (i = VSETVL64(len)) > 0; len -= i) {
         V_ELT_DOUBLE a, b;
         a = VLOAD_DOUBLE(src_tmp, i);
-        b = VCVT_INT_DOUBLE(VCVT_DOUBLE_INT(a, i), i);
+        b = VCVT_INT_DOUBLE(VCVT_RNE_DOUBLE_INT(a, i), i);
         VSTORE_DOUBLE(dst_tmp, b, i);
         src_tmp += i;
         dst_tmp += i;
@@ -36,7 +36,17 @@ static inline void roundd_vec(double *src, double *dst, int len)
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
     _MM_SET_ROUNDING_MODE(_MM_ROUND_AWAY);
-    rintd_vec(src, dst, len);
+    size_t i;
+    double *src_tmp = src;
+    double *dst_tmp = dst;
+    for (; (i = VSETVL64(len)) > 0; len -= i) {
+        V_ELT_DOUBLE a, b;
+        a = VLOAD_DOUBLE(src_tmp, i);
+        b = VCVT_INT_DOUBLE(VCVT_RNA_DOUBLE_INT(a, i), i);
+        VSTORE_DOUBLE(dst_tmp, b, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
@@ -45,7 +55,17 @@ static inline void ceild_vec(double *src, double *dst, int len)
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
     _MM_SET_ROUNDING_MODE(_MM_ROUND_UP);
-    rintd_vec(src, dst, len);
+    size_t i;
+    double *src_tmp = src;
+    double *dst_tmp = dst;
+    for (; (i = VSETVL64(len)) > 0; len -= i) {
+        V_ELT_DOUBLE a, b;
+        a = VLOAD_DOUBLE(src_tmp, i);
+        b = VCVT_INT_DOUBLE(VCVT_RINF_DOUBLE_INT(a, i), i);
+        VSTORE_DOUBLE(dst_tmp, b, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
@@ -54,7 +74,17 @@ static inline void floord_vec(double *src, double *dst, int len)
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
     _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
-    rintd_vec(src, dst, len);
+    size_t i;
+    double *src_tmp = src;
+    double *dst_tmp = dst;
+    for (; (i = VSETVL64(len)) > 0; len -= i) {
+        V_ELT_DOUBLE a, b;
+        a = VLOAD_DOUBLE(src_tmp, i);
+        b = VCVT_INT_DOUBLE(VCVT_RMINF_DOUBLE_INT(a, i), i);
+        VSTORE_DOUBLE(dst_tmp, b, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
@@ -63,7 +93,17 @@ static inline void truncd_vec(double *src, double *dst, int len)
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
     _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-    rintd_vec(src, dst, len);
+    size_t i;
+    double *src_tmp = src;
+    double *dst_tmp = dst;
+    for (; (i = VSETVL64(len)) > 0; len -= i) {
+        V_ELT_DOUBLE a, b;
+        a = VLOAD_DOUBLE(src_tmp, i);
+        b = VCVT_INT_DOUBLE(VCVT_RTZ_DOUBLE_INT(a, i), i);
+        VSTORE_DOUBLE(dst_tmp, b, i);
+        src_tmp += i;
+        dst_tmp += i;
+    }
     _MM_SET_ROUNDING_MODE(reg_ori);
 }
 
@@ -839,8 +879,16 @@ static inline V_ELT_DOUBLEH exp_pd(V_ELT_DOUBLEH x,
      */
     px = x;
     px = VFMADD1_DOUBLEH(px, cephes_LOG2Ed, Op5_vec, i);
-    px = VCVT_INTH_DOUBLEH(VCVT_DOUBLEH_INTH(px, i), i);
-    n = VCVT_DOUBLEH_INTH(px, i);
+#ifdef NO_RTZ
+    uint32_t reg_ori;
+    reg_ori = _MM_GET_ROUNDING_MODE();
+		_MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+#endif		
+	n = VCVT_RMINF_DOUBLEH_INTH(px, i);
+#ifdef NO_RTZ
+		_MM_SET_ROUNDING_MODE(reg_ori);
+#endif	    
+	px = VCVT_INTH_DOUBLEH(n, i);
     x = VFMACC1_DOUBLEH(x, cephes_exp_minC1d, px, i);
     x = VFMACC1_DOUBLEH(x, cephes_exp_minC2d, px, i);
 
