@@ -456,6 +456,4 @@ static inline v4sf sqrt_ps(v4sf val)
 #endif
 }
 
-#pragma GCC diagnostic pop
-
 #endif  // INC_SIMD_NEON_MATHFUN_H_
