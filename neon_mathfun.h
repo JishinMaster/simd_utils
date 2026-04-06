@@ -319,7 +319,7 @@ static inline v4sf log_ps(v4sf x)
 // FMA version
 static inline v4sf exp_ps(v4sf x)
 {
-    v4sf tmp, fx;
+    v4sf fx;
 
     x = vminq_f32(x, *(v4sf *) _ps_exp_hi);
     x = vmaxq_f32(x, *(v4sf *) _ps_exp_lo);
@@ -455,7 +455,5 @@ static inline v4sf sqrt_ps(v4sf val)
     return est;
 #endif
 }
-
-#pragma GCC diagnostic pop
 
 #endif  // INC_SIMD_NEON_MATHFUN_H_
