@@ -20,6 +20,10 @@
 #endif
 #endif
 
+#ifdef MVE
+#include <arm_mve.h>
+#endif
+
 #ifdef SVE2
 #include <arm_sve.h>
 
@@ -1384,6 +1388,9 @@ static const float minus_cephes_DP3 = -3.77489497744594108e-8f;
 static const float lossth = 8192.;
 
 static const float T24M1 = 16777215.f;
+static const float c_cephes_exp_minC1 = -0.693359375f;
+static const float c_cephes_exp_minC2 = 2.12194440e-4f;
+
 
 static const float sincof[] = {-1.9515295891E-4f, 8.3321608736E-3f, -1.6666654611E-1f};
 static const float coscof[] = {2.443315711809948E-5f, -1.388731625493765E-3f,
@@ -1691,7 +1698,7 @@ static const v16u8 flip_vector = {12, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1
 
 #endif
 
-#ifdef SSE
+#if defined(SSE) || defined(MVE)
 
 #define SSE_LEN_BYTES 16  // Size of SSE lane
 #define SSE_LEN_INT16 8   // number of int16 with an SSE lane
@@ -1699,10 +1706,12 @@ static const v16u8 flip_vector = {12, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1
 #define SSE_LEN_FLOAT 4   // number of float with an SSE lane
 #define SSE_LEN_DOUBLE 2  // number of double with an SSE lane
 
+#ifdef SSE
 typedef __m128d v2sd;   // vector of 2 double (sse)
 typedef __m128i v2sid;  // vector of 2 int64 (sse2)
+#endif
 
-#ifdef ARM
+#if defined(ARM) || defined(MVE)
 
 typedef float32x4_t v4sf;      // vector of 4 float
 typedef float32x4x2_t v4sfx2;  // vector of 4 float
@@ -1757,12 +1766,14 @@ typedef struct {
 #endif  // SSE
 
 
-#if defined(SSE) || defined(ALTIVEC)
+#if defined(SSE) || defined(ALTIVEC) || defined(MVE)
 
 #define _PS_CONST(Name, Val) \
     static const ALIGN16_BEG float _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
 #define _PI32_CONST(Name, Val) \
     static const ALIGN16_BEG int _pi32_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
+#define _PU32_CONST(Name, Val) \
+    static const ALIGN16_BEG uint32_t _pu32_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
 #define _PS_CONST_TYPE(Name, Type, Val) \
     static const ALIGN16_BEG Type _ps_##Name[4] ALIGN16_END = {Val, Val, Val, Val}
 
@@ -1782,11 +1793,17 @@ _PI32_CONST(2, 2);
 _PI32_CONST(4, 4);
 _PI32_CONST(0x7e, 0x7e);
 _PI32_CONST(0x7f, 0x7f);
+_PI32_CONST(0xFFFFFFFF, 0xFFFFFFFF);
+_PU32_CONST(0, 0);
+_PU32_CONST(2, 2);
+_PU32_CONST(4, 4);
+_PU32_CONST(inv1, ~1);
 
 /////////////// SINGLE //////////////////
 _PS_CONST(0, 0.0f);
 _PS_CONST(min0, -0.0f);
 _PS_CONST(1, 1.0f);
+_PS_CONST(1p5, 1.5f);
 _PS_CONST(0p3, 0.333333333333f);
 _PS_CONST(min0p3, -0.333333333333f);
 _PS_CONST(0p5, 0.5f);

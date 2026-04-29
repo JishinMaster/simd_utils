@@ -1061,6 +1061,9 @@ static inline void _MM_SET_ROUNDING_MODE(uint32_t mode)
 #include "simd_utils_sve_float.h"
 #endif /* SVE2 */
 
+#ifdef MVE /* MVE */
+#include "simd_utils_helium_float.h"
+#endif /* MVE */
 
 #ifdef ALTIVEC
 #include <altivec.h>

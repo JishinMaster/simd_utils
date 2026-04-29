@@ -1,8 +1,11 @@
-#define SSE_LEN_FLOAT 4
-#define SSE_LEN_BYTES 16
-typedef float32x4_t v4sf;
-typedef float32x4x2_t v4sfx2;
-typedef int32x4_t v4si;
+/*
+ * Project : SIMD_Utils
+ * Version : 0.2.6
+ * Author  : JishinMaster
+ * Licence : BSD-2
+ */
+
+#pragma once
 
 static inline void add128f(float *a, float *b, float *c, int len)
 {

@@ -41,12 +41,13 @@ The project has been tested on :
 - Intel Skylake Core-i7
 - Intel Cannonlake Core-i7
 - Intel SDE (emulator) for AVX-512
-- Qemu 8.X (emulator) )for arm/aarch64, ppc and riscv
+- Qemu 10.X (emulator) )for arm/aarch64, ppc and riscv
 - Cortex-a53 (Raspberry Pi 3B)
 - Cortex-a9 (ZYBO)
 - PowerPC G5 (iMac G5)
 - PowerPC G4 (Macbook G4)
 - RISCV Ox64 (C906 core)
+- RISCV OrangePI RV2 (Ky X1 core)
 - Cortex-m55 (stm32n657)
 
 ## Building
@@ -62,7 +63,8 @@ Simply include simd_utils.h in your C/C++ file, and compile with :
 - ARM V8 NEON support : aarch64-linux-gnu-gcc -DARM -DFMA -DSSE -flax-vector-conversions -c file.c -I .
 - RISCV support : riscv64-unknown-linux-gnu-gcc -DRISCV -march=rv64gcv -c file.c-I .
 - ALTIVEC support : powerpc64-linux-gnu-gcc -DALTIVEC -DFMA -maltivec -flax-vector-conversions -c file.c -I .
-- SVE2 support :  aarch64-linux-gnu-gcc -DSVE2 -DFMA -flax-vector-conversions -c file.c -I .
+- ARM SVE2 support : aarch64-linux-gnu-gcc -DSVE2 -DFMA -flax-vector-conversions -c file.c -I .
+- ARM MVE support :  arm-none-eabi-gcc -mcpu=cortex-m55 -mtune=cortex-m55 -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb  -flax-vector-conversions -c file.c -I .
 
 For FMA support you need to add -DFMA and -mfma to x86 targets, and -DFMA to Armv8 targets.
 For ARMV7 targets, you could also add -DSSE2NEON_PRECISE_SQRT for improved accuracy with sqrt and rsqrt
@@ -86,7 +88,7 @@ Altivec implemented functions are indicated with "(a)".
 
 The following table is a work in progress, "?" means there is not yet an implemented function (or a directly equivalent Intel IPP function) :
 
-| SSE/NEON/ALTIVEC (X=128), AVX (X=256), AVX512 (X=512) |           C_REF             |              IPP_REF           |            RISCV              |
+| SSE/NEON/ALTIVEC (X=128), AVX (X=256), AVX512 (X=512) |           C_REF             |              IPP_REF           |            RISCV/ARM SVE2     |
 |-------------------------------------------------------|-----------------------------|--------------------------------|-------------------------------|
 |                                                       |                             |                                |                               |
 | log10Xf/precise (a)                                   | log10f_C                    | ippsLog10_32f_A24              | log10f_vec                    |
