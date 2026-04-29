@@ -28,116 +28,118 @@
 #define MAX_ELTS64 128
 
 #define V_ELT_FLOAT svfloat32_t
-#define VLOAD_FLOAT(a,b) svld1_f32((b),(a))
-#define VLOAD_INT(a,b) svld1_s32((b),(a))
-#define VLOAD_UINT(a,b) svld1_u32((b),(a))
-#define VLOAD1_FLOAT(a,b) svdup_n_f32((a))
-#define VSTORE_FLOAT(a,b,c) svst1_f32((c),(a),(b))
-#define VSTORE_INT(a,b,c) svst1_s32((c),(a),(b))
+#define VLOAD_FLOAT(a, b) svld1_f32((b), (a))
+#define VLOAD_INT(a, b) svld1_s32((b), (a))
+#define VLOAD_UINT(a, b) svld1_u32((b), (a))
+#define VLOAD1_FLOAT(a, b) svdup_n_f32((a))
+#define VSTORE_FLOAT(a, b, c) svst1_f32((c), (a), (b))
+#define VSTORE_INT(a, b, c) svst1_s32((c), (a), (b))
 #define V_ELT_INT svint32_t
 #define V_ELT_UINT svuint32_t
 #define VINTERP_INT_FLOAT svreinterpret_f32_s32
 #define VINTERP_FLOAT_INT svreinterpret_s32_f32
-#define VAND1_INT(a,b,c) svand_n_u32_z((c),(a),(b))
-#define VMUL1_FLOAT(a,b,c) svmul_n_f32_z((c),(a),(b))
-#define VDIV1_FLOAT(a,b,c) svdiv_n_f32_z((c),(a),(b))
-#define VMUL1_FLOAT_MASK(a,b,c,d) svmul_n_f32_m((a),(b),(c))
-#define VMUL_FLOAT(a,b,c) svmul_f32_z((c),(a),(b))
-#define VDIV_FLOAT(a,b,c) svdiv_f32_z((c),(a),(b))
-#define VADD1_FLOAT(a,b,c) svadd_n_f32_z((c),(a),(b))
-#define VADD1_FLOAT_MASK(a,b,c,d) svadd_n_f32_m((a),(b),(c))
-#define VADD1_INT(a,b,c) svadd_n_s32_z((c),(a),(b))
-#define VADD1_INT_MASK(a,b,c,d) svadd_n_s32_m((a),(b),(c))
-#define VSUB1_INT_MASK(a,b,c,d) svsub_n_s32_m((a),(b),(c))
-#define VADD_FLOAT(a,b,c) svadd_f32_z((c),(a),(b))
-#define VSUB_FLOAT(a,b,c) svsub_f32_z((c),(a),(b))
-#define VSUB1_FLOAT(a,b,c) svsub_n_f32_z((c),(a),(b))
-#define VSUB1_INT(a,b,c) svsub_n_s32_z((c),(a),(b))
-#define VSLL1_INT(a,b,c) svlsl_n_s32_z((c),(a),(b))
-#define VCVT_INT_FLOAT(a,b) svcvt_f32_s32_z((b),(a))
-#define VCVT_FLOAT_INT(a,b) svcvt_s32_f32_z((b),(a))
+#define VAND1_INT(a, b, c) svand_n_u32_z((c), (a), (b))
+#define VMUL1_FLOAT(a, b, c) svmul_n_f32_z((c), (a), (b))
+#define VDIV1_FLOAT(a, b, c) svdiv_n_f32_z((c), (a), (b))
+#define VMUL1_FLOAT_MASK(a, b, c, d) svmul_n_f32_m((a), (b), (c))
+#define VMUL_FLOAT(a, b, c) svmul_f32_z((c), (a), (b))
+#define VDIV_FLOAT(a, b, c) svdiv_f32_z((c), (a), (b))
+#define VADD1_FLOAT(a, b, c) svadd_n_f32_z((c), (a), (b))
+#define VADD1_FLOAT_MASK(a, b, c, d) svadd_n_f32_m((a), (b), (c))
+#define VADD1_INT(a, b, c) svadd_n_s32_z((c), (a), (b))
+#define VADD1_INT_MASK(a, b, c, d) svadd_n_s32_m((a), (b), (c))
+#define VSUB1_INT_MASK(a, b, c, d) svsub_n_s32_m((a), (b), (c))
+#define VADD_FLOAT(a, b, c) svadd_f32_z((c), (a), (b))
+#define VSUB_FLOAT(a, b, c) svsub_f32_z((c), (a), (b))
+#define VSUB1_FLOAT(a, b, c) svsub_n_f32_z((c), (a), (b))
+#define VSUB1_INT(a, b, c) svsub_n_s32_z((c), (a), (b))
+#define VSLL1_INT(a, b, c) svlsl_n_s32_z((c), (a), (b))
+#define VCVT_INT_FLOAT(a, b) svcvt_f32_s32_z((b), (a))
+#define VCVT_FLOAT_INT(a, b) svcvt_s32_f32_z((b), (a))
 #define VCVT_RTZ_FLOAT_INT VCVT_FLOAT_INT
 // x current exact, a nearest away from zero, i current mode inexact, m mininf,
 // n nearest even, p plusinf
-#define VR_FLOAT(a,b) svrintx_f32_z((b),(a))
-#define VRTZ_FLOAT(a,b) svrintz_f32_z((b),(a))
-#define VRNE_FLOAT(a,b) svrintn_f32_z((b),(a))
-#define VRMINF_FLOAT(a,b) svrintm_f32_z((b),(a))
-#define VRINF_FLOAT(a,b) svrintp_f32_z((b),(a))
-#define VRNA_FLOAT(a,b) svrinta_f32_z((b),(a))
+#define VR_FLOAT(a, b) svrintx_f32_z((b), (a))
+#define VRTZ_FLOAT(a, b) svrintz_f32_z((b), (a))
+#define VRNE_FLOAT(a, b) svrintn_f32_z((b), (a))
+#define VRMINF_FLOAT(a, b) svrintm_f32_z((b), (a))
+#define VRINF_FLOAT(a, b) svrintp_f32_z((b), (a))
+#define VRNA_FLOAT(a, b) svrinta_f32_z((b), (a))
 
 #define V_ELT_BOOL32 svbool_t
-#define VEQ1_INT_BOOL(a,b,c) svcmpeq_n_s32((c),(a),(b))
-#define VGT1_FLOAT_BOOL(a,b,c) svcmpgt_n_f32((c),(a),(b))
-#define VGE1_FLOAT_BOOL(a,b,c) svcmpge_n_f32((c),(a),(b))
-#define VLT1_FLOAT_BOOL(a,b,c) svcmplt_n_f32((c),(a),(b))
-#define VLE1_FLOAT_BOOL(a,b,c) svcmple_n_f32((c),(a),(b))
-#define VEQ1_FLOAT_BOOL(a,b,c) svcmpeq_n_f32((c),(a),(b))
-//#define VFMACC1_FLOAT(a,b,c,d) svmad_n_f32_m((d),(b),(c),(a)) // op3 + op1[i]*op2[i]
-#define VFMASQ1_FLOAT(a,b,c,d) svmad_n_f32_x((d),(a),(b),(c)) 
-#define VFMACC1_FLOAT(a,b,c,d) svmla_n_f32_z((d),(a),(c),(b)) // op1[i] + op2[i] * op3
-#define VFMACC_FLOAT(a,b,c,d) svmla_f32_z((d),(a),(c),(b)) // op1[i] + op2[i] * op3[i]
-#define VFMADD1_FLOAT(a,b,c,d) svmla_n_f32_z((d),(c),(a),(b)) //  op1[i] + op2[i] * op3
+#define VEQ1_INT_BOOL(a, b, c) svcmpeq_n_s32((c), (a), (b))
+#define VGT1_FLOAT_BOOL(a, b, c) svcmpgt_n_f32((c), (a), (b))
+#define VGE1_FLOAT_BOOL(a, b, c) svcmpge_n_f32((c), (a), (b))
+#define VLT1_FLOAT_BOOL(a, b, c) svcmplt_n_f32((c), (a), (b))
+#define VLE1_FLOAT_BOOL(a, b, c) svcmple_n_f32((c), (a), (b))
+#define VEQ1_FLOAT_BOOL(a, b, c) svcmpeq_n_f32((c), (a), (b))
+// #define VFMACC1_FLOAT(a,b,c,d) svmad_n_f32_m((d),(b),(c),(a)) // op3 + op1[i]*op2[i]
+#define VFMASQ1_FLOAT(a, b, c, d) svmad_n_f32_x((d), (a), (b), (c))
+#define VFMACC1_FLOAT(a, b, c, d) svmla_n_f32_z((d), (a), (c), (b))  // op1[i] + op2[i] * op3
+#define VFMACC_FLOAT(a, b, c, d) svmla_f32_z((d), (a), (c), (b))     // op1[i] + op2[i] * op3[i]
+#define VFMADD1_FLOAT(a, b, c, d) svmla_n_f32_z((d), (c), (a), (b))  //  op1[i] + op2[i] * op3
 
-//SVE2 computes a - b*c where riscv does b*c - a! 
-#define VFMSUB_FLOAT(a,b,c,d) svmls_f32_z((d),(c),(a),(b)) //  op1[i] - op2[i] * op3[i]
+// SVE2 computes a - b*c where riscv does b*c - a!
+#define VFMSUB_FLOAT(a, b, c, d) svmls_f32_z((d), (c), (a), (b))  //  op1[i] - op2[i] * op3[i]
 
-#define VFMADD_FLOAT(a,b,c,d) svmad_f32_z((d),(a),(b),(c)) // op1[i] * op2[i] + op3[i]
-#define VMERGE_FLOAT(mask, t, f, i) svsel_f32((mask), (f), (t))     /* select */
-#define VMERGE1_FLOAT(mask, v, f, i) svsel_f32((mask), svdup_n_f32((float)(f)),(v))
-#define VXOR_INT(a,b,c)  sveor_s32_m((c),(a),(b))
-#define VOR_INT(a,b,c)  svorr_s32_m((c),(a),(b))
-#define VOR1_INT(a,b,c)  svorr_n_s32_z((c),(a),(b))
-#define VNOT_INT(a,b)  svnot_s32_z((b),(a))
-#define VXOR1_INT(a,b,c)  sveor_n_s32_z((c),(a),(b))
+#define VFMADD_FLOAT(a, b, c, d) svmad_f32_z((d), (a), (b), (c))  // op1[i] * op2[i] + op3[i]
+#define VMERGE_FLOAT(mask, t, f, i) svsel_f32((mask), (f), (t))   /* select */
+#define VMERGE1_FLOAT(mask, v, f, i) svsel_f32((mask), svdup_n_f32((float) (f)), (v))
+#define VXOR_INT(a, b, c) sveor_s32_m((c), (a), (b))
+#define VOR_INT(a, b, c) svorr_s32_m((c), (a), (b))
+#define VOR1_INT(a, b, c) svorr_n_s32_z((c), (a), (b))
+#define VNOT_INT(a, b) svnot_s32_z((b), (a))
+#define VXOR1_INT(a, b, c) sveor_n_s32_z((c), (a), (b))
 #define VCLEAR_BOOL(a) svpfalse_b()
 
-#define VXOR_BOOL(a,b,c)  sveor_b_z((c),(a),(b))
-#define VOR_BOOL(a,b,c)  svorr_b_z((c),(a),(b))
-#define VAND_BOOL(a,b,c)  svand_b_z((c),(a),(b))
-#define VOR_BOOL(a,b,c)  svorr_b_z((c),(a),(b))
-#define VNOT_BOOL(a,b)  svnot_b_z((b),(a))
-#define VGT1_INT_BOOL(a,b,c) svcmpgt_n_s32((c),(a),(b))
-#define VNE1_INT_BOOL(a,b,c) svcmpne_n_s32((c),(a),(b))
+#define VXOR_BOOL(a, b, c) sveor_b_z((c), (a), (b))
+#define VOR_BOOL(a, b, c) svorr_b_z((c), (a), (b))
+#define VAND_BOOL(a, b, c) svand_b_z((c), (a), (b))
+#define VOR_BOOL(a, b, c) svorr_b_z((c), (a), (b))
+#define VNOT_BOOL(a, b) svnot_b_z((b), (a))
+#define VGT1_INT_BOOL(a, b, c) svcmpgt_n_s32((c), (a), (b))
+#define VNE1_INT_BOOL(a, b, c) svcmpne_n_s32((c), (a), (b))
 
-#define VRDIV1_FLOAT(a,b,c) svdivr_n_f32_z((c),(a),(b))
-#define VRSUB1_FLOAT(a,b,c) svsubr_n_f32_z((c),(a),(b))
+#define VRDIV1_FLOAT(a, b, c) svdivr_n_f32_z((c), (a), (b))
+#define VRSUB1_FLOAT(a, b, c) svsubr_n_f32_z((c), (a), (b))
 
 #define V_ELT_FLOAT2 svfloat32x2_t
-#define VSTORE_FLOAT2SPLIT(a,b,c,d) svst2_f32((d),(float*)(a),(V_ELT_FLOAT2){b,c})
-#define VSTORE_FLOAT2(a,b,c) svst2_f32((c),(float*)(a),(b))
-#define VLOAD_FLOAT2(a,b) svld2_f32((b),(float*)(a))
+#define VSTORE_FLOAT2SPLIT(a, b, c, d) svst2_f32((d), (float *) (a), (V_ELT_FLOAT2) {b, c})
+#define VSTORE_FLOAT2(a, b, c) svst2_f32((c), (float *) (a), (b))
+#define VLOAD_FLOAT2(a, b) svld2_f32((b), (float *) (a))
 
-#define VREDSUM_FLOAT(a,b)  svaddv_f32((b),(a))
-#define VREDSUMORD_FLOAT(a,b,c)  svadda_f32((c),(a),(b))
-#define VSQRT_FLOAT(a,b) svsqrt_f32_z((b),(a))
-#define VMAX_FLOAT(a,b,c) svmax_f32_z((c),(a),(b))
-#define VMIN_FLOAT(a,b,c) svmin_f32_z((c),(a),(b))
-#define VMAX1_FLOAT(a,b,c) svmax_n_f32_z((c),(a),(b))
-#define VMIN1_FLOAT(a,b,c) svmin_n_f32_z((c),(a),(b))
-#define VREDMAX_FLOAT(a,b) svmaxv_f32((b),(a))
-#define VREDMIN_FLOAT(a,b) svminv_f32((b),(a))
-#define VABS_FLOAT(a,b) svabs_f32_z((b),(a))
-#define VSRA1_INT(a,b,c) svasr_n_s32_z((c),(a),(b))
+#define VREDSUM_FLOAT(a, b) svaddv_f32((b), (a))
+#define VREDSUMORD_FLOAT(a, b, c) svadda_f32((c), (a), (b))
+#define VSQRT_FLOAT(a, b) svsqrt_f32_z((b), (a))
+#define VMAX_FLOAT(a, b, c) svmax_f32_z((c), (a), (b))
+#define VMIN_FLOAT(a, b, c) svmin_f32_z((c), (a), (b))
+#define VMAX1_FLOAT(a, b, c) svmax_n_f32_z((c), (a), (b))
+#define VMIN1_FLOAT(a, b, c) svmin_n_f32_z((c), (a), (b))
+#define VREDMAX_FLOAT(a, b) svmaxv_f32((b), (a))
+#define VREDMIN_FLOAT(a, b) svminv_f32((b), (a))
+#define VABS_FLOAT(a, b) svabs_f32_z((b), (a))
+#define VSRA1_INT(a, b, c) svasr_n_s32_z((c), (a), (b))
 
-#define VGATHER_FLOAT(a,b,c) svld1_gather_s32offset_f32((c),(a),(b))
+#define VGATHER_FLOAT(a, b, c) svld1_gather_s32offset_f32((c), (a), (b))
 
-//converts only to even index! svcvtlt for odd
-// needs zip1 zip2 to interleave properly
-#define VCVT_DOUBLE_FLOAT(a,b) svcvt_f32_f64_z((b),(a))
-#define VCVT_FLOAT_DOUBLE(a,b) svcvt_f64_f32_z((b),(a))
+// converts only to even index! svcvtlt for odd
+//  needs zip1 zip2 to interleave properly
+#define VCVT_DOUBLE_FLOAT(a, b) svcvt_f32_f64_z((b), (a))
+#define VCVT_FLOAT_DOUBLE(a, b) svcvt_f64_f32_z((b), (a))
 // returns dst = dst  + a*b
-static inline V_ELT_FLOAT VMUL_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i){
-	dst = svcmla_f32_z(i,dst,a,b,0);
-	dst = svcmla_f32_z(i,dst,a,b,90);
-	return dst;
+static inline V_ELT_FLOAT VMUL_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i)
+{
+    dst = svcmla_f32_z(i, dst, a, b, 0);
+    dst = svcmla_f32_z(i, dst, a, b, 90);
+    return dst;
 }
 
-//returns dst = dst + conj(a)*b
-static inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i){
-	dst = svcmla_f32_z(i,dst,a,b,0);
-	dst = svcmla_f32_z(i,dst,a,b,270);
-	return dst;
+// returns dst = dst + conj(a)*b
+static inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT_FLOAT b, V_ELT_BOOL32 i)
+{
+    dst = svcmla_f32_z(i, dst, a, b, 0);
+    dst = svcmla_f32_z(i, dst, a, b, 270);
+    return dst;
 }
 
 /// 16 bits
@@ -145,143 +147,145 @@ static inline V_ELT_FLOAT VMULCONJA_CFLOAT(V_ELT_FLOAT dst, V_ELT_FLOAT a, V_ELT
 #define V_ELT_BOOL16 svbool_t
 #define V_ELT_SHORT svint16_t
 #define V_ELT_USHORT svuint16_t
-#define VCVT_SHORT_FLOAT16(a,b) svcvt_f16_s16_z((b),(a))
-#define VCVT_USHORT_FLOAT16(a,b) svcvt_f16_u16_z((b),(a))
+#define VCVT_SHORT_FLOAT16(a, b) svcvt_f16_s16_z((b), (a))
+#define VCVT_USHORT_FLOAT16(a, b) svcvt_f16_u16_z((b), (a))
 #define VCVT_SHORT_INT_LOW(a) svunpklo_s32((a))
 #define VCVT_SHORT_INT_HIGH(a) svunpkhi_s32((a))
-#define VLOAD_SHORT(a,b) svld1_s16((b),(a))
-#define VCVT_FLOAT16_SHORT(a,b) svcvt_s16_f16_z((b),(a))
-#define VCVT_FLOAT16_USHORT(a,b) svcvt_u16_f16_z((b),(a))
-#define VCVT_FLOAT16_UBYTE(a,b) svcvt_u8_f16_z((b),(a))
-#define VCVT_FLOAT16_FLOAT(a,b) svcvt_f32_f16_z((b),(a))
-#define VMUL1_FLOAT16(a,b,c) svmul_n_f16_z((c),(a),(b))
-#define VSTORE_SHORT(a,b,c) svst1_s16((c),(a),(b))
-#define VSTORE_USHORT(a,b,c) svst1_u16((c),(a),(b))
-#define VSTORE_UBYTE(a,b,c) svst1_u8((c),(a),(b))
+#define VLOAD_SHORT(a, b) svld1_s16((b), (a))
+#define VCVT_FLOAT16_SHORT(a, b) svcvt_s16_f16_z((b), (a))
+#define VCVT_FLOAT16_USHORT(a, b) svcvt_u16_f16_z((b), (a))
+#define VCVT_FLOAT16_UBYTE(a, b) svcvt_u8_f16_z((b), (a))
+#define VCVT_FLOAT16_FLOAT(a, b) svcvt_f32_f16_z((b), (a))
+#define VMUL1_FLOAT16(a, b, c) svmul_n_f16_z((c), (a), (b))
+#define VSTORE_SHORT(a, b, c) svst1_s16((c), (a), (b))
+#define VSTORE_USHORT(a, b, c) svst1_u16((c), (a), (b))
+#define VSTORE_UBYTE(a, b, c) svst1_u8((c), (a), (b))
 
 ///////////64bits
 #define V_ELT_DOUBLE svfloat64_t
-#define VLOAD_DOUBLE(a,b) svld1_f64((b),(a))
-#define VLOAD_INT64(a,b) svld1_s64((b),(a))
-#define VLOAD_UINT64(a,b) svld1_u64((b),(a))
-#define VLOAD1_DOUBLE(a,b) svdup_n_f64((a))
-#define VLOAD1_INT64(a,b) svdup_n_s64((a))
-#define VSTORE_DOUBLE(a,b,c) svst1_f64((c),(a),(b))
-#define VSTORE_INT64(a,b,c) svst1_s64((c),(a),(b))
+#define VLOAD_DOUBLE(a, b) svld1_f64((b), (a))
+#define VLOAD_INT64(a, b) svld1_s64((b), (a))
+#define VLOAD_UINT64(a, b) svld1_u64((b), (a))
+#define VLOAD1_DOUBLE(a, b) svdup_n_f64((a))
+#define VLOAD1_INT64(a, b) svdup_n_s64((a))
+#define VSTORE_DOUBLE(a, b, c) svst1_f64((c), (a), (b))
+#define VSTORE_INT64(a, b, c) svst1_s64((c), (a), (b))
 #define V_ELT_INT64 svint64_t
 #define V_ELT_UINT64 svuint64_t
 #define VINTERP_INT64_DOUBLE svreinterpret_f64_s64
 #define VINTERP_DOUBLE_INT64 svreinterpret_s64_f64
-#define VAND1_INT64(a,b,c) svand_n_u64_z((c),(a),(b))
-#define VMUL1_DOUBLE(a,b,c) svmul_n_f64_z((c),(a),(b))
-#define VMUL1_DOUBLE_MASK(a,b,c,d) svmul_n_f64_m((a),(b),(c))
-#define VMUL_DOUBLE(a,b,c) svmul_f64_z((c),(a),(b))
-#define VDIV_DOUBLE(a,b,c) svdiv_f64_z((c),(a),(b))
-#define VADD1_DOUBLE(a,b,c) svadd_n_f64_z((c),(a),(b))
-#define VADD1_DOUBLE_MASK(a,b,c,d) svadd_n_f64_m((a),(b),(c))
-#define VADD1_INT64(a,b,c) svadd_n_s64_z((c),(a),(b))
-#define VADD1_INT64_MASK(a,b,c,d) svadd_n_s64_m((a),(b),(c))
-#define VSUB1_INT64_MASK(a,b,c,d) svsub_n_s64_m((a),(b),(c))
-#define VADD_DOUBLE(a,b,c) svadd_f64_z((c),(a),(b))
-#define VSUB_DOUBLE(a,b,c) svsub_f64_z((c),(a),(b))
-#define VSUB1_DOUBLE(a,b,c) svsub_n_f64_z((c),(a),(b))
-#define VSUB1_INT64(a,b,c) svsub_n_s64_z((c),(a),(b))
-#define VSLL1_INT64(a,b,c) svlsl_n_s64_z((c),(a),(b))
-#define VCVT_INT64_DOUBLE(a,b) svcvt_f64_s64_z((b),(a))
-#define VCVT_DOUBLE_INT64(a,b) svcvt_s64_f64_z((b),(a))
+#define VAND1_INT64(a, b, c) svand_n_u64_z((c), (a), (b))
+#define VMUL1_DOUBLE(a, b, c) svmul_n_f64_z((c), (a), (b))
+#define VMUL1_DOUBLE_MASK(a, b, c, d) svmul_n_f64_m((a), (b), (c))
+#define VMUL_DOUBLE(a, b, c) svmul_f64_z((c), (a), (b))
+#define VDIV_DOUBLE(a, b, c) svdiv_f64_z((c), (a), (b))
+#define VADD1_DOUBLE(a, b, c) svadd_n_f64_z((c), (a), (b))
+#define VADD1_DOUBLE_MASK(a, b, c, d) svadd_n_f64_m((a), (b), (c))
+#define VADD1_INT64(a, b, c) svadd_n_s64_z((c), (a), (b))
+#define VADD1_INT64_MASK(a, b, c, d) svadd_n_s64_m((a), (b), (c))
+#define VSUB1_INT64_MASK(a, b, c, d) svsub_n_s64_m((a), (b), (c))
+#define VADD_DOUBLE(a, b, c) svadd_f64_z((c), (a), (b))
+#define VSUB_DOUBLE(a, b, c) svsub_f64_z((c), (a), (b))
+#define VSUB1_DOUBLE(a, b, c) svsub_n_f64_z((c), (a), (b))
+#define VSUB1_INT64(a, b, c) svsub_n_s64_z((c), (a), (b))
+#define VSLL1_INT64(a, b, c) svlsl_n_s64_z((c), (a), (b))
+#define VCVT_INT64_DOUBLE(a, b) svcvt_f64_s64_z((b), (a))
+#define VCVT_DOUBLE_INT64(a, b) svcvt_s64_f64_z((b), (a))
 #define VCVT_RTZ_DOUBLE_INT64 VCVT_DOUBLE_INT64
-#define VGT1_INT64_BOOL(a,b,c) svcmpgt_n_s64((c),(a),(b))
-#define VNE1_INT64_BOOL(a,b,c) svcmpne_n_s64((c),(a),(b))
-#define VSLL1_INT64(a,b,c) svlsl_n_s64_z((c),(a),(b))
+#define VGT1_INT64_BOOL(a, b, c) svcmpgt_n_s64((c), (a), (b))
+#define VNE1_INT64_BOOL(a, b, c) svcmpne_n_s64((c), (a), (b))
+#define VSLL1_INT64(a, b, c) svlsl_n_s64_z((c), (a), (b))
 
 #warning "SSE andnot => ( not a) and b, vbic => a & (not b)"
-#define VANDNOT1_INT64(a,b,c) svbic_n_s64_z((c),(a),(b))
-#define VANDNOT_INT64(a,b,c) svbic_s64_z((c),(b),(a)) //equivalent to andnot
+#define VANDNOT1_INT64(a, b, c) svbic_n_s64_z((c), (a), (b))
+#define VANDNOT_INT64(a, b, c) svbic_s64_z((c), (b), (a))  // equivalent to andnot
 
 // x current exact, a nearest away from zero, i current mode inexact, m mininf,
 // n nearest even, p plusinf
-#define VR_DOUBLE(a,b) svrintx_f64_z((b),(a))
-#define VRTZ_DOUBLE(a,b) svrintz_f64_z((b),(a))
-#define VRNE_DOUBLE(a,b) svrintn_f64_z((b),(a))
-#define VRMINF_DOUBLE(a,b) svrintm_f64_z((b),(a))
-#define VRINF_DOUBLE(a,b) svrintp_f64_z((b),(a))
-#define VRNA_DOUBLE(a,b) svrinta_f64_z((b),(a))
+#define VR_DOUBLE(a, b) svrintx_f64_z((b), (a))
+#define VRTZ_DOUBLE(a, b) svrintz_f64_z((b), (a))
+#define VRNE_DOUBLE(a, b) svrintn_f64_z((b), (a))
+#define VRMINF_DOUBLE(a, b) svrintm_f64_z((b), (a))
+#define VRINF_DOUBLE(a, b) svrintp_f64_z((b), (a))
+#define VRNA_DOUBLE(a, b) svrinta_f64_z((b), (a))
 
 #define V_ELT_BOOL64 svbool_t
-#define VEQ1_INT64_BOOL(a,b,c) svcmpeq_n_s64((c),(a),(b))
-#define VGT1_DOUBLE_BOOL(a,b,c) svcmpgt_n_f64((c),(a),(b))
-#define VGE1_DOUBLE_BOOL(a,b,c) svcmpge_n_f64((c),(a),(b))
-#define VLT1_DOUBLE_BOOL(a,b,c) svcmplt_n_f64((c),(a),(b))
-#define VLE1_DOUBLE_BOOL(a,b,c) svcmple_n_f64((c),(a),(b))
-#define VEQ1_DOUBLE_BOOL(a,b,c) svcmpeq_n_f64((c),(a),(b))
+#define VEQ1_INT64_BOOL(a, b, c) svcmpeq_n_s64((c), (a), (b))
+#define VGT1_DOUBLE_BOOL(a, b, c) svcmpgt_n_f64((c), (a), (b))
+#define VGE1_DOUBLE_BOOL(a, b, c) svcmpge_n_f64((c), (a), (b))
+#define VLT1_DOUBLE_BOOL(a, b, c) svcmplt_n_f64((c), (a), (b))
+#define VLE1_DOUBLE_BOOL(a, b, c) svcmple_n_f64((c), (a), (b))
+#define VEQ1_DOUBLE_BOOL(a, b, c) svcmpeq_n_f64((c), (a), (b))
 
 //(svbool_t pg, svfloat64_t op1, svfloat64_t op2, float64_t op3) //op3 + op1[i]*op2[i]
-#define VFMASQ1_DOUBLE(a,b,c,d) svmad_n_f64_x((d),(a),(b),(c)) 
-#define VFMACC1_DOUBLE(a,b,c,d) svmla_n_f64_z((d),(a),(c),(b)) // op1[i] + op2[i] * op3
-#define VFMACC_DOUBLE(a,b,c,d) svmla_f64_z((d),(a),(c),(b)) // op1[i] + op2[i] * op3[i]
-#define VFMADD1_DOUBLE(a,b,c,d) svmla_n_f64_z((d),(c),(a),(b)) //  op1[i] + op2[i] * op3
+#define VFMASQ1_DOUBLE(a, b, c, d) svmad_n_f64_x((d), (a), (b), (c))
+#define VFMACC1_DOUBLE(a, b, c, d) svmla_n_f64_z((d), (a), (c), (b))  // op1[i] + op2[i] * op3
+#define VFMACC_DOUBLE(a, b, c, d) svmla_f64_z((d), (a), (c), (b))     // op1[i] + op2[i] * op3[i]
+#define VFMADD1_DOUBLE(a, b, c, d) svmla_n_f64_z((d), (c), (a), (b))  //  op1[i] + op2[i] * op3
 
-//SVE2 computes a - b*c where riscv does b*c - a! 
-#define VFMSUB_DOUBLE(a,b,c,d) svmls_f64_z((d),(c),(a),(b)) //  op1[i] - op2[i] * op3[i]
+// SVE2 computes a - b*c where riscv does b*c - a!
+#define VFMSUB_DOUBLE(a, b, c, d) svmls_f64_z((d), (c), (a), (b))  //  op1[i] - op2[i] * op3[i]
 
-#define VFMADD_DOUBLE(a,b,c,d) svmad_f64_z((d),(a),(b),(c)) // op1[i] * op2[i] + op3[i]
-#define VMERGE_DOUBLE(mask, t, f, i) svsel_f64((mask), (f), (t))     /* select */
-#define VMERGE1_DOUBLE(mask, v, f, i) svsel_f64((mask), svdup_n_f64((float)(f)),(v))
-#define VOR_INT64(a,b,c)  svorr_s64_m((c),(a),(b))
-#define VOR1_INT64(a,b,c)  svorr_n_s64_z((c),(a),(b))
-#define VNOT_INT64(a,b)  svnot_s64_z((b),(a))
-#define VXOR_INT64(a,b,c)  sveor_s64_z((c),(a),(b))
-//#define VXOR_DOUBLE(a,b,c)  sveor_f64((c),(a),(b))
-#define VXOR1_INT64(a,b,c)  sveor_n_s64_z((c),(a),(b))
+#define VFMADD_DOUBLE(a, b, c, d) svmad_f64_z((d), (a), (b), (c))  // op1[i] * op2[i] + op3[i]
+#define VMERGE_DOUBLE(mask, t, f, i) svsel_f64((mask), (f), (t))   /* select */
+#define VMERGE1_DOUBLE(mask, v, f, i) svsel_f64((mask), svdup_n_f64((float) (f)), (v))
+#define VOR_INT64(a, b, c) svorr_s64_m((c), (a), (b))
+#define VOR1_INT64(a, b, c) svorr_n_s64_z((c), (a), (b))
+#define VNOT_INT64(a, b) svnot_s64_z((b), (a))
+#define VXOR_INT64(a, b, c) sveor_s64_z((c), (a), (b))
+// #define VXOR_DOUBLE(a,b,c)  sveor_f64((c),(a),(b))
+#define VXOR1_INT64(a, b, c) sveor_n_s64_z((c), (a), (b))
 #define VCLEAR_BOOL(a) svpfalse_b()
 
-#define VXOR_BOOL(a,b,c)  sveor_b_z((c),(a),(b))
-#define VOR_BOOL(a,b,c)  svorr_b_z((c),(a),(b))
-#define VAND_BOOL(a,b,c)  svand_b_z((c),(a),(b))
-#define VOR_BOOL(a,b,c)  svorr_b_z((c),(a),(b))
-#define VNOT_BOOL(a,b)  svnot_b_z((b),(a))
-#define VGT1_INT64_BOOL(a,b,c) svcmpgt_n_s64((c),(a),(b))
-#define VNE1_INT64_BOOL(a,b,c) svcmpne_n_s64((c),(a),(b))
+#define VXOR_BOOL(a, b, c) sveor_b_z((c), (a), (b))
+#define VOR_BOOL(a, b, c) svorr_b_z((c), (a), (b))
+#define VAND_BOOL(a, b, c) svand_b_z((c), (a), (b))
+#define VOR_BOOL(a, b, c) svorr_b_z((c), (a), (b))
+#define VNOT_BOOL(a, b) svnot_b_z((b), (a))
+#define VGT1_INT64_BOOL(a, b, c) svcmpgt_n_s64((c), (a), (b))
+#define VNE1_INT64_BOOL(a, b, c) svcmpne_n_s64((c), (a), (b))
 
-#define VRDIV1_DOUBLE(a,b,c) svdivr_n_f64_z((c),(a),(b))
-#define VRSUB1_DOUBLE(a,b,c) svsubr_n_f64_z((c),(a),(b))
+#define VRDIV1_DOUBLE(a, b, c) svdivr_n_f64_z((c), (a), (b))
+#define VRSUB1_DOUBLE(a, b, c) svsubr_n_f64_z((c), (a), (b))
 
 #define V_ELT_DOUBLE2 svfloat64x2_t
-#define VSTORE_DOUBLE2SPLIT(a,b,c,d) svst2_f64((d),(double*)(a),(V_ELT_DOUBLE2){b,c})
-#define VSTORE_DOUBLE2(a,b,c) svst2_f64((c),(double*)(a),(b))
-#define VLOAD_DOUBLE2(a,b) svld2_f64((b),(double*)(a))
+#define VSTORE_DOUBLE2SPLIT(a, b, c, d) svst2_f64((d), (double *) (a), (V_ELT_DOUBLE2) {b, c})
+#define VSTORE_DOUBLE2(a, b, c) svst2_f64((c), (double *) (a), (b))
+#define VLOAD_DOUBLE2(a, b) svld2_f64((b), (double *) (a))
 
-#define VREDSUM_DOUBLE(a,b)  svaddv_f64((b),(a))
-#define VREDSUMORD_DOUBLE(a,b,c)  svadda_f64((c),(a),(b))
-#define VSQRT_DOUBLE(a,b) svsqrt_f64_z((b),(a))
-#define VMAX_DOUBLE(a,b,c) svmax_f64_z((c),(a),(b))
-#define VMIN_DOUBLE(a,b,c) svmin_f64_z((c),(a),(b))
-#define VMAX1_DOUBLE(a,b,c) svmax_n_f64_z((c),(a),(b))
-#define VMIN1_DOUBLE(a,b,c) svmin_n_f64_z((c),(a),(b))
-#define VREDMAX_DOUBLE(a,b) svmaxv_f64((b),(a))
-#define VREDMIN_DOUBLE(a,b) svminv_f64((b),(a))
-#define VABS_DOUBLE(a,b) svabs_f64_z((b),(a))
-#define VSRA1_INT64(a,b,c) svasr_n_s64_z((c),(a),(b))
+#define VREDSUM_DOUBLE(a, b) svaddv_f64((b), (a))
+#define VREDSUMORD_DOUBLE(a, b, c) svadda_f64((c), (a), (b))
+#define VSQRT_DOUBLE(a, b) svsqrt_f64_z((b), (a))
+#define VMAX_DOUBLE(a, b, c) svmax_f64_z((c), (a), (b))
+#define VMIN_DOUBLE(a, b, c) svmin_f64_z((c), (a), (b))
+#define VMAX1_DOUBLE(a, b, c) svmax_n_f64_z((c), (a), (b))
+#define VMIN1_DOUBLE(a, b, c) svmin_n_f64_z((c), (a), (b))
+#define VREDMAX_DOUBLE(a, b) svmaxv_f64((b), (a))
+#define VREDMIN_DOUBLE(a, b) svminv_f64((b), (a))
+#define VABS_DOUBLE(a, b) svabs_f64_z((b), (a))
+#define VSRA1_INT64(a, b, c) svasr_n_s64_z((c), (a), (b))
 
-#define VGATHER_DOUBLE(a,b,c) svld1_gather_s64offset_f64((c),(a),(b))
+#define VGATHER_DOUBLE(a, b, c) svld1_gather_s64offset_f64((c), (a), (b))
 
-#define VCVT_DOUBLE_DOUBLE(a,b) svcvt_f64_f64_z((b),(a))
-#define VCVT_DOUBLE_DOUBLE(a,b) svcvt_f64_f64_z((b),(a))
+#define VCVT_DOUBLE_DOUBLE(a, b) svcvt_f64_f64_z((b), (a))
+#define VCVT_DOUBLE_DOUBLE(a, b) svcvt_f64_f64_z((b), (a))
 // returns dst = dst  + a*b
-static inline V_ELT_DOUBLE VMUL_CDOUBLE(V_ELT_DOUBLE dst, V_ELT_DOUBLE a, V_ELT_DOUBLE b, V_ELT_BOOL64 i){
-	dst = svcmla_f64_z(i,dst,a,b,0);
-	dst = svcmla_f64_z(i,dst,a,b,90);
-	return dst;
+static inline V_ELT_DOUBLE VMUL_CDOUBLE(V_ELT_DOUBLE dst, V_ELT_DOUBLE a, V_ELT_DOUBLE b, V_ELT_BOOL64 i)
+{
+    dst = svcmla_f64_z(i, dst, a, b, 0);
+    dst = svcmla_f64_z(i, dst, a, b, 90);
+    return dst;
 }
 
-//returns dst = dst + conj(a)*b
-static inline V_ELT_DOUBLE VMULCONJA_CDOUBLE(V_ELT_DOUBLE dst, V_ELT_DOUBLE a, V_ELT_DOUBLE b, V_ELT_BOOL64 i){
-	dst = svcmla_f64_z(i,dst,a,b,0);
-	dst = svcmla_f64_z(i,dst,a,b,270);
-	return dst;
+// returns dst = dst + conj(a)*b
+static inline V_ELT_DOUBLE VMULCONJA_CDOUBLE(V_ELT_DOUBLE dst, V_ELT_DOUBLE a, V_ELT_DOUBLE b, V_ELT_BOOL64 i)
+{
+    dst = svcmla_f64_z(i, dst, a, b, 0);
+    dst = svcmla_f64_z(i, dst, a, b, 270);
+    return dst;
 }
 
-#endif // SVE2
+#endif  // SVE2
 
 #ifdef RISCV
 #include <riscv_vector.h>
@@ -376,7 +380,7 @@ vfnmsub.vf vd, rs1, vs2, vm
 #warning "RVV v0.7, NO_RTZ"
 #endif
 
-#if defined(__clang__) ||  (defined(__GNUC__) && __GNUC__ < 11)
+#if defined(__clang__) || (defined(__GNUC__) && __GNUC__ < 11)
 #warning "RVV intrinsics v0.10"
 
 #ifdef NO_RTZ
@@ -429,8 +433,9 @@ vfnmsub.vf vd, rs1, vs2, vm
 
 #define VCVT_INT_FLOAT vfcvt_f_x_v_f32m4
 #define VMERGE_FLOAT vmerge_vvm_f32m4
-static inline vfloat32m4_t VMUL1_FLOAT_MASK(vbool8_t mask, vfloat32m4_t op1, float op2, size_t vl){
-	return vfmul_vf_f32m4_m(mask, op1, op1, op2, vl);
+static inline vfloat32m4_t VMUL1_FLOAT_MASK(vbool8_t mask, vfloat32m4_t op1, float op2, size_t vl)
+{
+    return vfmul_vf_f32m4_m(mask, op1, op1, op2, vl);
 }
 #define VSQRT_FLOAT vfsqrt_v_f32m4
 #define VLE_FLOAT_STRIDE vlse32_v_f32m4
@@ -465,11 +470,13 @@ static inline vfloat32m4_t VMUL1_FLOAT_MASK(vbool8_t mask, vfloat32m4_t op1, flo
 #define VNE1_INT_BOOL vmsne_vx_i32m4_b8
 #define VLT1_INT_BOOL vmslt_vx_i32m4_b8
 #define VLE1_INT_BOOL vmsle_vx_i32m4_b8
-static inline vint32m4_t VADD1_INT_MASK(vbool8_t mask, vint32m4_t op1, int32_t op2, size_t vl){
-	return vadd_vx_i32m4_m(mask, op1, op1, op2, vl);
+static inline vint32m4_t VADD1_INT_MASK(vbool8_t mask, vint32m4_t op1, int32_t op2, size_t vl)
+{
+    return vadd_vx_i32m4_m(mask, op1, op1, op2, vl);
 }
-static inline vint32m4_t VSUB1_INT_MASK(vbool8_t mask, vint32m4_t op1, int32_t op2, size_t vl){
-	return vsub_vx_i32m4_m(mask, op1, op1, op2, vl);
+static inline vint32m4_t VSUB1_INT_MASK(vbool8_t mask, vint32m4_t op1, int32_t op2, size_t vl)
+{
+    return vsub_vx_i32m4_m(mask, op1, op1, op2, vl);
 }
 #define VSUB1_INT vsub_vx_i32m4
 #define VOR1_INT vor_vx_i32m4
@@ -522,7 +529,7 @@ static inline vint32m4_t VSUB1_INT_MASK(vbool8_t mask, vint32m4_t op1, int32_t o
 
 //// FLOATH
 #define V_ELT_FLOATH vfloat32m2_t
- 
+
 #define VLOAD_FLOATH vle32_v_f32m2
 #define VLOAD1_FLOATH vfmv_v_f_f32m2
 #define VLOAD_FLOATH2 vlseg2e32_v_f32m2
@@ -536,16 +543,18 @@ static inline vint32m4_t VSUB1_INT_MASK(vbool8_t mask, vint32m4_t op1, int32_t o
 #define VXOR1_INTH vxor_vx_i32m2
 #define VADD_FLOATH vfadd_vv_f32m2
 #define VADD1_FLOATH vfadd_vf_f32m2
-static inline vfloat32m2_t VADD1_FLOATH_MASK(vbool16_t mask, vfloat32m2_t op1, float op2, size_t vl){
-	return vfadd_vf_f32m2_m(mask, op1, op1, op2, vl);
+static inline vfloat32m2_t VADD1_FLOATH_MASK(vbool16_t mask, vfloat32m2_t op1, float op2, size_t vl)
+{
+    return vfadd_vf_f32m2_m(mask, op1, op1, op2, vl);
 }
 #define VSUB_FLOATH vfsub_vv_f32m2
 #define VSUB1_FLOATH vfsub_vf_f32m2    // v2 = v1 - f
 #define VRSUB1_FLOATH vfrsub_vf_f32m2  // v2 = f - v1
 #define VMUL_FLOATH vfmul_vv_f32m2
 #define VMUL1_FLOATH vfmul_vf_f32m2
-static inline vfloat32m2_t VMUL1_FLOATH_MASK(vbool16_t mask, vfloat32m2_t op1, float op2, size_t vl){
-	return vfmul_vf_f32m2_m(mask, op1, op1, op2, vl);
+static inline vfloat32m2_t VMUL1_FLOATH_MASK(vbool16_t mask, vfloat32m2_t op1, float op2, size_t vl)
+{
+    return vfmul_vf_f32m2_m(mask, op1, op1, op2, vl);
 }
 #define VDIV_FLOATH vfdiv_vv_f32m2
 #define VDIV1_FLOATH vfdiv_vf_f32m2
@@ -589,15 +598,16 @@ static inline vfloat32m2_t VMUL1_FLOATH_MASK(vbool16_t mask, vfloat32m2_t op1, f
 //// INTH
 #define V_ELT_INTH vint32m2_t
 #define VSTORE_INTHH vse32_v_i32m1
-#define VLOAD_INTHH  vle32_v_i32m1
+#define VLOAD_INTHH vle32_v_i32m1
 #define VLOAD_INTH vle32_v_i32m2
 #define VLOAD1_INTH vmv_v_x_i32m2
 #define VLOAD1_INTHH vmv_v_x_i32m1
 #define VSTORE_INTH vse32_v_i32m2
 #define VADD_INTH vadd_vv_i32m2
 #define VADD1_INTH vadd_vx_i32m2
-static inline vint32m2_t VADD1_INTH_MASK(vbool16_t mask, vint32m2_t op1, int32_t op2, size_t vl){
-	return vadd_vx_i32m2_m(mask, op1, op1, op2, vl);
+static inline vint32m2_t VADD1_INTH_MASK(vbool16_t mask, vint32m2_t op1, int32_t op2, size_t vl)
+{
+    return vadd_vx_i32m2_m(mask, op1, op1, op2, vl);
 }
 
 #define VADD1_INTH_MASKEDOFF vadd_vx_i32m2_m
@@ -606,8 +616,9 @@ static inline vint32m2_t VADD1_INTH_MASK(vbool16_t mask, vint32m2_t op1, int32_t
 #define VMUL1_INTH vmul_vx_i32m2
 #define VSUB_INTH vsub_vv_i32m2
 #define VSUB1_INTH vsub_vx_i32m2
-static inline vint32m2_t VSUB1_INTH_MASK(vbool16_t mask, vint32m2_t op1, int32_t op2, size_t vl){
-	return vsub_vx_i32m2_m(mask, op1, op1, op2, vl);
+static inline vint32m2_t VSUB1_INTH_MASK(vbool16_t mask, vint32m2_t op1, int32_t op2, size_t vl)
+{
+    return vsub_vx_i32m2_m(mask, op1, op1, op2, vl);
 }
 #define VAND1_INTH vand_vx_i32m2
 #define VAND_INTH vand_vv_i32m2
@@ -668,7 +679,7 @@ static inline vint32m2_t VSUB1_INTH_MASK(vbool16_t mask, vint32m2_t op1, int32_t
 #define VOR_BOOLH vmor_mm_b16
 #define VAND_BOOLH vmand_mm_b16
 #define VANDNOT_BOOLH vmandn_mm_b16
-//#define VANDNOT_BOOLH vmnand_mm_b16
+// #define VANDNOT_BOOLH vmnand_mm_b16
 
 #if ELEN >= 64
 #define VSETVL64 vsetvl_e64m4
@@ -727,9 +738,9 @@ static inline vint32m2_t VSUB1_INTH_MASK(vbool16_t mask, vint32m2_t op1, int32_t
 #define VMUL1_DOUBLEH vfmul_vf_f64m2
 #define VDIV_DOUBLEH vfdiv_vv_f64m2
 #define VFMACC_DOUBLEH vfmacc_vv_f64m2  // d = a + b*c
-#define VFMACC1_DOUBLEH vfmacc_vf_f64m2  
-#define VFMADD_DOUBLEH vfmadd_vv_f64m2  
-#define VFMADD1_DOUBLEH vfmadd_vf_f64m2 
+#define VFMACC1_DOUBLEH vfmacc_vf_f64m2
+#define VFMADD_DOUBLEH vfmadd_vv_f64m2
+#define VFMADD1_DOUBLEH vfmadd_vf_f64m2
 #define VFMA1_DOUBLEH vfmacc_vf_f64m2
 #define VFMSUB_DOUBLEH vfmsub_vv_f64m2  // d = a*b - c
 #define VREDSUM_DOUBLEH vfredosum_vs_f64m2_f64m1
@@ -755,11 +766,13 @@ static inline vint32m2_t VSUB1_INTH_MASK(vbool16_t mask, vint32m2_t op1, int32_t
 #define VLT1_DOUBLEH_BOOLH vmflt_vf_f64m2_b32
 #define VMERGE_DOUBLEH vmerge_vvm_f64m2
 #define VMERGE1_DOUBLEH vfmerge_vfm_f64m2
-static inline vfloat64m2_t VMUL1_DOUBLEH_MASK(vbool32_t mask, vfloat64m2_t op1, double op2, size_t vl){
-	return vfmul_vf_f64m2_m(mask, op1, op1, op2, vl);
+static inline vfloat64m2_t VMUL1_DOUBLEH_MASK(vbool32_t mask, vfloat64m2_t op1, double op2, size_t vl)
+{
+    return vfmul_vf_f64m2_m(mask, op1, op1, op2, vl);
 }
-static inline vfloat64m2_t VADD1_DOUBLEH_MASK(vbool32_t mask, vfloat64m2_t op1, double op2, size_t vl){
-	return vfadd_vf_f64m2_m(mask, op1, op1, op2, vl);
+static inline vfloat64m2_t VADD1_DOUBLEH_MASK(vbool32_t mask, vfloat64m2_t op1, double op2, size_t vl)
+{
+    return vfadd_vf_f64m2_m(mask, op1, op1, op2, vl);
 }
 #define VADD1_DOUBLEH_MASKEDOFF vfadd_vf_f64m2_m
 #define VEQ1_DOUBLEH_BOOLH vmfeq_vf_f64m2_b32
@@ -776,11 +789,13 @@ static inline vfloat64m2_t VADD1_DOUBLEH_MASK(vbool32_t mask, vfloat64m2_t op1, 
 #define VLOAD1_INT64H vmv_v_x_i64m2
 #define VSLL1_INT64H vsll_vx_i64m2
 #define VADD1_INT64H vadd_vx_i64m2
-static inline vint64m2_t VADD1_INT64H_MASK(vbool32_t mask, vint64m2_t op1, int64_t op2, size_t vl){
-	return vadd_vx_i64m2_m(mask, op1, op1, op2, vl);
+static inline vint64m2_t VADD1_INT64H_MASK(vbool32_t mask, vint64m2_t op1, int64_t op2, size_t vl)
+{
+    return vadd_vx_i64m2_m(mask, op1, op1, op2, vl);
 }
-static inline vint64m2_t VSUB1_INT64H_MASK(vbool32_t mask, vint64m2_t op1, int64_t op2, size_t vl){
-	return vsub_vx_i64m2_m(mask, op1, op1, op2, vl);
+static inline vint64m2_t VSUB1_INT64H_MASK(vbool32_t mask, vint64m2_t op1, int64_t op2, size_t vl)
+{
+    return vsub_vx_i64m2_m(mask, op1, op1, op2, vl);
 }
 #define VAND1_INT64H vand_vx_i64m2
 #define VXOR_INT64H vxor_vv_i64m2
@@ -792,7 +807,7 @@ static inline vint64m2_t VSUB1_INT64H_MASK(vbool32_t mask, vint64m2_t op1, int64
 #define VMERGE1_INT64H vmerge_vxm_i64m2
 #define VSTORE_INT64H vse64_v_i64m2
 
-//BOOL64H
+// BOOL64H
 #define V_ELT_BOOL64H vbool32_t
 #define VNOT_BOOL64H vmnot_m_b32
 #define VCLEAR_BOOL64H vmclr_m_b32
@@ -840,7 +855,7 @@ static inline vint64m2_t VSUB1_INT64H_MASK(vbool32_t mask, vint64m2_t op1, int64
 #define VREDSUM_FLOAT __riscv_vfredosum_vs_f32m4_f32m1_tu
 /*static inline vfloat32m1_t VREDSUM_FLOAT(vfloat32m1_t dest,
 vfloat32m4_t vector, vfloat32m1_t scalar, size_t vl){
-	return  __riscv_vfredosum_vs_f32m4_f32m1(vector, scalar, vl);
+    return  __riscv_vfredosum_vs_f32m4_f32m1(vector, scalar, vl);
 }*/
 #define VREDMAX_FLOAT __riscv_vfredmax_vs_f32m4_f32m1_tu
 #define VREDMIN_FLOAT __riscv_vfredmin_vs_f32m4_f32m1_tu
@@ -851,11 +866,11 @@ vfloat32m4_t vector, vfloat32m1_t scalar, size_t vl){
 #define VINTERP_FLOAT_INT __riscv_vreinterpret_v_f32m4_i32m4
 #define VINTERP_INT_FLOAT __riscv_vreinterpret_v_i32m4_f32m4
 
-#define VCVT_FLOAT_INT(a,b) __riscv_vfcvt_x_f_v_i32m4((a),(b))
-#define VCVT_RNE_FLOAT_INT(a,b) __riscv_vfcvt_x_f_v_i32m4_rm((a), __RISCV_FRM_RNE, (b))
-#define VCVT_RINF_FLOAT_INT(a,b) __riscv_vfcvt_x_f_v_i32m4_rm((a), __RISCV_FRM_RUP, (b))
-#define VCVT_RMINF_FLOAT_INT(a,b) __riscv_vfcvt_x_f_v_i32m4_rm((a), __RISCV_FRM_RDN, (b))
-#define VCVT_RNA_FLOAT_INT(a,b) __riscv_vfcvt_x_f_v_i32m4_rm((a), __RISCV_FRM_RMM, (b))
+#define VCVT_FLOAT_INT(a, b) __riscv_vfcvt_x_f_v_i32m4((a), (b))
+#define VCVT_RNE_FLOAT_INT(a, b) __riscv_vfcvt_x_f_v_i32m4_rm((a), __RISCV_FRM_RNE, (b))
+#define VCVT_RINF_FLOAT_INT(a, b) __riscv_vfcvt_x_f_v_i32m4_rm((a), __RISCV_FRM_RUP, (b))
+#define VCVT_RMINF_FLOAT_INT(a, b) __riscv_vfcvt_x_f_v_i32m4_rm((a), __RISCV_FRM_RDN, (b))
+#define VCVT_RNA_FLOAT_INT(a, b) __riscv_vfcvt_x_f_v_i32m4_rm((a), __RISCV_FRM_RMM, (b))
 
 #ifdef NO_RTZ
 #define VCVT_RTZ_FLOAT_INT VCVT_FLOAT_INT
@@ -864,9 +879,9 @@ vfloat32m4_t vector, vfloat32m1_t scalar, size_t vl){
 #endif
 
 #define VCVT_INT_FLOAT __riscv_vfcvt_f_x_v_f32m4
-static inline vfloat32m4_t VMERGE_FLOAT(vbool8_t mask, vfloat32m4_t op1,
-vfloat32m4_t op2, size_t vl){
-	return __riscv_vmerge_vvm_f32m4(op1, op2, mask, vl);
+static inline vfloat32m4_t VMERGE_FLOAT(vbool8_t mask, vfloat32m4_t op1, vfloat32m4_t op2, size_t vl)
+{
+    return __riscv_vmerge_vvm_f32m4(op1, op2, mask, vl);
 }
 #define VMUL1_FLOAT_MASK __riscv_vfmul_vf_f32m4_m
 
@@ -879,9 +894,9 @@ vfloat32m4_t op2, size_t vl){
 #define VLT1_FLOAT_BOOL __riscv_vmflt_vf_f32m4_b8
 #define VLE1_FLOAT_BOOL __riscv_vmfle_vf_f32m4_b8
 #define VABS_FLOAT __riscv_vfabs_v_f32m4
-static inline vfloat32m4_t VMERGE1_FLOAT(vbool8_t mask, vfloat32m4_t op1,
-float op2, size_t vl){
-	return __riscv_vfmerge_vfm_f32m4(op1, op2, mask, vl);
+static inline vfloat32m4_t VMERGE1_FLOAT(vbool8_t mask, vfloat32m4_t op1, float op2, size_t vl)
+{
+    return __riscv_vfmerge_vfm_f32m4(op1, op2, mask, vl);
 }
 #define VGATHER_FLOAT __riscv_vrgather_vv_f32m4
 #define vfmv_v_f_f32m1 __riscv_vfmv_v_f_f32m1
@@ -916,20 +931,20 @@ float op2, size_t vl){
 #define VMIN1_INT __riscv_vmin_vx_i32m4
 #define VMAX_INT __riscv_vmax_vv_i32m4
 #define VMAX1_INT __riscv_vmax_vx_i32m4
-static inline vint32m4_t VMERGE_INT(vbool8_t mask, vint32m4_t op1,
-vint32m4_t op2, size_t vl){
-	return __riscv_vmerge_vvm_i32m4(op1, op2, mask, vl);
+static inline vint32m4_t VMERGE_INT(vbool8_t mask, vint32m4_t op1, vint32m4_t op2, size_t vl)
+{
+    return __riscv_vmerge_vvm_i32m4(op1, op2, mask, vl);
 }
 
-static inline vint32m4_t VMERGE1_INT(vbool8_t mask, vint32m4_t op1,
-int32_t op2, size_t vl){
-	return __riscv_vmerge_vxm_i32m4(op1, op2, mask, vl);
+static inline vint32m4_t VMERGE1_INT(vbool8_t mask, vint32m4_t op1, int32_t op2, size_t vl)
+{
+    return __riscv_vmerge_vxm_i32m4(op1, op2, mask, vl);
 }
 #define VNEG_INT __riscv_vneg_v_i32m4
 #define VREDSUM_INT vredsum_vs_i32m4_i32m1_tu
 /*static inline vint32m1_t VREDSUM_INT(vint32m1_t dest,
 vint32m4_t vector, vint32m1_t scalar, size_t vl){
-	return  __riscv_vredsum_vs_i32m4_i32m1(vector, scalar, vl);
+    return  __riscv_vredsum_vs_i32m4_i32m1(vector, scalar, vl);
 }*/
 #define VREDMAX_INT __riscv_vredmax_vs_i32m4_i32m1_tu
 #define VREDMIN_INT __riscv_vredmin_vs_i32m4_i32m1_tu
@@ -951,9 +966,9 @@ vint32m4_t vector, vint32m1_t scalar, size_t vl){
 #define VSUB_SHORT __riscv_vsub_vv_i16m4
 #define VREDSUMW_SHORT __riscv_vwredsum_vs_i16m4_i32m1_tu
 #define VGT_SHORT_BOOL __riscv_vmsgt_vv_i16m4_b4
-static inline vint16m4_t VMERGE_SHORT(vbool4_t mask, vint16m4_t op1,
-vint16m4_t op2, size_t vl){
-	return __riscv_vmerge_vvm_i16m4(op1, op2, mask, vl);
+static inline vint16m4_t VMERGE_SHORT(vbool4_t mask, vint16m4_t op1, vint16m4_t op2, size_t vl)
+{
+    return __riscv_vmerge_vvm_i16m4(op1, op2, mask, vl);
 }
 
 //// BOOL for 16 bits elements
@@ -976,14 +991,16 @@ vint16m4_t op2, size_t vl){
 #define V_ELT_FLOATH vfloat32m2_t
 #define VLOAD_FLOATH __riscv_vle32_v_f32m2
 #define VLOAD1_FLOATH __riscv_vfmv_v_f_f32m2
-static inline void VLOAD_FLOATH2(vfloat32m2_t *v0, vfloat32m2_t *v1, float* base, size_t vl){
-	vfloat32m2x2_t v = __riscv_vlseg2e32_v_f32m2x2(base, vl);
-	*v0 = __riscv_vget_v_f32m2x2_f32m2(v, 0);
-	*v1 = __riscv_vget_v_f32m2x2_f32m2(v, 1);
+static inline void VLOAD_FLOATH2(vfloat32m2_t *v0, vfloat32m2_t *v1, float *base, size_t vl)
+{
+    vfloat32m2x2_t v = __riscv_vlseg2e32_v_f32m2x2(base, vl);
+    *v0 = __riscv_vget_v_f32m2x2_f32m2(v, 0);
+    *v1 = __riscv_vget_v_f32m2x2_f32m2(v, 1);
 }
-static inline void VSTORE_FLOATH2(float* base, vfloat32m2_t v0, vfloat32m2_t v1, size_t vl){
-	vfloat32m2x2_t v = __riscv_vcreate_v_f32m2x2(v0, v1);
-	__riscv_vsseg2e32_v_f32m2x2(base, v, vl);
+static inline void VSTORE_FLOATH2(float *base, vfloat32m2_t v0, vfloat32m2_t v1, size_t vl)
+{
+    vfloat32m2x2_t v = __riscv_vcreate_v_f32m2x2(v0, v1);
+    __riscv_vsseg2e32_v_f32m2x2(base, v, vl);
 }
 #define VSTORE_FLOATHH __riscv_vse32_v_f32m1
 #define VLOAD_FLOATHH __riscv_vle32_v_f32m1
@@ -1012,7 +1029,7 @@ static inline void VSTORE_FLOATH2(float* base, vfloat32m2_t v0, vfloat32m2_t v1,
 #define VREDSUM_FLOATH __riscv_vfredosum_vs_f32m2_f32m1_tu
 /*static inline vfloat32m1_t VREDSUM_FLOATH(vfloat32m1_t dest,
 vfloat32m2_t vector, vfloat32m1_t scalar, size_t vl){
-	return  __riscv_vfredosum_vs_f32m2_f32m1(vector, scalar, vl);
+    return  __riscv_vfredosum_vs_f32m2_f32m1(vector, scalar, vl);
 }*/
 #define VREDMAX_FLOATH __riscv_vfredmax_vs_f32m2_f32m1_tu
 #define VREDMIN_FLOATH __riscv_vfredmin_vs_f32m2_f32m1_tu
@@ -1023,21 +1040,21 @@ vfloat32m2_t vector, vfloat32m1_t scalar, size_t vl){
 #define VINTERP_FLOATH_INTH __riscv_vreinterpret_v_f32m2_i32m2
 #define VINTERP_INTH_FLOATH __riscv_vreinterpret_v_i32m2_f32m2
 #define VCVT_FLOATH_INTH __riscv_vfcvt_x_f_v_i32m2
-#define VCVT_RNE_FLOATH_INTH(a,b) __riscv_vfcvt_x_f_v_i32m2_rm((a), __RISCV_FRM_RNE, (b))
-#define VCVT_RINF_FLOATH_INTH(a,b) __riscv_vfcvt_x_f_v_i32m2_rm((a), __RISCV_FRM_RUP, (b))
-#define VCVT_RMINF_FLOATH_INTH(a,b) __riscv_vfcvt_x_f_v_i32m2_rm((a), __RISCV_FRM_RDN, (b))
-#define VCVT_RNA_FLOATH_INTH(a,b) __riscv_vfcvt_x_f_v_i32m2_rm((a),__RISCV_FRM_RMM, (b))
+#define VCVT_RNE_FLOATH_INTH(a, b) __riscv_vfcvt_x_f_v_i32m2_rm((a), __RISCV_FRM_RNE, (b))
+#define VCVT_RINF_FLOATH_INTH(a, b) __riscv_vfcvt_x_f_v_i32m2_rm((a), __RISCV_FRM_RUP, (b))
+#define VCVT_RMINF_FLOATH_INTH(a, b) __riscv_vfcvt_x_f_v_i32m2_rm((a), __RISCV_FRM_RDN, (b))
+#define VCVT_RNA_FLOATH_INTH(a, b) __riscv_vfcvt_x_f_v_i32m2_rm((a), __RISCV_FRM_RMM, (b))
 
 #ifdef NO_RTZ
 #define VCVT_RTZ_FLOATH_INTH VCVT_FLOATH_INTH
 #else
-#define VCVT_RTZ_FLOATH_INTH __riscv_vfcvt_rtz_x_f_v_i32m2	
+#define VCVT_RTZ_FLOATH_INTH __riscv_vfcvt_rtz_x_f_v_i32m2
 #endif
 
 #define VCVT_INTH_FLOATH __riscv_vfcvt_f_x_v_f32m2
-static inline vfloat32m2_t VMERGE_FLOATH(vbool16_t mask, vfloat32m2_t op1,
-vfloat32m2_t op2, size_t vl){
- return __riscv_vmerge_vvm_f32m2(op1, op2, mask, vl);
+static inline vfloat32m2_t VMERGE_FLOATH(vbool16_t mask, vfloat32m2_t op1, vfloat32m2_t op2, size_t vl)
+{
+    return __riscv_vmerge_vvm_f32m2(op1, op2, mask, vl);
 }
 #define VSQRT_FLOATH __riscv_vfsqrt_v_f32m2
 #define VEQ1_FLOATH_BOOLH __riscv_vmfeq_vf_f32m2_b16
@@ -1048,9 +1065,9 @@ vfloat32m2_t op2, size_t vl){
 #define VLT1_FLOATH_BOOLH __riscv_vmflt_vf_f32m2_b16
 #define VLE1_FLOATH_BOOLH __riscv_vmfle_vf_f32m2_b16
 #define VABS_FLOATH __riscv_vfabs_v_f32m2
-static inline vfloat32m2_t VMERGE1_FLOATH(vbool16_t mask, vfloat32m2_t op1,
-float op2, size_t vl){
-	return __riscv_vfmerge_vfm_f32m2(op1, op2, mask, vl);
+static inline vfloat32m2_t VMERGE1_FLOATH(vbool16_t mask, vfloat32m2_t op1, float op2, size_t vl)
+{
+    return __riscv_vfmerge_vfm_f32m2(op1, op2, mask, vl);
 }
 #define VGATHER_FLOATH __riscv_vrgather_vv_f32m2
 
@@ -1065,16 +1082,16 @@ float op2, size_t vl){
 #define VADD_INTH __riscv_vadd_vv_i32m2
 #define VADD1_INTH __riscv_vadd_vx_i32m2
 #define VADD1_INTH_MASK __riscv_vadd_vx_i32m2_m
-static inline vint32m2_t VADD1_INTH_MASKEDOFF(vbool16_t mask, vint32m2_t op1, vint32m2_t maskedoff,
-int32_t op2, size_t vl){
-	op1 = __riscv_vmerge_vvm_i32m2(maskedoff, op1, mask, vl);
-	return __riscv_vadd_vx_i32m2_m(mask, op1, op2, vl);
-}	
-static inline vint64m2_t VADD1_INT64H_MASKEDOFF(vbool32_t mask, vint64m2_t op1, vint64m2_t maskedoff,
-int64_t op2, size_t vl){
-	op1 = __riscv_vmerge_vvm_i64m2(maskedoff, op1, mask, vl);
-	return __riscv_vadd_vx_i64m2_m(mask, op1, op2, vl);
-}	
+static inline vint32m2_t VADD1_INTH_MASKEDOFF(vbool16_t mask, vint32m2_t op1, vint32m2_t maskedoff, int32_t op2, size_t vl)
+{
+    op1 = __riscv_vmerge_vvm_i32m2(maskedoff, op1, mask, vl);
+    return __riscv_vadd_vx_i32m2_m(mask, op1, op2, vl);
+}
+static inline vint64m2_t VADD1_INT64H_MASKEDOFF(vbool32_t mask, vint64m2_t op1, vint64m2_t maskedoff, int64_t op2, size_t vl)
+{
+    op1 = __riscv_vmerge_vvm_i64m2(maskedoff, op1, mask, vl);
+    return __riscv_vadd_vx_i64m2_m(mask, op1, op2, vl);
+}
 #define VMUL_INTH __riscv_vmul_vv_i32m2
 #define VMUL1_INTH __riscv_vmul_vx_i32m2
 #define VSUB_INTH __riscv_vsub_vv_i32m2
@@ -1098,9 +1115,9 @@ int64_t op2, size_t vl){
 #define VMAX1_INTH __riscv_vmax_vx_i32m2
 #define VNOT_INTH __riscv_vnot_v_i32m2
 
-static inline vint32m2_t VMERGE_INTH(vbool16_t mask, vint32m2_t op1,
-vint32m2_t op2, size_t vl){
-	return __riscv_vmerge_vvm_i32m2(op1, op2, mask, vl);
+static inline vint32m2_t VMERGE_INTH(vbool16_t mask, vint32m2_t op1, vint32m2_t op2, size_t vl)
+{
+    return __riscv_vmerge_vvm_i32m2(op1, op2, mask, vl);
 }
 
 //// UINTH
@@ -1115,14 +1132,15 @@ vint32m2_t op2, size_t vl){
 #define VSTORE_SHORTH __riscv_vse16_v_i16m2
 #define VADD_SHORTH __riscv_vadd_vv_i16m2
 #define VREDSUMW_SHORTH __riscv_vwredsum_vs_i16m4_i32m1_tu
-static inline vint16m2_t VCVT_INT_SHORTH (vint32m4_t op1, size_t shift, size_t vl){
-	return __riscv_vnclip_wx_i16m2(op1, shift, __RISCV_VXRM_RNU, vl);
+static inline vint16m2_t VCVT_INT_SHORTH(vint32m4_t op1, size_t shift, size_t vl)
+{
+    return __riscv_vnclip_wx_i16m2(op1, shift, __RISCV_VXRM_RNU, vl);
 }
 
 #if __riscv_v != 7000
 #define VCVT_SHORTH_INT __riscv_vsext_vf2_i32m4
 #else
-#define VCVT_SHORTH_INT(a, b)  __riscv_vwmul_vx_i32m4((a), 1, (b))
+#define VCVT_SHORTH_INT(a, b) __riscv_vwmul_vx_i32m4((a), 1, (b))
 #endif
 
 
@@ -1130,15 +1148,17 @@ static inline vint16m2_t VCVT_INT_SHORTH (vint32m4_t op1, size_t shift, size_t v
 #define V_ELT_USHORTH vuint16m2_t
 #define VLOAD_USHORTH __riscv_vle16_v_u16m2
 #define VSTORE_USHORTH __riscv_vse16_v_u16m2
-static inline vuint16m2_t VCVT_UINT_USHORTH (vuint32m4_t op1, size_t shift, size_t vl){
-	return __riscv_vnclipu_wx_u16m2(op1, shift, __RISCV_VXRM_RNU, vl);
+static inline vuint16m2_t VCVT_UINT_USHORTH(vuint32m4_t op1, size_t shift, size_t vl)
+{
+    return __riscv_vnclipu_wx_u16m2(op1, shift, __RISCV_VXRM_RNU, vl);
 }
 //// UBYTEHH
 #define V_ELT_UBYTEHH vuint8m1_t
 #define VLOAD_UBYTEHH __riscv_vle8_v_u8m1
 #define VSTORE_UBYTEHH __riscv_vse8_v_u8m1
-static inline vuint8m1_t VCVT_USHORTH_UBYTEHH (vuint16m2_t op1, size_t shift, size_t vl){
-	return __riscv_vnclipu_wx_u8m1(op1, shift, __RISCV_VXRM_RNU, vl);
+static inline vuint8m1_t VCVT_USHORTH_UBYTEHH(vuint16m2_t op1, size_t shift, size_t vl)
+{
+    return __riscv_vnclipu_wx_u8m1(op1, shift, __RISCV_VXRM_RNU, vl);
 }
 //// BOOL for Half length __riscv_vector 32 bits elements
 #define V_ELT_BOOL32H vbool16_t
@@ -1148,7 +1168,7 @@ static inline vuint8m1_t VCVT_USHORTH_UBYTEHH (vuint16m2_t op1, size_t shift, si
 #define VOR_BOOLH __riscv_vmor_mm_b16
 #define VAND_BOOLH __riscv_vmand_mm_b16
 #define VANDNOT_BOOLH __riscv_vmandn_mm_b16
-//#define VANDNOT_BOOLH __riscv_vmnand_mm_b16
+// #define VANDNOT_BOOLH __riscv_vmnand_mm_b16
 
 #if ELEN >= 64
 #define VSETVL64 __riscv_vsetvl_e64m4
@@ -1179,10 +1199,10 @@ static inline vuint8m1_t VCVT_USHORTH_UBYTEHH (vuint16m2_t op1, size_t shift, si
 #define VINTERP_DOUBLE_INT __riscv_vreinterpret_v_f64m4_i64m4
 #define VINTERP_INT_DOUBLE __riscv_vreinterpret_v_i64m4_f64m4
 #define VCVT_DOUBLE_INT __riscv_vfcvt_x_f_v_i64m4
-#define VCVT_RNE_DOUBLE_INT(a,b) __riscv_vfcvt_x_f_v_i64m4_rm((a), __RISCV_FRM_RNE, (b))
-#define VCVT_RINF_DOUBLE_INT(a,b) __riscv_vfcvt_x_f_v_i64m4_rm((a), __RISCV_FRM_RUP, (b))
-#define VCVT_RMINF_DOUBLE_INT(a,b) __riscv_vfcvt_x_f_v_i64m4_rm((a), __RISCV_FRM_RDN, (b))
-#define VCVT_RNA_DOUBLE_INT(a,b) __riscv_vfcvt_x_f_v_i64m4_rm((a), __RISCV_FRM_RMM, (b))
+#define VCVT_RNE_DOUBLE_INT(a, b) __riscv_vfcvt_x_f_v_i64m4_rm((a), __RISCV_FRM_RNE, (b))
+#define VCVT_RINF_DOUBLE_INT(a, b) __riscv_vfcvt_x_f_v_i64m4_rm((a), __RISCV_FRM_RUP, (b))
+#define VCVT_RMINF_DOUBLE_INT(a, b) __riscv_vfcvt_x_f_v_i64m4_rm((a), __RISCV_FRM_RDN, (b))
+#define VCVT_RNA_DOUBLE_INT(a, b) __riscv_vfcvt_x_f_v_i64m4_rm((a), __RISCV_FRM_RMM, (b))
 
 
 #ifdef NO_RTZ
@@ -1199,14 +1219,16 @@ static inline vuint8m1_t VCVT_USHORTH_UBYTEHH (vuint16m2_t op1, size_t shift, si
 
 //// DOUBLEH
 #define V_ELT_DOUBLEH vfloat64m2_t
-static inline void VLOAD_DOUBLEH2(vfloat64m2_t *v0, vfloat64m2_t *v1, double* base, size_t vl){
-	vfloat64m2x2_t v = __riscv_vlseg2e64_v_f64m2x2(base, vl);
-	*v0 = __riscv_vget_v_f64m2x2_f64m2(v, 0);
-	*v1 = __riscv_vget_v_f64m2x2_f64m2(v, 1);
+static inline void VLOAD_DOUBLEH2(vfloat64m2_t *v0, vfloat64m2_t *v1, double *base, size_t vl)
+{
+    vfloat64m2x2_t v = __riscv_vlseg2e64_v_f64m2x2(base, vl);
+    *v0 = __riscv_vget_v_f64m2x2_f64m2(v, 0);
+    *v1 = __riscv_vget_v_f64m2x2_f64m2(v, 1);
 }
-static inline void VSTORE_DOUBLEH2(double* base, vfloat64m2_t v0, vfloat64m2_t v1, size_t vl){
-	vfloat64m2x2_t v = __riscv_vcreate_v_f64m2x2(v0, v1);
-	__riscv_vsseg2e64_v_f64m2x2(base, v, vl);
+static inline void VSTORE_DOUBLEH2(double *base, vfloat64m2_t v0, vfloat64m2_t v1, size_t vl)
+{
+    vfloat64m2x2_t v = __riscv_vcreate_v_f64m2x2(v0, v1);
+    __riscv_vsseg2e64_v_f64m2x2(base, v, vl);
 }
 #define VLOAD_DOUBLEH_STRIDE __riscv_vlse64_v_f64m2x2
 #define VLOAD_DOUBLEH __riscv_vle64_v_f64m2
@@ -1221,9 +1243,9 @@ static inline void VSTORE_DOUBLEH2(double* base, vfloat64m2_t v0, vfloat64m2_t v
 #define VMUL1_DOUBLEH __riscv_vfmul_vf_f64m2
 #define VDIV_DOUBLEH __riscv_vfdiv_vv_f64m2
 #define VFMACC_DOUBLEH __riscv_vfmacc_vv_f64m2  // d = a + b*c
-#define VFMACC1_DOUBLEH __riscv_vfmacc_vf_f64m2  
-#define VFMADD_DOUBLEH __riscv_vfmadd_vv_f64m2  
-#define VFMADD1_DOUBLEH __riscv_vfmadd_vf_f64m2 
+#define VFMACC1_DOUBLEH __riscv_vfmacc_vf_f64m2
+#define VFMADD_DOUBLEH __riscv_vfmadd_vv_f64m2
+#define VFMADD1_DOUBLEH __riscv_vfmadd_vf_f64m2
 #define VFMA1_DOUBLEH __riscv_vfmacc_vf_f64m2
 #define VFMSUB_DOUBLEH __riscv_vfmsub_vv_f64m2  // d = a*b - c
 #define VREDSUM_DOUBLEH __riscv_vfredosum_vs_f64m2_f64m1_tu
@@ -1237,10 +1259,10 @@ static inline void VSTORE_DOUBLEH2(double* base, vfloat64m2_t v0, vfloat64m2_t v
 #define VINTERP_INTH_DOUBLEH __riscv_vreinterpret_v_i64m2_f64m2
 
 #define VCVT_DOUBLEH_INTH __riscv_vfcvt_x_f_v_i64m2
-#define VCVT_RNE_DOUBLEH_INTH(a,b) __riscv_vfcvt_x_f_v_i64m2_rm((a), __RISCV_FRM_RNE, (b))
-#define VCVT_RINF_DOUBLEH_INTH(a,b) __riscv_vfcvt_x_f_v_i64m2_rm((a), __RISCV_FRM_RUP, (b))
-#define VCVT_RMINF_DOUBLEH_INTH(a,b) __riscv_vfcvt_x_f_v_i64m2_rm((a), __RISCV_FRM_RDN, (b))
-#define VCVT_RNA_DOUBLEH_INTH(a,b) __riscv_vfcvt_x_f_v_i64m2_rm((a), __RISCV_FRM_RMM, (b))
+#define VCVT_RNE_DOUBLEH_INTH(a, b) __riscv_vfcvt_x_f_v_i64m2_rm((a), __RISCV_FRM_RNE, (b))
+#define VCVT_RINF_DOUBLEH_INTH(a, b) __riscv_vfcvt_x_f_v_i64m2_rm((a), __RISCV_FRM_RUP, (b))
+#define VCVT_RMINF_DOUBLEH_INTH(a, b) __riscv_vfcvt_x_f_v_i64m2_rm((a), __RISCV_FRM_RDN, (b))
+#define VCVT_RNA_DOUBLEH_INTH(a, b) __riscv_vfcvt_x_f_v_i64m2_rm((a), __RISCV_FRM_RMM, (b))
 #ifdef NO_RTZ
 #define VCVT_RTZ_DOUBLEH_INTH VCVT_DOUBLEH_INTH
 #else
@@ -1253,14 +1275,14 @@ static inline void VSTORE_DOUBLEH2(double* base, vfloat64m2_t v0, vfloat64m2_t v
 #define VCVT_DOUBLEH_FLOATH __riscv_vfncvt_f_f_w_f32m2
 #define VCVT_FLOATH_DOUBLEH __riscv_vfwcvt_f_f_v_f64m2
 #define VLT1_DOUBLEH_BOOLH __riscv_vmflt_vf_f64m2_b32
-static inline vfloat64m2_t VMERGE_DOUBLEH(vbool32_t mask, vfloat64m2_t op1,
-vfloat64m2_t op2, size_t vl){
- return __riscv_vmerge_vvm_f64m2(op1, op2, mask, vl);
+static inline vfloat64m2_t VMERGE_DOUBLEH(vbool32_t mask, vfloat64m2_t op1, vfloat64m2_t op2, size_t vl)
+{
+    return __riscv_vmerge_vvm_f64m2(op1, op2, mask, vl);
 }
 
-static inline vfloat64m2_t VMERGE1_DOUBLEH(vbool32_t mask, vfloat64m2_t op1,
-double op2, size_t vl){
-	return __riscv_vfmerge_vfm_f64m2(op1, op2, mask, vl);
+static inline vfloat64m2_t VMERGE1_DOUBLEH(vbool32_t mask, vfloat64m2_t op1, double op2, size_t vl)
+{
+    return __riscv_vfmerge_vfm_f64m2(op1, op2, mask, vl);
 }
 #define VMUL1_DOUBLEH_MASK __riscv_vfmul_vf_f64m2_m
 #define VEQ1_DOUBLEH_BOOLH __riscv_vmfeq_vf_f64m2_b32
@@ -1272,11 +1294,11 @@ double op2, size_t vl){
 #define VLE1_DOUBLEH_BOOLH __riscv_vmfle_vf_f64m2_b32
 #define VADD1_DOUBLEH_MASK __riscv_vfadd_vf_f64m2_m
 #define VMUL1_DOUBLEH_MASK __riscv_vfmul_vf_f64m2_m
-static inline vfloat64m2_t VADD1_DOUBLEH_MASKEDOFF(vbool32_t mask, vfloat64m2_t op1, vfloat64m2_t maskedoff,
-double op2, size_t vl){
-	op1 = __riscv_vmerge_vvm_f64m2(maskedoff, op1, mask, vl);
-	return __riscv_vfadd_vf_f64m2_m(mask, op1, op2, vl);
-}	
+static inline vfloat64m2_t VADD1_DOUBLEH_MASKEDOFF(vbool32_t mask, vfloat64m2_t op1, vfloat64m2_t maskedoff, double op2, size_t vl)
+{
+    op1 = __riscv_vmerge_vvm_f64m2(maskedoff, op1, mask, vl);
+    return __riscv_vfadd_vf_f64m2_m(mask, op1, op2, vl);
+}
 
 // INT64H
 #define V_ELT_INT64H vint64m2_t
@@ -1290,20 +1312,20 @@ double op2, size_t vl){
 #define VEQ1_INTH_BOOL64H __riscv_vmseq_vx_i64m2_b32
 #define VGT1_INTH_BOOL64H __riscv_vmsgt_vx_i64m2_b32
 #define VSUB1_INT64H_MASK __riscv_vsub_vx_i64m2_m
-static inline vint64m2_t VMERGE_INT64H(vbool32_t mask, vint64m2_t op1,
-vint64m2_t op2, size_t vl){
-	return __riscv_vmerge_vvm_i64m2(op1, op2, mask, vl);
+static inline vint64m2_t VMERGE_INT64H(vbool32_t mask, vint64m2_t op1, vint64m2_t op2, size_t vl)
+{
+    return __riscv_vmerge_vvm_i64m2(op1, op2, mask, vl);
 }
 
-static inline vint64m2_t VMERGE1_INT64H(vbool32_t mask, vint64m2_t op1,
-int64_t op2, size_t vl){
-	return __riscv_vmerge_vxm_i64m2(op1, op2, mask, vl);
+static inline vint64m2_t VMERGE1_INT64H(vbool32_t mask, vint64m2_t op1, int64_t op2, size_t vl)
+{
+    return __riscv_vmerge_vxm_i64m2(op1, op2, mask, vl);
 }
 #define VADD1_INT64H_MASK __riscv_vadd_vx_i64m2_m
 
 #define VSTORE_INT64H __riscv_vse64_v_i64m2
 
-//BOOL64H
+// BOOL64H
 #define V_ELT_BOOL64H vbool32_t
 #define VNOT_BOOL64H __riscv_vmnot_m_b32
 #define VCLEAR_BOOL64H __riscv_vmclr_m_b32
@@ -1371,83 +1393,83 @@ static const double minus_cephes_DP1d = -7.85398125648498535156E-1;
 static const double minus_cephes_DP2d = -3.77489470793079817668E-8;
 static const double minus_cephes_DP3d = -2.69515142907905952645E-15;
 static const double sincod[] = {1.58962301576546568060E-10, -2.50507477628578072866E-8,
-2.75573136213857245213E-6, -1.98412698295895385996E-4, 8.33333333332211858878E-3, -1.66666666666666307295E-1};
+                                2.75573136213857245213E-6, -1.98412698295895385996E-4, 8.33333333332211858878E-3, -1.66666666666666307295E-1};
 static const double coscod[] = {-1.13585365213876817300E-11, 2.08757008419747316778E-9, -2.75573141792967388112E-7, 2.48015872888517045348E-5, -1.38888888888730564116E-3, 4.16666666666665929218E-2};
 
-static const double ASIN_P0d =  4.253011369004428248960E-3;
-static const double ASIN_P1d =  -6.019598008014123785661E-1;
-static const double ASIN_P2d =  5.444622390564711410273E0;
-static const double ASIN_P3d =  -1.626247967210700244449E1;
-static const double ASIN_P4d =  1.956261983317594739197E1;
-static const double ASIN_P5d =  -8.198089802484824371615E0;
+static const double ASIN_P0d = 4.253011369004428248960E-3;
+static const double ASIN_P1d = -6.019598008014123785661E-1;
+static const double ASIN_P2d = 5.444622390564711410273E0;
+static const double ASIN_P3d = -1.626247967210700244449E1;
+static const double ASIN_P4d = 1.956261983317594739197E1;
+static const double ASIN_P5d = -8.198089802484824371615E0;
 
-static const double PId =  3.1415926535897932384626433832795028841971693993751058209749445923;      // PI
-static const double mPId =  -3.1415926535897932384626433832795028841971693993751058209749445923;    // -PI
-static const double ASIN_Q0d =  -1.474091372988853791896E1;
-static const double ASIN_Q1d =  7.049610280856842141659E1;
-static const double ASIN_Q2d =  -1.471791292232726029859E2;
-static const double ASIN_Q3d =  1.395105614657485689735E2;
-static const double ASIN_Q4d =  -4.918853881490881290097E1;
+static const double PId = 3.1415926535897932384626433832795028841971693993751058209749445923;    // PI
+static const double mPId = -3.1415926535897932384626433832795028841971693993751058209749445923;  // -PI
+static const double ASIN_Q0d = -1.474091372988853791896E1;
+static const double ASIN_Q1d = 7.049610280856842141659E1;
+static const double ASIN_Q2d = -1.471791292232726029859E2;
+static const double ASIN_Q3d = 1.395105614657485689735E2;
+static const double ASIN_Q4d = -4.918853881490881290097E1;
 
-static const double ASIN_R0d =  2.967721961301243206100E-3;
-static const double ASIN_R1d =  -5.634242780008963776856E-1;
-static const double ASIN_R2d =  6.968710824104713396794E0;
-static const double ASIN_R3d =  -2.556901049652824852289E1;
-static const double ASIN_R4d =  2.853665548261061424989E1;
+static const double ASIN_R0d = 2.967721961301243206100E-3;
+static const double ASIN_R1d = -5.634242780008963776856E-1;
+static const double ASIN_R2d = 6.968710824104713396794E0;
+static const double ASIN_R3d = -2.556901049652824852289E1;
+static const double ASIN_R4d = 2.853665548261061424989E1;
 
-static const double ASIN_S0d =  -2.194779531642920639778E1;
-static const double ASIN_S1d =  1.470656354026814941758E2;
-static const double ASIN_S2d =  -3.838770957603691357202E2;
-static const double ASIN_S3d =  3.424398657913078477438E2;
+static const double ASIN_S0d = -2.194779531642920639778E1;
+static const double ASIN_S1d = 1.470656354026814941758E2;
+static const double ASIN_S2d = -3.838770957603691357202E2;
+static const double ASIN_S3d = 3.424398657913078477438E2;
 
-static const double PIO2d =  1.5707963267948966192313216916397514420985846996875529104874722961;    /* pi/2 */
-static const double PIO4d =  0.7853981633974483096156608458198757210492923498437764552437361480; /* pi/4 */
+static const double PIO2d = 1.5707963267948966192313216916397514420985846996875529104874722961; /* pi/2 */
+static const double PIO4d = 0.7853981633974483096156608458198757210492923498437764552437361480; /* pi/4 */
 
-static const double minMOREBITSd =  -6.123233995736765886130E-17;
-static const double MOREBITSd =  6.123233995736765886130E-17;
-//static const double 0p5xMOREBITSd =  3.061616997868382943065e-17;
+static const double minMOREBITSd = -6.123233995736765886130E-17;
+static const double MOREBITSd = 6.123233995736765886130E-17;
+// static const double 0p5xMOREBITSd =  3.061616997868382943065e-17;
 
-static const double ATAN_P0d =  -8.750608600031904122785E-1;
-static const double ATAN_P1d =  -1.615753718733365076637E1;
-static const double ATAN_P2d =  -7.500855792314704667340E1;
-static const double ATAN_P3d =  -1.228866684490136173410E2;
-static const double ATAN_P4d =  -6.485021904942025371773E1;
+static const double ATAN_P0d = -8.750608600031904122785E-1;
+static const double ATAN_P1d = -1.615753718733365076637E1;
+static const double ATAN_P2d = -7.500855792314704667340E1;
+static const double ATAN_P3d = -1.228866684490136173410E2;
+static const double ATAN_P4d = -6.485021904942025371773E1;
 
-static const double ATAN_Q0d =  2.485846490142306297962E1;
-static const double ATAN_Q1d =  1.650270098316988542046E2;
-static const double ATAN_Q2d =  4.328810604912902668951E2;
-static const double ATAN_Q3d =  4.853903996359136964868E2;
-static const double ATAN_Q4d =  1.945506571482613964425E2;
+static const double ATAN_Q0d = 2.485846490142306297962E1;
+static const double ATAN_Q1d = 1.650270098316988542046E2;
+static const double ATAN_Q2d = 4.328810604912902668951E2;
+static const double ATAN_Q3d = 4.853903996359136964868E2;
+static const double ATAN_Q4d = 1.945506571482613964425E2;
 
-static const double TAN3PI8d =  2.41421356237309504880; /* 3*pi/8 */
-static const double min1d =  -1.0;
-//static const double 1m14d =  1.0e-14;
-static const double TAN_P0d =  -1.30936939181383777646E4;
-static const double TAN_P1d =  1.15351664838587416140E6;
-static const double TAN_P2d =  -1.79565251976484877988E7;
-static const double TAN_Q0d =  1.36812963470692954678E4;
-static const double TAN_Q1d =  -1.32089234440210967447E6;
-static const double TAN_Q2d =  2.50083801823357915839E7;
-static const double TAN_Q3d =  -5.38695755929454629881E7;
-static const double TAN_mDP1d =  -7.853981554508209228515625E-1;
-static const double TAN_mDP2d =  -7.94662735614792836714E-9;
-static const double TAN_mDP3d =  -3.06161699786838294307E-17;
-static const double tanlossthd =  1.073741824e9;
+static const double TAN3PI8d = 2.41421356237309504880; /* 3*pi/8 */
+static const double min1d = -1.0;
+// static const double 1m14d =  1.0e-14;
+static const double TAN_P0d = -1.30936939181383777646E4;
+static const double TAN_P1d = 1.15351664838587416140E6;
+static const double TAN_P2d = -1.79565251976484877988E7;
+static const double TAN_Q0d = 1.36812963470692954678E4;
+static const double TAN_Q1d = -1.32089234440210967447E6;
+static const double TAN_Q2d = 2.50083801823357915839E7;
+static const double TAN_Q3d = -5.38695755929454629881E7;
+static const double TAN_mDP1d = -7.853981554508209228515625E-1;
+static const double TAN_mDP2d = -7.94662735614792836714E-9;
+static const double TAN_mDP3d = -3.06161699786838294307E-17;
+static const double tanlossthd = 1.073741824e9;
 
-static const double cephes_LOG2Ed =  1.4426950408889634073599;  /* 1/log(2) */
-static const double cephes_LOGE2d =  6.93147180559945309417E-1; /* log(2) */
+static const double cephes_LOG2Ed = 1.4426950408889634073599;  /* 1/log(2) */
+static const double cephes_LOGE2d = 6.93147180559945309417E-1; /* log(2) */
 
-static const double cephes_exp_p0d =  1.26177193074810590878e-4;
-static const double cephes_exp_p1d =  3.02994407707441961300e-2;
-static const double cephes_exp_p2d =  9.99999999999999999910e-1;
+static const double cephes_exp_p0d = 1.26177193074810590878e-4;
+static const double cephes_exp_p1d = 3.02994407707441961300e-2;
+static const double cephes_exp_p2d = 9.99999999999999999910e-1;
 
-static const double cephes_exp_q0d =  3.00198505138664455042e-6;
-static const double cephes_exp_q1d =  2.52448340349684104192e-3;
-static const double cephes_exp_q2d =  2.27265548208155028766e-1;
-static const double cephes_exp_q3d =  2.00000000000000000009e0;
+static const double cephes_exp_q0d = 3.00198505138664455042e-6;
+static const double cephes_exp_q1d = 2.52448340349684104192e-3;
+static const double cephes_exp_q2d = 2.27265548208155028766e-1;
+static const double cephes_exp_q3d = 2.00000000000000000009e0;
 
-static const double cephes_exp_minC1d =  -0.693145751953125;
-static const double cephes_exp_minC2d =  -1.42860682030941723212e-6;
+static const double cephes_exp_minC1d = -0.693145751953125;
+static const double cephes_exp_minC2d = -1.42860682030941723212e-6;
 
 
 #define SIGN_MASK 0x80000000
@@ -1472,23 +1494,23 @@ static const int64_t inv_sign_maskd = ~SIGN_MASKD;
 #endif
 
 typedef struct {
-	int16_t re;
-	int16_t im;
+    int16_t re;
+    int16_t im;
 } complex16s_t;
 
 typedef struct {
-	int32_t re;
-	int32_t im;
+    int32_t re;
+    int32_t im;
 } complex32s_t;
 
 typedef struct {
-	float re;
-	float im;
+    float re;
+    float im;
 } complex32_t;
 
 typedef struct {
-	double re;
-	double im;
+    double re;
+    double im;
 } complex64_t;
 
 typedef enum {
@@ -1497,22 +1519,22 @@ typedef enum {
     RndFinancial,
 } FloatRoundingMode;
 
-typedef  struct {
-	int16_t x;
-	int16_t y;
+typedef struct {
+    int16_t x;
+    int16_t y;
 } point_t;
 
 typedef struct {
-	point_t* modified_points;
-	int counter;
+    point_t *modified_points;
+    int counter;
 } modified_t;
 
 #ifndef max
-#define max(a,b) ((a) > (b))? (a):(b)
+#define max(a, b) ((a) > (b)) ? (a) : (b)
 #endif
 
 #ifndef min
-#define min(a,b) ((a) < (b))? (a):(b)
+#define min(a, b) ((a) < (b)) ? (a) : (b)
 #endif
 
 
@@ -1780,7 +1802,7 @@ _PS_CONST_TYPE(mant_mask, int, 0x7f800000);
 _PS_CONST_TYPE(inv_mant_mask, int, ~0x7f800000);  // 1000 0000 0111 1111 1111 1111 1111 1111
 
 _PS_CONST_TYPE(sign_mask, int, (int) 0x80000000);
-_PS_CONST_TYPE(mid_mask, int, (int)  0x3effffff);
+_PS_CONST_TYPE(mid_mask, int, (int) 0x3effffff);
 _PS_CONST_TYPE(inv_sign_mask, int, ~0x80000000);
 
 _PS_CONST(cephes_SQRTHF, 0.707106781186547524f);
@@ -1938,7 +1960,7 @@ _PD_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
 _PD_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);
 _PD_CONST_TYPE(inv_mant_mask, int64_t, (int64_t) 0x800FFFFFFFFFFFFFL);
 _PD_CONST_TYPE(sign_mask, int64_t, (int64_t) 0x8000000000000000L);
-_PD_CONST_TYPE(mid_mask, int64_t, (int64_t)  0x3fdfffffffffffffL);
+_PD_CONST_TYPE(mid_mask, int64_t, (int64_t) 0x3fdfffffffffffffL);
 _PD_CONST_TYPE(inv_sign_mask, int64_t, ~0x8000000000000000L);
 _PD_CONST_TYPE(pos_sign_mask, int64_t, 0xFFFFFFFFFFFFFL);
 _PD_CONST_TYPE(epi64_mask, double, 0x0018000000000000L);
@@ -2225,7 +2247,7 @@ _PS256_CONST_TYPE(mant_mask, int, 0x7f800000);
 _PS256_CONST_TYPE(inv_mant_mask, int, ~0x7f800000);
 
 _PS256_CONST_TYPE(sign_mask, int, (int) 0x80000000);
-_PS256_CONST_TYPE(mid_mask, int, (int)  0x3effffff);
+_PS256_CONST_TYPE(mid_mask, int, (int) 0x3effffff);
 _PS256_CONST_TYPE(inv_sign_mask, int, ~0x80000000);
 
 _PS256_CONST(cephes_SQRTHF, 0.707106781186547524f);
@@ -2372,9 +2394,9 @@ _PS256_CONST(CBRTF_P4, 0.40238979564544752126924f);
 /////////////// DOUBLE //////////////////
 _PD256_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
 _PD256_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);
-_PD256_CONST_TYPE(inv_mant_mask, int64_t, (int64_t)0x800FFFFFFFFFFFFFL);
+_PD256_CONST_TYPE(inv_mant_mask, int64_t, (int64_t) 0x800FFFFFFFFFFFFFL);
 _PD256_CONST_TYPE(sign_mask, int64_t, (int64_t) 0x8000000000000000L);
-_PD256_CONST_TYPE(mid_mask, int64_t, (int64_t)  0x3fdfffffffffffffL);
+_PD256_CONST_TYPE(mid_mask, int64_t, (int64_t) 0x3fdfffffffffffffL);
 _PD256_CONST_TYPE(inv_sign_mask, int64_t, ~0x8000000000000000L);
 _PD256_CONST_TYPE(pos_sign_mask, int64_t, 0xFFFFFFFFFFFFFL);
 _PD256_CONST_TYPE(epi64_mask, double, 0x0018000000000000L);
@@ -2609,7 +2631,7 @@ _PS512_CONST_TYPE(mant_mask, int, 0x7f800000);
 _PS512_CONST_TYPE(inv_mant_mask, int, ~0x7f800000);
 
 _PS512_CONST_TYPE(sign_mask, int, (int) 0x80000000);
-_PS512_CONST_TYPE(mid_mask, int, (int)  0x3effffff);
+_PS512_CONST_TYPE(mid_mask, int, (int) 0x3effffff);
 _PS512_CONST_TYPE(inv_sign_mask, int, ~0x80000000);
 _PS512_CONST(cephes_SQRTHF, 0.707106781186547524f);
 _PS512_CONST(cephes_log_p0, 7.0376836292E-2f);
@@ -2754,9 +2776,9 @@ _PS512_CONST(CBRTF_P4, 0.40238979564544752126924f);
 ////////// DOUBLE /////////////
 _PD512_CONST_TYPE(min_norm_pos, int64_t, 0x380ffff83ce549caL);
 _PD512_CONST_TYPE(mant_mask, int64_t, 0xFFFFFFFFFFFFFL);
-_PD512_CONST_TYPE(inv_mant_mask, int64_t, (int64_t)0x800FFFFFFFFFFFFFL);
+_PD512_CONST_TYPE(inv_mant_mask, int64_t, (int64_t) 0x800FFFFFFFFFFFFFL);
 _PD512_CONST_TYPE(sign_mask, int64_t, (int64_t) 0x8000000000000000L);
-_PD512_CONST_TYPE(mid_mask, int64_t, (int64_t)  0x3fdfffffffffffffL);
+_PD512_CONST_TYPE(mid_mask, int64_t, (int64_t) 0x3fdfffffffffffffL);
 _PD512_CONST_TYPE(inv_sign_mask, int64_t, ~0x8000000000000000L);
 
 _PD512_CONST(minus_cephes_DP1, -7.85398125648498535156E-1);

@@ -355,8 +355,8 @@ static inline void round256d(double *src, double *dst, int len)
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd src_tmp = _mm256_load_pd(src + i);
-            v4sd spe1 = _mm256_and_pd(src_tmp, *(v4sd*)_pd256_sign_mask);
-            spe1 = _mm256_or_pd(spe1,*(v4sd*)_pd256_mid_mask);
+            v4sd spe1 = _mm256_and_pd(src_tmp, *(v4sd *) _pd256_sign_mask);
+            spe1 = _mm256_or_pd(spe1, *(v4sd *) _pd256_mid_mask);
             spe1 = _mm256_add_pd(src_tmp, spe1);
             v4sd dst_tmp = _mm256_round_pd(spe1, ROUNDTOZERO);
             _mm256_store_pd(dst + i, dst_tmp);
@@ -364,8 +364,8 @@ static inline void round256d(double *src, double *dst, int len)
     } else {
         for (int i = 0; i < stop_len; i += AVX_LEN_DOUBLE) {
             v4sd src_tmp = _mm256_loadu_pd(src + i);
-            v4sd spe1 = _mm256_and_pd(src_tmp, *(v4sd*)_pd256_sign_mask);
-            spe1 = _mm256_or_pd(spe1,*(v4sd*)_pd256_mid_mask);
+            v4sd spe1 = _mm256_and_pd(src_tmp, *(v4sd *) _pd256_sign_mask);
+            spe1 = _mm256_or_pd(spe1, *(v4sd *) _pd256_mid_mask);
             spe1 = _mm256_add_pd(src_tmp, spe1);
             v4sd dst_tmp = _mm256_round_pd(spe1, ROUNDTOZERO);
             _mm256_storeu_pd(dst + i, dst_tmp);
@@ -454,7 +454,7 @@ static inline void vectorSlope256d(double *dst, int len, double offset, double s
     v4sd curVal2 = _mm256_add_pd(_mm256_set1_pd(offset), coef);
     curVal2 = _mm256_add_pd(curVal2, _mm256_set1_pd(4.0 * slope));
 
-    if (len >= 2*AVX_LEN_DOUBLE) {
+    if (len >= 2 * AVX_LEN_DOUBLE) {
         if (isAligned((uintptr_t) (dst), AVX_LEN_BYTES)) {
             _mm256_store_pd(dst + 0, curVal);
             _mm256_store_pd(dst + AVX_LEN_DOUBLE, curVal2);
@@ -1342,15 +1342,15 @@ static inline v4sd pow256_pd(v4sd x, v4sd y)
 
 static inline void pow256d(double *x, double *y, double *dst, int len)
 {
-    int stop_len = len / (2* AVX_LEN_DOUBLE);
-    stop_len *= ( 2*AVX_LEN_DOUBLE);
+    int stop_len = len / (2 * AVX_LEN_DOUBLE);
+    stop_len *= (2 * AVX_LEN_DOUBLE);
 
     if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_DOUBLE) {
             v4sd x_tmp = _mm256_load_pd(x + i);
-            v4sd y_tmp = _mm256_load_pd(y + i);	
-			v4sd x_tmp2 = _mm256_load_pd(x + i + AVX_LEN_DOUBLE);
-            v4sd y_tmp2 = _mm256_load_pd(y + i + AVX_LEN_DOUBLE);						
+            v4sd y_tmp = _mm256_load_pd(y + i);
+            v4sd x_tmp2 = _mm256_load_pd(x + i + AVX_LEN_DOUBLE);
+            v4sd y_tmp2 = _mm256_load_pd(y + i + AVX_LEN_DOUBLE);
             v4sd dst_tmp = pow256_pd(x_tmp, y_tmp);
             v4sd dst_tmp2 = pow256_pd(x_tmp2, y_tmp2);
             _mm256_store_pd(dst + i, dst_tmp);
@@ -1359,9 +1359,9 @@ static inline void pow256d(double *x, double *y, double *dst, int len)
     } else {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_DOUBLE) {
             v4sd x_tmp = _mm256_loadu_pd(x + i);
-            v4sd y_tmp = _mm256_loadu_pd(y + i);	
-			v4sd x_tmp2 = _mm256_loadu_pd(x + i + AVX_LEN_DOUBLE);
-            v4sd y_tmp2 = _mm256_loadu_pd(y + i + AVX_LEN_DOUBLE);						
+            v4sd y_tmp = _mm256_loadu_pd(y + i);
+            v4sd x_tmp2 = _mm256_loadu_pd(x + i + AVX_LEN_DOUBLE);
+            v4sd y_tmp2 = _mm256_loadu_pd(y + i + AVX_LEN_DOUBLE);
             v4sd dst_tmp = pow256_pd(x_tmp, y_tmp);
             v4sd dst_tmp2 = pow256_pd(x_tmp2, y_tmp2);
             _mm256_storeu_pd(dst + i, dst_tmp);
@@ -1376,8 +1376,8 @@ static inline void pow256d(double *x, double *y, double *dst, int len)
 
 static inline void powcplx256d(complex64_t *x, complex64_t *y, complex64_t *dst, int len)
 {
-    int stop_len = len / (2* AVX_LEN_DOUBLE);
-    stop_len *= ( 2*AVX_LEN_DOUBLE);
+    int stop_len = len / (2 * AVX_LEN_DOUBLE);
+    stop_len *= (2 * AVX_LEN_DOUBLE);
 
     if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_DOUBLE) {
@@ -1385,22 +1385,22 @@ static inline void powcplx256d(complex64_t *x, complex64_t *y, complex64_t *dst,
             v4sdx2 y_tmp = _mm256_load2_pd((double const *) (y) + i);
             v4sd x_tmp_re2 = _mm256_mul_pd(x_tmp.val[0], x_tmp.val[0]);
             v4sd modx = _mm256_fmadd_pd_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
-			modx = _mm256_sqrt_pd(modx);
-			v4sdx2 logx;
-			logx.val[0] = log256_pd(modx);
-			logx.val[1] = atan2256_pd(x_tmp.val[1], x_tmp.val[0]);
-			v4sdx2 ylogx;
-            v4sd ac = _mm256_mul_pd(logx.val[0], y_tmp.val[0]);     // ac
-            v4sd ad = _mm256_mul_pd(logx.val[0], y_tmp.val[1]);     // ad
+            modx = _mm256_sqrt_pd(modx);
+            v4sdx2 logx;
+            logx.val[0] = log256_pd(modx);
+            logx.val[1] = atan2256_pd(x_tmp.val[1], x_tmp.val[0]);
+            v4sdx2 ylogx;
+            v4sd ac = _mm256_mul_pd(logx.val[0], y_tmp.val[0]);  // ac
+            v4sd ad = _mm256_mul_pd(logx.val[0], y_tmp.val[1]);  // ad
             ylogx.val[0] = _mm256_fnmadd_pd_custom(logx.val[1], y_tmp.val[1], ac);
             ylogx.val[1] = _mm256_fmadd_pd_custom(logx.val[1], y_tmp.val[0], ad);
-			v4sd ex = exp256_pd(ylogx.val[0]);
-			v4sd cosylogx, sinylogx;
-			sincos256_pd(ylogx.val[1], &sinylogx, &cosylogx);
-			v4sdx2 dst_tmp;
-			dst_tmp.val[0] = _mm256_mul_pd(ex,cosylogx);
-			dst_tmp.val[1] = _mm256_mul_pd(ex,sinylogx);
-            _mm256_store2_pd((double*)(dst) + i, dst_tmp);
+            v4sd ex = exp256_pd(ylogx.val[0]);
+            v4sd cosylogx, sinylogx;
+            sincos256_pd(ylogx.val[1], &sinylogx, &cosylogx);
+            v4sdx2 dst_tmp;
+            dst_tmp.val[0] = _mm256_mul_pd(ex, cosylogx);
+            dst_tmp.val[1] = _mm256_mul_pd(ex, sinylogx);
+            _mm256_store2_pd((double *) (dst) + i, dst_tmp);
         }
     } else {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_DOUBLE) {
@@ -1408,42 +1408,42 @@ static inline void powcplx256d(complex64_t *x, complex64_t *y, complex64_t *dst,
             v4sdx2 y_tmp = _mm256_load2u_pd((double const *) (y) + i);
             v4sd x_tmp_re2 = _mm256_mul_pd(x_tmp.val[0], x_tmp.val[0]);
             v4sd modx = _mm256_fmadd_pd_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
-			modx = _mm256_sqrt_pd(modx);
-			v4sdx2 logx;
-			logx.val[0] = log256_pd(modx);
-			logx.val[1] = atan2256_pd(x_tmp.val[1], x_tmp.val[0]);
-			v4sdx2 ylogx;
-            v4sd ac = _mm256_mul_pd(logx.val[0], y_tmp.val[0]);     // ac
-            v4sd ad = _mm256_mul_pd(logx.val[0], y_tmp.val[1]);     // ad
+            modx = _mm256_sqrt_pd(modx);
+            v4sdx2 logx;
+            logx.val[0] = log256_pd(modx);
+            logx.val[1] = atan2256_pd(x_tmp.val[1], x_tmp.val[0]);
+            v4sdx2 ylogx;
+            v4sd ac = _mm256_mul_pd(logx.val[0], y_tmp.val[0]);  // ac
+            v4sd ad = _mm256_mul_pd(logx.val[0], y_tmp.val[1]);  // ad
             ylogx.val[0] = _mm256_fnmadd_pd_custom(logx.val[1], y_tmp.val[1], ac);
             ylogx.val[1] = _mm256_fmadd_pd_custom(logx.val[1], y_tmp.val[0], ad);
-			v4sd ex = exp256_pd(ylogx.val[0]);
-			v4sd cosylogx, sinylogx;
-			sincos256_pd(ylogx.val[1], &sinylogx, &cosylogx);
-			v4sdx2 dst_tmp;
-			dst_tmp.val[0] = _mm256_mul_pd(ex,cosylogx);
-			dst_tmp.val[1] = _mm256_mul_pd(ex,sinylogx);
-            _mm256_store2u_pd((double*)(dst) + i, dst_tmp);
+            v4sd ex = exp256_pd(ylogx.val[0]);
+            v4sd cosylogx, sinylogx;
+            sincos256_pd(ylogx.val[1], &sinylogx, &cosylogx);
+            v4sdx2 dst_tmp;
+            dst_tmp.val[0] = _mm256_mul_pd(ex, cosylogx);
+            dst_tmp.val[1] = _mm256_mul_pd(ex, sinylogx);
+            _mm256_store2u_pd((double *) (dst) + i, dst_tmp);
         }
     }
 
     for (int i = stop_len; i < len; i++) {
-		double x_tmp_re2 = x[i].re * x[i].re;
-		double modx = (x[i].im * x[i].im) + x_tmp_re2;
-		modx = sqrt(modx);
-		complex64_t logx;
-		logx.re = log(modx);
-		logx.im = atan2(x[i].im, x[i].re);
-		complex64_t ylogx;
-		double ac = logx.re * y[i].re;     // ac
-		double ad = logx.re * y[i].im;     // ad
-		ylogx.re = ac - (logx.im * y[i].im);
-		ylogx.im = (logx.im *  y[i].re) +  ad;
-		double ex = exp(ylogx.re);
-		double cosylogx, sinylogx;
-        sinylogx = sin(ylogx.im);	
-        cosylogx = cos(ylogx.im);		
-		dst[i].re = ex * cosylogx;
-		dst[i].im = ex * sinylogx;
+        double x_tmp_re2 = x[i].re * x[i].re;
+        double modx = (x[i].im * x[i].im) + x_tmp_re2;
+        modx = sqrt(modx);
+        complex64_t logx;
+        logx.re = log(modx);
+        logx.im = atan2(x[i].im, x[i].re);
+        complex64_t ylogx;
+        double ac = logx.re * y[i].re;  // ac
+        double ad = logx.re * y[i].im;  // ad
+        ylogx.re = ac - (logx.im * y[i].im);
+        ylogx.im = (logx.im * y[i].re) + ad;
+        double ex = exp(ylogx.re);
+        double cosylogx, sinylogx;
+        sinylogx = sin(ylogx.im);
+        cosylogx = cos(ylogx.im);
+        dst[i].re = ex * cosylogx;
+        dst[i].im = ex * sinylogx;
     }
 }

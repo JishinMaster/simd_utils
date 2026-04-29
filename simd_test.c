@@ -17,15 +17,15 @@ int main(int argc, char **argv)
     init_mkl();
 #endif /* MKL */
 
-    if(argc < 4){
-      printf("Usage simd_test : len alignment offset\n");
-      return -1;
+    if (argc < 4) {
+        printf("Usage simd_test : len alignment offset\n");
+        return -1;
     }
 
     int align = atoi(argv[2]);
-    int offset = atoi(argv[3]);// offset to test unaligned cases
+    int offset = atoi(argv[3]);  // offset to test unaligned cases
     int len = atoi(argv[1]) + offset;
-        
+
     float *inout = NULL, *inout2 = NULL, *inout3 = NULL, *inout4 = NULL, *inout5 = NULL;
     float *inout6 = NULL, *inout_ref = NULL, *inout2_ref = NULL;
     double *inoutd = NULL, *inoutd2 = NULL, *inoutd3 = NULL, *inoutd_ref = NULL, *inoutd2_ref = NULL;
@@ -1915,7 +1915,7 @@ int main(int argc, char **argv)
     printf("convert_64f32f_vec %d %lf\n", len, elapsed);
 
     l2_err(inout, inout_ref, len);
-	
+
 #endif
 
     printf("\n");
@@ -2040,7 +2040,7 @@ int main(int argc, char **argv)
     printf("mean %f ref %f ULPS %d\n", mean, mean_ref, ulpsDistance32(mean, mean_ref));
 #endif
 
-#if defined (RISCV) || defined(SVE2)
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     meanf_vec(inout, &mean, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3021,7 +3021,7 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
-#if defined (RISCV) || defined(SVE2)
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxvecmulf_vec((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3048,10 +3048,10 @@ int main(int argc, char **argv)
     printf("CPLXVECMUL_SPLIT\n");
 
     for (int i = 0; i < len; i++) {
-        inout[i] = (float) (2*i) / 300.0f;  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
-		inout2[i] = (float) (2*i+1) /300.0f;
-        inout3[i] = (float) (2*i) /  (-127.577f);  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
-        inout4[i] = (float) (2*i+1) /  (-127.577f);
+        inout[i] = (float) (2 * i) / 300.0f;  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+        inout2[i] = (float) (2 * i + 1) / 300.0f;
+        inout3[i] = (float) (2 * i) / (-127.577f);  // printf("%f %f %f\n",inout[i],inout2[i],inout2_ref[i]);
+        inout4[i] = (float) (2 * i + 1) / (-127.577f);
     }
 
     clock_gettime(CLOCK_REALTIME, &start);
@@ -3097,11 +3097,11 @@ int main(int argc, char **argv)
 
     l2_err(inout_ref, inout5, len);
     l2_err(inout2_ref, inout6, len);
-			
+
     /*for(int i = 0; i < len; i++){
       printf("%g %g %g %g ||| %g %g || %g %g\n", inout[i], inout2[i],inout3[i], inout4[i],\
               inout_ref[i], inout5[i], inout2_ref[i], inout6[i]);
-    }*/	
+    }*/
 #endif
 
 #ifdef AVX
@@ -3140,7 +3140,7 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout6, len);
 #endif
 
-#if defined (RISCV) || defined(SVE2)
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxvecmulf_vec_split(inout, inout2, inout3, inout4, inout5, inout6, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3336,7 +3336,7 @@ int main(int argc, char **argv)
     l2_err(inout_ref, inout2_ref, 2 * len);
 #endif
 
-#if defined (RISCV) || defined(SVE2)
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxconjvecmulf_vec((complex32_t *) inout, (complex32_t *) inout2, (complex32_t *) inout2_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3478,7 +3478,7 @@ int main(int argc, char **argv)
     l2_err(inout2_ref, inout6, len);
 #endif
 
-#if defined (RISCV) || defined(SVE2)
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     cplxconjvecmulf_vec_split(inout, inout2, inout3, inout4, inout5, inout6, len);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3711,7 +3711,7 @@ int main(int argc, char **argv)
     printf("%f %f ULPS %d\n", inout_ref[0], inout3[0], ulpsDistance32(inout_ref[0], inout3[0]));
 #endif
 
-#if defined (RISCV) || defined(SVE2)
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     dotf_vec(inout, inout2, len, &inout3[0]);
     clock_gettime(CLOCK_REALTIME, &stop);
@@ -3828,7 +3828,7 @@ int main(int argc, char **argv)
     printf("%f %f ULPS %d\n", inout_ref[1], inout3[1], ulpsDistance32(inout_ref[1], inout3[1]));
 #endif
 
-#if defined (RISCV) || defined(SVE2)
+#if defined(RISCV) || defined(SVE2)
     clock_gettime(CLOCK_REALTIME, &start);
     dotcf_vec((complex32_t *) inout, (complex32_t *) inout2, len, (complex32_t *) &inout3[0]);
     clock_gettime(CLOCK_REALTIME, &stop);

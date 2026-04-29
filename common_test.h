@@ -5,27 +5,29 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <time.h>
 #include <sys/time.h>
+#include <time.h>
 #ifdef CLOCKSTUB
 #undef clock_gettime
 int clock_gettime(clockid_t clockid, struct timespec *tp)
 {
-   struct timeval tv;
-   gettimeofday(&tv,NULL);
-   tp->tv_sec = tv.tv_sec;
-   tp->tv_nsec = tv.tv_usec/1000ULL;
-   return 0;
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    tp->tv_sec = tv.tv_sec;
+    tp->tv_nsec = tv.tv_usec / 1000ULL;
+    return 0;
 }
 
 #undef posix_memalign
-int posix_memalign(void **memptr, size_t alignment, size_t size){
-        *memptr = aligned_alloc(alignment, size);
-        return 0;
+int posix_memalign(void **memptr, size_t alignment, size_t size)
+{
+    *memptr = aligned_alloc(alignment, size);
+    return 0;
 }
 
-int _isatty(int fd){
-	return 1;
+int _isatty(int fd)
+{
+    return 1;
 }
 #endif
 
@@ -67,7 +69,8 @@ int _isatty(int fd){
 #endif
 
 
-static inline uint32_t float_to_ordered_int(float f) {
+static inline uint32_t float_to_ordered_int(float f)
+{
     uint32_t u;
     memcpy(&u, &f, sizeof(u));  // reinterpret bits safely
 
@@ -75,10 +78,11 @@ static inline uint32_t float_to_ordered_int(float f) {
     if (u & 0x80000000U)
         return ~u + 1U;  // two's complement trick
     else
-        return u | 0x80000000U; // shift positives up
+        return u | 0x80000000U;  // shift positives up
 }
 
-static inline uint64_t double_to_ordered_int(double f) {
+static inline uint64_t double_to_ordered_int(double f)
+{
     uint64_t u;
     memcpy(&u, &f, sizeof(u));  // reinterpret bits safely
 
@@ -86,7 +90,7 @@ static inline uint64_t double_to_ordered_int(double f) {
     if (u & 0x8000000000000000UL)
         return ~u + 1U;  // two's complement trick
     else
-        return u | 0x8000000000000000UL; // shift positives up
+        return u | 0x8000000000000000UL;  // shift positives up
 }
 
 #if 0
@@ -107,20 +111,23 @@ int32_t ulpsDistance32(const float a, const float b)
 }
 #else
 
-#define INT_MAX  0x7FFFFFFF
-#define INT_MIN  0x80000000
+#define INT_MAX 0x7FFFFFFF
+#define INT_MIN 0x80000000
 
-static inline int32_t  ulpsDistance32(float a, float b) {
+static inline int32_t ulpsDistance32(float a, float b)
+{
     // Handle NaN and Inf specially
-    if (isnanf(a) || isnanf(b)) return INT_MAX;
-    if (isinff(a) || isinff(b)) return (a == b ? 0 : INT_MAX);
+    if (isnanf(a) || isnanf(b))
+        return INT_MAX;
+    if (isinff(a) || isinff(b))
+        return (a == b ? 0 : INT_MAX);
 
     uint32_t ia = float_to_ordered_int(a);
     uint32_t ib = float_to_ordered_int(b);
 
-    return (int32_t)abs((int64_t)ia - (int64_t)ib);
+    return (int32_t) abs((int64_t) ia - (int64_t) ib);
 }
-	
+
 #endif
 
 #if 0
@@ -141,23 +148,26 @@ int64_t ulpsDistance64(const double a, const double b)
 }
 
 #else
-//#define INT64_MAX  0x7FFFFFFFFFFFFFFF
-//#define INT64_MIN  0x8000000000000000
-static inline int64_t  ulpsDistance64(double a, float b) {
+// #define INT64_MAX  0x7FFFFFFFFFFFFFFF
+// #define INT64_MIN  0x8000000000000000
+static inline int64_t ulpsDistance64(double a, float b)
+{
     // Handle NaN and Inf specially
-    if (isnan(a) || isnan(b)) return INT64_MAX;
-    if (isinf(a) || isinf(b)) return (a == b ? 0 : INT64_MAX);
+    if (isnan(a) || isnan(b))
+        return INT64_MAX;
+    if (isinf(a) || isinf(b))
+        return (a == b ? 0 : INT64_MAX);
 
     uint64_t ia = double_to_ordered_int(a);
     uint64_t ib = double_to_ordered_int(b);
 
-    return (int64_t)labs((int64_t)ia - (int64_t)ib);
-}	
+    return (int64_t) labs((int64_t) ia - (int64_t) ib);
+}
 #endif
 
-//Relative Error
-// For complex arrays this is not the good way to compute the error
-// but it should give a good enough idea of the precision
+// Relative Error
+//  For complex arrays this is not the good way to compute the error
+//  but it should give a good enough idea of the precision
 float l2_err(float *test, float *ref, int len)
 {
     float l2_rel_err = 0.0f;
@@ -165,30 +175,30 @@ float l2_err(float *test, float *ref, int len)
     int sup1ulps = 0;
     float sup1ulps_percent = 0.0f;
     int sup3ulps = 0;
-    float sup3ulps_percent = 0.0f;	
+    float sup3ulps_percent = 0.0f;
     int sup5ulps = 0;
-    float sup5ulps_percent = 0.0f;	
-	
+    float sup5ulps_percent = 0.0f;
+
     for (int i = 0; i < len; i++) {
         l2_rel_err += (ref[i] - test[i]) * (ref[i] - test[i]);
-        sum += ref[i]*ref[i];
+        sum += ref[i] * ref[i];
         int32_t dist = ulpsDistance32(ref[i], test[i]);
         if (dist > 1)
             sup1ulps++;
-	    if (dist > 3){
-			//printf("%.9g %.9g\n",ref[i],test[i]);
+        if (dist > 3) {
+            // printf("%.9g %.9g\n",ref[i],test[i]);
             sup3ulps++;
-		}			
-	    if (dist > 5)
-            sup5ulps++;			
+        }
+        if (dist > 5)
+            sup5ulps++;
     }
 
     sup1ulps_percent = (float) sup1ulps / (float) len * 100.0f;
-    sup3ulps_percent = (float) sup3ulps / (float) len * 100.0f;	
-    sup5ulps_percent = (float) sup5ulps / (float) len * 100.0f;		
-    l2_rel_err =  sqrtf(l2_rel_err)/sqrtf(sum);
-    printf("L2 REL ERR %0.9g SUP_1ULPS %2.4g %% SUP_3ULPS %2.4g %% SUP_5ULPS %2.4g %%\n", l2_rel_err, sup1ulps_percent,\
-		   sup3ulps_percent, sup5ulps_percent);
+    sup3ulps_percent = (float) sup3ulps / (float) len * 100.0f;
+    sup5ulps_percent = (float) sup5ulps / (float) len * 100.0f;
+    l2_rel_err = sqrtf(l2_rel_err) / sqrtf(sum);
+    printf("L2 REL ERR %0.9g SUP_1ULPS %2.4g %% SUP_3ULPS %2.4g %% SUP_5ULPS %2.4g %%\n", l2_rel_err, sup1ulps_percent,
+           sup3ulps_percent, sup5ulps_percent);
     return l2_rel_err;
 }
 
@@ -199,28 +209,28 @@ double l2_errd(double *test, double *ref, int len)
     int sup1ulps = 0;
     float sup1ulps_percent = 0.0f;
     int sup3ulps = 0;
-    float sup3ulps_percent = 0.0f;	
+    float sup3ulps_percent = 0.0f;
     int sup5ulps = 0;
-    float sup5ulps_percent = 0.0f;	
+    float sup5ulps_percent = 0.0f;
 
     for (int i = 0; i < len; i++) {
         l2_rel_err += (ref[i] - test[i]) * (ref[i] - test[i]);
-        sum += ref[i]*ref[i];
+        sum += ref[i] * ref[i];
         int64_t dist = ulpsDistance64(ref[i], test[i]);
         if (dist > 1)
             sup1ulps++;
-	    if (dist > 3){
-			//printf("%.9g %.9g\n",ref[i],test[i]);
+        if (dist > 3) {
+            // printf("%.9g %.9g\n",ref[i],test[i]);
             sup3ulps++;
-		}			
-	    if (dist > 5)
-            sup5ulps++;		
+        }
+        if (dist > 5)
+            sup5ulps++;
     }
 
     sup1ulps_percent = (float) sup1ulps / (float) len * 100.0f;
-    l2_rel_err =  sqrt(l2_rel_err)/sqrt(sum);
-    printf("L2 REL ERR %0.18g SUP_1ULPS %2.4g %% SUP_3ULPS %2.4g %% SUP_5ULPS %2.4g %%\n", l2_rel_err, sup1ulps_percent,\
-		   sup3ulps_percent, sup5ulps_percent);
+    l2_rel_err = sqrt(l2_rel_err) / sqrt(sum);
+    printf("L2 REL ERR %0.18g SUP_1ULPS %2.4g %% SUP_3ULPS %2.4g %% SUP_5ULPS %2.4g %%\n", l2_rel_err, sup1ulps_percent,
+           sup3ulps_percent, sup5ulps_percent);
     return l2_rel_err;
 }
 
@@ -228,13 +238,13 @@ float l2_err_u8(uint8_t *test, uint8_t *ref, int len)
 {
     float l2_rel_err = 0.0f;
     float sum = 0.0;
-    
+
     for (int i = 0; i < len; i++) {
         l2_rel_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
-        sum +=  (float) (ref[i]*ref[i]);
+        sum += (float) (ref[i] * ref[i]);
     }
 
-    l2_rel_err =  sqrtf(l2_rel_err)/sqrtf(sum);
+    l2_rel_err = sqrtf(l2_rel_err) / sqrtf(sum);
     printf("L2 REL ERR %0.9g\n", l2_rel_err);
     return l2_rel_err;
 }
@@ -246,10 +256,10 @@ float l2_err_i16(int16_t *test, int16_t *ref, int len)
 
     for (int i = 0; i < len; i++) {
         l2_rel_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
-        sum +=  (float) (ref[i]*ref[i]);
+        sum += (float) (ref[i] * ref[i]);
     }
 
-    l2_rel_err =  sqrtf(l2_rel_err)/sqrtf(sum);
+    l2_rel_err = sqrtf(l2_rel_err) / sqrtf(sum);
     printf("L2 REL ERR %0.9g\n", l2_rel_err);
     return l2_rel_err;
 }
@@ -258,19 +268,20 @@ float l2_err_i16(int16_t *test, int16_t *ref, int len)
 float l2_err_i32(int32_t *test, int32_t *ref, int len)
 {
     float l2_rel_err = 0.0f;
-    //double sum = 0.0;
+    // double sum = 0.0;
     for (int i = 0; i < len; i++) {
         l2_rel_err += (float) (ref[i] - test[i]) * (ref[i] - test[i]);
-        //sumi +=  (ref[i]*ref[i]);
+        // sumi +=  (ref[i]*ref[i]);
     }
-    //sum = sqrt((double)sumi);
-    l2_rel_err =  sqrtf(l2_rel_err);///(float)sum;
+    // sum = sqrt((double)sumi);
+    l2_rel_err = sqrtf(l2_rel_err);  ///(float)sum;
     printf("L2 REL ERR %0.9g\n", l2_rel_err);
     return l2_rel_err;
 }
 
 #ifdef IPP
-void init_ipp(void){
+void init_ipp(void)
+{
     IppStatus status;
     Ipp64u mask, emask;
 #if defined(AVX512)
@@ -374,19 +385,20 @@ void init_ipp(void){
 #endif
 
 #ifdef MKL
-    void init_mkl(void){
-      int mkl_mask;
+void init_mkl(void)
+{
+    int mkl_mask;
 
-  #if defined(AVX512)
-      mkl_mask = MKL_ENABLE_AVX512;
-  #elif defined(__AVX2__)
-      mkl_mask = MKL_ENABLE_AVX2;
-  #elif defined(AVX)
-      mkl_mask = MKL_ENABLE_AVX;
-  #else
-      mkl_mask = MKL_ENABLE_SSE4_2;
-  #endif
-      if (mkl_enable_instructions(mkl_mask) != 1)
-          printf("Could not enable required MKL instructions\n");
-    }
+#if defined(AVX512)
+    mkl_mask = MKL_ENABLE_AVX512;
+#elif defined(__AVX2__)
+    mkl_mask = MKL_ENABLE_AVX2;
+#elif defined(AVX)
+    mkl_mask = MKL_ENABLE_AVX;
+#else
+    mkl_mask = MKL_ENABLE_SSE4_2;
+#endif
+    if (mkl_enable_instructions(mkl_mask) != 1)
+        printf("Could not enable required MKL instructions\n");
+}
 #endif /* MKL */

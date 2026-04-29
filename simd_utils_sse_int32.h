@@ -126,32 +126,32 @@ static inline void vectorSlope128s(int *dst, int len, int offset, int slope)
     int stop_len = len / (2 * SSE_LEN_INT32);
     stop_len *= (2 * SSE_LEN_INT32);
 
-    if (len >= 2*SSE_LEN_INT32) {
-		if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
-			_mm_store_si128((__m128i *) dst, curVal);
-			_mm_store_si128((__m128i *) (dst + SSE_LEN_INT32), curVal2);
-		} else {
-			_mm_storeu_si128((__m128i *) dst, curVal);
-			_mm_storeu_si128((__m128i *) (dst + SSE_LEN_INT32), curVal2);
-		}
+    if (len >= 2 * SSE_LEN_INT32) {
+        if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
+            _mm_store_si128((__m128i *) dst, curVal);
+            _mm_store_si128((__m128i *) (dst + SSE_LEN_INT32), curVal2);
+        } else {
+            _mm_storeu_si128((__m128i *) dst, curVal);
+            _mm_storeu_si128((__m128i *) (dst + SSE_LEN_INT32), curVal2);
+        }
 
-		if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
-			for (int i = 2 * SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
-				curVal = _mm_add_epi32(curVal, slope8_vec);
-				_mm_store_si128((__m128i *) (dst + i), curVal);
-				curVal2 = _mm_add_epi32(curVal2, slope8_vec);
-				_mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), curVal2);
-			}
-		} else {
-			for (int i = 2 * SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
-				curVal = _mm_add_epi32(curVal, slope8_vec);
-				_mm_storeu_si128((__m128i *) (dst + i), curVal);
-				curVal2 = _mm_add_epi32(curVal2, slope8_vec);
-				_mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), curVal2);
-			}
-		}
-	}
-	
+        if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
+            for (int i = 2 * SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
+                curVal = _mm_add_epi32(curVal, slope8_vec);
+                _mm_store_si128((__m128i *) (dst + i), curVal);
+                curVal2 = _mm_add_epi32(curVal2, slope8_vec);
+                _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), curVal2);
+            }
+        } else {
+            for (int i = 2 * SSE_LEN_INT32; i < stop_len; i += 2 * SSE_LEN_INT32) {
+                curVal = _mm_add_epi32(curVal, slope8_vec);
+                _mm_storeu_si128((__m128i *) (dst + i), curVal);
+                curVal2 = _mm_add_epi32(curVal2, slope8_vec);
+                _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), curVal2);
+            }
+        }
+    }
+
     for (int i = stop_len; i < len; i++) {
         dst[i] = offset + slope * i;
     }
@@ -202,13 +202,13 @@ static inline void copy128s(int32_t *src, int32_t *dst, int len)
     stop_len *= SSE_LEN_INT32;
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
-      for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
-          _mm_store_si128((__m128i *) (dst + i), _mm_load_si128((__m128i *) (src + i)));
-      }
+        for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
+            _mm_store_si128((__m128i *) (dst + i), _mm_load_si128((__m128i *) (src + i)));
+        }
     } else {
-      for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
-          _mm_storeu_si128((__m128i *) (dst + i), _mm_loadu_si128((__m128i *) (src + i)));
-      }
+        for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
+            _mm_storeu_si128((__m128i *) (dst + i), _mm_loadu_si128((__m128i *) (src + i)));
+        }
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -222,19 +222,19 @@ static inline void copy128s_2(int32_t *src, int32_t *dst, int len)
     stop_len *= (2 * SSE_LEN_INT32);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
-      for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
-          __m128i tmp1 = _mm_load_si128((__m128i *) (src + i));
-          __m128i tmp2 = _mm_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
-          _mm_store_si128((__m128i *) (dst + i), tmp1);
-          _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
-      }
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            __m128i tmp1 = _mm_load_si128((__m128i *) (src + i));
+            __m128i tmp2 = _mm_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            _mm_store_si128((__m128i *) (dst + i), tmp1);
+            _mm_store_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
+        }
     } else {
-      for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
-          __m128i tmp1 = _mm_loadu_si128((__m128i *) (src + i));
-          __m128i tmp2 = _mm_loadu_si128((__m128i *) (src + i + SSE_LEN_INT32));
-          _mm_storeu_si128((__m128i *) (dst + i), tmp1);
-          _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
-      }
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            __m128i tmp1 = _mm_loadu_si128((__m128i *) (src + i));
+            __m128i tmp2 = _mm_loadu_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            _mm_storeu_si128((__m128i *) (dst + i), tmp1);
+            _mm_storeu_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
+        }
     }
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i];
@@ -247,12 +247,12 @@ static inline void fast_copy128s(int32_t *src, int32_t *dst, int len)
     stop_len *= SSE_LEN_INT32;
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
-      for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
-          _mm_stream_si128((__m128i *) (dst + i), _mm_stream_load_si128((__m128i *) (src + i)));
-      }
-      _mm_mfence();
+        for (int i = 0; i < stop_len; i += SSE_LEN_INT32) {
+            _mm_stream_si128((__m128i *) (dst + i), _mm_stream_load_si128((__m128i *) (src + i)));
+        }
+        _mm_mfence();
     } else {
-      stop_len = 0;
+        stop_len = 0;
     }
 
     for (int i = stop_len; i < len; i++) {
@@ -267,17 +267,17 @@ static inline void fast_copy128s_2(int32_t *src, int32_t *dst, int len)
     stop_len *= (2 * SSE_LEN_INT32);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
-      for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
-          __m128i tmp1 = _mm_stream_load_si128((__m128i *) (src + i));
-          __m128i tmp2 = _mm_stream_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
-          _mm_stream_si128((__m128i *) (dst + i), tmp1);
-          _mm_stream_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
-      }
-      _mm_mfence();
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_INT32) {
+            __m128i tmp1 = _mm_stream_load_si128((__m128i *) (src + i));
+            __m128i tmp2 = _mm_stream_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            _mm_stream_si128((__m128i *) (dst + i), tmp1);
+            _mm_stream_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
+        }
+        _mm_mfence();
     } else {
-      stop_len = 0;
+        stop_len = 0;
     }
-    
+
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i];
     }
@@ -289,19 +289,19 @@ static inline void fast_copy128s_4(int32_t *src, int32_t *dst, int len)
     stop_len *= (4 * SSE_LEN_INT32);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
-      for (int i = 0; i < stop_len; i += 4 * SSE_LEN_INT32) {
-          __m128i tmp1 = _mm_stream_load_si128((__m128i *) (src + i));
-          __m128i tmp2 = _mm_stream_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
-          __m128i tmp3 = _mm_stream_load_si128((__m128i *) (src + i + 2 * SSE_LEN_INT32));
-          __m128i tmp4 = _mm_stream_load_si128((__m128i *) (src + i + 3 * SSE_LEN_INT32));
-          _mm_stream_si128((__m128i *) (dst + i), tmp1);
-          _mm_stream_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
-          _mm_stream_si128((__m128i *) (dst + i + 2 * SSE_LEN_INT32), tmp3);
-          _mm_stream_si128((__m128i *) (dst + i + 3 * SSE_LEN_INT32), tmp4);
-      }
-      _mm_mfence();
+        for (int i = 0; i < stop_len; i += 4 * SSE_LEN_INT32) {
+            __m128i tmp1 = _mm_stream_load_si128((__m128i *) (src + i));
+            __m128i tmp2 = _mm_stream_load_si128((__m128i *) (src + i + SSE_LEN_INT32));
+            __m128i tmp3 = _mm_stream_load_si128((__m128i *) (src + i + 2 * SSE_LEN_INT32));
+            __m128i tmp4 = _mm_stream_load_si128((__m128i *) (src + i + 3 * SSE_LEN_INT32));
+            _mm_stream_si128((__m128i *) (dst + i), tmp1);
+            _mm_stream_si128((__m128i *) (dst + i + SSE_LEN_INT32), tmp2);
+            _mm_stream_si128((__m128i *) (dst + i + 2 * SSE_LEN_INT32), tmp3);
+            _mm_stream_si128((__m128i *) (dst + i + 3 * SSE_LEN_INT32), tmp4);
+        }
+        _mm_mfence();
     } else {
-      stop_len = 0;
+        stop_len = 0;
     }
 
     for (int i = stop_len; i < len; i++) {

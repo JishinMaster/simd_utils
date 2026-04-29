@@ -67,9 +67,8 @@ static inline v8sf log10256_ps(v8sf x)
 
     // this is again another AVX2 instruction
     imm0 = _mm256_sub_epi32(imm0, *(v8si *) _pi32_256_0x7f);
+    imm0 = _mm256_add_epi32(imm0, *(v8si *) _pi32_256_1);
     v8sf e = _mm256_cvtepi32_ps(imm0);
-
-    e = _mm256_add_ps(e, one);
 
     v8sf mask = _mm256_cmp_ps(x, *(v8sf *) _ps256_cephes_SQRTHF, _CMP_LT_OS);
     v8sf tmp = _mm256_and_ps(x, mask);
@@ -126,9 +125,8 @@ static inline v8sf log2256_ps(v8sf x)
 
     // this is again another AVX2 instruction
     imm0 = _mm256_sub_epi32(imm0, *(v8si *) _pi32_256_0x7f);
+    imm0 = _mm256_add_epi32(imm0, *(v8si *) _pi32_256_1);
     v8sf e = _mm256_cvtepi32_ps(imm0);
-
-    e = _mm256_add_ps(e, one);
 
     v8sf mask = _mm256_cmp_ps(x, *(v8sf *) _ps256_cephes_SQRTHF, _CMP_LT_OS);
     v8sf tmp = _mm256_and_ps(x, mask);
@@ -328,6 +326,7 @@ static inline v8sf exp256_ps_alternate(v8sf x)
     z_tmp = _mm256_fmadd_ps_custom(z_tmp, x, *(v8sf *) _ps256_cephes_exp_p4);
     z_tmp = _mm256_fmadd_ps_custom(z_tmp, x, *(v8sf *) _ps256_cephes_exp_p5);
     z_tmp = _mm256_fmadd_ps_custom(z_tmp, z, x);
+
     z_tmp = _mm256_add_ps(z_tmp, *(v8sf *) _ps256_1);
 
     /* build 2^n */
@@ -349,7 +348,7 @@ static inline v8sf power_of_two256f(v8si b)
         return f;
     #else*/
     return _mm256_cvtepi32_ps(_mm256_sllv_epi32(*(v8si *) _pi32_256_1, b));
-    //#endif
+    // #endif
 }
 
 static inline v8sf cbrt256f_ps(v8sf xx)
@@ -865,7 +864,7 @@ static inline void vectorSlope256f(float *dst, int len, float offset, float slop
     int stop_len = len / (2 * AVX_LEN_FLOAT);
     stop_len *= (2 * AVX_LEN_FLOAT);
 
-    if (len >= 2*AVX_LEN_FLOAT) {
+    if (len >= 2 * AVX_LEN_FLOAT) {
         if (((uintptr_t) (const void *) (dst) % AVX_LEN_BYTES) == 0) {
             _mm256_store_ps(dst + 0, curVal);
             _mm256_store_ps(dst + AVX_LEN_FLOAT, curVal2);
@@ -959,10 +958,10 @@ static inline void convertInt16ToFloat32_256(int16_t *src, float *dst, int len, 
     stop_len *= (4 * AVX_LEN_FLOAT);
 
     float scale_fact_mult;
-    if(scale_factor >= 0)
-    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    if (scale_factor >= 0)
+        scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     else
-    	scale_fact_mult = (float) (1 << -scale_factor);
+        scale_fact_mult = (float) (1 << -scale_factor);
     v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
@@ -1039,17 +1038,17 @@ static inline void convertInt32ToFloat32_256(int32_t *src, float *dst, int len, 
     stop_len *= (2 * AVX_LEN_FLOAT);
 
     float scale_fact_mult;
-    if(scale_factor >= 0)
-    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    if (scale_factor >= 0)
+        scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     else
-    	scale_fact_mult = (float) (1 << -scale_factor);
+        scale_fact_mult = (float) (1 << -scale_factor);
     v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
 
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
-            v8si vec = _mm256_load_si256((v8si *) (src + i)); 
-			v8si vec1 = _mm256_load_si256((v8si *) (src + i + AVX_LEN_FLOAT)); 
-			
+            v8si vec = _mm256_load_si256((v8si *) (src + i));
+            v8si vec1 = _mm256_load_si256((v8si *) (src + i + AVX_LEN_FLOAT));
+
             // convert the vector to float and scale it
             v8sf floatlo = _mm256_mul_ps(_mm256_cvtepi32_ps(vec), scale_fact_vec);
             v8sf floathi = _mm256_mul_ps(_mm256_cvtepi32_ps(vec1), scale_fact_vec);
@@ -1058,9 +1057,9 @@ static inline void convertInt32ToFloat32_256(int32_t *src, float *dst, int len, 
         }
     } else {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
-            v8si vec = _mm256_loadu_si256((v8si *) (src + i)); 
-			v8si vec1 = _mm256_loadu_si256((v8si *) (src + i + AVX_LEN_FLOAT)); 
-			
+            v8si vec = _mm256_loadu_si256((v8si *) (src + i));
+            v8si vec1 = _mm256_loadu_si256((v8si *) (src + i + AVX_LEN_FLOAT));
+
             // convert the vector to float and scale it
             v8sf floatlo = _mm256_mul_ps(_mm256_cvtepi32_ps(vec), scale_fact_vec);
             v8sf floathi = _mm256_mul_ps(_mm256_cvtepi32_ps(vec1), scale_fact_vec);
@@ -1081,10 +1080,10 @@ static inline void convertFloat32ToU8_256(float *src, uint8_t *dst, int len, int
     stop_len *= (4 * AVX_LEN_FLOAT);
 
     float scale_fact_mult;
-    if(scale_factor >= 0)
-    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    if (scale_factor >= 0)
+        scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     else
-    	scale_fact_mult = (float) (1 << -scale_factor);
+        scale_fact_mult = (float) (1 << -scale_factor);
     v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
     v8si idx = _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0);
 
@@ -1094,139 +1093,139 @@ static inline void convertFloat32ToU8_256(float *src, uint8_t *dst, int len, int
     if (rounding_mode == RndZero) {
         _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
         fesetround(FE_TOWARDZERO);
-    } else if (rounding_mode == RndNear){
+    } else if (rounding_mode == RndNear) {
         _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
         fesetround(FE_TONEAREST);
     }
 
-  if (rounding_mode != RndFinancial) {
-      if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
-          for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
-              v8sf src_tmp1 = _mm256_load_ps(src + i);
-              v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
-              v8sf src_tmp3 = _mm256_load_ps(src + i + 2 * AVX_LEN_FLOAT);
-              v8sf src_tmp4 = _mm256_load_ps(src + i + 3 * AVX_LEN_FLOAT);
-              v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
-              v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
-              v8sf tmp3 = _mm256_mul_ps(src_tmp3, scale_fact_vec);
-              v8sf tmp4 = _mm256_mul_ps(src_tmp4, scale_fact_vec);
-              v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
-              v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
-              v8si tmp3_int = _mm256_cvtps_epi32(tmp3);
-              v8si tmp4_int = _mm256_cvtps_epi32(tmp4);
-              v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
-              v8si tmp6 = _mm256_packs_epi32(tmp3_int, tmp4_int);
-              v8si tmp7 = _mm256_packus_epi16(tmp5, tmp6);
-              tmp7 = _mm256_permutevar8x32_epi32(tmp7, idx);
-              _mm256_store_si256((__m256i *) (dst + i), tmp7);
-          }
-      } else {
-          for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
-              v8sf src_tmp1 = _mm256_loadu_ps(src + i);
-              v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
-              v8sf src_tmp3 = _mm256_loadu_ps(src + i + 2 * AVX_LEN_FLOAT);
-              v8sf src_tmp4 = _mm256_loadu_ps(src + i + 3 * AVX_LEN_FLOAT);
-              v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
-              v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
-              v8sf tmp3 = _mm256_mul_ps(src_tmp3, scale_fact_vec);
-              v8sf tmp4 = _mm256_mul_ps(src_tmp4, scale_fact_vec);
-              v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
-              v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
-              v8si tmp3_int = _mm256_cvtps_epi32(tmp3);
-              v8si tmp4_int = _mm256_cvtps_epi32(tmp4);
-              v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
-              v8si tmp6 = _mm256_packs_epi32(tmp3_int, tmp4_int);
-              v8si tmp7 = _mm256_packus_epi16(tmp5, tmp6);
-              tmp7 = _mm256_permutevar8x32_epi32(tmp7, idx);
-              _mm256_storeu_si256((__m256i *) (dst + i), tmp7);
-          }
-      }
+    if (rounding_mode != RndFinancial) {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_load_ps(src + i);
+                v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+                v8sf src_tmp3 = _mm256_load_ps(src + i + 2 * AVX_LEN_FLOAT);
+                v8sf src_tmp4 = _mm256_load_ps(src + i + 3 * AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8sf tmp3 = _mm256_mul_ps(src_tmp3, scale_fact_vec);
+                v8sf tmp4 = _mm256_mul_ps(src_tmp4, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp3_int = _mm256_cvtps_epi32(tmp3);
+                v8si tmp4_int = _mm256_cvtps_epi32(tmp4);
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                v8si tmp6 = _mm256_packs_epi32(tmp3_int, tmp4_int);
+                v8si tmp7 = _mm256_packus_epi16(tmp5, tmp6);
+                tmp7 = _mm256_permutevar8x32_epi32(tmp7, idx);
+                _mm256_store_si256((__m256i *) (dst + i), tmp7);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_loadu_ps(src + i);
+                v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+                v8sf src_tmp3 = _mm256_loadu_ps(src + i + 2 * AVX_LEN_FLOAT);
+                v8sf src_tmp4 = _mm256_loadu_ps(src + i + 3 * AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8sf tmp3 = _mm256_mul_ps(src_tmp3, scale_fact_vec);
+                v8sf tmp4 = _mm256_mul_ps(src_tmp4, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp3_int = _mm256_cvtps_epi32(tmp3);
+                v8si tmp4_int = _mm256_cvtps_epi32(tmp4);
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                v8si tmp6 = _mm256_packs_epi32(tmp3_int, tmp4_int);
+                v8si tmp7 = _mm256_packus_epi16(tmp5, tmp6);
+                tmp7 = _mm256_permutevar8x32_epi32(tmp7, idx);
+                _mm256_storeu_si256((__m256i *) (dst + i), tmp7);
+            }
+        }
     } else {
-      if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
-          for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
-              v8sf src_tmp1 = _mm256_load_ps(src + i);
-              v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
-              v8sf src_tmp3 = _mm256_load_ps(src + i + 2 * AVX_LEN_FLOAT);
-              v8sf src_tmp4 = _mm256_load_ps(src + i + 3 * AVX_LEN_FLOAT);
-              v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
-              v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
-              v8sf tmp3 = _mm256_mul_ps(src_tmp3, scale_fact_vec);
-              v8sf tmp4 = _mm256_mul_ps(src_tmp4, scale_fact_vec);
-              v8sf spe1 = _mm256_and_ps(tmp1, *(v8sf*)_ps256_sign_mask);
-              spe1 = _mm256_or_ps(spe1,*(v8sf*)_ps256_mid_mask);
-              tmp1 = _mm256_add_ps(tmp1, spe1);
-              v8sf spe2 = _mm256_and_ps(tmp2, *(v8sf*)_ps256_sign_mask);
-              spe2 = _mm256_or_ps(spe2,*(v8sf*)_ps256_mid_mask);
-              tmp2 = _mm256_add_ps(tmp2, spe2);
-              v8sf spe3 = _mm256_and_ps(tmp3, *(v8sf*)_ps256_sign_mask);
-              spe3 = _mm256_or_ps(spe3,*(v8sf*)_ps256_mid_mask);
-              tmp3 = _mm256_add_ps(tmp3, spe3);
-              v8sf spe4 = _mm256_and_ps(tmp4, *(v8sf*)_ps256_sign_mask);
-              spe4 = _mm256_or_ps(spe4,*(v8sf*)_ps256_mid_mask);
-              tmp4 = _mm256_add_ps(tmp4, spe4);
-              tmp1 = _mm256_round_ps(tmp1, ROUNDTOZERO);
-              tmp2 = _mm256_round_ps(tmp2, ROUNDTOZERO);
-              tmp3 = _mm256_round_ps(tmp3, ROUNDTOZERO);
-              tmp4 = _mm256_round_ps(tmp4, ROUNDTOZERO);
-              v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
-              v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
-              v8si tmp3_int = _mm256_cvtps_epi32(tmp3);
-              v8si tmp4_int = _mm256_cvtps_epi32(tmp4);
-              v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
-              v8si tmp6 = _mm256_packs_epi32(tmp3_int, tmp4_int);
-              v8si tmp7 = _mm256_packus_epi16(tmp5, tmp6);
-              tmp7 = _mm256_permutevar8x32_epi32(tmp7, idx);
-              _mm256_store_si256((__m256i *) (dst + i), tmp7);
-          }
-      } else {
-          for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
-              v8sf src_tmp1 = _mm256_loadu_ps(src + i);
-              v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
-              v8sf src_tmp3 = _mm256_loadu_ps(src + i + 2 * AVX_LEN_FLOAT);
-              v8sf src_tmp4 = _mm256_loadu_ps(src + i + 3 * AVX_LEN_FLOAT);
-              v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
-              v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
-              v8sf tmp3 = _mm256_mul_ps(src_tmp3, scale_fact_vec);
-              v8sf tmp4 = _mm256_mul_ps(src_tmp4, scale_fact_vec);
-              v8sf spe1 = _mm256_and_ps(tmp1, *(v8sf*)_ps256_sign_mask);
-              spe1 = _mm256_or_ps(spe1,*(v8sf*)_ps256_mid_mask);
-              tmp1 = _mm256_add_ps(tmp1, spe1);
-              v8sf spe2 = _mm256_and_ps(tmp2, *(v8sf*)_ps256_sign_mask);
-              spe2 = _mm256_or_ps(spe2,*(v8sf*)_ps256_mid_mask);
-              tmp2 = _mm256_add_ps(tmp2, spe2);
-              v8sf spe3 = _mm256_and_ps(tmp3, *(v8sf*)_ps256_sign_mask);
-              spe3 = _mm256_or_ps(spe3,*(v8sf*)_ps256_mid_mask);
-              tmp3 = _mm256_add_ps(tmp3, spe3);
-              v8sf spe4 = _mm256_and_ps(tmp4, *(v8sf*)_ps256_sign_mask);
-              spe4 = _mm256_or_ps(spe4,*(v8sf*)_ps256_mid_mask);
-              tmp4 = _mm256_add_ps(tmp4, spe4);
-              tmp1 = _mm256_round_ps(tmp1, ROUNDTOZERO);
-              tmp2 = _mm256_round_ps(tmp2, ROUNDTOZERO);
-              tmp3 = _mm256_round_ps(tmp3, ROUNDTOZERO);
-              tmp4 = _mm256_round_ps(tmp4, ROUNDTOZERO);
-              v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
-              v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
-              v8si tmp3_int = _mm256_cvtps_epi32(tmp3);
-              v8si tmp4_int = _mm256_cvtps_epi32(tmp4);
-              v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
-              v8si tmp6 = _mm256_packs_epi32(tmp3_int, tmp4_int);
-              v8si tmp7 = _mm256_packus_epi16(tmp5, tmp6);
-              tmp7 = _mm256_permutevar8x32_epi32(tmp7, idx);
-              _mm256_storeu_si256((__m256i *) (dst + i), tmp7);
-          }
-      }
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_load_ps(src + i);
+                v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+                v8sf src_tmp3 = _mm256_load_ps(src + i + 2 * AVX_LEN_FLOAT);
+                v8sf src_tmp4 = _mm256_load_ps(src + i + 3 * AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8sf tmp3 = _mm256_mul_ps(src_tmp3, scale_fact_vec);
+                v8sf tmp4 = _mm256_mul_ps(src_tmp4, scale_fact_vec);
+                v8sf spe1 = _mm256_and_ps(tmp1, *(v8sf *) _ps256_sign_mask);
+                spe1 = _mm256_or_ps(spe1, *(v8sf *) _ps256_mid_mask);
+                tmp1 = _mm256_add_ps(tmp1, spe1);
+                v8sf spe2 = _mm256_and_ps(tmp2, *(v8sf *) _ps256_sign_mask);
+                spe2 = _mm256_or_ps(spe2, *(v8sf *) _ps256_mid_mask);
+                tmp2 = _mm256_add_ps(tmp2, spe2);
+                v8sf spe3 = _mm256_and_ps(tmp3, *(v8sf *) _ps256_sign_mask);
+                spe3 = _mm256_or_ps(spe3, *(v8sf *) _ps256_mid_mask);
+                tmp3 = _mm256_add_ps(tmp3, spe3);
+                v8sf spe4 = _mm256_and_ps(tmp4, *(v8sf *) _ps256_sign_mask);
+                spe4 = _mm256_or_ps(spe4, *(v8sf *) _ps256_mid_mask);
+                tmp4 = _mm256_add_ps(tmp4, spe4);
+                tmp1 = _mm256_round_ps(tmp1, ROUNDTOZERO);
+                tmp2 = _mm256_round_ps(tmp2, ROUNDTOZERO);
+                tmp3 = _mm256_round_ps(tmp3, ROUNDTOZERO);
+                tmp4 = _mm256_round_ps(tmp4, ROUNDTOZERO);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp3_int = _mm256_cvtps_epi32(tmp3);
+                v8si tmp4_int = _mm256_cvtps_epi32(tmp4);
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                v8si tmp6 = _mm256_packs_epi32(tmp3_int, tmp4_int);
+                v8si tmp7 = _mm256_packus_epi16(tmp5, tmp6);
+                tmp7 = _mm256_permutevar8x32_epi32(tmp7, idx);
+                _mm256_store_si256((__m256i *) (dst + i), tmp7);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 4 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_loadu_ps(src + i);
+                v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+                v8sf src_tmp3 = _mm256_loadu_ps(src + i + 2 * AVX_LEN_FLOAT);
+                v8sf src_tmp4 = _mm256_loadu_ps(src + i + 3 * AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8sf tmp3 = _mm256_mul_ps(src_tmp3, scale_fact_vec);
+                v8sf tmp4 = _mm256_mul_ps(src_tmp4, scale_fact_vec);
+                v8sf spe1 = _mm256_and_ps(tmp1, *(v8sf *) _ps256_sign_mask);
+                spe1 = _mm256_or_ps(spe1, *(v8sf *) _ps256_mid_mask);
+                tmp1 = _mm256_add_ps(tmp1, spe1);
+                v8sf spe2 = _mm256_and_ps(tmp2, *(v8sf *) _ps256_sign_mask);
+                spe2 = _mm256_or_ps(spe2, *(v8sf *) _ps256_mid_mask);
+                tmp2 = _mm256_add_ps(tmp2, spe2);
+                v8sf spe3 = _mm256_and_ps(tmp3, *(v8sf *) _ps256_sign_mask);
+                spe3 = _mm256_or_ps(spe3, *(v8sf *) _ps256_mid_mask);
+                tmp3 = _mm256_add_ps(tmp3, spe3);
+                v8sf spe4 = _mm256_and_ps(tmp4, *(v8sf *) _ps256_sign_mask);
+                spe4 = _mm256_or_ps(spe4, *(v8sf *) _ps256_mid_mask);
+                tmp4 = _mm256_add_ps(tmp4, spe4);
+                tmp1 = _mm256_round_ps(tmp1, ROUNDTOZERO);
+                tmp2 = _mm256_round_ps(tmp2, ROUNDTOZERO);
+                tmp3 = _mm256_round_ps(tmp3, ROUNDTOZERO);
+                tmp4 = _mm256_round_ps(tmp4, ROUNDTOZERO);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp3_int = _mm256_cvtps_epi32(tmp3);
+                v8si tmp4_int = _mm256_cvtps_epi32(tmp4);
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                v8si tmp6 = _mm256_packs_epi32(tmp3_int, tmp4_int);
+                v8si tmp7 = _mm256_packus_epi16(tmp5, tmp6);
+                tmp7 = _mm256_permutevar8x32_epi32(tmp7, idx);
+                _mm256_storeu_si256((__m256i *) (dst + i), tmp7);
+            }
+        }
     }
 
     if (rounding_mode == RndFinancial) {
         for (int i = stop_len; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t)fminf(tmp, 255.0f); // round to nearest even with round(x/2)*2
+            dst[i] = (uint8_t) fminf(tmp, 255.0f);  // round to nearest even with round(x/2)*2
         }
     } else {
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
             float tmp = rintf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t)fminf(tmp, 255.0f);
+            dst[i] = (uint8_t) fminf(tmp, 255.0f);
         }
         _MM_SET_ROUNDING_MODE(_mm_rounding_ori);  // restore previous rounding mode
         fesetround(rounding_ori);
@@ -1241,10 +1240,10 @@ static inline void convertFloat32ToI16_256(float *src, int16_t *dst, int len, in
     stop_len *= (2 * AVX_LEN_FLOAT);
 
     float scale_fact_mult;
-    if(scale_factor >= 0)
-    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    if (scale_factor >= 0)
+        scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     else
-    	scale_fact_mult = (float) (1 << -scale_factor);
+        scale_fact_mult = (float) (1 << -scale_factor);
     v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
 
     int _mm_rounding_ori = _MM_GET_ROUNDING_MODE();  // save rounding mode
@@ -1253,49 +1252,49 @@ static inline void convertFloat32ToI16_256(float *src, int16_t *dst, int len, in
     if (rounding_mode == RndZero) {
         _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
         fesetround(FE_TOWARDZERO);
-    } else if (rounding_mode == RndNear){
+    } else if (rounding_mode == RndNear) {
         _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
         fesetround(FE_TONEAREST);
     }
 
     if (rounding_mode != RndFinancial) {
-      if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
-          for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
-              v8sf src_tmp1 = _mm256_load_ps(src + i);
-              v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
-              v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
-              v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
-              v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
-              v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
-              v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
-              tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
-              _mm256_store_si256((__m256i *) (dst + i), tmp5);
-          }
-      } else {
-          for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
-              v8sf src_tmp1 = _mm256_loadu_ps(src + i);
-              v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
-              v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
-              v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
-              v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
-              v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
-              v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
-              tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
-              _mm256_storeu_si256((__m256i *) (dst + i), tmp5);
-          }
-      }
-    } else {
-      if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
             for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
                 v8sf src_tmp1 = _mm256_load_ps(src + i);
                 v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
                 v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
                 v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
-                v8sf spe1 = _mm256_and_ps(tmp1, *(v8sf*)_ps256_sign_mask);
-                spe1 = _mm256_or_ps(spe1,*(v8sf*)_ps256_mid_mask);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_store_si256((__m256i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_loadu_ps(src + i);
+                v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp5 = _mm256_packs_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_storeu_si256((__m256i *) (dst + i), tmp5);
+            }
+        }
+    } else {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_load_ps(src + i);
+                v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8sf spe1 = _mm256_and_ps(tmp1, *(v8sf *) _ps256_sign_mask);
+                spe1 = _mm256_or_ps(spe1, *(v8sf *) _ps256_mid_mask);
                 tmp1 = _mm256_add_ps(tmp1, spe1);
-                v8sf spe2 = _mm256_and_ps(tmp2, *(v8sf*)_ps256_sign_mask);
-                spe2 = _mm256_or_ps(spe2,*(v8sf*)_ps256_mid_mask);
+                v8sf spe2 = _mm256_and_ps(tmp2, *(v8sf *) _ps256_sign_mask);
+                spe2 = _mm256_or_ps(spe2, *(v8sf *) _ps256_mid_mask);
                 tmp2 = _mm256_add_ps(tmp2, spe2);
                 tmp1 = _mm256_round_ps(tmp1, ROUNDTOZERO);
                 tmp2 = _mm256_round_ps(tmp2, ROUNDTOZERO);
@@ -1311,11 +1310,11 @@ static inline void convertFloat32ToI16_256(float *src, int16_t *dst, int len, in
                 v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
                 v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
                 v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
-                v8sf spe1 = _mm256_and_ps(tmp1, *(v8sf*)_ps256_sign_mask);
-                spe1 = _mm256_or_ps(spe1,*(v8sf*)_ps256_mid_mask);
+                v8sf spe1 = _mm256_and_ps(tmp1, *(v8sf *) _ps256_sign_mask);
+                spe1 = _mm256_or_ps(spe1, *(v8sf *) _ps256_mid_mask);
                 tmp1 = _mm256_add_ps(tmp1, spe1);
-                v8sf spe2 = _mm256_and_ps(tmp2, *(v8sf*)_ps256_sign_mask);
-                spe2 = _mm256_or_ps(spe2,*(v8sf*)_ps256_mid_mask);
+                v8sf spe2 = _mm256_and_ps(tmp2, *(v8sf *) _ps256_sign_mask);
+                spe2 = _mm256_or_ps(spe2, *(v8sf *) _ps256_mid_mask);
                 tmp2 = _mm256_add_ps(tmp2, spe2);
                 tmp1 = _mm256_round_ps(tmp1, ROUNDTOZERO);
                 tmp2 = _mm256_round_ps(tmp2, ROUNDTOZERO);
@@ -1327,19 +1326,19 @@ static inline void convertFloat32ToI16_256(float *src, int16_t *dst, int len, in
             }
         }
     }
-  
+
     if (rounding_mode == RndFinancial) {
         for (int i = stop_len; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            tmp = (int16_t)fminf(tmp,32767.0f);
-			dst[i] = (int16_t)fmaxf(-32768.0f, tmp);
+            tmp = (int16_t) fminf(tmp, 32767.0f);
+            dst[i] = (int16_t) fmaxf(-32768.0f, tmp);
         }
     } else {
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
             float tmp = rintf(src[i] * scale_fact_mult);
-            tmp = (int16_t)fminf(tmp,32767.0f);
-			dst[i] = (int16_t)fmaxf(-32768.0f, tmp);
+            tmp = (int16_t) fminf(tmp, 32767.0f);
+            dst[i] = (int16_t) fmaxf(-32768.0f, tmp);
         }
         _MM_SET_ROUNDING_MODE(_mm_rounding_ori);  // restore previous rounding mode
         fesetround(rounding_ori);
@@ -1352,10 +1351,10 @@ static inline void convertFloat32ToU16_256(float *src, uint16_t *dst, int len, i
     stop_len *= (2 * AVX_LEN_FLOAT);
 
     float scale_fact_mult;
-    if(scale_factor >= 0)
-    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    if (scale_factor >= 0)
+        scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     else
-    	scale_fact_mult = (float) (1 << -scale_factor);
+        scale_fact_mult = (float) (1 << -scale_factor);
     v8sf scale_fact_vec = _mm256_set1_ps(scale_fact_mult);
 
     int _mm_rounding_ori = _MM_GET_ROUNDING_MODE();  // save rounding mode
@@ -1364,91 +1363,91 @@ static inline void convertFloat32ToU16_256(float *src, uint16_t *dst, int len, i
     if (rounding_mode == RndZero) {
         _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);  // rounding_vec = ROUNDTOZERO;
         fesetround(FE_TOWARDZERO);
-    } else if (rounding_mode == RndNear){
+    } else if (rounding_mode == RndNear) {
         _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);  // rounding_vec = ROUNDTONEAREST;
         fesetround(FE_TONEAREST);
     }
 
     if (rounding_mode != RndFinancial) {
-      if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
-          for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
-              v8sf src_tmp1 = _mm256_load_ps(src + i);
-              v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
-              v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
-              v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
-              v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
-              v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
-              v8si tmp5 = _mm256_packus_epi32(tmp1_int, tmp2_int);
-              tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
-              _mm256_store_si256((__m256i *) (dst + i), tmp5);
-          }
-      } else {
-          for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
-              v8sf src_tmp1 = _mm256_loadu_ps(src + i);
-              v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
-              v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
-              v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
-              v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
-              v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
-              v8si tmp5 = _mm256_packus_epi32(tmp1_int, tmp2_int);
-              tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
-              _mm256_storeu_si256((__m256i *) (dst + i), tmp5);
-          }
-      }
-  } else {
-      if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
-          for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
-              v8sf src_tmp1 = _mm256_load_ps(src + i);
-              v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
-              v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
-              v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
-              v8sf spe1 = _mm256_and_ps(tmp1, *(v8sf*)_ps256_sign_mask);
-              spe1 = _mm256_or_ps(spe1,*(v8sf*)_ps256_mid_mask);
-              tmp1 = _mm256_add_ps(tmp1, spe1);
-              v8sf spe2 = _mm256_and_ps(tmp2, *(v8sf*)_ps256_sign_mask);
-              spe2 = _mm256_or_ps(spe2,*(v8sf*)_ps256_mid_mask);
-              tmp2 = _mm256_add_ps(tmp2, spe2);
-              tmp1 = _mm256_round_ps(tmp1, ROUNDTOZERO);
-              tmp2 = _mm256_round_ps(tmp2, ROUNDTOZERO);
-              v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
-              v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
-              v8si tmp5 = _mm256_packus_epi32(tmp1_int, tmp2_int);
-              tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
-              _mm256_store_si256((__m256i *) (dst + i), tmp5);
-          }
-      } else {
-          for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
-              v8sf src_tmp1 = _mm256_loadu_ps(src + i);
-              v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
-              v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
-              v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
-              v8sf spe1 = _mm256_and_ps(tmp1, *(v8sf*)_ps256_sign_mask);
-              spe1 = _mm256_or_ps(spe1,*(v8sf*)_ps256_mid_mask);
-              tmp1 = _mm256_add_ps(tmp1, spe1);
-              v8sf spe2 = _mm256_and_ps(tmp2, *(v8sf*)_ps256_sign_mask);
-              spe2 = _mm256_or_ps(spe2,*(v8sf*)_ps256_mid_mask);
-              tmp2 = _mm256_add_ps(tmp2, spe2);
-              tmp1 = _mm256_round_ps(tmp1, ROUNDTOZERO);
-              tmp2 = _mm256_round_ps(tmp2, ROUNDTOZERO);
-              v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
-              v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
-              v8si tmp5 = _mm256_packus_epi32(tmp1_int, tmp2_int);
-              tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
-              _mm256_storeu_si256((__m256i *) (dst + i), tmp5);
-          }
-      }
-  }
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_load_ps(src + i);
+                v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp5 = _mm256_packus_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_store_si256((__m256i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_loadu_ps(src + i);
+                v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp5 = _mm256_packus_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_storeu_si256((__m256i *) (dst + i), tmp5);
+            }
+        }
+    } else {
+        if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_load_ps(src + i);
+                v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8sf spe1 = _mm256_and_ps(tmp1, *(v8sf *) _ps256_sign_mask);
+                spe1 = _mm256_or_ps(spe1, *(v8sf *) _ps256_mid_mask);
+                tmp1 = _mm256_add_ps(tmp1, spe1);
+                v8sf spe2 = _mm256_and_ps(tmp2, *(v8sf *) _ps256_sign_mask);
+                spe2 = _mm256_or_ps(spe2, *(v8sf *) _ps256_mid_mask);
+                tmp2 = _mm256_add_ps(tmp2, spe2);
+                tmp1 = _mm256_round_ps(tmp1, ROUNDTOZERO);
+                tmp2 = _mm256_round_ps(tmp2, ROUNDTOZERO);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp5 = _mm256_packus_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_store_si256((__m256i *) (dst + i), tmp5);
+            }
+        } else {
+            for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
+                v8sf src_tmp1 = _mm256_loadu_ps(src + i);
+                v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
+                v8sf tmp1 = _mm256_mul_ps(src_tmp1, scale_fact_vec);
+                v8sf tmp2 = _mm256_mul_ps(src_tmp2, scale_fact_vec);
+                v8sf spe1 = _mm256_and_ps(tmp1, *(v8sf *) _ps256_sign_mask);
+                spe1 = _mm256_or_ps(spe1, *(v8sf *) _ps256_mid_mask);
+                tmp1 = _mm256_add_ps(tmp1, spe1);
+                v8sf spe2 = _mm256_and_ps(tmp2, *(v8sf *) _ps256_sign_mask);
+                spe2 = _mm256_or_ps(spe2, *(v8sf *) _ps256_mid_mask);
+                tmp2 = _mm256_add_ps(tmp2, spe2);
+                tmp1 = _mm256_round_ps(tmp1, ROUNDTOZERO);
+                tmp2 = _mm256_round_ps(tmp2, ROUNDTOZERO);
+                v8si tmp1_int = _mm256_cvtps_epi32(tmp1);
+                v8si tmp2_int = _mm256_cvtps_epi32(tmp2);
+                v8si tmp5 = _mm256_packus_epi32(tmp1_int, tmp2_int);
+                tmp5 = _mm256_permute4x64_epi64(tmp5, 0xD8);
+                _mm256_storeu_si256((__m256i *) (dst + i), tmp5);
+            }
+        }
+    }
 
     if (rounding_mode == RndFinancial) {
         for (int i = stop_len; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (uint16_t)fminf(tmp, 65535.0f); // round to nearest even with round(x/2)*2
+            dst[i] = (uint16_t) fminf(tmp, 65535.0f);  // round to nearest even with round(x/2)*2
         }
     } else {
         // Default round toward zero
         for (int i = stop_len; i < len; i++) {
             float tmp = rintf(src[i] * scale_fact_mult);
-            dst[i] = (uint16_t)fminf(tmp, 65535.0f);  // round to nearest even with round(x/2)*2
+            dst[i] = (uint16_t) fminf(tmp, 65535.0f);  // round to nearest even with round(x/2)*2
         }
         _MM_SET_ROUNDING_MODE(_mm_rounding_ori);  // restore previous rounding mode
         fesetround(rounding_ori);
@@ -1860,12 +1859,12 @@ static inline void minmax256f(float *src, int len, float *min_value, float *max_
         v4sf min4 = _mm256_extractf128_ps(min_v, 1);
         max4 = _mm_max_ps(max3, max4);
         min4 = _mm_min_ps(min3, min4);
-        max3 = _mm_shuffle_ps(max4, max4, _MM_SHUFFLE(0,1,2,3)); //max3 = _mm_permute_ps(max4, 0x0E);
-        min3 = _mm_shuffle_ps(min4, min4, _MM_SHUFFLE(0,1,2,3)); //min3 = _mm_permute_ps(min4, 0x0E);
+        max3 = _mm_shuffle_ps(max4, max4, _MM_SHUFFLE(0, 1, 2, 3));  // max3 = _mm_permute_ps(max4, 0x0E);
+        min3 = _mm_shuffle_ps(min4, min4, _MM_SHUFFLE(0, 1, 2, 3));  // min3 = _mm_permute_ps(min4, 0x0E);
         max4 = _mm_max_ps(max3, max4);
         min4 = _mm_min_ps(min3, min4);
-        max3 = _mm_shuffle_ps(max4, max4, _MM_SHUFFLE(1,0,1,0)); //max3 = _mm_permute_ps(max4, 0x01);
-        min3 = _mm_shuffle_ps(min4, min4, _MM_SHUFFLE(1,0,1,0)); //min3 = _mm_permute_ps(min4, 0x01);
+        max3 = _mm_shuffle_ps(max4, max4, _MM_SHUFFLE(1, 0, 1, 0));  // max3 = _mm_permute_ps(max4, 0x01);
+        min3 = _mm_shuffle_ps(min4, min4, _MM_SHUFFLE(1, 0, 1, 0));  // min3 = _mm_permute_ps(min4, 0x01);
         max4 = _mm_max_ps(max3, max4);
         min4 = _mm_min_ps(min3, min4);
         _mm_store_ss(&max_tmp, max4);
@@ -2217,7 +2216,7 @@ static inline void threshold256_ltval_gtval_f(float *src, float *dst, int len, f
     }
 
     for (int i = stop_len; i < len; i++) {
-		float tmp = src[i];
+        float tmp = src[i];
         dst[i] = tmp < ltlevel ? ltvalue : tmp;
         dst[i] = tmp > gtlevel ? gtvalue : dst[i];
     }
@@ -2693,10 +2692,10 @@ static inline v8sf atan2256f_ps(v8sf y, v8sf x)
 
     xeqzeroandyinfzero = _mm256_and_ps(xeqzero, yinfzero);
     yeqzeroandxinfzero = _mm256_and_ps(yeqzero, xinfzero);
-    
+
     xeqzeroandyinfzero = _mm256_and_ps(xeqzeroandyinfzero, *(v8sf *) _ps256_sign_mask);
     tmp = _mm256_xor_ps(*(v8sf *) _ps256_PIO2F, xeqzeroandyinfzero);  // either PI or -PI
-    z = _mm256_andnot_ps(yeqzero, tmp);                            // not(yeqzero) and tmp => 0, PI/2, -PI/2
+    z = _mm256_andnot_ps(yeqzero, tmp);                               // not(yeqzero) and tmp => 0, PI/2, -PI/2
     z = _mm256_blendv_ps(z, *(v8sf *) _ps256_PIF, yeqzeroandxinfzero);
     specialcase = _mm256_or_ps(xeqzero, yeqzero);
 
@@ -3287,15 +3286,15 @@ static inline void sum256f(float *src, float *dst, int len)
     }
 
     vec_acc1 = _mm256_add_ps(vec_acc1, vec_acc2);
-    
-    //From GCC _mm512_reduce_add_ps
-    __m128 tmp1 = _mm256_extractf128_ps (vec_acc1, 1);
-    __m128 tmp2 = _mm256_extractf128_ps (vec_acc1, 0);
+
+    // From GCC _mm512_reduce_add_ps
+    __m128 tmp1 = _mm256_extractf128_ps(vec_acc1, 1);
+    __m128 tmp2 = _mm256_extractf128_ps(vec_acc1, 0);
     __m128 tmp3 = _mm_add_ps(tmp1, tmp2);
-    __m128 tmp4 = _mm_shuffle_ps(tmp3, tmp3, _MM_SHUFFLE( 0, 1, 2, 3));
+    __m128 tmp4 = _mm_shuffle_ps(tmp3, tmp3, _MM_SHUFFLE(0, 1, 2, 3));
     __m128 tmp5 = _mm_add_ps(tmp3, tmp4);
     _mm_store_ps(accumulate, tmp5);
-    tmp_acc = accumulate[0] + accumulate[1]; 
+    tmp_acc = accumulate[0] + accumulate[1];
 
     for (int i = stop_len; i < len; i++) {
         tmp_acc += src[i];
@@ -3363,8 +3362,8 @@ static inline void dotc256f(complex32_t *src1, complex32_t *src2, int len, compl
     v8sfx2 vec_acc2 = {{_mm256_setzero_ps(), _mm256_setzero_ps()}};  // initialize the vector accumulator
 
     complex32_t dst_tmp;
-	dst_tmp.re = 0.0f;
-	dst_tmp.im = 0.0f;
+    dst_tmp.re = 0.0f;
+    dst_tmp.im = 0.0f;
 
     __attribute__((aligned(AVX_LEN_BYTES))) float accumulateRe[AVX_LEN_FLOAT];
     __attribute__((aligned(AVX_LEN_BYTES))) float accumulateIm[AVX_LEN_FLOAT];
@@ -3494,7 +3493,7 @@ static inline void rint256f(float *src, float *dst, int len)
     }
 }
 
-//rounds away from zero like IPP, whereas SSE/AVx/AVX512 rounds to nearest even (IEEE-754)
+// rounds away from zero like IPP, whereas SSE/AVx/AVX512 rounds to nearest even (IEEE-754)
 static inline void round256f(float *src, float *dst, int len)
 {
     int stop_len = len / (2 * AVX_LEN_FLOAT);
@@ -3504,11 +3503,11 @@ static inline void round256f(float *src, float *dst, int len)
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_load_ps(src + i);
             v8sf src_tmp2 = _mm256_load_ps(src + i + AVX_LEN_FLOAT);
-            v8sf spe1 = _mm256_and_ps(src_tmp, *(v8sf*)_ps256_sign_mask);
-            spe1 = _mm256_or_ps(spe1,*(v8sf*)_ps256_mid_mask);
+            v8sf spe1 = _mm256_and_ps(src_tmp, *(v8sf *) _ps256_sign_mask);
+            spe1 = _mm256_or_ps(spe1, *(v8sf *) _ps256_mid_mask);
             spe1 = _mm256_add_ps(src_tmp, spe1);
-            v8sf spe2 = _mm256_and_ps(src_tmp2, *(v8sf*)_ps256_sign_mask);
-            spe2 = _mm256_or_ps(spe2,*(v8sf*)_ps256_mid_mask);
+            v8sf spe2 = _mm256_and_ps(src_tmp2, *(v8sf *) _ps256_sign_mask);
+            spe2 = _mm256_or_ps(spe2, *(v8sf *) _ps256_mid_mask);
             spe2 = _mm256_add_ps(src_tmp2, spe2);
             v8sf dst_tmp = _mm256_round_ps(spe1, ROUNDTOZERO);
             v8sf dst_tmp2 = _mm256_round_ps(spe2, ROUNDTOZERO);
@@ -3519,11 +3518,11 @@ static inline void round256f(float *src, float *dst, int len)
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
             v8sf src_tmp = _mm256_loadu_ps(src + i);
             v8sf src_tmp2 = _mm256_loadu_ps(src + i + AVX_LEN_FLOAT);
-            v8sf spe1 = _mm256_and_ps(src_tmp, *(v8sf*)_ps256_sign_mask);
-            spe1 = _mm256_or_ps(spe1,*(v8sf*)_ps256_mid_mask);
+            v8sf spe1 = _mm256_and_ps(src_tmp, *(v8sf *) _ps256_sign_mask);
+            spe1 = _mm256_or_ps(spe1, *(v8sf *) _ps256_mid_mask);
             spe1 = _mm256_add_ps(src_tmp, spe1);
-            v8sf spe2 = _mm256_and_ps(src_tmp2, *(v8sf*)_ps256_sign_mask);
-            spe2 = _mm256_or_ps(spe2,*(v8sf*)_ps256_mid_mask);
+            v8sf spe2 = _mm256_and_ps(src_tmp2, *(v8sf *) _ps256_sign_mask);
+            spe2 = _mm256_or_ps(spe2, *(v8sf *) _ps256_mid_mask);
             spe2 = _mm256_add_ps(src_tmp2, spe2);
             v8sf dst_tmp = _mm256_round_ps(spe1, ROUNDTOZERO);
             v8sf dst_tmp2 = _mm256_round_ps(spe2, ROUNDTOZERO);
@@ -4050,15 +4049,15 @@ static inline void softmax256f(float *src, float *dst, int len)
             _mm256_storeu_ps(dst + i, dst_tmp);
         }
     }
-    
-    //From GCC _mm512_reduce_add_ps
-    __m128 tmp1 = _mm256_extractf128_ps (vec_acc1, 1);
-    __m128 tmp2 = _mm256_extractf128_ps (vec_acc1, 0);
+
+    // From GCC _mm512_reduce_add_ps
+    __m128 tmp1 = _mm256_extractf128_ps(vec_acc1, 1);
+    __m128 tmp2 = _mm256_extractf128_ps(vec_acc1, 0);
     __m128 tmp3 = _mm_add_ps(tmp1, tmp2);
-    __m128 tmp4 = _mm_shuffle_ps(tmp3, tmp3, _MM_SHUFFLE( 0, 1, 2, 3));
+    __m128 tmp4 = _mm_shuffle_ps(tmp3, tmp3, _MM_SHUFFLE(0, 1, 2, 3));
     __m128 tmp5 = _mm_add_ps(tmp3, tmp4);
     _mm_store_ps(accumulate, tmp5);
-    acc = accumulate[0] + accumulate[1]; 
+    acc = accumulate[0] + accumulate[1];
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = expf(src[i]);
@@ -4198,114 +4197,114 @@ static inline void modf256f(float *src, float *integer, float *remainder, int le
     }
 }
 
-//F16C introduced in the same time as AVX, so not SSE code
-static inline void fp32tofp16128 (float* src, uint16_t* dst, size_t len)
+// F16C introduced in the same time as AVX, so not SSE code
+static inline void fp32tofp16128(float *src, uint16_t *dst, size_t len)
 {
-    int stop_len = len / (2*SSE_LEN_FLOAT);
-    stop_len *= (2*SSE_LEN_FLOAT);
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
 
-	if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
-		for (int i = 0; i < stop_len; i += 2*SSE_LEN_FLOAT) {
-			v4sf src_tmp = _mm_load_ps(src + i);
-			v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);		
-			v4si dst_tmp = _mm_cvtps_ph (src_tmp, _MM_FROUND_TO_NEAREST_INT); 
-			v4si dst_tmp2 = _mm_cvtps_ph (src_tmp2, _MM_FROUND_TO_NEAREST_INT);
-			v4sf tmp =  _mm_movelh_ps (*(v4sf *)&dst_tmp, *(v4sf *)&dst_tmp2);
-			_mm_store_si128 ((v4si*)(dst+i), (*(v4si *)&tmp));
-		} 
-	} else {
-		for (int i = 0; i < stop_len; i += 2*SSE_LEN_FLOAT) {
-			v4sf src_tmp = _mm_loadu_ps(src + i);
-			v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);		
-			v4si dst_tmp = _mm_cvtps_ph (src_tmp, _MM_FROUND_TO_NEAREST_INT); 
-			v4si dst_tmp2 = _mm_cvtps_ph (src_tmp2, _MM_FROUND_TO_NEAREST_INT);
-			v4sf tmp =  _mm_movelh_ps (*(v4sf *)&dst_tmp, *(v4sf *)&dst_tmp2);
-			_mm_storeu_si128 ((v4si*)(dst+i), (*(v4si *)&tmp));
-		} 	
-	}
-		
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_load_ps(src + i);
+            v4sf src_tmp2 = _mm_load_ps(src + i + SSE_LEN_FLOAT);
+            v4si dst_tmp = _mm_cvtps_ph(src_tmp, _MM_FROUND_TO_NEAREST_INT);
+            v4si dst_tmp2 = _mm_cvtps_ph(src_tmp2, _MM_FROUND_TO_NEAREST_INT);
+            v4sf tmp = _mm_movelh_ps(*(v4sf *) &dst_tmp, *(v4sf *) &dst_tmp2);
+            _mm_store_si128((v4si *) (dst + i), (*(v4si *) &tmp));
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4sf src_tmp = _mm_loadu_ps(src + i);
+            v4sf src_tmp2 = _mm_loadu_ps(src + i + SSE_LEN_FLOAT);
+            v4si dst_tmp = _mm_cvtps_ph(src_tmp, _MM_FROUND_TO_NEAREST_INT);
+            v4si dst_tmp2 = _mm_cvtps_ph(src_tmp2, _MM_FROUND_TO_NEAREST_INT);
+            v4sf tmp = _mm_movelh_ps(*(v4sf *) &dst_tmp, *(v4sf *) &dst_tmp2);
+            _mm_storeu_si128((v4si *) (dst + i), (*(v4si *) &tmp));
+        }
+    }
+
     for (int i = stop_len; i < len; i++) {
         dst[i] = float2half_rn(src[i]);
-    }	
+    }
 }
 
-static inline void fp32tofp16256 (float* src, uint16_t* dst, size_t len)
+static inline void fp32tofp16256(float *src, uint16_t *dst, size_t len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-	if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
-		for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-			v8sf src_tmp = _mm256_load_ps(src + i);	
-			v4si dst_tmp = _mm256_cvtps_ph (src_tmp, _MM_FROUND_TO_NEAREST_INT); 
-			_mm_store_si128 ((v4si*)(dst+i), dst_tmp);
-		}
-	} else {
-		for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-			v8sf src_tmp = _mm256_loadu_ps(src + i);	
-			v4si dst_tmp = _mm256_cvtps_ph (src_tmp, _MM_FROUND_TO_NEAREST_INT); 
-			_mm_storeu_si128 ((v4si*)(dst+i), dst_tmp);
-		}
-	}
-	
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_load_ps(src + i);
+            v4si dst_tmp = _mm256_cvtps_ph(src_tmp, _MM_FROUND_TO_NEAREST_INT);
+            _mm_store_si128((v4si *) (dst + i), dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v8sf src_tmp = _mm256_loadu_ps(src + i);
+            v4si dst_tmp = _mm256_cvtps_ph(src_tmp, _MM_FROUND_TO_NEAREST_INT);
+            _mm_storeu_si128((v4si *) (dst + i), dst_tmp);
+        }
+    }
+
     for (int i = stop_len; i < len; i++) {
         dst[i] = float2half_rn(src[i]);
-    }	
+    }
 }
 
-//F16C introduced in the same time as AVX, so not SSE code
-static inline  void fp16tofp32128 (uint16_t* src, float* dst, size_t len)
+// F16C introduced in the same time as AVX, so not SSE code
+static inline void fp16tofp32128(uint16_t *src, float *dst, size_t len)
 {
-    int stop_len = len / (2*SSE_LEN_FLOAT);
-    stop_len *= (2*SSE_LEN_FLOAT);
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
 
-	if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
-		for (int i = 0; i < stop_len; i += 2*SSE_LEN_FLOAT) {
-			v4si src_tmp = _mm_load_si128((v4si*)(src + i));
-			v4si src_tmp2 =  _mm_shuffle_epi32(src_tmp,  _MM_SHUFFLE(3,2, 3, 2));		
-			v4sf dst_tmp =_mm_cvtph_ps(src_tmp);
-			v4sf dst_tmp2 =_mm_cvtph_ps(src_tmp2);
-			_mm_store_ps (dst+i, dst_tmp);		
-			_mm_store_ps (dst+i+SSE_LEN_FLOAT, dst_tmp2);				
-		}
-	} else {
-		for (int i = 0; i < stop_len; i += 2*SSE_LEN_FLOAT) {
-			v4si src_tmp = _mm_loadu_si128((v4si*)(src + i));
-			v4si src_tmp2 =  _mm_shuffle_epi32(src_tmp,  _MM_SHUFFLE(3,2, 3, 2));		
-			v4sf dst_tmp =_mm_cvtph_ps(src_tmp);
-			v4sf dst_tmp2 =_mm_cvtph_ps(src_tmp2);
-			_mm_storeu_ps (dst+i, dst_tmp);		
-			_mm_storeu_ps (dst+i+SSE_LEN_FLOAT, dst_tmp2);				
-		}	
-	}
-   
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4si src_tmp = _mm_load_si128((v4si *) (src + i));
+            v4si src_tmp2 = _mm_shuffle_epi32(src_tmp, _MM_SHUFFLE(3, 2, 3, 2));
+            v4sf dst_tmp = _mm_cvtph_ps(src_tmp);
+            v4sf dst_tmp2 = _mm_cvtph_ps(src_tmp2);
+            _mm_store_ps(dst + i, dst_tmp);
+            _mm_store_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+            v4si src_tmp = _mm_loadu_si128((v4si *) (src + i));
+            v4si src_tmp2 = _mm_shuffle_epi32(src_tmp, _MM_SHUFFLE(3, 2, 3, 2));
+            v4sf dst_tmp = _mm_cvtph_ps(src_tmp);
+            v4sf dst_tmp2 = _mm_cvtph_ps(src_tmp2);
+            _mm_storeu_ps(dst + i, dst_tmp);
+            _mm_storeu_ps(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+        }
+    }
+
     for (int i = stop_len; i < len; i++) {
-		dst[i] = uint32_as_float(Float16ToFloat32(src[i]));
-    }	
+        dst[i] = uint32_as_float(Float16ToFloat32(src[i]));
+    }
 }
 
-static inline void fp16tofp32256 (uint16_t* src, float* dst, size_t len)
+static inline void fp16tofp32256(uint16_t *src, float *dst, size_t len)
 {
     int stop_len = len / AVX_LEN_FLOAT;
     stop_len *= AVX_LEN_FLOAT;
 
-	if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
-		for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-			v4si src_tmp = _mm_load_si128((v4si*)(src + i));	
-			v8sf dst_tmp =_mm256_cvtph_ps(src_tmp);
-			_mm256_store_ps (dst+i, dst_tmp);			
-		}
-	} else {
-		for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-			v4si src_tmp = _mm_loadu_si128((v4si*)(src + i));	
-			v8sf dst_tmp =_mm256_cvtph_ps(src_tmp);
-			_mm256_storeu_ps (dst+i, dst_tmp);			
-		}
-	}
-	   
+    if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), AVX_LEN_BYTES)) {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v4si src_tmp = _mm_load_si128((v4si *) (src + i));
+            v8sf dst_tmp = _mm256_cvtph_ps(src_tmp);
+            _mm256_store_ps(dst + i, dst_tmp);
+        }
+    } else {
+        for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
+            v4si src_tmp = _mm_loadu_si128((v4si *) (src + i));
+            v8sf dst_tmp = _mm256_cvtph_ps(src_tmp);
+            _mm256_storeu_ps(dst + i, dst_tmp);
+        }
+    }
+
     for (int i = stop_len; i < len; i++) {
-		dst[i] = uint32_as_float(Float16ToFloat32(src[i]));
-    }	
+        dst[i] = uint32_as_float(Float16ToFloat32(src[i]));
+    }
 }
 
 static inline v8sf pow256_ps(v8sf x, v8sf y)
@@ -4318,15 +4317,15 @@ static inline v8sf pow256_ps(v8sf x, v8sf y)
 
 static inline void pow256f(float *x, float *y, float *dst, int len)
 {
-    int stop_len = len / (2* AVX_LEN_FLOAT);
-    stop_len *= ( 2*AVX_LEN_FLOAT);
+    int stop_len = len / (2 * AVX_LEN_FLOAT);
+    stop_len *= (2 * AVX_LEN_FLOAT);
 
     if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
             v8sf x_tmp = _mm256_load_ps(x + i);
-            v8sf y_tmp = _mm256_load_ps(y + i);	
-			v8sf x_tmp2 = _mm256_load_ps(x + i + AVX_LEN_FLOAT);
-            v8sf y_tmp2 = _mm256_load_ps(y + i + AVX_LEN_FLOAT);						
+            v8sf y_tmp = _mm256_load_ps(y + i);
+            v8sf x_tmp2 = _mm256_load_ps(x + i + AVX_LEN_FLOAT);
+            v8sf y_tmp2 = _mm256_load_ps(y + i + AVX_LEN_FLOAT);
             v8sf dst_tmp = pow256_ps(x_tmp, y_tmp);
             v8sf dst_tmp2 = pow256_ps(x_tmp2, y_tmp2);
             _mm256_store_ps(dst + i, dst_tmp);
@@ -4335,9 +4334,9 @@ static inline void pow256f(float *x, float *y, float *dst, int len)
     } else {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
             v8sf x_tmp = _mm256_loadu_ps(x + i);
-            v8sf y_tmp = _mm256_loadu_ps(y + i);	
-			v8sf x_tmp2 = _mm256_loadu_ps(x + i + AVX_LEN_FLOAT);
-            v8sf y_tmp2 = _mm256_loadu_ps(y + i + AVX_LEN_FLOAT);						
+            v8sf y_tmp = _mm256_loadu_ps(y + i);
+            v8sf x_tmp2 = _mm256_loadu_ps(x + i + AVX_LEN_FLOAT);
+            v8sf y_tmp2 = _mm256_loadu_ps(y + i + AVX_LEN_FLOAT);
             v8sf dst_tmp = pow256_ps(x_tmp, y_tmp);
             v8sf dst_tmp2 = pow256_ps(x_tmp2, y_tmp2);
             _mm256_storeu_ps(dst + i, dst_tmp);
@@ -4352,8 +4351,8 @@ static inline void pow256f(float *x, float *y, float *dst, int len)
 
 static inline void powcplx256f(complex32_t *x, complex32_t *y, complex32_t *dst, int len)
 {
-    int stop_len = len / (2* AVX_LEN_FLOAT);
-    stop_len *= ( 2*AVX_LEN_FLOAT);
+    int stop_len = len / (2 * AVX_LEN_FLOAT);
+    stop_len *= (2 * AVX_LEN_FLOAT);
 
     if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
@@ -4361,22 +4360,22 @@ static inline void powcplx256f(complex32_t *x, complex32_t *y, complex32_t *dst,
             v8sfx2 y_tmp = _mm256_load2_ps((float const *) (y) + i);
             v8sf x_tmp_re2 = _mm256_mul_ps(x_tmp.val[0], x_tmp.val[0]);
             v8sf modx = _mm256_fmadd_ps_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
-			modx = _mm256_sqrt_ps(modx);
-			v8sfx2 logx;
-			logx.val[0] = log256_ps(modx);
-			logx.val[1] = atan2256f_ps(x_tmp.val[1], x_tmp.val[0]);
-			v8sfx2 ylogx;
-            v8sf ac = _mm256_mul_ps(logx.val[0], y_tmp.val[0]);     // ac
-            v8sf ad = _mm256_mul_ps(logx.val[0], y_tmp.val[1]);     // ad
+            modx = _mm256_sqrt_ps(modx);
+            v8sfx2 logx;
+            logx.val[0] = log256_ps(modx);
+            logx.val[1] = atan2256f_ps(x_tmp.val[1], x_tmp.val[0]);
+            v8sfx2 ylogx;
+            v8sf ac = _mm256_mul_ps(logx.val[0], y_tmp.val[0]);  // ac
+            v8sf ad = _mm256_mul_ps(logx.val[0], y_tmp.val[1]);  // ad
             ylogx.val[0] = _mm256_fnmadd_ps_custom(logx.val[1], y_tmp.val[1], ac);
             ylogx.val[1] = _mm256_fmadd_ps_custom(logx.val[1], y_tmp.val[0], ad);
-			v8sf ex = exp256_ps(ylogx.val[0]);
-			v8sf cosylogx, sinylogx;
-			sincos256_ps(ylogx.val[1], &sinylogx, &cosylogx);
-			v8sfx2 dst_tmp;
-			dst_tmp.val[0] = _mm256_mul_ps(ex,cosylogx);
-			dst_tmp.val[1] = _mm256_mul_ps(ex,sinylogx);
-            _mm256_store2_ps((float*)(dst) + i, dst_tmp);
+            v8sf ex = exp256_ps(ylogx.val[0]);
+            v8sf cosylogx, sinylogx;
+            sincos256_ps(ylogx.val[1], &sinylogx, &cosylogx);
+            v8sfx2 dst_tmp;
+            dst_tmp.val[0] = _mm256_mul_ps(ex, cosylogx);
+            dst_tmp.val[1] = _mm256_mul_ps(ex, sinylogx);
+            _mm256_store2_ps((float *) (dst) + i, dst_tmp);
         }
     } else {
         for (int i = 0; i < stop_len; i += 2 * AVX_LEN_FLOAT) {
@@ -4384,87 +4383,87 @@ static inline void powcplx256f(complex32_t *x, complex32_t *y, complex32_t *dst,
             v8sfx2 y_tmp = _mm256_load2u_ps((float const *) (y) + i);
             v8sf x_tmp_re2 = _mm256_mul_ps(x_tmp.val[0], x_tmp.val[0]);
             v8sf modx = _mm256_fmadd_ps_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
-			modx = _mm256_sqrt_ps(modx);
-			v8sfx2 logx;
-			logx.val[0] = log256_ps(modx);
-			logx.val[1] = atan2256f_ps(x_tmp.val[1], x_tmp.val[0]);
-			v8sfx2 ylogx;
-            v8sf ac = _mm256_mul_ps(logx.val[0], y_tmp.val[0]);     // ac
-            v8sf ad = _mm256_mul_ps(logx.val[0], y_tmp.val[1]);     // ad
+            modx = _mm256_sqrt_ps(modx);
+            v8sfx2 logx;
+            logx.val[0] = log256_ps(modx);
+            logx.val[1] = atan2256f_ps(x_tmp.val[1], x_tmp.val[0]);
+            v8sfx2 ylogx;
+            v8sf ac = _mm256_mul_ps(logx.val[0], y_tmp.val[0]);  // ac
+            v8sf ad = _mm256_mul_ps(logx.val[0], y_tmp.val[1]);  // ad
             ylogx.val[0] = _mm256_fnmadd_ps_custom(logx.val[1], y_tmp.val[1], ac);
             ylogx.val[1] = _mm256_fmadd_ps_custom(logx.val[1], y_tmp.val[0], ad);
-			v8sf ex = exp256_ps(ylogx.val[0]);
-			v8sf cosylogx, sinylogx;
-			sincos256_ps(ylogx.val[1], &sinylogx, &cosylogx);
-			v8sfx2 dst_tmp;
-			dst_tmp.val[0] = _mm256_mul_ps(ex,cosylogx);
-			dst_tmp.val[1] = _mm256_mul_ps(ex,sinylogx);
-            _mm256_store2u_ps((float*)(dst) + i, dst_tmp);
+            v8sf ex = exp256_ps(ylogx.val[0]);
+            v8sf cosylogx, sinylogx;
+            sincos256_ps(ylogx.val[1], &sinylogx, &cosylogx);
+            v8sfx2 dst_tmp;
+            dst_tmp.val[0] = _mm256_mul_ps(ex, cosylogx);
+            dst_tmp.val[1] = _mm256_mul_ps(ex, sinylogx);
+            _mm256_store2u_ps((float *) (dst) + i, dst_tmp);
         }
     }
 
     for (int i = stop_len; i < len; i++) {
-		float x_tmp_re2 = x[i].re * x[i].re;
-		float modx = (x[i].im * x[i].im) + x_tmp_re2;
-		modx = sqrtf(modx);
-		complex32_t logx;
-		logx.re = logf(modx);
-		logx.im = atan2f(x[i].im, x[i].re);
-		complex32_t ylogx;
-		float ac = logx.re * y[i].re;     // ac
-		float ad = logx.re * y[i].im;     // ad
-		ylogx.re = ac - (logx.im * y[i].im);
-		ylogx.im = (logx.im *  y[i].re) +  ad;
-		float ex = expf(ylogx.re);
-		float cosylogx, sinylogx;
-		mysincosf(ylogx.im, &sinylogx, &cosylogx);
-		dst[i].re = ex * cosylogx;
-		dst[i].im = ex * sinylogx;
+        float x_tmp_re2 = x[i].re * x[i].re;
+        float modx = (x[i].im * x[i].im) + x_tmp_re2;
+        modx = sqrtf(modx);
+        complex32_t logx;
+        logx.re = logf(modx);
+        logx.im = atan2f(x[i].im, x[i].re);
+        complex32_t ylogx;
+        float ac = logx.re * y[i].re;  // ac
+        float ad = logx.re * y[i].im;  // ad
+        ylogx.re = ac - (logx.im * y[i].im);
+        ylogx.im = (logx.im * y[i].re) + ad;
+        float ex = expf(ylogx.re);
+        float cosylogx, sinylogx;
+        mysincosf(ylogx.im, &sinylogx, &cosylogx);
+        dst[i].re = ex * cosylogx;
+        dst[i].im = ex * sinylogx;
     }
 }
 
-static inline void checkNanInf256f(const float* __restrict__ src, int32_t* nan, int32_t* inf, int len)
+static inline void checkNanInf256f(const float *__restrict__ src, int32_t *nan, int32_t *inf, int len)
 {
-	int stop_len = len / (AVX_LEN_FLOAT);
+    int stop_len = len / (AVX_LEN_FLOAT);
     stop_len *= (AVX_LEN_FLOAT);
-	
-	v8sf nan_vec = _mm256_setzero_ps(); 
-	v8si inf_vec = _mm256_setzero_si256(); 
-	*nan = 0;
-	*inf = 0;
-	v8si Ox7f = _mm256_set1_epi32(0x7FFFFFFF);
-	v8si Ox7f8 =  _mm256_set1_epi32(0x7F800000);
+
+    v8sf nan_vec = _mm256_setzero_ps();
+    v8si inf_vec = _mm256_setzero_si256();
+    *nan = 0;
+    *inf = 0;
+    v8si Ox7f = _mm256_set1_epi32(0x7FFFFFFF);
+    v8si Ox7f8 = _mm256_set1_epi32(0x7F800000);
     if (isAligned((uintptr_t) (src), AVX_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-			v8sf src_tmp = _mm256_load_ps(src + i);
-			v8sf nan_vec_tmp = _mm256_cmp_ps(src_tmp, src_tmp, _CMP_NEQ_UQ); 
-			nan_vec = _mm256_or_ps(nan_vec,nan_vec_tmp);
-			v8si src_tmpi = _mm256_castps_si256(src_tmp);
-			src_tmpi = _mm256_and_si256(src_tmpi, Ox7f);
-			v8si inf_vec_tmp = _mm256_cmpeq_epi32(src_tmpi, Ox7f8);
-			inf_vec = _mm256_or_si256(inf_vec,inf_vec_tmp);		
+            v8sf src_tmp = _mm256_load_ps(src + i);
+            v8sf nan_vec_tmp = _mm256_cmp_ps(src_tmp, src_tmp, _CMP_NEQ_UQ);
+            nan_vec = _mm256_or_ps(nan_vec, nan_vec_tmp);
+            v8si src_tmpi = _mm256_castps_si256(src_tmp);
+            src_tmpi = _mm256_and_si256(src_tmpi, Ox7f);
+            v8si inf_vec_tmp = _mm256_cmpeq_epi32(src_tmpi, Ox7f8);
+            inf_vec = _mm256_or_si256(inf_vec, inf_vec_tmp);
         }
     } else {
         for (int i = 0; i < stop_len; i += AVX_LEN_FLOAT) {
-			v8sf src_tmp = _mm256_loadu_ps(src + i);
-			v8sf nan_vec_tmp = _mm256_cmp_ps(src_tmp, src_tmp, _CMP_NEQ_UQ); 
-			nan_vec = _mm256_or_ps(nan_vec,nan_vec_tmp);
-			v8si src_tmpi = _mm256_castps_si256(src_tmp);
-			src_tmpi = _mm256_and_si256(src_tmpi, Ox7f);
-			v8si inf_vec_tmp = _mm256_cmpeq_epi32(src_tmpi, Ox7f8);
-			inf_vec = _mm256_or_si256(inf_vec,inf_vec_tmp);		
+            v8sf src_tmp = _mm256_loadu_ps(src + i);
+            v8sf nan_vec_tmp = _mm256_cmp_ps(src_tmp, src_tmp, _CMP_NEQ_UQ);
+            nan_vec = _mm256_or_ps(nan_vec, nan_vec_tmp);
+            v8si src_tmpi = _mm256_castps_si256(src_tmp);
+            src_tmpi = _mm256_and_si256(src_tmpi, Ox7f);
+            v8si inf_vec_tmp = _mm256_cmpeq_epi32(src_tmpi, Ox7f8);
+            inf_vec = _mm256_or_si256(inf_vec, inf_vec_tmp);
         }
     }
 
-	*nan = _mm256_movemask_ps(nan_vec);
-	*inf = _mm256_movemask_epi8(inf_vec);
+    *nan = _mm256_movemask_ps(nan_vec);
+    *inf = _mm256_movemask_epi8(inf_vec);
 
     for (int i = stop_len; i < len; i++) {
-        if(src[i]!=src[i]) // NAN != NAN
-			*nan = 1;
-		int32_t *src_int = (int32_t*)&src[i];
-		*src_int = *src_int & 0x7FFFFFFF; // clear off the sign to watch for +inf and -inf
-		if(*src_int == 0x7F800000)
-			*inf = 1;
+        if (src[i] != src[i])  // NAN != NAN
+            *nan = 1;
+        int32_t *src_int = (int32_t *) &src[i];
+        *src_int = *src_int & 0x7FFFFFFF;  // clear off the sign to watch for +inf and -inf
+        if (*src_int == 0x7F800000)
+            *inf = 1;
     }
 }

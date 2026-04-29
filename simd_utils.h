@@ -19,8 +19,8 @@ extern "C" {
 #include <omp.h>
 #endif
 
-#include <math.h>
 #include <fenv.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -93,7 +93,7 @@ static inline void simd_utils_get_version(void)
 
 
 //  Produce value of bit n.  n must be less than 32.
-#define Bit(n)  ((uint32_t) 1 << (n))
+#define Bit(n) ((uint32_t) 1 << (n))
 
 //  Create a mask of n bits in the low bits.  n must be less than 32.
 #define Mask(n) (Bit(n) - 1)
@@ -104,7 +104,7 @@ static inline void simd_utils_get_version(void)
 
     This code has not been tested.
 */
-//From https://stackoverflow.com/questions/71120169/bit-shifting-a-half-float-into-a-float/71125539#71125539
+// From https://stackoverflow.com/questions/71120169/bit-shifting-a-half-float-into-a-float/71125539#71125539
 static inline uint32_t Float16ToFloat32(uint16_t x)
 {
     /*  Separate the sign encoding (1 bit starting at bit 15), the exponent
@@ -112,50 +112,47 @@ static inline uint32_t Float16ToFloat32(uint16_t x)
         (fraction) encoding (10 bits starting at bit 0).
     */
     uint32_t s = x >> 15;
-    uint32_t e = x >> 10 & Mask( 5);
-    uint32_t f = x       & Mask(10);
+    uint32_t e = x >> 10 & Mask(5);
+    uint32_t f = x & Mask(10);
 
     //  Left-adjust the significand field.
     f <<= 23 - 10;
 
     //  Switch to handle subnormal numbers, normal numbers, and infinities/NaNs.
-    switch (e)
-    {
-        //  Exponent code is subnormal.
-        case 0:
-            //  Zero does need any changes, but subnormals need normalization.
-            if (f != 0)
-            {
-                /*  Set the 32-bit exponent code corresponding to the 16-bit
-                    subnormal exponent.
-                */
-                e = 1 + (127 - 15);
+    switch (e) {
+    //  Exponent code is subnormal.
+    case 0:
+        //  Zero does need any changes, but subnormals need normalization.
+        if (f != 0) {
+            /*  Set the 32-bit exponent code corresponding to the 16-bit
+                subnormal exponent.
+            */
+            e = 1 + (127 - 15);
 
-                /*  Normalize the significand by shifting until its leading
-                    bit moves out of the field.  (This code could benefit from
-                    a find-first-set instruction or possibly using a conversion
-                    from integer to floating-point to do the normalization.)
-                */
-                while (f < Bit(23))
-                {
-                    f <<= 1;
-                    e -= 1;
-                }
-
-                //  Remove the leading bit.
-                f &= Mask(23);
+            /*  Normalize the significand by shifting until its leading
+                bit moves out of the field.  (This code could benefit from
+                a find-first-set instruction or possibly using a conversion
+                from integer to floating-point to do the normalization.)
+            */
+            while (f < Bit(23)) {
+                f <<= 1;
+                e -= 1;
             }
-            break;
 
-        // Exponent code is normal.
-        default:
-            e += 127 - 15;  //  Adjust from 16-bit bias to 32-bit bias.
-            break;
+            //  Remove the leading bit.
+            f &= Mask(23);
+        }
+        break;
 
-        //  Exponent code indicates infinity or NaN.
-        case 31:
-            e = 255;        //  Set 32-bit exponent code for infinity or NaN.
-            break;
+    // Exponent code is normal.
+    default:
+        e += 127 - 15;  //  Adjust from 16-bit bias to 32-bit bias.
+        break;
+
+    //  Exponent code indicates infinity or NaN.
+    case 31:
+        e = 255;  //  Set 32-bit exponent code for infinity or NaN.
+        break;
     }
 
     //  Assemble and return the 32-bit encoding.
@@ -163,22 +160,22 @@ static inline uint32_t Float16ToFloat32(uint16_t x)
 }
 
 
-static inline uint32_t float_as_uint32 (float a)
+static inline uint32_t float_as_uint32(float a)
 {
-	float* ret = &a;
-    return *((uint32_t *)ret);
+    float *ret = &a;
+    return *((uint32_t *) ret);
 }
 
-static inline float uint32_as_float (uint32_t a)
+static inline float uint32_as_float(uint32_t a)
 {
-	uint32_t* ret = &a;
-    return *((float *)ret);
+    uint32_t *ret = &a;
+    return *((float *) ret);
 }
 
-//From https://stackoverflow.com/questions/76799117/how-to-convert-a-float-to-a-half-type-and-the-other-way-around-in-c
-static inline uint16_t float2half_rn (float a)
+// From https://stackoverflow.com/questions/76799117/how-to-convert-a-float-to-a-half-type-and-the-other-way-around-in-c
+static inline uint16_t float2half_rn(float a)
 {
-    uint32_t ia = float_as_uint32 (a);
+    uint32_t ia = float_as_uint32(a);
     uint16_t ir;
 
     ir = (ia >> 16) & 0x8000;
@@ -189,12 +186,12 @@ static inline uint16_t float2half_rn (float a)
             ir |= 0x7e00 | ((ia >> (24 - 11)) & 0x1ff); /* NaN, quietened */
         }
     } else if ((ia & 0x7f800000) >= 0x33000000) {
-        int shift = (int)((ia >> 23) & 0xff) - 127;
+        int shift = (int) ((ia >> 23) & 0xff) - 127;
         if (shift > 15) {
             ir |= 0x7c00; /* infinity */
         } else {
             ia = (ia & 0x007fffff) | 0x00800000; /* extract mantissa */
-            if (shift < -14) { /* denormal */  
+            if (shift < -14) {                   /* denormal */
                 ir |= ia >> (-1 - shift);
                 ia = ia << (32 - (-1 - shift));
             } else { /* normal */
@@ -211,18 +208,18 @@ static inline uint16_t float2half_rn (float a)
     return ir;
 }
 
-static inline void fp32tofp16_C (float* src, uint16_t* dst, size_t len)
+static inline void fp32tofp16_C(float *src, uint16_t *dst, size_t len)
 {
-	for (int i = 0; i < len; i ++) {
-        dst[i] = float2half_rn(src[i]);	
-	}
+    for (int i = 0; i < len; i++) {
+        dst[i] = float2half_rn(src[i]);
+    }
 }
 
-static inline void fp16tofp32_C (uint16_t* src, float* dst, size_t len)
+static inline void fp16tofp32_C(uint16_t *src, float *dst, size_t len)
 {
-	for (int i = 0; i < len; i ++) {
-		dst[i] = uint32_as_float(Float16ToFloat32(src[i]));
-	}
+    for (int i = 0; i < len; i++) {
+        dst[i] = uint32_as_float(Float16ToFloat32(src[i]));
+    }
 }
 
 #ifdef SSE
@@ -355,7 +352,8 @@ __m128i prod   = _mm_unpacklo_epi64(prod01,prod23);   // (ab3,ab2,ab1,ab0)
 #endif /* ARM */
 
 //_mm_movehl_ps vs shuffle(1,0,3,2)?
-static inline v2sd _mm_cvtps_pd_high(v4sf in){
+static inline v2sd _mm_cvtps_pd_high(v4sf in)
+{
 #if defined(__aarch64__)
     return vcvt_high_f64_f32(in);
 #else
@@ -363,11 +361,12 @@ static inline v2sd _mm_cvtps_pd_high(v4sf in){
 #endif
 }
 
-static inline v4sf _mm_cvtpd2_ps(v2sd low, v2sd high){
+static inline v4sf _mm_cvtpd2_ps(v2sd low, v2sd high)
+{
 #if defined(__aarch64__)
     return vcombine_f32(vcvt_f32_f64(low), vcvt_f32_f64(high));
 #else
-    return  _mm_movelh_ps(_mm_cvtpd_ps(low), _mm_cvtpd_ps(high));
+    return _mm_movelh_ps(_mm_cvtpd_ps(low), _mm_cvtpd_ps(high));
 #endif
 }
 
@@ -486,18 +485,18 @@ static inline __m128 _mm_fmadd_ps_custom(__m128 a, __m128 b, __m128 c)
 #endif
 }
 
-//B is a scalar, some optimizations for ARM NEON
+// B is a scalar, some optimizations for ARM NEON
 static inline __m128 _mm_fmadd1_ps_custom(__m128 a, __m128 b, __m128 c)
 {
 #if defined(ARM)
     return _mm_fmadd1_ps(a, b, c);
 #else
-    return _mm_fmadd_ps_custom(a,b,c);
+    return _mm_fmadd_ps_custom(a, b, c);
 #endif
 }
 
 #ifndef ARM
-//B is a scalar, some optimizations for ARM NEON
+// B is a scalar, some optimizations for ARM NEON
 static inline __m128 _mm_mul1_ps(__m128 a, __m128 b)
 {
     return _mm_mul_ps(a, b);
@@ -534,13 +533,13 @@ static inline __m128 _mm_fnmadd_ps_custom(__m128 a, __m128 b, __m128 c)
 #endif
 }
 
-//B is a scalar, some optimizations for ARM NEON
+// B is a scalar, some optimizations for ARM NEON
 static inline __m128 _mm_fnmadd1_ps_custom(__m128 a, __m128 b, __m128 c)
 {
 #if defined(ARM)
     return _mm_fnmadd1_ps(a, b, c);
 #else
-    return _mm_fnmadd_ps_custom(a,b,c);
+    return _mm_fnmadd_ps_custom(a, b, c);
 #endif
 }
 
@@ -562,28 +561,28 @@ static inline __m128d _mm_fnmadd_pd_custom(__m128d a, __m128d b, __m128d c)
 #endif /* FMA */
 }
 
-//B is a scalar, some optimizations for ARM NEON
+// B is a scalar, some optimizations for ARM NEON
 static inline __m128d _mm_fmadd1_pd_custom(__m128d a, __m128d b, __m128d c)
 {
 #if defined(ARM)
     return _mm_fmadd1_pd(a, b, c);
 #else
-    return _mm_fmadd_pd_custom(a,b,c);
+    return _mm_fmadd_pd_custom(a, b, c);
 #endif
 }
 
-//B is a scalar, some optimizations for ARM NEON
+// B is a scalar, some optimizations for ARM NEON
 static inline __m128d _mm_fnmadd1_pd_custom(__m128d a, __m128d b, __m128d c)
 {
 #if defined(ARM)
     return _mm_fnmadd1_pd(a, b, c);
 #else
-    return _mm_fnmadd_pd_custom(a,b,c);
+    return _mm_fnmadd_pd_custom(a, b, c);
 #endif
 }
 
 #ifndef ARM
-//B is a scalar, some optimizations for ARM NEON
+// B is a scalar, some optimizations for ARM NEON
 static inline __m128d _mm_mul1_pd(__m128d a, __m128d b)
 {
     return _mm_mul_pd(a, b);
@@ -617,8 +616,8 @@ static inline v2sd _mm_cvtepi64_pd_signed_custom(v2sid x)
 static inline v2sid _mm_cvtpd_epi64_custom(v2sd x)
 {
 #if defined(__aarch64__)
-	return vcvtq_s64_f64(x);
-#else //ARM
+    return vcvtq_s64_f64(x);
+#else  // ARM
     // Signed
 #if 1
     x = _mm_add_pd(x, *(v2sd *) _pd_epi64_mask);
@@ -632,7 +631,7 @@ static inline v2sid _mm_cvtpd_epi64_custom(v2sd x)
         _mm_castpd_si128(x),
         _mm_castpd_si128(*(v2sd *) _pd_PDEPI64U));
 #endif
-#endif // ARM
+#endif  // ARM
 }
 
 #include "simd_utils_sse_double.h"
@@ -760,28 +759,28 @@ static inline v8sfx2 _mm256_load2_ps(float const *mem_addr)
 {
     v8sf src_lo = _mm256_load_ps(mem_addr);
     v8sf src_hi = _mm256_load_ps(mem_addr + AVX_LEN_FLOAT);
-	v8sfx2 ret;	
+    v8sfx2 ret;
     // Extract real parts
-    v8sf re01 = _mm256_shuffle_ps(src_lo, src_hi, 0x88);  // pick low floats (0,2) from each
+    v8sf re01 = _mm256_shuffle_ps(src_lo, src_hi, 0x88);                                 // pick low floats (0,2) from each
     ret.val[0] = _mm256_castpd_ps(_mm256_permute4x64_pd(_mm256_castps_pd(re01), 0xD8));  // reorder 64b lanes
     // Extract imag parts
     v8sf im01 = _mm256_shuffle_ps(src_lo, src_hi, 0xDD);  // pick high floats (1,3) from each
     ret.val[1] = _mm256_castpd_ps(_mm256_permute4x64_pd(_mm256_castps_pd(im01), 0xD8));
-	return ret;	
+    return ret;
 }
 
 static inline v8sfx2 _mm256_load2u_ps(float const *mem_addr)
 {
     v8sf src_lo = _mm256_loadu_ps(mem_addr);
     v8sf src_hi = _mm256_loadu_ps(mem_addr + AVX_LEN_FLOAT);
-	v8sfx2 ret;	
+    v8sfx2 ret;
     // Extract real parts
-    v8sf re01 = _mm256_shuffle_ps(src_lo, src_hi, 0x88);  // pick low floats (0,2) from each
+    v8sf re01 = _mm256_shuffle_ps(src_lo, src_hi, 0x88);                                 // pick low floats (0,2) from each
     ret.val[0] = _mm256_castpd_ps(_mm256_permute4x64_pd(_mm256_castps_pd(re01), 0xD8));  // reorder 64b lanes
     // Extract imag parts
     v8sf im01 = _mm256_shuffle_ps(src_lo, src_hi, 0xDD);  // pick high floats (1,3) from each
     ret.val[1] = _mm256_castpd_ps(_mm256_permute4x64_pd(_mm256_castps_pd(im01), 0xD8));
-	return ret;	
+    return ret;
 }
 #endif
 
@@ -828,27 +827,27 @@ static inline v4sdx2 _mm256_load2u_pd(double const *mem_addr)
 #else
 static inline v4sdx2 _mm256_load2_pd(double const *mem_addr)
 {
-	v4sd src_lo = _mm256_load_pd(mem_addr);
-	v4sd src_hi = _mm256_load_pd(mem_addr + AVX_LEN_DOUBLE);	
+    v4sd src_lo = _mm256_load_pd(mem_addr);
+    v4sd src_hi = _mm256_load_pd(mem_addr + AVX_LEN_DOUBLE);
     v4sdx2 ret;
-    ret.val[0] =  _mm256_unpacklo_pd(src_lo, src_hi); // re0,re2,re1,re3
-	ret.val[0] = _mm256_permute4x64_pd(ret.val[0],  _MM_SHUFFLE( 3, 1, 2, 0));
-    ret.val[1] =  _mm256_unpackhi_pd(src_lo, src_hi); // im0,im2,im1,im3
-	ret.val[1] = _mm256_permute4x64_pd(ret.val[1],  _MM_SHUFFLE( 3, 1, 2, 0));	
+    ret.val[0] = _mm256_unpacklo_pd(src_lo, src_hi);  // re0,re2,re1,re3
+    ret.val[0] = _mm256_permute4x64_pd(ret.val[0], _MM_SHUFFLE(3, 1, 2, 0));
+    ret.val[1] = _mm256_unpackhi_pd(src_lo, src_hi);  // im0,im2,im1,im3
+    ret.val[1] = _mm256_permute4x64_pd(ret.val[1], _MM_SHUFFLE(3, 1, 2, 0));
     return ret;
 }
 
 static inline v4sdx2 _mm256_load2u_pd(double const *mem_addr)
 {
-	v4sd src_lo = _mm256_loadu_pd(mem_addr);
-	v4sd src_hi = _mm256_loadu_pd(mem_addr + AVX_LEN_DOUBLE);	
+    v4sd src_lo = _mm256_loadu_pd(mem_addr);
+    v4sd src_hi = _mm256_loadu_pd(mem_addr + AVX_LEN_DOUBLE);
     v4sdx2 ret;
-    ret.val[0] =  _mm256_unpacklo_pd(src_lo, src_hi); // re0,re2,re1,re3
-	ret.val[0] = _mm256_permute4x64_pd(ret.val[0],  _MM_SHUFFLE( 3, 1, 2, 0));
-    ret.val[1] =  _mm256_unpackhi_pd(src_lo, src_hi); // im0,im2,im1,im3
-	ret.val[1] = _mm256_permute4x64_pd(ret.val[1],  _MM_SHUFFLE( 3, 1, 2, 0));	
+    ret.val[0] = _mm256_unpacklo_pd(src_lo, src_hi);  // re0,re2,re1,re3
+    ret.val[0] = _mm256_permute4x64_pd(ret.val[0], _MM_SHUFFLE(3, 1, 2, 0));
+    ret.val[1] = _mm256_unpackhi_pd(src_lo, src_hi);  // im0,im2,im1,im3
+    ret.val[1] = _mm256_permute4x64_pd(ret.val[1], _MM_SHUFFLE(3, 1, 2, 0));
     return ret;
-}	
+}
 #endif
 
 static inline void _mm256_store2_pd(double *mem_addr, v4sdx2 a)
@@ -1025,7 +1024,7 @@ static inline void _MM_SET_ROUNDING_MODE(uint32_t mode)
     uint32_t reg;
 
     switch (mode) {
-    case _MM_ROUND_NEAREST: //IEEE 754 round to nearest even
+    case _MM_ROUND_NEAREST:  // IEEE 754 round to nearest even
         asm volatile("fsrmi %0,0"
                      : "=r"(reg));
         break;
@@ -1041,7 +1040,7 @@ static inline void _MM_SET_ROUNDING_MODE(uint32_t mode)
         asm volatile("fsrmi %0,3"
                      : "=r"(reg));
         break;
-	 case _MM_ROUND_AWAY: //C round away from zero
+    case _MM_ROUND_AWAY:  // C round away from zero
         asm volatile("fsrmi %0,4"
                      : "=r"(reg));
         break;
@@ -1058,8 +1057,8 @@ static inline void _MM_SET_ROUNDING_MODE(uint32_t mode)
 #endif /* RISCV */
 
 #ifdef SVE2 /* SVE2 */
-#include "simd_utils_sve_float.h"
 #include "simd_utils_sve_double.h"
+#include "simd_utils_sve_float.h"
 #endif /* SVE2 */
 
 
@@ -1508,10 +1507,10 @@ static inline void convert_32f64f_C(float *src, double *dst, int len)
 static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
 {
     float scale_fact_mult;
-    if(scale_factor >= 0)
-    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    if (scale_factor >= 0)
+        scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     else
-    	scale_fact_mult = (float) (1 << -scale_factor);
+        scale_fact_mult = (float) (1 << -scale_factor);
 
     int rounding_ori = fegetround();
     // Default bankers rounding => round to nearest even
@@ -1521,7 +1520,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t)fminf(tmp, 255.0f);  // round to nearest even with round(x/2)*2
+            dst[i] = (uint8_t) fminf(tmp, 255.0f);  // round to nearest even with round(x/2)*2
         }
     } else {
         if (rounding_mode == RndZero) {
@@ -1536,7 +1535,7 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = rintf(src[i] * scale_fact_mult);
-            dst[i] = (uint8_t)fminf(tmp, 255.0f);
+            dst[i] = (uint8_t) fminf(tmp, 255.0f);
         }
     }
     fesetround(rounding_ori);
@@ -1545,10 +1544,10 @@ static inline void convertFloat32ToU8_C(float *src, uint8_t *dst, int len, int r
 static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
 {
     float scale_fact_mult;
-    if(scale_factor >= 0)
-    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    if (scale_factor >= 0)
+        scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     else
-    	scale_fact_mult = (float) (1 << -scale_factor);
+        scale_fact_mult = (float) (1 << -scale_factor);
 
     int rounding_ori = fegetround();
 
@@ -1559,8 +1558,8 @@ static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int 
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            tmp = (int16_t)fminf(tmp,32767.0f);
-			dst[i] = (int16_t)fmaxf(-32768.0f, tmp);
+            tmp = (int16_t) fminf(tmp, 32767.0f);
+            dst[i] = (int16_t) fmaxf(-32768.0f, tmp);
         }
     } else {
         if (rounding_mode == RndZero) {
@@ -1575,8 +1574,8 @@ static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int 
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = rintf(src[i] * scale_fact_mult);
-            tmp = (int16_t)fminf(tmp,32767.0f);
-			dst[i] = (int16_t)fmaxf(-32768.0f, tmp);
+            tmp = (int16_t) fminf(tmp, 32767.0f);
+            dst[i] = (int16_t) fmaxf(-32768.0f, tmp);
         }
     }
     fesetround(rounding_ori);
@@ -1585,10 +1584,10 @@ static inline void convertFloat32ToI16_C(float *src, int16_t *dst, int len, int 
 static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
 {
     float scale_fact_mult;
-    if(scale_factor >= 0)
-    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    if (scale_factor >= 0)
+        scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     else
-    	scale_fact_mult = (float) (1 << -scale_factor);
+        scale_fact_mult = (float) (1 << -scale_factor);
 
     int rounding_ori = fegetround();
 
@@ -1599,7 +1598,7 @@ static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = roundf(src[i] * scale_fact_mult);
-            dst[i] = (uint16_t)fminf(tmp, 65535.0f); // round to nearest even with round(x/2)*2
+            dst[i] = (uint16_t) fminf(tmp, 65535.0f);  // round to nearest even with round(x/2)*2
         }
     } else {
         if (rounding_mode == RndZero) {
@@ -1614,7 +1613,7 @@ static inline void convertFloat32ToU16_C(float *src, uint16_t *dst, int len, int
 #endif
         for (int i = 0; i < len; i++) {
             float tmp = rintf(src[i] * scale_fact_mult);
-            dst[i] = (uint16_t)fminf(tmp, 65535.0f);
+            dst[i] = (uint16_t) fminf(tmp, 65535.0f);
         }
     }
 
@@ -1652,7 +1651,7 @@ static inline void threshold_gt_f_C(float *src, float *dst, int len, float value
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = fminf(src[i],value);
+        dst[i] = fminf(src[i], value);
     }
 }
 
@@ -1663,7 +1662,7 @@ static inline void threshold_gtabs_f_C(float *src, float *dst, int len, float va
 #endif
     for (int i = 0; i < len; i++) {
         if (src[i] >= 0.0f) {
-            dst[i] = fminf(src[i],value);
+            dst[i] = fminf(src[i], value);
         } else {
             dst[i] = fmaxf(src[i], -value);
         }
@@ -1687,7 +1686,7 @@ static inline void threshold_ltabs_f_C(float *src, float *dst, int len, float va
 #endif
     for (int i = 0; i < len; i++) {
         if (src[i] >= 0.0f) {
-            dst[i] = fmaxf(src[i],value);
+            dst[i] = fmaxf(src[i], value);
         } else {
             dst[i] = fminf(src[i], -value);
         }
@@ -1799,8 +1798,7 @@ static inline void meanf_C(float *src, float *dst, int len)
     int i;
 
 #ifdef OMP
-#pragma omp simd reduction(+ \
-                           : acc)
+#pragma omp simd reduction(+ : acc)
 #endif
     for (i = 0; i < len; i++) {
         acc += src[i];
@@ -1816,8 +1814,7 @@ static inline void meanf_C_precise(float *src, float *dst, int len)
     int i;
 
 #ifdef OMP
-#pragma omp simd reduction(+ \
-                           : acc)
+#pragma omp simd reduction(+ : acc)
 #endif
     for (i = 0; i < len; i++) {
         double tmp = (double) src[i];
@@ -2569,15 +2566,15 @@ static inline void cplxconjvecmul_C_precise(complex32_t *src1, complex32_t *src2
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-		complex64_t src1d, src2d, dstd;
-		src1d.re = (double)src1[i].re;
-		src1d.im = (double)src1[i].im;
-		src2d.re = (double)src2[i].re;
-		src2d.im = (double)src2[i].im;
-		dstd.re = src1d.re * src2d.re + (src1d.im * src2d.im);
+        complex64_t src1d, src2d, dstd;
+        src1d.re = (double) src1[i].re;
+        src1d.im = (double) src1[i].im;
+        src2d.re = (double) src2[i].re;
+        src2d.im = (double) src2[i].im;
+        dstd.re = src1d.re * src2d.re + (src1d.im * src2d.im);
         dstd.im = -src1d.re * src2d.im + (src2d.re * src1d.im);
-        dst[i].re = (float)dstd.re;
-        dst[i].im = (float)dstd.im;
+        dst[i].re = (float) dstd.re;
+        dst[i].im = (float) dstd.im;
     }
 }
 
@@ -2598,15 +2595,15 @@ static inline void cplxconjvecmul_C_split_precise(float *src1Re, float *src1Im, 
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-		complex64_t src1d, src2d, dstd;
-		src1d.re = (double)src1Re[i];
-		src1d.im = (double)src1Im[i];
-		src2d.re = (double)src2Re[i];
-		src2d.im = (double)src2Im[i];
-		dstd.re = src1d.re * src2d.re + (src1d.im * src2d.im);
+        complex64_t src1d, src2d, dstd;
+        src1d.re = (double) src1Re[i];
+        src1d.im = (double) src1Im[i];
+        src2d.re = (double) src2Re[i];
+        src2d.im = (double) src2Im[i];
+        dstd.re = src1d.re * src2d.re + (src1d.im * src2d.im);
         dstd.im = -src1d.re * src2d.im + (src2d.re * src1d.im);
-        dstRe[i] =  (float)dstd.re;
-        dstIm[i] = (float)dstd.im;
+        dstRe[i] = (float) dstd.re;
+        dstIm[i] = (float) dstd.im;
     }
 }
 
@@ -2648,8 +2645,8 @@ static inline void dotf_C_precise(float *src1, float *src2, int len, float *dst)
 static inline void dotcf_C(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
 {
     complex32_t dst_tmp;
-	dst_tmp.re = 0.0f;
-	dst_tmp.im = 0.0f;
+    dst_tmp.re = 0.0f;
+    dst_tmp.im = 0.0f;
 
 #ifdef OMP
 #pragma omp simd
@@ -2666,9 +2663,9 @@ static inline void dotcf_C(complex32_t *src1, complex32_t *src2, int len, comple
 static inline void dotcf_C_precise(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
 {
     complex64_t dst_tmp;
-	dst_tmp.re = 0.0;
-	dst_tmp.im = 0.0;
-	
+    dst_tmp.re = 0.0;
+    dst_tmp.im = 0.0;
+
 
 #ifdef OMP
 #pragma omp simd
@@ -2718,7 +2715,7 @@ static inline void maxeveryf_c(float *src1, float *src2, float *dst, int len)
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = fmaxf(src1[i],src2[i]);
+        dst[i] = fmaxf(src1[i], src2[i]);
     }
 }
 
@@ -2728,7 +2725,7 @@ static inline void mineveryf_c(float *src1, float *src2, float *dst, int len)
 #pragma omp simd
 #endif
     for (int i = 0; i < len; i++) {
-        dst[i] = fminf(src1[i],src2[i]);
+        dst[i] = fminf(src1[i], src2[i]);
     }
 }
 
@@ -2741,8 +2738,8 @@ static inline void minmaxf_c(float *src, int len, float *min_value, float *max_v
 #pragma omp simd
 #endif
     for (int i = 1; i < len; i++) {
-		max_tmp =  fmaxf(max_tmp,src[i]);
-		min_tmp = fminf(min_tmp,src[i]);
+        max_tmp = fmaxf(max_tmp, src[i]);
+        min_tmp = fminf(min_tmp, src[i]);
     }
 
     *max_value = max_tmp;
@@ -3005,8 +3002,7 @@ static inline void softmaxf_C(float *src, float *dst, int len)
     float acc = 0.0f;
 
 #ifdef OMP
-#pragma omp simd reduction(+ \
-                           : acc)
+#pragma omp simd reduction(+ : acc)
 #endif
     for (int i = 0; i < len; i++) {
         dst[i] = expf(src[i]);
@@ -3283,388 +3279,351 @@ static inline void cart2pol3Df_C(float *x, float *y, float *z, float *r, float *
 
 // todo create a structure to optimize stack?
 // tail recursion (return while_loop instead of return) is slower
-static inline void while_loop_4c_32s(int32_t* srcDst, short i, short j, const short imageStep, const point_t roiSize,\
-				   const int32_t seedVal, const int32_t Point1NewValue, modified_t* modified)
+static inline void while_loop_4c_32s(int32_t *srcDst, short i, short j, const short imageStep, const point_t roiSize, const int32_t seedVal, const int32_t Point1NewValue, modified_t *modified)
 {
-	while(1){
-		short jp1 = min(j+1, roiSize.x-1);
-		short jm1 = max(j-1, 0);	
-		short ip1 = min(i+1, roiSize.y-1);
-		short im1 = max(i-1, 0);
+    while (1) {
+        short jp1 = min(j + 1, roiSize.x - 1);
+        short jm1 = max(j - 1, 0);
+        short ip1 = min(i + 1, roiSize.y - 1);
+        short im1 = max(i - 1, 0);
 
-		if(srcDst[imageStep*i + j] == seedVal){
-			srcDst[imageStep*i + j] = Point1NewValue;
-		}
-		else if(srcDst[imageStep*i + jp1] == seedVal){		
-			srcDst[imageStep*i + jp1] = Point1NewValue;
-			j = jp1;		
-		}
-		else if(srcDst[imageStep*i + jm1] == seedVal){		
-			srcDst[imageStep*i + jm1] = Point1NewValue;		
-			j = jm1;		
-		}
-		else if(srcDst[imageStep*ip1 + j] == seedVal){				
-			srcDst[imageStep*ip1 + j] = Point1NewValue;		
-			i = ip1;			
-		}
-		else if(srcDst[imageStep*im1 + j] == seedVal){		
-			srcDst[imageStep*im1 + j] = Point1NewValue;			
-			i = im1;		
-		}
-		else{
-			return;
-		}
-		modified->modified_points[modified->counter].x = j;
-		modified->modified_points[modified->counter].y = i;			
-		modified->counter++;		
-		while_loop_4c_32s(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	}			
-	return;
+        if (srcDst[imageStep * i + j] == seedVal) {
+            srcDst[imageStep * i + j] = Point1NewValue;
+        } else if (srcDst[imageStep * i + jp1] == seedVal) {
+            srcDst[imageStep * i + jp1] = Point1NewValue;
+            j = jp1;
+        } else if (srcDst[imageStep * i + jm1] == seedVal) {
+            srcDst[imageStep * i + jm1] = Point1NewValue;
+            j = jm1;
+        } else if (srcDst[imageStep * ip1 + j] == seedVal) {
+            srcDst[imageStep * ip1 + j] = Point1NewValue;
+            i = ip1;
+        } else if (srcDst[imageStep * im1 + j] == seedVal) {
+            srcDst[imageStep * im1 + j] = Point1NewValue;
+            i = im1;
+        } else {
+            return;
+        }
+        modified->modified_points[modified->counter].x = j;
+        modified->modified_points[modified->counter].y = i;
+        modified->counter++;
+        while_loop_4c_32s(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+    }
+    return;
 }
 
-static inline void floodFill_4C_32s(int32_t* srcDst,  int imageStep, point_t roiSize, point_t seedPoint1, int32_t Point1NewValue, modified_t* modified){
-	imageStep = imageStep/sizeof(int32_t);
-	int32_t seedVal = srcDst[imageStep*seedPoint1.y + seedPoint1.x];
-	
-	short i, j;
-	i = seedPoint1.y;	
-	j = seedPoint1.x;
-	if(seedVal == Point1NewValue){
-		return;
-	}
-	modified->counter = 0;
-	while_loop_4c_32s(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	
-	int old_counter=modified->counter;
-	for(int c = 0; c < modified->counter; c++)
-		while_loop_4c_32s(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
-
-	while(old_counter != modified->counter){ // new points to be discovered
-		int cnt_tmp  = old_counter;
-		old_counter =  modified->counter;
-		for(int c = cnt_tmp; c < modified->counter; c++)
-			while_loop_4c_32s(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	}		
-}
-
-
-static inline void while_loop_8c_32s(int32_t* srcDst, short i, short j,  const int imageStep, const point_t roiSize,\
-				   const int32_t seedVal, const int32_t Point1NewValue, modified_t* modified)
+static inline void floodFill_4C_32s(int32_t *srcDst, int imageStep, point_t roiSize, point_t seedPoint1, int32_t Point1NewValue, modified_t *modified)
 {
-	while(1){
-		short jp1 = min(j+1, roiSize.x-1);
-		short jm1 = max(j-1, 0);
-		short ip1 = min(i+1, roiSize.y-1);
-		short im1 = max(i-1, 0);
-		
-		if(srcDst[imageStep*i + j] == seedVal){
-			srcDst[imageStep*i + j] = Point1NewValue;
-		}
-		else if(srcDst[imageStep*i + jp1] == seedVal){		
-			srcDst[imageStep*i + jp1] = Point1NewValue;
-			j = jp1;			
-		}
-		else if(srcDst[imageStep*i + jm1] == seedVal){
-			srcDst[imageStep*i + jm1] = Point1NewValue;	
-			j = jm1;		
-		}
-		else if(srcDst[imageStep*ip1 + j] == seedVal){			
-			srcDst[imageStep*ip1 + j] = Point1NewValue;
-			i = ip1;								
-		}
-		else if(srcDst[imageStep*im1 + j] == seedVal){		
-			srcDst[imageStep*im1 + j] = Point1NewValue;
-			i = im1;		
-		}
-		else if(srcDst[imageStep*im1 + jp1] == seedVal){	
-			srcDst[imageStep*im1 + jp1] = Point1NewValue;
-			j = jp1;
-			i = im1;
-		}
-		else if(srcDst[imageStep*im1 + jm1] == seedVal){			
-			srcDst[imageStep*im1 + jm1] = Point1NewValue;
-			j = jm1;
-			i = im1;
-		}		
-		else if(srcDst[imageStep*ip1 + jp1] == seedVal){	
-			srcDst[imageStep*ip1 + jp1] = Point1NewValue;
-			j = jp1;
-			i = ip1;
-		}
-		else if(srcDst[imageStep*ip1 + jm1] == seedVal){			
-			srcDst[imageStep*ip1 + jm1] = Point1NewValue;
-			j = jm1;
-			i = ip1;
-		}	
-		else
-			return;
-		
-		modified->modified_points[modified->counter].x = j;
-		modified->modified_points[modified->counter].y = i;			
-		modified->counter++;			
-		while_loop_8c_32s(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	}			
-	return;
+    imageStep = imageStep / sizeof(int32_t);
+    int32_t seedVal = srcDst[imageStep * seedPoint1.y + seedPoint1.x];
+
+    short i, j;
+    i = seedPoint1.y;
+    j = seedPoint1.x;
+    if (seedVal == Point1NewValue) {
+        return;
+    }
+    modified->counter = 0;
+    while_loop_4c_32s(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+    int old_counter = modified->counter;
+    for (int c = 0; c < modified->counter; c++)
+        while_loop_4c_32s(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+    while (old_counter != modified->counter) {  // new points to be discovered
+        int cnt_tmp = old_counter;
+        old_counter = modified->counter;
+        for (int c = cnt_tmp; c < modified->counter; c++)
+            while_loop_4c_32s(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+    }
 }
 
-static inline void floodFill_8C_c_32s(int32_t* srcDst,  int imageStep, point_t roiSize, point_t seedPoint1, int32_t Point1NewValue, modified_t* modified){
-	imageStep = imageStep/sizeof(int32_t);
-	int32_t seedVal = srcDst[imageStep*seedPoint1.y + seedPoint1.x];
-	
-	short i, j;
-	i = seedPoint1.y;	
-	j = seedPoint1.x;
-	if(seedVal == Point1NewValue){
-		return;
-	}
-	modified->counter = 0;
-	while_loop_8c_32s(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	
-	int old_counter=modified->counter;
-	for(int c = 0; c < modified->counter; c++)
-		while_loop_8c_32s(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
 
-	while(old_counter != modified->counter){ // new points to be discovered
-		int cnt_tmp  = old_counter;
-		old_counter =  modified->counter;
-		for(int c = cnt_tmp; c < modified->counter; c++)
-			while_loop_8c_32s(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	}		
-}
-
-static inline void while_loop_4c_8u(uint8_t* srcDst, short i, short j, const short imageStep, const point_t roiSize,\
-				   const uint8_t seedVal, const uint8_t Point1NewValue, modified_t* modified)
+static inline void while_loop_8c_32s(int32_t *srcDst, short i, short j, const int imageStep, const point_t roiSize, const int32_t seedVal, const int32_t Point1NewValue, modified_t *modified)
 {
-	while(1){
-		short jp1 = min(j+1, roiSize.x-1);
-		short jm1 = max(j-1, 0);	
-		short ip1 = min(i+1, roiSize.y-1);
-		short im1 = max(i-1, 0);
+    while (1) {
+        short jp1 = min(j + 1, roiSize.x - 1);
+        short jm1 = max(j - 1, 0);
+        short ip1 = min(i + 1, roiSize.y - 1);
+        short im1 = max(i - 1, 0);
 
-		if(srcDst[imageStep*i + j] == seedVal){
-			srcDst[imageStep*i + j] = Point1NewValue;
-		}
-		else if(srcDst[imageStep*i + jp1] == seedVal){		
-			srcDst[imageStep*i + jp1] = Point1NewValue;
-			j = jp1;		
-		}
-		else if(srcDst[imageStep*i + jm1] == seedVal){		
-			srcDst[imageStep*i + jm1] = Point1NewValue;		
-			j = jm1;		
-		}
-		else if(srcDst[imageStep*ip1 + j] == seedVal){				
-			srcDst[imageStep*ip1 + j] = Point1NewValue;		
-			i = ip1;			
-		}
-		else if(srcDst[imageStep*im1 + j] == seedVal){		
-			srcDst[imageStep*im1 + j] = Point1NewValue;			
-			i = im1;		
-		}
-		else{
-			return;
-		}
-		modified->modified_points[modified->counter].x = j;
-		modified->modified_points[modified->counter].y = i;			
-		modified->counter++;		
-		while_loop_4c_8u(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	}			
-	return;
+        if (srcDst[imageStep * i + j] == seedVal) {
+            srcDst[imageStep * i + j] = Point1NewValue;
+        } else if (srcDst[imageStep * i + jp1] == seedVal) {
+            srcDst[imageStep * i + jp1] = Point1NewValue;
+            j = jp1;
+        } else if (srcDst[imageStep * i + jm1] == seedVal) {
+            srcDst[imageStep * i + jm1] = Point1NewValue;
+            j = jm1;
+        } else if (srcDst[imageStep * ip1 + j] == seedVal) {
+            srcDst[imageStep * ip1 + j] = Point1NewValue;
+            i = ip1;
+        } else if (srcDst[imageStep * im1 + j] == seedVal) {
+            srcDst[imageStep * im1 + j] = Point1NewValue;
+            i = im1;
+        } else if (srcDst[imageStep * im1 + jp1] == seedVal) {
+            srcDst[imageStep * im1 + jp1] = Point1NewValue;
+            j = jp1;
+            i = im1;
+        } else if (srcDst[imageStep * im1 + jm1] == seedVal) {
+            srcDst[imageStep * im1 + jm1] = Point1NewValue;
+            j = jm1;
+            i = im1;
+        } else if (srcDst[imageStep * ip1 + jp1] == seedVal) {
+            srcDst[imageStep * ip1 + jp1] = Point1NewValue;
+            j = jp1;
+            i = ip1;
+        } else if (srcDst[imageStep * ip1 + jm1] == seedVal) {
+            srcDst[imageStep * ip1 + jm1] = Point1NewValue;
+            j = jm1;
+            i = ip1;
+        } else
+            return;
+
+        modified->modified_points[modified->counter].x = j;
+        modified->modified_points[modified->counter].y = i;
+        modified->counter++;
+        while_loop_8c_32s(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+    }
+    return;
 }
 
-static inline void floodFill_4C_8u(uint8_t* srcDst,  int imageStep, point_t roiSize, point_t seedPoint1, uint8_t Point1NewValue, modified_t* modified){
-	uint8_t seedVal = srcDst[imageStep*seedPoint1.y + seedPoint1.x];
-	
-	short i, j;
-	i = seedPoint1.y;	
-	j = seedPoint1.x;
-	if(seedVal == Point1NewValue){
-		return;
-	}
-	modified->counter = 0;
-	while_loop_4c_8u(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	
-	int old_counter=modified->counter;
-	for(int c = 0; c < modified->counter; c++)
-		while_loop_4c_8u(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
-
-	while(old_counter != modified->counter){ // new points to be discovered
-		int cnt_tmp  = old_counter;
-		old_counter =  modified->counter;
-		for(int c = cnt_tmp; c < modified->counter; c++)
-			while_loop_4c_8u(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	}		
-}
-
-
-static inline void while_loop_8c_8u(uint8_t* srcDst, short i, short j,  const int imageStep, const point_t roiSize,\
-				   const uint8_t seedVal, const uint8_t Point1NewValue, modified_t* modified)
+static inline void floodFill_8C_c_32s(int32_t *srcDst, int imageStep, point_t roiSize, point_t seedPoint1, int32_t Point1NewValue, modified_t *modified)
 {
-	while(1){
-		short jp1 = min(j+1, roiSize.x-1);
-		short jm1 = max(j-1, 0);
-		short ip1 = min(i+1, roiSize.y-1);
-		short im1 = max(i-1, 0);
-		
-		if(srcDst[imageStep*i + j] == seedVal){
-			srcDst[imageStep*i + j] = Point1NewValue;
-		}
-		else if(srcDst[imageStep*i + jp1] == seedVal){		
-			srcDst[imageStep*i + jp1] = Point1NewValue;
-			j = jp1;			
-		}
-		else if(srcDst[imageStep*i + jm1] == seedVal){
-			srcDst[imageStep*i + jm1] = Point1NewValue;	
-			j = jm1;		
-		}
-		else if(srcDst[imageStep*ip1 + j] == seedVal){			
-			srcDst[imageStep*ip1 + j] = Point1NewValue;
-			i = ip1;								
-		}
-		else if(srcDst[imageStep*im1 + j] == seedVal){		
-			srcDst[imageStep*im1 + j] = Point1NewValue;
-			i = im1;		
-		}
-		else if(srcDst[imageStep*im1 + jp1] == seedVal){	
-			srcDst[imageStep*im1 + jp1] = Point1NewValue;
-			j = jp1;
-			i = im1;
-		}
-		else if(srcDst[imageStep*im1 + jm1] == seedVal){			
-			srcDst[imageStep*im1 + jm1] = Point1NewValue;
-			j = jm1;
-			i = im1;
-		}		
-		else if(srcDst[imageStep*ip1 + jp1] == seedVal){	
-			srcDst[imageStep*ip1 + jp1] = Point1NewValue;
-			j = jp1;
-			i = ip1;
-		}
-		else if(srcDst[imageStep*ip1 + jm1] == seedVal){			
-			srcDst[imageStep*ip1 + jm1] = Point1NewValue;
-			j = jm1;
-			i = ip1;
-		}	
-		else
-			return;
-		
-		modified->modified_points[modified->counter].x = j;
-		modified->modified_points[modified->counter].y = i;			
-		modified->counter++;			
-		while_loop_8c_8u(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	}			
-	return;
+    imageStep = imageStep / sizeof(int32_t);
+    int32_t seedVal = srcDst[imageStep * seedPoint1.y + seedPoint1.x];
+
+    short i, j;
+    i = seedPoint1.y;
+    j = seedPoint1.x;
+    if (seedVal == Point1NewValue) {
+        return;
+    }
+    modified->counter = 0;
+    while_loop_8c_32s(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+    int old_counter = modified->counter;
+    for (int c = 0; c < modified->counter; c++)
+        while_loop_8c_32s(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+    while (old_counter != modified->counter) {  // new points to be discovered
+        int cnt_tmp = old_counter;
+        old_counter = modified->counter;
+        for (int c = cnt_tmp; c < modified->counter; c++)
+            while_loop_8c_32s(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+    }
 }
 
-static inline void floodFill_8C_c_8u(uint8_t* srcDst,  int imageStep, point_t roiSize, point_t seedPoint1, uint8_t Point1NewValue, modified_t* modified){
-	uint8_t seedVal = srcDst[imageStep*seedPoint1.y + seedPoint1.x];
-	
-	short i, j;
-	i = seedPoint1.y;	
-	j = seedPoint1.x;
-	if(seedVal == Point1NewValue){
-		return;
-	}
-	modified->counter = 0;
-	while_loop_8c_8u(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	
-	int old_counter=modified->counter;
-	for(int c = 0; c < modified->counter; c++)
-		while_loop_8c_8u(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+static inline void while_loop_4c_8u(uint8_t *srcDst, short i, short j, const short imageStep, const point_t roiSize, const uint8_t seedVal, const uint8_t Point1NewValue, modified_t *modified)
+{
+    while (1) {
+        short jp1 = min(j + 1, roiSize.x - 1);
+        short jm1 = max(j - 1, 0);
+        short ip1 = min(i + 1, roiSize.y - 1);
+        short im1 = max(i - 1, 0);
 
-	while(old_counter != modified->counter){ // new points to be discovered
-		int cnt_tmp  = old_counter;
-		old_counter =  modified->counter;
-		for(int c = cnt_tmp; c < modified->counter; c++)
-			while_loop_8c_8u(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	}		
+        if (srcDst[imageStep * i + j] == seedVal) {
+            srcDst[imageStep * i + j] = Point1NewValue;
+        } else if (srcDst[imageStep * i + jp1] == seedVal) {
+            srcDst[imageStep * i + jp1] = Point1NewValue;
+            j = jp1;
+        } else if (srcDst[imageStep * i + jm1] == seedVal) {
+            srcDst[imageStep * i + jm1] = Point1NewValue;
+            j = jm1;
+        } else if (srcDst[imageStep * ip1 + j] == seedVal) {
+            srcDst[imageStep * ip1 + j] = Point1NewValue;
+            i = ip1;
+        } else if (srcDst[imageStep * im1 + j] == seedVal) {
+            srcDst[imageStep * im1 + j] = Point1NewValue;
+            i = im1;
+        } else {
+            return;
+        }
+        modified->modified_points[modified->counter].x = j;
+        modified->modified_points[modified->counter].y = i;
+        modified->counter++;
+        while_loop_4c_8u(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+    }
+    return;
+}
+
+static inline void floodFill_4C_8u(uint8_t *srcDst, int imageStep, point_t roiSize, point_t seedPoint1, uint8_t Point1NewValue, modified_t *modified)
+{
+    uint8_t seedVal = srcDst[imageStep * seedPoint1.y + seedPoint1.x];
+
+    short i, j;
+    i = seedPoint1.y;
+    j = seedPoint1.x;
+    if (seedVal == Point1NewValue) {
+        return;
+    }
+    modified->counter = 0;
+    while_loop_4c_8u(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+    int old_counter = modified->counter;
+    for (int c = 0; c < modified->counter; c++)
+        while_loop_4c_8u(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+    while (old_counter != modified->counter) {  // new points to be discovered
+        int cnt_tmp = old_counter;
+        old_counter = modified->counter;
+        for (int c = cnt_tmp; c < modified->counter; c++)
+            while_loop_4c_8u(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+    }
+}
+
+
+static inline void while_loop_8c_8u(uint8_t *srcDst, short i, short j, const int imageStep, const point_t roiSize, const uint8_t seedVal, const uint8_t Point1NewValue, modified_t *modified)
+{
+    while (1) {
+        short jp1 = min(j + 1, roiSize.x - 1);
+        short jm1 = max(j - 1, 0);
+        short ip1 = min(i + 1, roiSize.y - 1);
+        short im1 = max(i - 1, 0);
+
+        if (srcDst[imageStep * i + j] == seedVal) {
+            srcDst[imageStep * i + j] = Point1NewValue;
+        } else if (srcDst[imageStep * i + jp1] == seedVal) {
+            srcDst[imageStep * i + jp1] = Point1NewValue;
+            j = jp1;
+        } else if (srcDst[imageStep * i + jm1] == seedVal) {
+            srcDst[imageStep * i + jm1] = Point1NewValue;
+            j = jm1;
+        } else if (srcDst[imageStep * ip1 + j] == seedVal) {
+            srcDst[imageStep * ip1 + j] = Point1NewValue;
+            i = ip1;
+        } else if (srcDst[imageStep * im1 + j] == seedVal) {
+            srcDst[imageStep * im1 + j] = Point1NewValue;
+            i = im1;
+        } else if (srcDst[imageStep * im1 + jp1] == seedVal) {
+            srcDst[imageStep * im1 + jp1] = Point1NewValue;
+            j = jp1;
+            i = im1;
+        } else if (srcDst[imageStep * im1 + jm1] == seedVal) {
+            srcDst[imageStep * im1 + jm1] = Point1NewValue;
+            j = jm1;
+            i = im1;
+        } else if (srcDst[imageStep * ip1 + jp1] == seedVal) {
+            srcDst[imageStep * ip1 + jp1] = Point1NewValue;
+            j = jp1;
+            i = ip1;
+        } else if (srcDst[imageStep * ip1 + jm1] == seedVal) {
+            srcDst[imageStep * ip1 + jm1] = Point1NewValue;
+            j = jm1;
+            i = ip1;
+        } else
+            return;
+
+        modified->modified_points[modified->counter].x = j;
+        modified->modified_points[modified->counter].y = i;
+        modified->counter++;
+        while_loop_8c_8u(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+    }
+    return;
+}
+
+static inline void floodFill_8C_c_8u(uint8_t *srcDst, int imageStep, point_t roiSize, point_t seedPoint1, uint8_t Point1NewValue, modified_t *modified)
+{
+    uint8_t seedVal = srcDst[imageStep * seedPoint1.y + seedPoint1.x];
+
+    short i, j;
+    i = seedPoint1.y;
+    j = seedPoint1.x;
+    if (seedVal == Point1NewValue) {
+        return;
+    }
+    modified->counter = 0;
+    while_loop_8c_8u(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+    int old_counter = modified->counter;
+    for (int c = 0; c < modified->counter; c++)
+        while_loop_8c_8u(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+    while (old_counter != modified->counter) {  // new points to be discovered
+        int cnt_tmp = old_counter;
+        old_counter = modified->counter;
+        for (int c = cnt_tmp; c < modified->counter; c++)
+            while_loop_8c_8u(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+    }
 }
 
 #ifndef equalf
-#define equalf(a,b) (fabsf((a)-(b)) < 1E-9f)? 1 : 0
+#define equalf(a, b) (fabsf((a) - (b)) < 1E-9f) ? 1 : 0
 #endif
 
-static inline void while_loop_8c_32f(float* srcDst, short i, short j,  const int imageStep, const point_t roiSize,\
-				   const float seedVal, const float Point1NewValue, modified_t* modified)
+static inline void while_loop_8c_32f(float *srcDst, short i, short j, const int imageStep, const point_t roiSize, const float seedVal, const float Point1NewValue, modified_t *modified)
 {
-	while(1){
-		short jp1 = min(j+1, roiSize.x-1);
-		short jm1 = max(j-1, 0);
-		short ip1 = min(i+1, roiSize.y-1);
-		short im1 = max(i-1, 0);
-		
-		if(equalf(srcDst[imageStep*i + j], seedVal)){
-			srcDst[imageStep*i + j] = Point1NewValue;
-		}
-		else if(equalf(srcDst[imageStep*i + jp1], seedVal)){		
-			srcDst[imageStep*i + jp1] = Point1NewValue;
-			j = jp1;			
-		}
-		else if(equalf(srcDst[imageStep*i + jm1], seedVal)){
-			srcDst[imageStep*i + jm1] = Point1NewValue;	
-			j = jm1;		
-		}
-		else if(equalf(srcDst[imageStep*ip1 + j], seedVal)){			
-			srcDst[imageStep*ip1 + j] = Point1NewValue;
-			i = ip1;								
-		}
-		else if(equalf(srcDst[imageStep*im1 + j], seedVal)){		
-			srcDst[imageStep*im1 + j] = Point1NewValue;
-			i = im1;		
-		}
-		else if(equalf(srcDst[imageStep*im1 + jp1], seedVal)){	
-			srcDst[imageStep*im1 + jp1] = Point1NewValue;
-			j = jp1;
-			i = im1;
-		}
-		else if(equalf(srcDst[imageStep*im1 + jm1], seedVal)){			
-			srcDst[imageStep*im1 + jm1] = Point1NewValue;
-			j = jm1;
-			i = im1;
-		}		
-		else if(equalf(srcDst[imageStep*ip1 + jp1], seedVal)){	
-			srcDst[imageStep*ip1 + jp1] = Point1NewValue;
-			j = jp1;
-			i = ip1;
-		}
-		else if(equalf(srcDst[imageStep*ip1 + jm1], seedVal)){			
-			srcDst[imageStep*ip1 + jm1] = Point1NewValue;
-			j = jm1;
-			i = ip1;
-		}	
-		else
-			return;
-		
-		modified->modified_points[modified->counter].x = j;
-		modified->modified_points[modified->counter].y = i;			
-		modified->counter++;			
-		while_loop_8c_32f(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	}			
-	return;
+    while (1) {
+        short jp1 = min(j + 1, roiSize.x - 1);
+        short jm1 = max(j - 1, 0);
+        short ip1 = min(i + 1, roiSize.y - 1);
+        short im1 = max(i - 1, 0);
+
+        if (equalf(srcDst[imageStep * i + j], seedVal)) {
+            srcDst[imageStep * i + j] = Point1NewValue;
+        } else if (equalf(srcDst[imageStep * i + jp1], seedVal)) {
+            srcDst[imageStep * i + jp1] = Point1NewValue;
+            j = jp1;
+        } else if (equalf(srcDst[imageStep * i + jm1], seedVal)) {
+            srcDst[imageStep * i + jm1] = Point1NewValue;
+            j = jm1;
+        } else if (equalf(srcDst[imageStep * ip1 + j], seedVal)) {
+            srcDst[imageStep * ip1 + j] = Point1NewValue;
+            i = ip1;
+        } else if (equalf(srcDst[imageStep * im1 + j], seedVal)) {
+            srcDst[imageStep * im1 + j] = Point1NewValue;
+            i = im1;
+        } else if (equalf(srcDst[imageStep * im1 + jp1], seedVal)) {
+            srcDst[imageStep * im1 + jp1] = Point1NewValue;
+            j = jp1;
+            i = im1;
+        } else if (equalf(srcDst[imageStep * im1 + jm1], seedVal)) {
+            srcDst[imageStep * im1 + jm1] = Point1NewValue;
+            j = jm1;
+            i = im1;
+        } else if (equalf(srcDst[imageStep * ip1 + jp1], seedVal)) {
+            srcDst[imageStep * ip1 + jp1] = Point1NewValue;
+            j = jp1;
+            i = ip1;
+        } else if (equalf(srcDst[imageStep * ip1 + jm1], seedVal)) {
+            srcDst[imageStep * ip1 + jm1] = Point1NewValue;
+            j = jm1;
+            i = ip1;
+        } else
+            return;
+
+        modified->modified_points[modified->counter].x = j;
+        modified->modified_points[modified->counter].y = i;
+        modified->counter++;
+        while_loop_8c_32f(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+    }
+    return;
 }
 
-static inline void floodFill_8C_c_32f(float* srcDst,  int imageStep, point_t roiSize, point_t seedPoint1, float Point1NewValue, modified_t* modified){
-	imageStep = imageStep/sizeof(float);
-	float seedVal = srcDst[imageStep*seedPoint1.y + seedPoint1.x];
-	
-	short i, j;
-	i = seedPoint1.y;	
-	j = seedPoint1.x;
-	if(equalf(seedVal,Point1NewValue)){
-		return;
-	}
-	modified->counter = 0;
-	while_loop_8c_32f(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	
-	int old_counter=modified->counter;
-	for(int c = 0; c < modified->counter; c++)
-		while_loop_8c_32f(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+static inline void floodFill_8C_c_32f(float *srcDst, int imageStep, point_t roiSize, point_t seedPoint1, float Point1NewValue, modified_t *modified)
+{
+    imageStep = imageStep / sizeof(float);
+    float seedVal = srcDst[imageStep * seedPoint1.y + seedPoint1.x];
 
-	while(old_counter != modified->counter){ // new points to be discovered
-		int cnt_tmp  = old_counter;
-		old_counter =  modified->counter;
-		for(int c = cnt_tmp; c < modified->counter; c++)
-			while_loop_8c_32f(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
-	}		
+    short i, j;
+    i = seedPoint1.y;
+    j = seedPoint1.x;
+    if (equalf(seedVal, Point1NewValue)) {
+        return;
+    }
+    modified->counter = 0;
+    while_loop_8c_32f(srcDst, i, j, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+    int old_counter = modified->counter;
+    for (int c = 0; c < modified->counter; c++)
+        while_loop_8c_32f(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+
+    while (old_counter != modified->counter) {  // new points to be discovered
+        int cnt_tmp = old_counter;
+        old_counter = modified->counter;
+        for (int c = cnt_tmp; c < modified->counter; c++)
+            while_loop_8c_32f(srcDst, modified->modified_points[c].y, modified->modified_points[c].x, imageStep, roiSize, seedVal, Point1NewValue, modified);
+    }
 }
 
 static inline void powf_c(float *x, float *y, float *dst, int len)
@@ -3691,59 +3650,59 @@ static inline void powd_c(double *x, double *y, double *dst, int len)
 static inline void powcplxf_c(complex32_t *x, complex32_t *y, complex32_t *dst, int len)
 {
     for (int i = 0; i < len; i++) {
-		float x_tmp_re2 = x[i].re * x[i].re;
-		float modx = (x[i].im * x[i].im) + x_tmp_re2;
-		modx = sqrtf(modx);
-		complex32_t logx;
-		logx.re = logf(modx);
-		logx.im = atan2f(x[i].im, x[i].re);
-		complex32_t ylogx;
-		float ac = logx.re * y[i].re;     // ac
-		float ad = logx.re * y[i].im;     // ad
-		ylogx.re = ac - (logx.im * y[i].im);
-		ylogx.im = (logx.im *  y[i].re) +  ad;
-		float ex = expf(ylogx.re);
-		float cosylogx, sinylogx;
-		mysincosf(ylogx.im, &sinylogx, &cosylogx);
-		dst[i].re = ex * cosylogx;
-		dst[i].im = ex * sinylogx;
+        float x_tmp_re2 = x[i].re * x[i].re;
+        float modx = (x[i].im * x[i].im) + x_tmp_re2;
+        modx = sqrtf(modx);
+        complex32_t logx;
+        logx.re = logf(modx);
+        logx.im = atan2f(x[i].im, x[i].re);
+        complex32_t ylogx;
+        float ac = logx.re * y[i].re;  // ac
+        float ad = logx.re * y[i].im;  // ad
+        ylogx.re = ac - (logx.im * y[i].im);
+        ylogx.im = (logx.im * y[i].re) + ad;
+        float ex = expf(ylogx.re);
+        float cosylogx, sinylogx;
+        mysincosf(ylogx.im, &sinylogx, &cosylogx);
+        dst[i].re = ex * cosylogx;
+        dst[i].im = ex * sinylogx;
     }
 }
 
 static inline void powcplxd_c(complex64_t *x, complex64_t *y, complex64_t *dst, int len)
 {
     for (int i = 0; i < len; i++) {
-		double x_tmp_re2 = x[i].re * x[i].re;
-		double modx = (x[i].im * x[i].im) + x_tmp_re2;
-		modx = sqrt(modx);
-		complex64_t logx;
-		logx.re = log(modx);
-		logx.im = atan2(x[i].im, x[i].re);
-		complex64_t ylogx;
-		double ac = logx.re * y[i].re;     // ac
-		double ad = logx.re * y[i].im;     // ad
-		ylogx.re = ac - (logx.im * y[i].im);
-		ylogx.im = (logx.im *  y[i].re) +  ad;
-		double ex = exp(ylogx.re);
-		double cosylogx, sinylogx;
-        sinylogx = sin(ylogx.im);	
-        cosylogx = cos(ylogx.im);		
-		dst[i].re = ex * cosylogx;
-		dst[i].im = ex * sinylogx;
+        double x_tmp_re2 = x[i].re * x[i].re;
+        double modx = (x[i].im * x[i].im) + x_tmp_re2;
+        modx = sqrt(modx);
+        complex64_t logx;
+        logx.re = log(modx);
+        logx.im = atan2(x[i].im, x[i].re);
+        complex64_t ylogx;
+        double ac = logx.re * y[i].re;  // ac
+        double ad = logx.re * y[i].im;  // ad
+        ylogx.re = ac - (logx.im * y[i].im);
+        ylogx.im = (logx.im * y[i].re) + ad;
+        double ex = exp(ylogx.re);
+        double cosylogx, sinylogx;
+        sinylogx = sin(ylogx.im);
+        cosylogx = cos(ylogx.im);
+        dst[i].re = ex * cosylogx;
+        dst[i].im = ex * sinylogx;
     }
 }
 
-static inline void checkNanInff_c(const float* __restrict__ src, int32_t* nan, int32_t* inf, int len)
+static inline void checkNanInff_c(const float *__restrict__ src, int32_t *nan, int32_t *inf, int len)
 {
-	*nan = 0;
-	*inf = 0;
+    *nan = 0;
+    *inf = 0;
     for (int i = 0; i < len; i++) {
-        if(src[i]!=src[i]) // NAN != NAN
-			*nan = 1;
-		int32_t *src_int = (int32_t*)&src[i];
-		*src_int = *src_int & 0x7FFFFFFF; // clear off the sign to watch for +inf and -inf
-		if(*src_int == 0x7F800000)
-			*inf = 1;
+        if (src[i] != src[i])  // NAN != NAN
+            *nan = 1;
+        int32_t *src_int = (int32_t *) &src[i];
+        *src_int = *src_int & 0x7FFFFFFF;  // clear off the sign to watch for +inf and -inf
+        if (*src_int == 0x7F800000)
+            *inf = 1;
     }
 }
 

@@ -120,27 +120,27 @@ FORCE_INLINE __m128 _mm_fmadd_ps(__m128 a, __m128 b, __m128 c)
 #endif
 }
 
-//B is scalar
+// B is scalar
 FORCE_INLINE __m128 _mm_fmadd1_ps(__m128 a, __m128 b, __m128 c)
 {
-	float *bs = (float *) &b;
+    float *bs = (float *) &b;
 #if defined(__aarch64__)
     return vreinterpretq_m128_f32(vfmaq_n_f32(vreinterpretq_f32_m128(c),
-                                            vreinterpretq_f32_m128(a),
-                                            *bs));
+                                              vreinterpretq_f32_m128(a),
+                                              *bs));
 #else
     return vreinterpretq_m128_f32(vmlaq_n_f32(vreinterpretq_f32_m128(c),
-                                            vreinterpretq_f32_m128(a),
-                                            *bs)); 
+                                              vreinterpretq_f32_m128(a),
+                                              *bs));
 #endif
 }
 
-//B is a scalar, some optimizations for ARM NEON
+// B is a scalar, some optimizations for ARM NEON
 FORCE_INLINE __m128 _mm_mul1_ps(__m128 a, __m128 b)
 {
-	float *bs = (float *) &b;
+    float *bs = (float *) &b;
     return vreinterpretq_m128_f32(vmulq_n_f32(vreinterpretq_f32_m128(a),
-                                            *bs)); 
+                                              *bs));
 }
 
 // Multiply packed single-precision (32-bit) floating-point elements in a and b,
@@ -172,18 +172,18 @@ FORCE_INLINE __m128 _mm_fnmadd_ps(__m128 a, __m128 b, __m128 c)
 #endif
 }
 
-//B is scalar
+// B is scalar
 FORCE_INLINE __m128 _mm_fnmadd1_ps(__m128 a, __m128 b, __m128 c)
 {
-	float *bs = (float *) &b;
+    float *bs = (float *) &b;
 #if defined(__aarch64__)
     return vreinterpretq_m128_f32(vfmsq_n_f32(vreinterpretq_f32_m128(c),
-                                            vreinterpretq_f32_m128(a),
-                                            *bs));
+                                              vreinterpretq_f32_m128(a),
+                                              *bs));
 #else
     return vreinterpretq_m128_f32(vmlsq_n_f32(vreinterpretq_f32_m128(c),
-                                            vreinterpretq_f32_m128(a),
-                                            *bs));
+                                              vreinterpretq_f32_m128(a),
+                                              *bs));
 #endif
 }
 
@@ -234,7 +234,7 @@ FORCE_INLINE __m128i _mm_cvtpd_epi64(__m128d a)
 #else
     int64_t a0 = (int64_t) ((double *) &a)[0];
     int64_t a1 = (int64_t) ((double *) &a)[1];
-    return _mm_set_epi64((__m64)a1, (__m64)a0);
+    return _mm_set_epi64((__m64) a1, (__m64) a0);
 #endif
 }
 
@@ -260,41 +260,41 @@ FORCE_INLINE __m128d _mm_fnmadd_pd(__m128d a, __m128d b, __m128d c)
 #endif
 }
 
-//B is scalar
+// B is scalar
 FORCE_INLINE __m128d _mm_fmadd1_pd(__m128d a, __m128d b, __m128d c)
 {
 #if defined(__aarch64__)
-	double *bs = (double *) &b;
+    double *bs = (double *) &b;
     return vreinterpretq_m128d_f64(vfmaq_n_f64(vreinterpretq_f64_m128d(c),
-                                            vreinterpretq_f64_m128d(a),
-                                            *bs));
+                                               vreinterpretq_f64_m128d(a),
+                                               *bs));
 #else
-    return _mm_fmadd_pd(a,b,c);
+    return _mm_fmadd_pd(a, b, c);
 #endif
 }
 
-//B is scalar
+// B is scalar
 FORCE_INLINE __m128d _mm_fnmadd1_pd(__m128d a, __m128d b, __m128d c)
 {
 #if defined(__aarch64__)
-	double *bs = (double *) &b;
+    double *bs = (double *) &b;
     return vreinterpretq_m128d_f64(vfmsq_n_f64(vreinterpretq_f64_m128d(c),
-                                            vreinterpretq_f64_m128d(a),
-                                            *bs));
+                                               vreinterpretq_f64_m128d(a),
+                                               *bs));
 #else
-    return _mm_fnmadd_pd(a,b,c);
+    return _mm_fnmadd_pd(a, b, c);
 #endif
 }
 
-//B is a scalar, some optimizations for ARM NEON
+// B is a scalar, some optimizations for ARM NEON
 FORCE_INLINE __m128d _mm_mul1_pd(__m128d a, __m128d b)
 {
 #if defined(__aarch64__)
-	double *bs = (double *) &b;
+    double *bs = (double *) &b;
     return vreinterpretq_m128d_f64(vmulq_n_f64(vreinterpretq_f64_m128d(a),
-                                            *bs));
+                                               *bs));
 #else
-	return _mm_mul_pd(a,b);
+    return _mm_mul_pd(a, b);
 #endif
 }
 

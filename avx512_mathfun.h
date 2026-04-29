@@ -32,9 +32,9 @@ static inline v16sf log512_ps(v16sf x)
     __mmask16 kmask = _mm512_cmp_ps_mask(x, *(v16sf *) _ps512_cephes_SQRTHF, _CMP_LT_OS);
     v16sf tmp = x;
     x = _mm512_sub_ps(x, *(v16sf *) _ps512_1);
-    
+
 #if 1
-    //instead of doing add 1 then sub 1, dot add 1 on condition, should be faster
+    // instead of doing add 1 then sub 1, dot add 1 on condition, should be faster
     __mmask16 knotmask = _knot_mask16(kmask);
     e = _mm512_mask_add_ps(e, knotmask, e, *(v16sf *) _ps512_1);
 #else
@@ -46,6 +46,7 @@ static inline v16sf log512_ps(v16sf x)
 
     v16sf z = _mm512_mul_ps(x, x);
 
+#if 0
     v16sf y = _mm512_fmadd_ps(*(v16sf *) _ps512_cephes_log_p0, x, *(v16sf *) _ps512_cephes_log_p1);
     y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p2);
     y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p3);
@@ -54,8 +55,17 @@ static inline v16sf log512_ps(v16sf x)
     y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p6);
     y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p7);
     y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_log_p8);
+#else
+    v16sf y = _mm512_fmadd_ps(*(v16sf *) _ps512_cephes_log_p0, z, *(v16sf *) _ps512_cephes_log_p2);
+    y = _mm512_fmadd_ps(y, z, *(v16sf *) _ps512_cephes_log_p4);
+    y = _mm512_fmadd_ps(y, z, *(v16sf *) _ps512_cephes_log_p6);
+    y = _mm512_fmadd_ps(y, z, *(v16sf *) _ps512_cephes_log_p8);
+    v16sf yb = _mm512_fmadd_ps(*(v16sf *) _ps512_cephes_log_p1, z, *(v16sf *) _ps512_cephes_log_p3);
+    yb = _mm512_fmadd_ps(yb, z, *(v16sf *) _ps512_cephes_log_p5);
+    yb = _mm512_fmadd_ps(yb, z, *(v16sf *) _ps512_cephes_log_p7);
+    y = _mm512_fmadd_ps(yb, x, y);
+#endif
     y = _mm512_mul_ps(y, x);
-
     y = _mm512_mul_ps(y, z);
 
     y = _mm512_fmadd_ps(e, *(v16sf *) _ps512_cephes_log_q1, y);
@@ -74,10 +84,10 @@ static inline v16sf exp512_ps(v16sf x)
     x = _mm512_min_ps(x, *(v16sf *) _ps512_exp_hi);
     x = _mm512_max_ps(x, *(v16sf *) _ps512_exp_lo);
 
-  /* Express e**x = e**g 2**n
-   *   = e**g e**( n loge(2) )
-   *   = e**( g + n loge(2) )
-   */
+    /* Express e**x = e**g 2**n
+     *   = e**g e**( n loge(2) )
+     *   = e**( g + n loge(2) )
+     */
     fx = _mm512_fmadd_ps(x, *(v16sf *) _ps512_cephes_LOG2EF, *(v16sf *) _ps512_0p5);
     fx = _mm512_floor_ps(fx);
 
@@ -86,11 +96,19 @@ static inline v16sf exp512_ps(v16sf x)
 
     v16sf z = _mm512_mul_ps(x, x);
 
+#if 0
     v16sf y = _mm512_fmadd_ps(*(v16sf *) _ps512_cephes_exp_p0, x, *(v16sf *) _ps512_cephes_exp_p1);
     y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_exp_p2);
     y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_exp_p3);
     y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_exp_p4);
     y = _mm512_fmadd_ps(y, x, *(v16sf *) _ps512_cephes_exp_p5);
+#else
+    v16sf y = _mm512_fmadd_ps(*(v16sf *) _ps512_cephes_exp_p0, z, *(v16sf *) _ps512_cephes_exp_p2);
+    y = _mm512_fmadd_ps(y, z, *(v16sf *) _ps512_cephes_exp_p4);
+    v16sf yb = _mm512_fmadd_ps(*(v16sf *) _ps512_cephes_exp_p1, z, *(v16sf *) _ps512_cephes_exp_p3);
+    yb = _mm512_fmadd_ps(yb, z, *(v16sf *) _ps512_cephes_exp_p5);
+    y = _mm512_fmadd_ps(y, x, yb);
+#endif
     y = _mm512_fmadd_ps(y, z, x);
     y = _mm512_add_ps(y, *(v16sf *) _ps512_1);
 
@@ -267,7 +285,12 @@ static inline void sincos512_ps(v16sf x, v16sf *s, v16sf *c)
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
     x = _mm512_fmadd_ps(y, *(v16sf *) _ps512_minus_cephes_DP1, x);
     x = _mm512_fmadd_ps(y, *(v16sf *) _ps512_minus_cephes_DP2, x);
+#if 0
     x = _mm512_fmadd_ps(y, *(v16sf *) _ps512_minus_cephes_DP3, x);
+#else
+    v16sf x1 = _mm512_mul_ps(y, *(v16sf *) _ps512_minus_cephes_DP3);
+    x = _mm512_add_ps(x, x1);
+#endif
 
     imm4 = _mm512_sub_epi32(imm4, *(v16si *) _pi32_512_2);
     imm4 = _mm512_andnot_si512(imm4, *(v16si *) _pi32_512_4);

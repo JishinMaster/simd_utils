@@ -24,8 +24,8 @@ static inline int mysincosf(float xx, float *s, float *c)
         return (0.0f);
     }
     z = FOPI * x; /* integer part of x/(PI/4) */
-	j = (int)z;
-    y = (float)j;
+    j = (int) z;
+    y = (float) j;
     /* map zeros to origin */
     if (j & 1) {
         j += 1;

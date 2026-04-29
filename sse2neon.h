@@ -196,8 +196,7 @@ FORCE_INLINE int64_t sse2neon_recast_f64_s64(double f64)
 
 #define _sse2neon_init(...) \
     {                       \
-        __VA_ARGS__         \
-    }
+        __VA_ARGS__}
 
 /* Compiler barrier */
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -1816,7 +1815,7 @@ FORCE_INLINE void _sse2neon_set_fpcr(uint64_t value)
 #if defined(_MSC_VER) && !defined(__clang__)
     _WriteStatusReg(ARM64_FPCR, value);
 #else
-    __asm__ __volatile__("msr FPCR, %0" ::"r"(value));  /* write */
+    __asm__ __volatile__("msr FPCR, %0" ::"r"(value)); /* write */
 #endif
 }
 
@@ -2431,7 +2430,7 @@ FORCE_INLINE void _sse2neon_mm_set_flush_zero_mode(unsigned int flag)
 #if defined(__aarch64__) || defined(_M_ARM64)
     _sse2neon_set_fpcr(r.value);
 #else
-    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r));        /* write */
+    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r)); /* write */
 #endif
 }
 
@@ -4978,9 +4977,9 @@ FORCE_INLINE __m128i _mm_set_epi8(signed char b15,
                                   signed char b0)
 {
     int8_t ALIGN_STRUCT(16)
-        data[16] = {(int8_t) b0,  (int8_t) b1,  (int8_t) b2,  (int8_t) b3,
-                    (int8_t) b4,  (int8_t) b5,  (int8_t) b6,  (int8_t) b7,
-                    (int8_t) b8,  (int8_t) b9,  (int8_t) b10, (int8_t) b11,
+        data[16] = {(int8_t) b0, (int8_t) b1, (int8_t) b2, (int8_t) b3,
+                    (int8_t) b4, (int8_t) b5, (int8_t) b6, (int8_t) b7,
+                    (int8_t) b8, (int8_t) b9, (int8_t) b10, (int8_t) b11,
                     (int8_t) b12, (int8_t) b13, (int8_t) b14, (int8_t) b15};
     return (__m128i) vld1q_s8(data);
 }
@@ -5113,9 +5112,9 @@ FORCE_INLINE __m128i _mm_setr_epi8(signed char b0,
                                    signed char b15)
 {
     int8_t ALIGN_STRUCT(16)
-        data[16] = {(int8_t) b0,  (int8_t) b1,  (int8_t) b2,  (int8_t) b3,
-                    (int8_t) b4,  (int8_t) b5,  (int8_t) b6,  (int8_t) b7,
-                    (int8_t) b8,  (int8_t) b9,  (int8_t) b10, (int8_t) b11,
+        data[16] = {(int8_t) b0, (int8_t) b1, (int8_t) b2, (int8_t) b3,
+                    (int8_t) b4, (int8_t) b5, (int8_t) b6, (int8_t) b7,
+                    (int8_t) b8, (int8_t) b9, (int8_t) b10, (int8_t) b11,
                     (int8_t) b12, (int8_t) b13, (int8_t) b14, (int8_t) b15};
     return (__m128i) vld1q_s8(data);
 }
@@ -5309,8 +5308,8 @@ FORCE_INLINE __m128i _mm_slli_epi16(__m128i a, const int imm)
         vshlq_n_s16(vreinterpretq_s16_m128i(a), imm));
 #else
     return vreinterpretq_m128i_s16(
-        vshlq_s16(vreinterpretq_s16_m128i(a), vdupq_n_s16(imm)));	
-#endif	
+        vshlq_s16(vreinterpretq_s16_m128i(a), vdupq_n_s16(imm)));
+#endif
 }
 
 // Shift packed 32-bit integers in a left by imm8 while shifting in zeros, and
@@ -5326,7 +5325,7 @@ FORCE_INLINE __m128i _mm_slli_epi32(__m128i a, const int imm)
 #else
     return vreinterpretq_m128i_s32(
         vshlq_s32(vreinterpretq_s32_m128i(a), vdupq_n_s32(imm)));
-#endif		
+#endif
 }
 
 // Shift packed 64-bit integers in a left by imm8 while shifting in zeros, and
@@ -5339,7 +5338,7 @@ FORCE_INLINE __m128i _mm_slli_epi64(__m128i a, const int imm)
 #if defined(__aarch64__) && !defined(__clang__)
     return vreinterpretq_m128i_s64(
         vshlq_n_s64(vreinterpretq_s64_m128i(a), imm));
-#else		
+#else
     return vreinterpretq_m128i_s64(
         vshlq_s64(vreinterpretq_s64_m128i(a), vdupq_n_s64(imm)));
 #endif
@@ -5490,8 +5489,8 @@ FORCE_INLINE __m128i _mm_srli_epi16(__m128i a, const int imm)
         vshlq_n_s16(vreinterpretq_s16_m128i(a), -imm));
 #else
     return vreinterpretq_m128i_s16(
-        vshlq_s16(vreinterpretq_s16_m128i(a), vdupq_n_s16(-imm)));	
-#endif	
+        vshlq_s16(vreinterpretq_s16_m128i(a), vdupq_n_s16(-imm)));
+#endif
 }
 
 // Shift packed 32-bit integers in a right by imm8 while shifting in zeros, and
@@ -5508,7 +5507,7 @@ FORCE_INLINE __m128i _mm_srli_epi32(__m128i a, const int imm)
 #else
     return vreinterpretq_m128i_s32(
         vshlq_s32(vreinterpretq_s32_m128i(a), vdupq_n_s32(-imm)));
-#endif		
+#endif
 }
 
 // Shift packed 64-bit integers in a right by imm8 while shifting in zeros, and
@@ -5521,7 +5520,7 @@ FORCE_INLINE __m128i _mm_srli_epi64(__m128i a, const int imm)
 #if defined(__aarch64__) && !defined(__clang__)
     return vreinterpretq_m128i_s64(
         vshlq_n_s64(vreinterpretq_s64_m128i(a), -imm));
-#else		
+#else
     return vreinterpretq_m128i_s64(
         vshlq_s64(vreinterpretq_s64_m128i(a), vdupq_n_s64(-imm)));
 #endif
@@ -6295,7 +6294,7 @@ FORCE_INLINE __m64 _mm_abs_pi8(__m64 a)
             uint8x8_t tmp_low;                                              \
             uint8x8_t tmp_high;                                             \
             if ((imm) >= 8) {                                               \
-                const int idx = (imm) -8;                                   \
+                const int idx = (imm) - 8;                                  \
                 tmp_low = vreinterpret_u8_m64(_a);                          \
                 tmp_high = vdup_n_u8(0);                                    \
                 ret = vreinterpret_m64_u8(vext_u8(tmp_low, tmp_high, idx)); \
@@ -7571,16 +7570,16 @@ FORCE_INLINE __m128d _mm_round_pd(__m128d a, int rounding)
 #if defined(__aarch64__) || defined(_M_ARM64)
     switch (rounding) {
     case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC):
-	case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_RAISE_EXC):
+    case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_RAISE_EXC):
         return vreinterpretq_m128d_f64(vrndnq_f64(vreinterpretq_f64_m128d(a)));
     case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC):
-	case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_RAISE_EXC):
+    case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_RAISE_EXC):
         return _mm_floor_pd(a);
     case (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC):
-	case (_MM_FROUND_TO_POS_INF | _MM_FROUND_RAISE_EXC):
+    case (_MM_FROUND_TO_POS_INF | _MM_FROUND_RAISE_EXC):
         return _mm_ceil_pd(a);
     case (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC):
-	case (_MM_FROUND_TO_ZERO | _MM_FROUND_RAISE_EXC):
+    case (_MM_FROUND_TO_ZERO | _MM_FROUND_RAISE_EXC):
         return vreinterpretq_m128d_f64(vrndq_f64(vreinterpretq_f64_m128d(a)));
     default:  //_MM_FROUND_CUR_DIRECTION
         return vreinterpretq_m128d_f64(vrndiq_f64(vreinterpretq_f64_m128d(a)));
@@ -7645,16 +7644,16 @@ FORCE_INLINE __m128 _mm_round_ps(__m128 a, int rounding)
     defined(__ARM_FEATURE_DIRECTED_ROUNDING)
     switch (rounding) {
     case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC):
-	case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_RAISE_EXC):
+    case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_RAISE_EXC):
         return vreinterpretq_m128_f32(vrndnq_f32(vreinterpretq_f32_m128(a)));
     case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC):
-	case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_RAISE_EXC):
+    case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_RAISE_EXC):
         return _mm_floor_ps(a);
     case (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC):
-	case (_MM_FROUND_TO_POS_INF | _MM_FROUND_RAISE_EXC):
+    case (_MM_FROUND_TO_POS_INF | _MM_FROUND_RAISE_EXC):
         return _mm_ceil_ps(a);
     case (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC):
-	case (_MM_FROUND_TO_ZERO | _MM_FROUND_RAISE_EXC):
+    case (_MM_FROUND_TO_ZERO | _MM_FROUND_RAISE_EXC):
         return vreinterpretq_m128_f32(vrndq_f32(vreinterpretq_f32_m128(a)));
     default:  //_MM_FROUND_CUR_DIRECTION
         return vreinterpretq_m128_f32(vrndiq_f32(vreinterpretq_f32_m128(a)));
@@ -7820,11 +7819,32 @@ FORCE_INLINE int _mm_testz_si128(__m128i a, __m128i b)
 /* SSE4.2 */
 
 static const uint16_t ALIGN_STRUCT(16) _sse2neon_cmpestr_mask16b[8] = {
-    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
+    0x01,
+    0x02,
+    0x04,
+    0x08,
+    0x10,
+    0x20,
+    0x40,
+    0x80,
 };
 static const uint8_t ALIGN_STRUCT(16) _sse2neon_cmpestr_mask8b[16] = {
-    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
-    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
+    0x01,
+    0x02,
+    0x04,
+    0x08,
+    0x10,
+    0x20,
+    0x40,
+    0x80,
+    0x01,
+    0x02,
+    0x04,
+    0x08,
+    0x10,
+    0x20,
+    0x40,
+    0x80,
 };
 
 /* specify the source data format */
@@ -8693,9 +8713,22 @@ FORCE_INLINE uint32_t _mm_crc32_u8(uint32_t crc, uint8_t v)
     // The lookup table just needs to store every 16th entry
     // of the standard look-up table.
     static const uint32_t crc32_half_byte_tbl[] = {
-        0x00000000, 0x105ec76f, 0x20bd8ede, 0x30e349b1, 0x417b1dbc, 0x5125dad3,
-        0x61c69362, 0x7198540d, 0x82f63b78, 0x92a8fc17, 0xa24bb5a6, 0xb21572c9,
-        0xc38d26c4, 0xd3d3e1ab, 0xe330a81a, 0xf36e6f75,
+        0x00000000,
+        0x105ec76f,
+        0x20bd8ede,
+        0x30e349b1,
+        0x417b1dbc,
+        0x5125dad3,
+        0x61c69362,
+        0x7198540d,
+        0x82f63b78,
+        0x92a8fc17,
+        0xa24bb5a6,
+        0xb21572c9,
+        0xc38d26c4,
+        0xd3d3e1ab,
+        0xe330a81a,
+        0xf36e6f75,
     };
 
     crc = (crc >> 4) ^ crc32_half_byte_tbl[crc & 0x0F];
@@ -8816,12 +8849,40 @@ FORCE_INLINE __m128i _mm_aesenc_si128(__m128i a, __m128i RoundKey)
 {
 #if defined(__aarch64__) || defined(_M_ARM64)
     static const uint8_t shift_rows[] = {
-        0x0, 0x5, 0xa, 0xf, 0x4, 0x9, 0xe, 0x3,
-        0x8, 0xd, 0x2, 0x7, 0xc, 0x1, 0x6, 0xb,
+        0x0,
+        0x5,
+        0xa,
+        0xf,
+        0x4,
+        0x9,
+        0xe,
+        0x3,
+        0x8,
+        0xd,
+        0x2,
+        0x7,
+        0xc,
+        0x1,
+        0x6,
+        0xb,
     };
     static const uint8_t ror32by8[] = {
-        0x1, 0x2, 0x3, 0x0, 0x5, 0x6, 0x7, 0x4,
-        0x9, 0xa, 0xb, 0x8, 0xd, 0xe, 0xf, 0xc,
+        0x1,
+        0x2,
+        0x3,
+        0x0,
+        0x5,
+        0x6,
+        0x7,
+        0x4,
+        0x9,
+        0xa,
+        0xb,
+        0x8,
+        0xd,
+        0xe,
+        0xf,
+        0xc,
     };
 
     uint8x16_t v;
@@ -8913,12 +8974,40 @@ FORCE_INLINE __m128i _mm_aesdec_si128(__m128i a, __m128i RoundKey)
 {
 #if defined(__aarch64__)
     static const uint8_t inv_shift_rows[] = {
-        0x0, 0xd, 0xa, 0x7, 0x4, 0x1, 0xe, 0xb,
-        0x8, 0x5, 0x2, 0xf, 0xc, 0x9, 0x6, 0x3,
+        0x0,
+        0xd,
+        0xa,
+        0x7,
+        0x4,
+        0x1,
+        0xe,
+        0xb,
+        0x8,
+        0x5,
+        0x2,
+        0xf,
+        0xc,
+        0x9,
+        0x6,
+        0x3,
     };
     static const uint8_t ror32by8[] = {
-        0x1, 0x2, 0x3, 0x0, 0x5, 0x6, 0x7, 0x4,
-        0x9, 0xa, 0xb, 0x8, 0xd, 0xe, 0xf, 0xc,
+        0x1,
+        0x2,
+        0x3,
+        0x0,
+        0x5,
+        0x6,
+        0x7,
+        0x4,
+        0x9,
+        0xa,
+        0xb,
+        0x8,
+        0xd,
+        0xe,
+        0xf,
+        0xc,
     };
 
     uint8x16_t v;
@@ -8984,8 +9073,22 @@ FORCE_INLINE __m128i _mm_aesenclast_si128(__m128i a, __m128i RoundKey)
 {
 #if defined(__aarch64__)
     static const uint8_t shift_rows[] = {
-        0x0, 0x5, 0xa, 0xf, 0x4, 0x9, 0xe, 0x3,
-        0x8, 0xd, 0x2, 0x7, 0xc, 0x1, 0x6, 0xb,
+        0x0,
+        0x5,
+        0xa,
+        0xf,
+        0x4,
+        0x9,
+        0xe,
+        0x3,
+        0x8,
+        0xd,
+        0x2,
+        0x7,
+        0xc,
+        0x1,
+        0x6,
+        0xb,
     };
 
     uint8x16_t v;
@@ -9034,8 +9137,22 @@ FORCE_INLINE __m128i _mm_aesdeclast_si128(__m128i a, __m128i RoundKey)
 {
 #if defined(__aarch64__)
     static const uint8_t inv_shift_rows[] = {
-        0x0, 0xd, 0xa, 0x7, 0x4, 0x1, 0xe, 0xb,
-        0x8, 0x5, 0x2, 0xf, 0xc, 0x9, 0x6, 0x3,
+        0x0,
+        0xd,
+        0xa,
+        0x7,
+        0x4,
+        0x1,
+        0xe,
+        0xb,
+        0x8,
+        0x5,
+        0x2,
+        0xf,
+        0xc,
+        0x9,
+        0x6,
+        0x3,
     };
 
     uint8x16_t v;
@@ -9071,8 +9188,22 @@ FORCE_INLINE __m128i _mm_aesimc_si128(__m128i a)
 {
 #if defined(__aarch64__)
     static const uint8_t ror32by8[] = {
-        0x1, 0x2, 0x3, 0x0, 0x5, 0x6, 0x7, 0x4,
-        0x9, 0xa, 0xb, 0x8, 0xd, 0xe, 0xf, 0xc,
+        0x1,
+        0x2,
+        0x3,
+        0x0,
+        0x5,
+        0x6,
+        0x7,
+        0x4,
+        0x9,
+        0xa,
+        0xb,
+        0x8,
+        0xd,
+        0xe,
+        0xf,
+        0xc,
     };
     uint8x16_t v = vreinterpretq_u8_m128i(a);
     uint8x16_t w;
@@ -9218,10 +9349,22 @@ FORCE_INLINE __m128i _mm_aeskeygenassist_si128(__m128i a, const int rcon)
 #if !defined(_MSC_VER) || defined(__clang__)
     uint8x16_t dest = {
         // Undo ShiftRows step from AESE and extract X1 and X3
-        u8[0x4], u8[0x1], u8[0xE], u8[0xB],  // SubBytes(X1)
-        u8[0x1], u8[0xE], u8[0xB], u8[0x4],  // ROT(SubBytes(X1))
-        u8[0xC], u8[0x9], u8[0x6], u8[0x3],  // SubBytes(X3)
-        u8[0x9], u8[0x6], u8[0x3], u8[0xC],  // ROT(SubBytes(X3))
+        u8[0x4],
+        u8[0x1],
+        u8[0xE],
+        u8[0xB],  // SubBytes(X1)
+        u8[0x1],
+        u8[0xE],
+        u8[0xB],
+        u8[0x4],  // ROT(SubBytes(X1))
+        u8[0xC],
+        u8[0x9],
+        u8[0x6],
+        u8[0x3],  // SubBytes(X3)
+        u8[0x9],
+        u8[0x6],
+        u8[0x3],
+        u8[0xC],  // ROT(SubBytes(X3))
     };
     uint32x4_t r = {0, (unsigned) rcon, 0, (unsigned) rcon};
     return vreinterpretq_m128i_u8(dest) ^ vreinterpretq_m128i_u32(r);
@@ -9385,7 +9528,7 @@ FORCE_INLINE void _sse2neon_mm_set_denormals_zero_mode(unsigned int flag)
 #if defined(__aarch64__) || defined(_M_ARM64)
     _sse2neon_set_fpcr(r.value);
 #else
-    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r));        /* write */
+    __asm__ __volatile__("vmsr FPSCR, %0" ::"r"(r)); /* write */
 #endif
 }
 

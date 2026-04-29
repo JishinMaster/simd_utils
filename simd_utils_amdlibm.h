@@ -530,7 +530,7 @@ static inline void cbrt128f_amdlibm(float *src, float *dst, int len)
 {
     int stop_len = len / (SSE_LEN_FLOAT);
     stop_len *= (SSE_LEN_FLOAT);
-    
+
     if (areAligned2((uintptr_t) (src), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
             v4sf x = _mm_load_ps(src + i);

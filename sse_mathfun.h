@@ -468,9 +468,8 @@ static inline v4sf log_ps(v4sf x)
     x = _mm_or_ps(x, *(v4sf *) _ps_0p5);
 
     emm0 = _mm_sub_epi32(emm0, *(v4si *) _pi32_0x7f);
+    emm0 = _mm_add_epi32(emm0, *(v4si *) _pi32_1);
     v4sf e = _mm_cvtepi32_ps(emm0);
-
-    e = _mm_add_ps(e, one);
 
     /* part2:
      if( x < SQRTHF ) {
@@ -487,6 +486,7 @@ static inline v4sf log_ps(v4sf x)
 
     v4sf z = _mm_mul_ps(x, x);
 
+#if 0
     v4sf y = _mm_fmadd_ps(*(v4sf *) _ps_cephes_log_p0, x, *(v4sf *) _ps_cephes_log_p1);
     y = _mm_fmadd_ps(y, x, *(v4sf *) _ps_cephes_log_p2);
     y = _mm_fmadd_ps(y, x, *(v4sf *) _ps_cephes_log_p3);
@@ -495,8 +495,19 @@ static inline v4sf log_ps(v4sf x)
     y = _mm_fmadd_ps(y, x, *(v4sf *) _ps_cephes_log_p6);
     y = _mm_fmadd_ps(y, x, *(v4sf *) _ps_cephes_log_p7);
     y = _mm_fmadd_ps(y, x, *(v4sf *) _ps_cephes_log_p8);
-    y = _mm_mul_ps(y, x);
+#else
+    v4sf y = _mm_fmadd_ps(*(v4sf *) _ps_cephes_log_p0, z, *(v4sf *) _ps_cephes_log_p2);
+    y = _mm_fmadd_ps(y, z, *(v4sf *) _ps_cephes_log_p4);
+    y = _mm_fmadd_ps(y, z, *(v4sf *) _ps_cephes_log_p6);
+    y = _mm_fmadd_ps(y, z, *(v4sf *) _ps_cephes_log_p8);
 
+    v4sf yb = _mm_fmadd_ps(*(v4sf *) _ps_cephes_log_p1, z, *(v4sf *) _ps_cephes_log_p3);
+    yb = _mm_fmadd_ps(yb, z, *(v4sf *) _ps_cephes_log_p5);
+    yb = _mm_fmadd_ps(yb, z, *(v4sf *) _ps_cephes_log_p7);
+    y = _mm_fmadd_ps(yb, x, y);
+#endif
+
+    y = _mm_mul_ps(y, x);
     y = _mm_mul_ps(y, z);
 
     y = _mm_fmadd_ps(e, *(v4sf *) _ps_cephes_log_q1, y);
@@ -526,11 +537,19 @@ static inline v4sf exp_ps(v4sf x)
 
     v4sf z = _mm_mul_ps(x, x);
 
+#if 0
     v4sf y = _mm_fmadd_ps(*(v4sf *) _ps_cephes_exp_p0, x, *(v4sf *) _ps_cephes_exp_p1);
     y = _mm_fmadd_ps(y, x, *(v4sf *) _ps_cephes_exp_p2);
     y = _mm_fmadd_ps(y, x, *(v4sf *) _ps_cephes_exp_p3);
     y = _mm_fmadd_ps(y, x, *(v4sf *) _ps_cephes_exp_p4);
     y = _mm_fmadd_ps(y, x, *(v4sf *) _ps_cephes_exp_p5);
+#else
+    v4sf y = _mm_fmadd_ps(*(v4sf *) _ps_cephes_exp_p0, z, *(v4sf *) _ps_cephes_exp_p2);
+    y = _mm_fmadd_ps(y, z, *(v4sf *) _ps_cephes_exp_p4);
+    v4sf yb = _mm_fmadd_ps(*(v4sf *) _ps_cephes_exp_p1, z, *(v4sf *) _ps_cephes_exp_p3);
+    yb = _mm_fmadd_ps(yb, z, *(v4sf *) _ps_cephes_exp_p5);
+    y = _mm_fmadd_ps(y, x, yb);
+#endif
     y = _mm_fmadd_ps(y, z, x);
     y = _mm_add_ps(y, one);
 
@@ -731,7 +750,13 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
     x = _mm_fmadd_ps(y, *(v4sf *) _ps_minus_cephes_DP1, x);
     x = _mm_fmadd_ps(y, *(v4sf *) _ps_minus_cephes_DP2, x);
+#if 0
     x = _mm_fmadd_ps(y, *(v4sf *) _ps_minus_cephes_DP3, x);
+#else
+    // more parallel, should give better ILP
+    v4sf x1 = _mm_mul_ps(y, *(v4sf *) _ps_minus_cephes_DP3);
+    x = _mm_add_ps(x1, x);
+#endif
 
     emm4 = _mm_sub_epi32(emm4, *(v4si *) _pi32_2);
     emm4 = _mm_andnot_si128(emm4, *(v4si *) _pi32_4);
@@ -743,11 +768,11 @@ static inline void sincos_ps(v4sf x, v4sf *s, v4sf *c)
 
     /* Evaluate the first polynom  (0 <= x <= Pi/4) */
     v4sf z = _mm_mul_ps(x, x);
+    v4sf z2 = _mm_mul_ps(z, z);
 
     y = _mm_fmadd_ps(*(v4sf *) _ps_coscof_p0, z, *(v4sf *) _ps_coscof_p1);
     y = _mm_fmadd_ps(y, z, *(v4sf *) _ps_coscof_p2);
-    y = _mm_mul_ps(y, z);
-    y = _mm_mul_ps(y, z);
+    y = _mm_mul_ps(y, z2);
     y = _mm_fnmadd_ps(z, *(v4sf *) _ps_0p5, y);
     y = _mm_add_ps(y, *(v4sf *) _ps_1);
 

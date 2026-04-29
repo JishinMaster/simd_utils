@@ -254,11 +254,11 @@ static inline void sinf_vec(float *src, float *dst, int len)
 
         /* store the integer part of y in mm0 */
 #ifdef NO_RTZ
-		_MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-#endif		
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+#endif
         emm2 = VCVT_RTZ_FLOAT_INT(y, i);
 #ifdef NO_RTZ
-       _MM_SET_ROUNDING_MODE(reg_ori);
+        _MM_SET_ROUNDING_MODE(reg_ori);
 #endif
 
         /* j=(j+1) & (~1) (see the cephes sources) */
@@ -359,12 +359,12 @@ static inline void cosf_vec(float *src, float *dst, int len)
 
         /* store the integer part of y in mm0 */
 #ifdef NO_RTZ
-		_MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-#endif		
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+#endif
         emm2 = VCVT_RTZ_FLOATH_INTH(y, i);
 #ifdef NO_RTZ
-		_MM_SET_ROUNDING_MODE(reg_ori);
-#endif		
+        _MM_SET_ROUNDING_MODE(reg_ori);
+#endif
         /* j=(j+1) & (~1) (see the cephes sources) */
         emm2 = VADD1_INTH(emm2, 1, i);
         emm2 = VAND1_INTH(emm2, ~1, i);
@@ -415,13 +415,13 @@ static inline void cosf_vec(float *src, float *dst, int len)
 }
 
 void sincosf_ps(V_ELT_FLOATH x,
-                              V_ELT_FLOATH *sin_tmp,
-                              V_ELT_FLOATH *cos_tmp,
-                              V_ELT_FLOATH coscof_1_vec,
-                              V_ELT_FLOATH coscof_2_vec,
-                              V_ELT_FLOATH sincof_1_vec,
-                              V_ELT_FLOATH sincof_2_vec,
-                              size_t i)
+                V_ELT_FLOATH *sin_tmp,
+                V_ELT_FLOATH *cos_tmp,
+                V_ELT_FLOATH coscof_1_vec,
+                V_ELT_FLOATH coscof_2_vec,
+                V_ELT_FLOATH sincof_1_vec,
+                V_ELT_FLOATH sincof_2_vec,
+                size_t i)
 {
 #if 0
     V_ELT_FLOATH y, sign_bit_sin;
@@ -508,7 +508,7 @@ void sincosf_ps(V_ELT_FLOATH x,
 
     sign_sin = VCLEAR_BOOLH(i);
     sign_cos = VCLEAR_BOOLH(i);
-	
+
     // if (x < 0)
     xinf0 = VLT1_FLOATH_BOOLH(x, 0.0f, i);
     sign_sin = VXOR_BOOLH(sign_sin, xinf0, i);
@@ -524,11 +524,11 @@ void sincosf_ps(V_ELT_FLOATH x,
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
     _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
-#endif	
+#endif
     j = VCVT_RTZ_FLOATH_INTH(y, i);
 #ifdef NO_RTZ
     _MM_SET_ROUNDING_MODE(reg_ori);
-#endif			
+#endif
 
     // if (j&1))
     jandone = VNE1_INTH_BOOLH(VAND1_INTH(j, 1, i), 0, i);
@@ -578,12 +578,12 @@ void sincosf_ps(V_ELT_FLOATH x,
     /* select the correct result from the two polynoms */
     V_ELT_FLOATH y_sin = VMERGE_FLOATH(j1or2, y2, y, i);
     V_ELT_FLOATH y_cos = VMERGE_FLOATH(j1or2, y, y2, i);
-	
+
     y_sin = VMUL1_FLOATH_MASK(sign_sin, y_sin, -1.0f, i);
     y_cos = VMUL1_FLOATH_MASK(sign_cos, y_cos, -1.0f, i);
     *sin_tmp = y_sin;
-    *cos_tmp = y_cos;	
-#endif	
+    *cos_tmp = y_cos;
+#endif
 }
 
 static inline void sincosf_vec(float *src, float *s, float *c, int len)
@@ -673,12 +673,12 @@ static inline void tanf_vec(float *src, float *dst, int len)
         // compute x mod PIO4
         tmp = VMUL1_FLOATH(x, FOPI, i);
 #ifdef NO_RTZ
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
 #endif
         j = VCVT_RTZ_FLOATH_INTH(tmp, i);
 #ifdef NO_RTZ
-    _MM_SET_ROUNDING_MODE(reg_ori);
-#endif		
+        _MM_SET_ROUNDING_MODE(reg_ori);
+#endif
         y = VCVT_INTH_FLOATH(j, i);
 
         jandone = VGT1_INTH_BOOLH(VAND1_INTH(j, 1, i), 0, i);
@@ -2199,11 +2199,11 @@ static inline V_ELT_FLOATH exp_ps(V_ELT_FLOATH x,
      *   = e**( g + n loge(2) )
      */
     fx = VFMADD1_FLOATH(x, c_cephes_LOG2EF, Op5_vec, i);
-    z = VCVT_INTH_FLOATH(VCVT_FLOATH_INTH(fx, i), i);	
+    z = VCVT_INTH_FLOATH(VCVT_FLOATH_INTH(fx, i), i);
     n = VCVT_FLOATH_INTH(z, i);
 
     x = VFMACC1_FLOATH(x, -c_cephes_exp_C1, z, i);
-    x = VFMACC1_FLOATH(x, -c_cephes_exp_C2, z, i);	
+    x = VFMACC1_FLOATH(x, -c_cephes_exp_C2, z, i);
 
     n = VADD1_INTH(n, 0x7f, i);
     n = VSLL1_INTH(n, 23, i);
@@ -2511,12 +2511,12 @@ static inline void modf_vec(float *src, float *integer, float *remainder, int le
         V_ELT_FLOAT src_vec, integer_vec, remainer_vec;
         src_vec = VLOAD_FLOAT(src_tmp, i);
 #ifdef NO_RTZ
-		_MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
 #endif
         integer_vec = VCVT_INT_FLOAT(VCVT_RTZ_FLOAT_INT(src_vec, i), i);
 #ifdef NO_RTZ
-		_MM_SET_ROUNDING_MODE(reg_ori);
-#endif		
+        _MM_SET_ROUNDING_MODE(reg_ori);
+#endif
         VSTORE_FLOAT(integer_tmp, integer_vec, i);
         remainer_vec = VSUB_FLOAT(src_vec, integer_vec, i);
         VSTORE_FLOAT(remainder_tmp, remainer_vec, i);
@@ -2542,7 +2542,7 @@ static inline void rintf_vec(float *src, float *dst, int len)
     }
 }
 
-//C Roundf, round away from zero
+// C Roundf, round away from zero
 static inline void roundf_vec(float *src, float *dst, int len)
 {
     uint32_t reg_ori;
@@ -2763,12 +2763,12 @@ static inline void cbrtf_vec(float *src, float *dst, int len)
         rem = e;
         e = VMUL1_FLOATH(e, 0.333333333333f, i);
 #ifdef NO_RTZ
-		_MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-#endif		
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+#endif
         V_ELT_INTH e_int = VCVT_RTZ_FLOATH_INTH(e, i);
 #ifdef NO_RTZ
-		_MM_SET_ROUNDING_MODE(reg_ori);
-#endif		
+        _MM_SET_ROUNDING_MODE(reg_ori);
+#endif
         e = VCVT_INTH_FLOATH(e_int, i);
         V_ELT_FLOATH e_tmp = VMUL1_FLOATH(e, 3.0f, i);
         rem = VSUB_FLOATH(rem, e_tmp, i);
@@ -2815,10 +2815,10 @@ static inline void cbrtf_vec(float *src, float *dst, int len)
 static inline void convertInt16ToFloat32_vec(int16_t *src, float *dst, int len, int scale_factor)
 {
     float scale_fact_mult;
-    if(scale_factor >= 0)
-    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    if (scale_factor >= 0)
+        scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     else
-    	scale_fact_mult = (float) (1 << -scale_factor);
+        scale_fact_mult = (float) (1 << -scale_factor);
     size_t i;
     int16_t *src_tmp = src;
     float *dst_tmp = dst;
@@ -2840,10 +2840,10 @@ static inline void convertInt16ToFloat32_vec(int16_t *src, float *dst, int len, 
 static inline void convertFloat32ToI16_vec(float *src, int16_t *dst, int len, int rounding_mode, int scale_factor)
 {
     float scale_fact_mult;
-    if(scale_factor >= 0)
-    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    if (scale_factor >= 0)
+        scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     else
-    	scale_fact_mult = (float) (1 << -scale_factor);
+        scale_fact_mult = (float) (1 << -scale_factor);
 
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
@@ -2882,10 +2882,10 @@ static inline void convertFloat32ToI16_vec(float *src, int16_t *dst, int len, in
 static inline void convertFloat32ToU16_vec(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
 {
     float scale_fact_mult;
-    if(scale_factor >= 0)
-    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    if (scale_factor >= 0)
+        scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     else
-    	scale_fact_mult = (float) (1 << -scale_factor);
+        scale_fact_mult = (float) (1 << -scale_factor);
 
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();
@@ -2922,10 +2922,10 @@ static inline void convertFloat32ToU16_vec(float *src, uint16_t *dst, int len, i
 static inline void convertFloat32ToU8_vec(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
 {
     float scale_fact_mult;
-    if(scale_factor >= 0)
-    	scale_fact_mult = 1.0f / (float) (1 << scale_factor);
+    if (scale_factor >= 0)
+        scale_fact_mult = 1.0f / (float) (1 << scale_factor);
     else
-    	scale_fact_mult = (float) (1 << -scale_factor);
+        scale_fact_mult = (float) (1 << -scale_factor);
 
     uint32_t reg_ori;
     reg_ori = _MM_GET_ROUNDING_MODE();

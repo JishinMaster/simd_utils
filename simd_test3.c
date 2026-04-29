@@ -17,15 +17,15 @@ int main(int argc, char **argv)
     init_mkl();
 #endif /* MKL */
 
-    if(argc < 4){
-      printf("Usage simd_test : len alignment offset\n");
-      return -1;
+    if (argc < 4) {
+        printf("Usage simd_test : len alignment offset\n");
+        return -1;
     }
 
     int align = atoi(argv[2]);
-    int offset = atoi(argv[3]);// offset to test unaligned cases
+    int offset = atoi(argv[3]);  // offset to test unaligned cases
     int len = atoi(argv[1]) + offset;
-        
+
     float *inout = NULL, *inout2 = NULL, *inout3 = NULL, *inout4 = NULL, *inout5 = NULL;
     float *inout6 = NULL, *inout_ref = NULL, *inout2_ref = NULL;
     double *inoutd = NULL, *inoutd2 = NULL, *inoutd3 = NULL, *inoutd_ref = NULL, *inoutd2_ref = NULL;
@@ -1262,21 +1262,21 @@ for (int i = 0; i < len; i++){
     l2_errd(inoutd_ref, inoutd2, len);
 #endif
 
-/*#ifdef AMDLIBM
-    clock_gettime(CLOCK_REALTIME, &start);
-    asin128d_amdlibm(inoutd, inoutd2, len);
-    clock_gettime(CLOCK_REALTIME, &stop);
-    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("asin128d_amdlibm %d %lf\n", len, elapsed);
-
-    clock_gettime(CLOCK_REALTIME, &start);
-    for (l = 0; l < loop; l++)
+    /*#ifdef AMDLIBM
+        clock_gettime(CLOCK_REALTIME, &start);
         asin128d_amdlibm(inoutd, inoutd2, len);
-    clock_gettime(CLOCK_REALTIME, &stop);
-    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("asin128d_amdlibm %d %lf\n", len, elapsed);
-    l2_errd(inoutd_ref, inoutd2, len);
-#endif*/
+        clock_gettime(CLOCK_REALTIME, &stop);
+        elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+        printf("asin128d_amdlibm %d %lf\n", len, elapsed);
+
+        clock_gettime(CLOCK_REALTIME, &start);
+        for (l = 0; l < loop; l++)
+            asin128d_amdlibm(inoutd, inoutd2, len);
+        clock_gettime(CLOCK_REALTIME, &stop);
+        elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+        printf("asin128d_amdlibm %d %lf\n", len, elapsed);
+        l2_errd(inoutd_ref, inoutd2, len);
+    #endif*/
 
 #endif
 
@@ -1311,21 +1311,21 @@ for (int i = 0; i < len; i++){
     l2_errd(inoutd_ref, inoutd2, len);
 #endif
 
-/*#ifdef AMDLIBM
-    clock_gettime(CLOCK_REALTIME, &start);
-    asin256d_amdlibm(inoutd, inoutd2, len);
-    clock_gettime(CLOCK_REALTIME, &stop);
-    elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
-    printf("asin256d_amdlibm %d %lf\n", len, elapsed);
-
-    clock_gettime(CLOCK_REALTIME, &start);
-    for (l = 0; l < loop; l++)
+    /*#ifdef AMDLIBM
+        clock_gettime(CLOCK_REALTIME, &start);
         asin256d_amdlibm(inoutd, inoutd2, len);
-    clock_gettime(CLOCK_REALTIME, &stop);
-    elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
-    printf("asin256d_amdlibm %d %lf\n", len, elapsed);
-    l2_errd(inoutd_ref, inoutd2, len);
-#endif*/
+        clock_gettime(CLOCK_REALTIME, &stop);
+        elapsed = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3;
+        printf("asin256d_amdlibm %d %lf\n", len, elapsed);
+
+        clock_gettime(CLOCK_REALTIME, &start);
+        for (l = 0; l < loop; l++)
+            asin256d_amdlibm(inoutd, inoutd2, len);
+        clock_gettime(CLOCK_REALTIME, &stop);
+        elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
+        printf("asin256d_amdlibm %d %lf\n", len, elapsed);
+        l2_errd(inoutd_ref, inoutd2, len);
+    #endif*/
 
 #endif
 
@@ -1392,12 +1392,12 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("asind_vec %d %lf\n", len, elapsed);*/
     l2_errd(inoutd_ref, inoutd2, len);
-    
-	/*for(int i = 0; i < len; i++){
+
+    /*for(int i = 0; i < len; i++){
         printf("%lf || %g %g || %g\n",inoutd[i], inoutd_ref[i],inoutd2[i],
-		fabs(inoutd_ref[i]-inoutd2[i]));
-    }*/	
-#endif	
+        fabs(inoutd_ref[i]-inoutd2[i]));
+    }*/
+#endif
 
     printf("\n");
     /////////////////////////////////////////////////////////// ATANF //////////////////////////////////////////////////////////////////////////////
@@ -2098,10 +2098,10 @@ for (int i = 0; i < len; i++){
     elapsed = ((stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) * 1e-3) / (double) loop;
     printf("atand_vec %d %lf\n", len, elapsed);
     l2_errd(inoutd_ref, inoutd2, len);
-	
+
     /*for(int i = 0; i < len; i++){
         printf("%lf || %lf %lf || %g\n",inoutd[i], inoutd_ref[i],inoutd2[i],
-		fabs(inoutd_ref[i]-inoutd2[i]));
+        fabs(inoutd_ref[i]-inoutd2[i]));
     }*/
 #endif
 
@@ -2774,7 +2774,7 @@ for (int i = 0; i < len; i++){
     printf("CONVERTFLOAT32_U8\n");
 
     for (int i = 0; i < len; i++) {
-        inout[i] = (float) (i) *10;
+        inout[i] = (float) (i) * 10;
         inout_u1[i] = 0x0;
         inout_u2[i] = 0x0;
     }
@@ -2830,11 +2830,11 @@ for (int i = 0; i < len; i++){
     printf("convertFloat32ToU8_128 %d %lf\n", len, elapsed);
     l2_err_u8(inout_u1, inout_u2, len);
 #endif
-    for(int i = 0; i < len; i++)
-        if(inout_u1[i] != inout_u2[i])
-          printf("SSE : %d %g %g %x %x\n" ,i, inout[i], inout[i]/(1<<4),inout_u1[i],inout_u2[i]);
+    for (int i = 0; i < len; i++)
+        if (inout_u1[i] != inout_u2[i])
+            printf("SSE : %d %g %g %x %x\n", i, inout[i], inout[i] / (1 << 4), inout_u1[i], inout_u2[i]);
 #endif
-    
+
 #ifdef AVX
     clock_gettime(CLOCK_REALTIME, &start);
     convertFloat32ToU8_256(inout, inout_u1, len, RndFinancial, 4);
@@ -2891,8 +2891,9 @@ for (int i = 0; i < len; i++){
     printf("CONVERTFLOAT32_I16\n");
 
     for (int i = 0; i < len; i++) {
-        inout[i] = (float) (i) *10.0f;
-        if(i%2==0) inout[i] = - inout[i];
+        inout[i] = (float) (i) * 10.0f;
+        if (i % 2 == 0)
+            inout[i] = -inout[i];
         inout_s1[i] = 0;
         inout_s2[i] = 0;
     }
@@ -2925,9 +2926,9 @@ for (int i = 0; i < len; i++){
     printf("ippsConvert_32f16s_Sfs %d %lf\n", len, elapsed);
     l2_err_i16(inout_s1, inout_s2, len);
 
-    for(int i = 0; i < len; i++)
-        if(inout_s1[i] != inout_s2[i])
-          printf("IPP : %d %g %g %d %d\n" ,i, inout[i], inout[i]/(1<<4),inout_s1[i],inout_s2[i]);
+    for (int i = 0; i < len; i++)
+        if (inout_s1[i] != inout_s2[i])
+            printf("IPP : %d %g %g %d %d\n", i, inout[i], inout[i] / (1 << 4), inout_s1[i], inout_s2[i]);
 #endif
 
 #if defined(SSE) || defined(ALTIVEC)
@@ -2947,9 +2948,9 @@ for (int i = 0; i < len; i++){
 
     l2_err_i16(inout_s1, inout_s2, len);
 
-    for(int i = 0; i < len; i++)
-        if(inout_s1[i] != inout_s2[i])
-          printf("SSE : %d %g %g %d %d\n" ,i, inout[i], inout[i]/(1<<4),inout_s1[i],inout_s2[i]);
+    for (int i = 0; i < len; i++)
+        if (inout_s1[i] != inout_s2[i])
+            printf("SSE : %d %g %g %d %d\n", i, inout[i], inout[i] / (1 << 4), inout_s1[i], inout_s2[i]);
 #endif
 #endif
 
@@ -3009,7 +3010,7 @@ for (int i = 0; i < len; i++){
     printf("CONVERTFLOAT32_U16\n");
 
     for (int i = 0; i < len; i++) {
-        inout[i] = (float) (i) *10.0f;
+        inout[i] = (float) (i) * 10.0f;
         inout_s1[i] = 0;
         inout_s2[i] = 0;
     }
@@ -3064,9 +3065,9 @@ for (int i = 0; i < len; i++){
 
     l2_err_i16(inout_s1, inout_s2, len);
 #endif
-    for(int i = 0; i < len; i++)
-        if(inout_s1[i] != inout_s2[i])
-          printf("SSE : %d %g %g %d %d\n" ,i, inout[i], inout[i]/(1<<4),inout_s1[i],inout_s2[i]);
+    for (int i = 0; i < len; i++)
+        if (inout_s1[i] != inout_s2[i])
+            printf("SSE : %d %g %g %d %d\n", i, inout[i], inout[i] / (1 << 4), inout_s1[i], inout_s2[i]);
 #endif
 
 #ifdef AVX
@@ -3230,7 +3231,7 @@ for (int i = 0; i < len; i++){
     printf("CONVERTINT32_FLOAT32\n");
 
     for (int i = 0; i < len; i++)
-        inout_i1[i] = -len/2 + i;
+        inout_i1[i] = -len / 2 + i;
 
     clock_gettime(CLOCK_REALTIME, &start);
     convertInt32ToFloat32_C(inout_i1, inout2_ref, len, 4);
@@ -3712,7 +3713,7 @@ for (int i = 0; i < len; i++){
             inout[i] = -inout[i];
     }
 
-	memset(inout2,0,len*sizeof(float));
+    memset(inout2, 0, len * sizeof(float));
     clock_gettime(CLOCK_REALTIME, &start);
     softmaxf_C(inout, inout_ref, len);
     clock_gettime(CLOCK_REALTIME, &stop);

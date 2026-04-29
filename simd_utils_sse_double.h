@@ -350,15 +350,16 @@ static inline void rint128d(double *src, double *dst, int len)
     }
 }
 
-static inline v2sd _mm_rounda_pd(v2sd x){
-#ifndef __aarch64__	
-	v2sd spe1 = _mm_and_pd(x, *(v2sd*)_pd_sign_mask);
-	spe1 = _mm_or_pd(spe1,*(v2sd*)_pd_mid_mask);
-	spe1 = _mm_add_pd(x, spe1);
-	return  _mm_round_pd(spe1, ROUNDTOZERO);
-#else // NEON AARCH64 can do it directly
-	return vrndaq_f64(x);
-#endif	
+static inline v2sd _mm_rounda_pd(v2sd x)
+{
+#ifndef __aarch64__
+    v2sd spe1 = _mm_and_pd(x, *(v2sd *) _pd_sign_mask);
+    spe1 = _mm_or_pd(spe1, *(v2sd *) _pd_mid_mask);
+    spe1 = _mm_add_pd(x, spe1);
+    return _mm_round_pd(spe1, ROUNDTOZERO);
+#else  // NEON AARCH64 can do it directly
+    return vrndaq_f64(x);
+#endif
 }
 
 static inline void round128d(double *src, double *dst, int len)
@@ -462,7 +463,7 @@ static inline void vectorSlope128d(double *dst, int len, double offset, double s
     v2sd curVal2 = _mm_add_pd(_mm_set1_pd(offset), coef);
     curVal2 = _mm_add_pd(curVal2, _mm_set1_pd(2.0 * slope));
 
-    if (len >= 2*SSE_LEN_DOUBLE) {
+    if (len >= 2 * SSE_LEN_DOUBLE) {
         if (isAligned((uintptr_t) (dst), SSE_LEN_BYTES)) {
             _mm_store_pd(dst + 0, curVal);
             _mm_store_pd(dst + SSE_LEN_DOUBLE, curVal2);
@@ -830,8 +831,8 @@ static inline v2sd atan_pd(v2sd xx)
     y = _mm_and_pd(suptan3pi8, *(v2sd *) _pd_PIO2);  // if( x > tan 3pi/8 ) then y = PI/2, else 0.0
     flag = _mm_and_pd(suptan3pi8, *(v2sd *) _pd_1);  // if( x > tan 3pi/8 ) then flag = 1 else 0
 #else
-    y = _mm_blendv_pd(_mm_setzero_pd(), *(v2sd *) _pd_PIO2, suptan3pi8);   // if( x > tan 3pi/8 ) then y = PI/2
-    flag = _mm_blendv_pd(_mm_setzero_pd(), *(v2sd *) _pd_1, suptan3pi8);   // if( x > tan 3pi/8 ) then flag = 1
+    y = _mm_blendv_pd(_mm_setzero_pd(), *(v2sd *) _pd_PIO2, suptan3pi8);  // if( x > tan 3pi/8 ) then y = PI/2
+    flag = _mm_blendv_pd(_mm_setzero_pd(), *(v2sd *) _pd_1, suptan3pi8);  // if( x > tan 3pi/8 ) then flag = 1
 #endif
     // one _mm_blendv_pd vs 2 _mm_and_pd and 1 _mm_add_pd?
     y = _mm_blendv_pd(*(v2sd *) _pd_PIO4, y, inftan3pi8inf0p66);
@@ -1140,7 +1141,7 @@ static inline void cart2pol2D128f_precise(float *x, float *y, float *r, float *t
             r_tmpd1 = _mm_sqrt_pd(r_tmpd1);
             v2sd theta_tmpd0 = atan2_pd(y_tmp0, x_tmp0);
             v2sd theta_tmpd1 = atan2_pd(y_tmp1, x_tmp1);
-            v4sf r_tmp = _mm_cvtpd2_ps(r_tmpd0,r_tmpd1);
+            v4sf r_tmp = _mm_cvtpd2_ps(r_tmpd0, r_tmpd1);
             v4sf theta_tmp = _mm_cvtpd2_ps(theta_tmpd0, theta_tmpd1);
             _mm_store_ps(r + i, r_tmp);
             _mm_store_ps(theta + i, theta_tmp);
@@ -1161,7 +1162,7 @@ static inline void cart2pol2D128f_precise(float *x, float *y, float *r, float *t
             r_tmpd1 = _mm_sqrt_pd(r_tmpd1);
             v2sd theta_tmpd0 = atan2_pd(y_tmp0, x_tmp0);
             v2sd theta_tmpd1 = atan2_pd(y_tmp1, x_tmp1);
-            v4sf r_tmp = _mm_cvtpd2_ps(r_tmpd0,r_tmpd1);
+            v4sf r_tmp = _mm_cvtpd2_ps(r_tmpd0, r_tmpd1);
             v4sf theta_tmp = _mm_cvtpd2_ps(theta_tmpd0, theta_tmpd1);
             _mm_storeu_ps(r + i, r_tmp);
             _mm_storeu_ps(theta + i, theta_tmp);
@@ -1294,12 +1295,12 @@ static inline v2sd log_pd(v2sd x)
     // convert e to double
     // y = e
     z_abseinf2 = _mm_fmadd1_pd_custom(e, *(v2sd *) _pd_min_212emin4, z_abseinf2);  // z = z - y * 2.121944400546905827679e-4;
-    z_abseinf2 = _mm_add_pd(z_abseinf2, x_abseinf2);                              // z = z + x;
+    z_abseinf2 = _mm_add_pd(z_abseinf2, x_abseinf2);                               // z = z + x;
 
     /* logarithm using log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
     v2sd tmp3, tmp4;
     tmp3 = _mm_fmadd1_pd_custom(x, *(v2sd *) _pd_2, *(v2sd *) _pd_min1);  //	  x = 2.0*x - 1.0; /*  2x - 1  */
-    tmp4 = _mm_sub_pd(x, *(v2sd *) _pd_1);                               // x = x - 1.0;
+    tmp4 = _mm_sub_pd(x, *(v2sd *) _pd_1);                                // x = x - 1.0;
     x = _mm_blendv_pd(tmp4, tmp3, xinfsqrth);
 
     /* rational form */
@@ -1323,10 +1324,10 @@ static inline v2sd log_pd(v2sd x)
     // if( e) => no need, if e==0 it still works
     z = _mm_fmadd1_pd_custom(e, *(v2sd *) _pd_min_212emin4, z);  // z = z - e * 2.121944400546905827679e-4;
     y = _mm_fmadd1_pd_custom(z, *(v2sd *) _pd_min0p5, y);        // y = y - 0.5*z;
-    z = _mm_add_pd(x, y);                                       // z = x + y;
+    z = _mm_add_pd(x, y);                                        // z = x + y;
     // if( e) => no need, if e==0 it still works
 
-    z = _mm_blendv_pd(z, z_abseinf2, abseinf2);         // if fabs(e) < 2 z = z_abseinf2
+    z = _mm_blendv_pd(z, z_abseinf2, abseinf2);          // if fabs(e) < 2 z = z_abseinf2
     z = _mm_fmadd1_pd_custom(e, *(v2sd *) _pd_0p69, z);  // z + e * 0.693359375;
 
     return (z);
@@ -1473,15 +1474,15 @@ static inline v2sd pow_pd(v2sd x, v2sd y)
 
 static inline void pow128d(double *x, double *y, double *dst, int len)
 {
-    int stop_len = len / (2* SSE_LEN_DOUBLE);
-    stop_len *= ( 2*SSE_LEN_DOUBLE);
+    int stop_len = len / (2 * SSE_LEN_DOUBLE);
+    stop_len *= (2 * SSE_LEN_DOUBLE);
 
     if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
             v2sd x_tmp = _mm_load_pd(x + i);
-            v2sd y_tmp = _mm_load_pd(y + i);	
-			v2sd x_tmp2 = _mm_load_pd(x + i + SSE_LEN_DOUBLE);
-            v2sd y_tmp2 = _mm_load_pd(y + i + SSE_LEN_DOUBLE);						
+            v2sd y_tmp = _mm_load_pd(y + i);
+            v2sd x_tmp2 = _mm_load_pd(x + i + SSE_LEN_DOUBLE);
+            v2sd y_tmp2 = _mm_load_pd(y + i + SSE_LEN_DOUBLE);
             v2sd dst_tmp = pow_pd(x_tmp, y_tmp);
             v2sd dst_tmp2 = pow_pd(x_tmp2, y_tmp2);
             _mm_store_pd(dst + i, dst_tmp);
@@ -1490,9 +1491,9 @@ static inline void pow128d(double *x, double *y, double *dst, int len)
     } else {
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
             v2sd x_tmp = _mm_loadu_pd(x + i);
-            v2sd y_tmp = _mm_loadu_pd(y + i);	
-			v2sd x_tmp2 = _mm_loadu_pd(x + i + SSE_LEN_DOUBLE);
-            v2sd y_tmp2 = _mm_loadu_pd(y + i + SSE_LEN_DOUBLE);						
+            v2sd y_tmp = _mm_loadu_pd(y + i);
+            v2sd x_tmp2 = _mm_loadu_pd(x + i + SSE_LEN_DOUBLE);
+            v2sd y_tmp2 = _mm_loadu_pd(y + i + SSE_LEN_DOUBLE);
             v2sd dst_tmp = pow_pd(x_tmp, y_tmp);
             v2sd dst_tmp2 = pow_pd(x_tmp2, y_tmp2);
             _mm_storeu_pd(dst + i, dst_tmp);
@@ -1507,8 +1508,8 @@ static inline void pow128d(double *x, double *y, double *dst, int len)
 
 static inline void powcplx128d(complex64_t *x, complex64_t *y, complex64_t *dst, int len)
 {
-    int stop_len = len / (2* SSE_LEN_DOUBLE);
-    stop_len *= ( 2*SSE_LEN_DOUBLE);
+    int stop_len = len / (2 * SSE_LEN_DOUBLE);
+    stop_len *= (2 * SSE_LEN_DOUBLE);
 
     if (areAligned3((uintptr_t) (x), (uintptr_t) (y), (uintptr_t) (dst), SSE_LEN_BYTES)) {
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
@@ -1516,22 +1517,22 @@ static inline void powcplx128d(complex64_t *x, complex64_t *y, complex64_t *dst,
             v2sdx2 y_tmp = _mm_load2_pd((double const *) (y) + i);
             v2sd x_tmp_re2 = _mm_mul_pd(x_tmp.val[0], x_tmp.val[0]);
             v2sd modx = _mm_fmadd_pd_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
-			modx = _mm_sqrt_pd(modx);
-			v2sdx2 logx;
-			logx.val[0] = log_pd(modx);
-			logx.val[1] = atan2_pd(x_tmp.val[1], x_tmp.val[0]);
-			v2sdx2 ylogx;
-            v2sd ac = _mm_mul_pd(logx.val[0], y_tmp.val[0]);     // ac
-            v2sd ad = _mm_mul_pd(logx.val[0], y_tmp.val[1]);     // ad
+            modx = _mm_sqrt_pd(modx);
+            v2sdx2 logx;
+            logx.val[0] = log_pd(modx);
+            logx.val[1] = atan2_pd(x_tmp.val[1], x_tmp.val[0]);
+            v2sdx2 ylogx;
+            v2sd ac = _mm_mul_pd(logx.val[0], y_tmp.val[0]);  // ac
+            v2sd ad = _mm_mul_pd(logx.val[0], y_tmp.val[1]);  // ad
             ylogx.val[0] = _mm_fnmadd_pd_custom(logx.val[1], y_tmp.val[1], ac);
             ylogx.val[1] = _mm_fmadd_pd_custom(logx.val[1], y_tmp.val[0], ad);
-			v2sd ex = exp_pd(ylogx.val[0]);
-			v2sd cosylogx, sinylogx;
-			sincos_pd(ylogx.val[1], &sinylogx, &cosylogx);
-			v2sdx2 dst_tmp;
-			dst_tmp.val[0] = _mm_mul_pd(ex,cosylogx);
-			dst_tmp.val[1] = _mm_mul_pd(ex,sinylogx);
-            _mm_store2_pd((double*)(dst) + i, dst_tmp);
+            v2sd ex = exp_pd(ylogx.val[0]);
+            v2sd cosylogx, sinylogx;
+            sincos_pd(ylogx.val[1], &sinylogx, &cosylogx);
+            v2sdx2 dst_tmp;
+            dst_tmp.val[0] = _mm_mul_pd(ex, cosylogx);
+            dst_tmp.val[1] = _mm_mul_pd(ex, sinylogx);
+            _mm_store2_pd((double *) (dst) + i, dst_tmp);
         }
     } else {
         for (int i = 0; i < stop_len; i += 2 * SSE_LEN_DOUBLE) {
@@ -1539,42 +1540,42 @@ static inline void powcplx128d(complex64_t *x, complex64_t *y, complex64_t *dst,
             v2sdx2 y_tmp = _mm_load2u_pd((double const *) (y) + i);
             v2sd x_tmp_re2 = _mm_mul_pd(x_tmp.val[0], x_tmp.val[0]);
             v2sd modx = _mm_fmadd_pd_custom(x_tmp.val[1], x_tmp.val[1], x_tmp_re2);
-			modx = _mm_sqrt_pd(modx);
-			v2sdx2 logx;
-			logx.val[0] = log_pd(modx);
-			logx.val[1] = atan2_pd(x_tmp.val[1], x_tmp.val[0]);
-			v2sdx2 ylogx;
-            v2sd ac = _mm_mul_pd(logx.val[0], y_tmp.val[0]);     // ac
-            v2sd ad = _mm_mul_pd(logx.val[0], y_tmp.val[1]);     // ad
+            modx = _mm_sqrt_pd(modx);
+            v2sdx2 logx;
+            logx.val[0] = log_pd(modx);
+            logx.val[1] = atan2_pd(x_tmp.val[1], x_tmp.val[0]);
+            v2sdx2 ylogx;
+            v2sd ac = _mm_mul_pd(logx.val[0], y_tmp.val[0]);  // ac
+            v2sd ad = _mm_mul_pd(logx.val[0], y_tmp.val[1]);  // ad
             ylogx.val[0] = _mm_fnmadd_pd_custom(logx.val[1], y_tmp.val[1], ac);
             ylogx.val[1] = _mm_fmadd_pd_custom(logx.val[1], y_tmp.val[0], ad);
-			v2sd ex = exp_pd(ylogx.val[0]);
-			v2sd cosylogx, sinylogx;
-			sincos_pd(ylogx.val[1], &sinylogx, &cosylogx);
-			v2sdx2 dst_tmp;
-			dst_tmp.val[0] = _mm_mul_pd(ex,cosylogx);
-			dst_tmp.val[1] = _mm_mul_pd(ex,sinylogx);
-            _mm_store2u_pd((double*)(dst) + i, dst_tmp);
+            v2sd ex = exp_pd(ylogx.val[0]);
+            v2sd cosylogx, sinylogx;
+            sincos_pd(ylogx.val[1], &sinylogx, &cosylogx);
+            v2sdx2 dst_tmp;
+            dst_tmp.val[0] = _mm_mul_pd(ex, cosylogx);
+            dst_tmp.val[1] = _mm_mul_pd(ex, sinylogx);
+            _mm_store2u_pd((double *) (dst) + i, dst_tmp);
         }
     }
 
     for (int i = stop_len; i < len; i++) {
-		double x_tmp_re2 = x[i].re * x[i].re;
-		double modx = (x[i].im * x[i].im) + x_tmp_re2;
-		modx = sqrt(modx);
-		complex64_t logx;
-		logx.re = log(modx);
-		logx.im = atan2(x[i].im, x[i].re);
-		complex64_t ylogx;
-		double ac = logx.re * y[i].re;     // ac
-		double ad = logx.re * y[i].im;     // ad
-		ylogx.re = ac - (logx.im * y[i].im);
-		ylogx.im = (logx.im *  y[i].re) +  ad;
-		double ex = exp(ylogx.re);
-		double cosylogx, sinylogx;
-        sinylogx = sin(ylogx.im);	
-        cosylogx = cos(ylogx.im);		
-		dst[i].re = ex * cosylogx;
-		dst[i].im = ex * sinylogx;
+        double x_tmp_re2 = x[i].re * x[i].re;
+        double modx = (x[i].im * x[i].im) + x_tmp_re2;
+        modx = sqrt(modx);
+        complex64_t logx;
+        logx.re = log(modx);
+        logx.im = atan2(x[i].im, x[i].re);
+        complex64_t ylogx;
+        double ac = logx.re * y[i].re;  // ac
+        double ad = logx.re * y[i].im;  // ad
+        ylogx.re = ac - (logx.im * y[i].im);
+        ylogx.im = (logx.im * y[i].re) + ad;
+        double ex = exp(ylogx.re);
+        double cosylogx, sinylogx;
+        sinylogx = sin(ylogx.im);
+        cosylogx = cos(ylogx.im);
+        dst[i].re = ex * cosylogx;
+        dst[i].im = ex * sinylogx;
     }
 }

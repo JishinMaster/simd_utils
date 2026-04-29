@@ -260,13 +260,12 @@ static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
 // FMA version
 static inline v4sf log_ps(v4sf x)
 {
-    v4sf one = vdupq_n_f32(1);
+    v4sf one = vdupq_n_f32(1.0f);
 
-    x = vmaxq_f32(x, vdupq_n_f32(0)); /* force flush to zero on denormal values */
-    v4su invalid_mask = vcleq_f32(x, vdupq_n_f32(0));
+    x = vmaxq_f32(x, vdupq_n_f32(0.0f)); /* force flush to zero on denormal values */
+    v4su invalid_mask = vcleq_f32(x, vdupq_n_f32(0.0f));
 
     v4si ux = vreinterpretq_s32_f32(x);
-
     v4si emm0 = vshrq_n_s32(ux, 23);
 
     /* keep only the fractional part */
@@ -275,9 +274,8 @@ static inline v4sf log_ps(v4sf x)
     x = vreinterpretq_f32_s32(ux);
 
     emm0 = vsubq_s32(emm0, vdupq_n_s32(0x7f));
+    emm0 = vaddq_s32(emm0, *(v4si *) _pi32_1);
     v4sf e = vcvtq_f32_s32(emm0);
-
-    e = vaddq_f32(e, one);
 
     /* part2:
      if( x < SQRTHF ) {
@@ -294,15 +292,27 @@ static inline v4sf log_ps(v4sf x)
     v4sf z = vmulq_f32(x, x);
 
 
+#if 1
     v4sf y;
-    y = vfmaq_n_f32(vdupq_n_f32(c_cephes_log_p1),x,c_cephes_log_p0);
-	y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p2), y, x);
-    y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p3), y, x);
-    y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p4), y, x);
-    y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p5), y, x);
-    y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p6), y, x);
-    y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p7), y, x);
-    y = vfmaq_f32(vdupq_n_f32(c_cephes_log_p8), y, x);
+    y = vfmaq_n_f32(*(v4sf *) _ps_cephes_log_p1, x, c_cephes_log_p0);
+    y = vfmaq_f32(*(v4sf *) _ps_cephes_log_p2, y, x);
+    y = vfmaq_f32(*(v4sf *) _ps_cephes_log_p3, y, x);
+    y = vfmaq_f32(*(v4sf *) _ps_cephes_log_p4, y, x);
+    y = vfmaq_f32(*(v4sf *) _ps_cephes_log_p5, y, x);
+    y = vfmaq_f32(*(v4sf *) _ps_cephes_log_p6, y, x);
+    y = vfmaq_f32(*(v4sf *) _ps_cephes_log_p7, y, x);
+    y = vfmaq_f32(*(v4sf *) _ps_cephes_log_p8, y, x);
+#else
+    v4sf y = vfmaq_n_f32(*(v4sf *) _ps_cephes_log_p2, z, c_cephes_log_p0);
+    y = vfmaq_f32(*(v4sf *) _ps_cephes_log_p4, y, z);
+    y = vfmaq_f32(*(v4sf *) _ps_cephes_log_p6, y, z);
+    y = vfmaq_f32(*(v4sf *) _ps_cephes_log_p8, y, z);
+
+    v4sf yb = vfmaq_n_f32(*(v4sf *) _ps_cephes_log_p3, z, c_cephes_log_p1);
+    yb = vfmaq_f32(*(v4sf *) _ps_cephes_log_p5, yb, z);
+    yb = vfmaq_f32(*(v4sf *) _ps_cephes_log_p7, yb, z);
+    y = vfmaq_f32(yb, x, y);
+#endif
     y = vmulq_f32(y, x);
     y = vmulq_f32(y, z);
     y = vfmaq_n_f32(y, e, c_cephes_log_q1);
@@ -323,16 +333,16 @@ static inline v4sf exp_ps(v4sf x)
 
     x = vminq_f32(x, *(v4sf *) _ps_exp_hi);
     x = vmaxq_f32(x, *(v4sf *) _ps_exp_lo);
-	
+
     /* express exp(x) as exp(g + n*log(2)) */
     fx = vfmaq_n_f32(vdupq_n_f32(0.5f), x, c_cephes_LOG2EF);
     fx = vrndmq_f32(fx); /* perform a floorf */
-	
+
     x = vfmaq_f32(x, fx, *(v4sf *) _ps_cephes_exp_minC1);
     x = vfmaq_f32(x, fx, *(v4sf *) _ps_cephes_exp_minC2);
 
     v4sf z = vmulq_f32(x, x);
-	
+
     v4sf y = vfmaq_n_f32(*(v4sf *) _ps_cephes_exp_p1, x, c_cephes_exp_p0);
     y = vfmaq_f32(*(v4sf *) _ps_cephes_exp_p2, y, x);
     y = vfmaq_f32(*(v4sf *) _ps_cephes_exp_p3, y, x);
@@ -340,7 +350,7 @@ static inline v4sf exp_ps(v4sf x)
     y = vfmaq_f32(*(v4sf *) _ps_cephes_exp_p5, y, x);
     y = vfmaq_f32(x, y, z);
     y = vaddq_f32(y, *(v4sf *) _ps_1);
-	
+
     /* build 2^n */
     int32x4_t mm;
     mm = vcvtq_s32_f32(fx);
@@ -350,7 +360,7 @@ static inline v4sf exp_ps(v4sf x)
 
     y = vmulq_f32(y, pow2n);
     return y;
-}	
+}
 
 // FMA version
 static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
@@ -360,6 +370,7 @@ static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
     v4su emm2;
 
     v4su sign_mask_sin, sign_mask_cos;
+
     sign_mask_sin = vcltq_f32(x, vdupq_n_f32(0));
     x = vabsq_f32(x);
 
@@ -386,7 +397,14 @@ static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
 
     x = vfmaq_n_f32(x, y, c_minus_cephes_DP1);
     x = vfmaq_n_f32(x, y, c_minus_cephes_DP2);
+#if 1
     x = vfmaq_n_f32(x, y, c_minus_cephes_DP3);
+#else
+    // more parallel, should give better ILP
+    v4sf x1 = vmulq_f32(y, vdupq_n_f32(c_minus_cephes_DP3));
+    x = vaddq_f32(x1, x);
+#endif
+
 
     sign_mask_sin = veorq_u32(sign_mask_sin, vtstq_u32(emm2, vdupq_n_u32(4)));
     sign_mask_cos = vtstq_u32(vsubq_u32(emm2, vdupq_n_u32(2)), vdupq_n_u32(4));
@@ -394,18 +412,22 @@ static inline void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos)
     /* Evaluate the first polynom  (0 <= x <= Pi/4) in y1,
      and the second polynom      (Pi/4 <= x <= 0) in y2 */
     v4sf z = vmulq_f32(x, x);
+    v4sf z2 = vmulq_f32(z, z);
+
     v4sf y1, y2;
 
     y1 = vfmaq_n_f32(vdupq_n_f32(c_coscof_p1), z, c_coscof_p0);
-    y2 = vfmaq_n_f32(vdupq_n_f32(c_sincof_p1), z, c_sincof_p0);
     y1 = vfmaq_f32(vdupq_n_f32(c_coscof_p2), y1, z);
-    y2 = vfmaq_f32(vdupq_n_f32(c_sincof_p2), y2, z);
-    y1 = vmulq_f32(y1, z);
-    y2 = vmulq_f32(y2, z);
-    y1 = vmulq_f32(y1, z);
-    y2 = vfmaq_f32(x, y2, x);
+    y1 = vmulq_f32(y1, z2);
     y1 = vfmaq_n_f32(y1, z, -0.5f);
-    y1 = vaddq_f32(y1, vdupq_n_f32(1));
+    y1 = vaddq_f32(y1, vdupq_n_f32(1.0f));
+
+    y2 = vfmaq_n_f32(vdupq_n_f32(c_sincof_p1), z, c_sincof_p0);
+    y2 = vfmaq_f32(vdupq_n_f32(c_sincof_p2), y2, z);
+    y2 = vmulq_f32(y2, z);
+    y2 = vfmaq_f32(x, y2, x);
+
+
 
     /* select the correct result from the two polynoms */
     v4sf ys = vbslq_f32(poly_mask, y1, y2);
