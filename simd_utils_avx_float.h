@@ -66,8 +66,7 @@ static inline v8sf log10256_ps(v8sf x)
     x = _mm256_or_ps(x, *(v8sf *) _ps256_0p5);
 
     // this is again another AVX2 instruction
-    imm0 = _mm256_sub_epi32(imm0, *(v8si *) _pi32_256_0x7f);
-    imm0 = _mm256_add_epi32(imm0, *(v8si *) _pi32_256_1);
+    imm0 = _mm256_sub_epi32(imm0, *(v8si *) _pi32_256_0x7e);
     v8sf e = _mm256_cvtepi32_ps(imm0);
 
     v8sf mask = _mm256_cmp_ps(x, *(v8sf *) _ps256_cephes_SQRTHF, _CMP_LT_OS);
@@ -124,8 +123,7 @@ static inline v8sf log2256_ps(v8sf x)
     x = _mm256_or_ps(x, *(v8sf *) _ps256_0p5);
 
     // this is again another AVX2 instruction
-    imm0 = _mm256_sub_epi32(imm0, *(v8si *) _pi32_256_0x7f);
-    imm0 = _mm256_add_epi32(imm0, *(v8si *) _pi32_256_1);
+    imm0 = _mm256_sub_epi32(imm0, *(v8si *) _pi32_256_0x7e);
     v8sf e = _mm256_cvtepi32_ps(imm0);
 
     v8sf mask = _mm256_cmp_ps(x, *(v8sf *) _ps256_cephes_SQRTHF, _CMP_LT_OS);

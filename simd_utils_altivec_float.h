@@ -955,9 +955,8 @@ static inline v4sf log2_ps(v4sf x)
     /* keep only the fractional part */
     x = vec_and(x, *(v4sf *) _ps_inv_mant_mask);
     x = vec_or(x, *(v4sf *) _ps_0p5);
-    emm0 = vec_sub(emm0, *(v4si *) _pi32_0x7f);
+    emm0 = vec_sub(emm0, *(v4si *) _pi32_0x7e);
     v4sf e = vec_ctf(emm0, 0);
-    e = vec_add(e, one);
 
     v4sf mask = (v4sf) vec_cmplt(x, *(v4sf *) _ps_cephes_SQRTHF);
     v4sf tmp = vec_and(x, mask);
@@ -1119,9 +1118,8 @@ static inline v4sf log10_ps(v4sf x)
     /* keep only the fractional part */
     x = vec_and(x, *(v4sf *) _ps_inv_mant_mask);
     x = vec_or(x, *(v4sf *) _ps_0p5);
-    emm0 = vec_sub(emm0, *(v4si *) _pi32_0x7f);
+    emm0 = vec_sub(emm0, *(v4si *) _pi32_0x7e);
     v4sf e = vec_ctf(emm0, 0);
-    e = vec_add(e, one);
 
     v4sf mask = (v4sf) vec_cmplt(x, *(v4sf *) _ps_cephes_SQRTHF);
     v4sf tmp = vec_and(x, mask);
@@ -1211,10 +1209,8 @@ static inline v4sf log_ps(v4sf x)
     x = vec_and(x, *(v4sf *) _ps_inv_mant_mask);
     x = vec_or(x, *(v4sf *) _ps_0p5);
 
-    emm0 = vec_sub(emm0, *(v4si *) _pi32_0x7f);
+    emm0 = vec_sub(emm0, *(v4si *) _pi32_0x7e);
     v4sf e = vec_ctf(emm0, 0);
-
-    e = vec_add(e, one);
 
     v4bi mask = vec_cmplt(x, *(v4sf *) _ps_cephes_SQRTHF);
     v4sf tmp = vec_and(x, *(v4sf *) &mask);

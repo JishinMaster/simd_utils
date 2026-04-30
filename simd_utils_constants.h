@@ -1547,17 +1547,17 @@ typedef struct {
 
 #define c_inv_mant_mask ~0x7f800000u
 #define c_cephes_SQRTHF 0.707106781186547524f
-#define c_cephes_log_p0 7.0376836292E-2
-#define c_cephes_log_p1 -1.1514610310E-1
-#define c_cephes_log_p2 1.1676998740E-1
-#define c_cephes_log_p3 -1.2420140846E-1
-#define c_cephes_log_p4 +1.4249322787E-1
-#define c_cephes_log_p5 -1.6668057665E-1
-#define c_cephes_log_p6 +2.0000714765E-1
-#define c_cephes_log_p7 -2.4999993993E-1
-#define c_cephes_log_p8 +3.3333331174E-1
-#define c_cephes_log_q1 -2.12194440e-4
-#define c_cephes_log_q2 0.693359375
+#define c_cephes_log_p0 7.0376836292E-2f
+#define c_cephes_log_p1 -1.1514610310E-1f
+#define c_cephes_log_p2 1.1676998740E-1f
+#define c_cephes_log_p3 -1.2420140846E-1f
+#define c_cephes_log_p4 +1.4249322787E-1f
+#define c_cephes_log_p5 -1.6668057665E-1f
+#define c_cephes_log_p6 +2.0000714765E-1f
+#define c_cephes_log_p7 -2.4999993993E-1f
+#define c_cephes_log_p8 +3.3333331174E-1f
+#define c_cephes_log_q1 -2.12194440e-4f
+#define c_cephes_log_q2 0.693359375f
 
 #define c_cephes_L102A 3.0078125E-1f
 #define c_cephes_L102B 2.48745663981195213739E-4f
