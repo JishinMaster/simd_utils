@@ -5,98 +5,56 @@
  * Licence : BSD-2
  */
 
+
+/* TODO
+static inline v4sf power_of_twof(v4si b)
+static inline v4sf cbrtf_ps(v4sf xx)
+static inline void cbrt128f(float *src, float *dst, int len)
+static inline void convertFloat32ToU8_128(float *src, uint8_t *dst, int len, int rounding_mode, int scale_factor)
+static inline void convertFloat32ToU16_128(float *src, uint16_t *dst, int len, int rounding_mode, int scale_factor)
+static inline void convertInt32ToFloat32_128(int32_t *src, float *dst, int len, int scale_factor)
+static inline void convert128_64f32f(double *src, float *dst, int len)
+static inline void convert128_32f64f(float *src, double *dst, int len)
+static inline void convert128_32f64f(float *src, double *dst, int len)
+static inline v4sf coshf_ps(v4sf xx)
+static inline void cosh128f(float *src, float *dst, int len)
+static inline v4sf acoshf_ps(v4sf x)
+static inline void acosh128f(float *src, float *dst, int len)
+static inline v4sf asinhf_ps(v4sf xx)
+static inline void asinh128f(float *src, float *dst, int len)
+static inline v4sf atan2f_ps(v4sf y, v4sf x)
+static inline void atan2128f(float *src1, float *src2, float *dst, int len)
+static inline void atan2128f_interleaved(complex32_t *src, float *dst, int len)
+static inline v4sf asinf_ps(v4sf xx)
+static inline void asin128f(float *src, float *dst, int len)
+static inline v4sf tanhf_ps(v4sf xx)
+static inline void tanh128f(float *src, float *dst, int len)
+static inline void dot128f(float *src1, float *src2, int len, float *dst)
+static inline void dotc128f(complex32_t *src1, complex32_t *src2, int len, complex32_t *dst)
+static inline void cplxvecmul128f_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+static inline void cplxvecdiv128f_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+static inline void cplxconjvecmul128f_split(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+static inline void cplxconjvecmul128f_split_kahan(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+static inline void cplxconjvecmul128f_split_precise(float *src1Re, float *src1Im, float *src2Re, float *src2Im, float *dstRe, float *dstIm, int len)
+static inline void cplxconj128f(complex32_t *src, complex32_t *dst, int len)
+static inline void sigmoid128f(float *src, float *dst, int len)
+static inline void sigmoid128f_(float *src, float *dst, int len)
+static inline void PRelu128f(float *src, float *dst, float alpha, int len)
+static inline void softmax128f(float *src, float *dst, int len)
+static inline void softmax128f_dualacc(float *src, float *dst, int len)
+static inline void pol2cart2D128f(float *r, float *theta, float *x, float *y, int len)
+static inline void cart2pol2D128f(float *x, float *y, float *r, float *theta, int len)
+static inline void modf128f(float *src, float *integer, float *remainder, int len)
+static inline v4sf pow_ps(v4sf x, v4sf y)
+static inline void pow128f(float *x, float *y, float *dst, int len)
+static inline void powcplx128f(complex32_t *x, complex32_t *y, complex32_t *dst, int len)
+static inline void checkNanInf128f(const float *__restrict__ src, int32_t *nan, int32_t *inf, int len)
+*/
+
 #pragma once
 
-static inline void add128f(float *a, float *b, float *c, int len)
-{
-    int stop_len = len / SSE_LEN_FLOAT;
-    stop_len *= SSE_LEN_FLOAT;
-
-    for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
-        v4sf a_vec = vld1q_f32(a + i);
-        v4sf b_vec = vld1q_f32(b + i);
-        vst1q_f32(c + i, vaddq_f32(a_vec, b_vec));
-    }
-    for (int i = stop_len; i < len; i++) {
-        c[i] = a[i] + b[i];
-    }
-}
-
-static inline void cplxtoreal128f(complex32_t *src, float *dstRe, float *dstIm, int len)
-{
-    int stop_len = 2 * len / (4 * SSE_LEN_FLOAT);
-    stop_len *= 4 * SSE_LEN_FLOAT;
-
-    int j = 0;
-    for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
-        /*__builtin_prefetch(&src[i+SSE_LEN_FLOAT], 0, 3);
-        __builtin_prefetch(&dstRe[i+SSE_LEN_FLOAT], 1, 3);
-        __builtin_prefetch(&dstIm[i+SSE_LEN_FLOAT], 1, 3);*/
-        v4sfx2 vec1 = vld2q_f32((float const *) (src) + i);
-        v4sfx2 vec2 = vld2q_f32((float const *) (src) + i + 2 * SSE_LEN_FLOAT);
-        vst1q_f32(dstRe + j, vec1.val[0]);
-        vst1q_f32(dstIm + j, vec1.val[1]);
-        vst1q_f32(dstRe + j + SSE_LEN_FLOAT, vec2.val[0]);
-        vst1q_f32(dstIm + j + SSE_LEN_FLOAT, vec2.val[1]);
-        j += 2 * SSE_LEN_FLOAT;
-    }
-
-    for (int i = j; i < len; i++) {
-        dstRe[i] = src[i].re;
-        dstIm[i] = src[i].im;
-    }
-}
-
-static inline void realtocplx128f(float *srcRe, float *srcIm, complex32_t *dst, int len)
-{
-    int stop_len = len / (2 * SSE_LEN_FLOAT);
-    stop_len *= 2 * SSE_LEN_FLOAT;
-
-    int j = 0;
-    for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
-        /*__builtin_prefetch(&srcRe[i+SSE_LEN_FLOAT], 0, 3);
-        __builtin_prefetch(&srcIm[i+SSE_LEN_FLOAT], 0, 3);
-        __builtin_prefetch(&dst[i+SSE_LEN_FLOAT], 1, 3);*/
-        v4sf re = vld1q_f32(srcRe + i);
-        v4sf im = vld1q_f32(srcIm + i);
-        v4sf re2 = vld1q_f32(srcRe + i + SSE_LEN_FLOAT);
-        v4sf im2 = vld1q_f32(srcIm + i + SSE_LEN_FLOAT);
-        v4sfx2 reim = {{re, im}};
-        v4sfx2 reim2 = {{re2, im2}};
-        vst2q_f32((float *) (dst) + j, reim);
-        vst2q_f32((float *) (dst) + j + 2 * SSE_LEN_FLOAT, reim2);
-        j += 4 * SSE_LEN_FLOAT;
-    }
-
-    for (int i = stop_len; i < len; i++) {
-        dst[i].re = srcRe[i];
-        dst[i].im = srcIm[i];
-    }
-}
-
-void powerspect128f_interleaved(complex32_t *src, float *dst, int len)
-{
-    int stop_len = len / (2 * SSE_LEN_FLOAT);
-    stop_len *= 2 * SSE_LEN_FLOAT;
-
-    int j = 0;
-    for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
-        v4sfx2 src_split = vld2q_f32((float *) (src) + j);  // a0a1a2a3, b0b1b2b3
-        v4sfx2 src_split2 = vld2q_f32((float *) (src) + j + 2 * SSE_LEN_FLOAT);
-        v4sf split_square0 = vmulq_f32(src_split.val[0], src_split.val[0]);
-        v4sf split2_square0 = vmulq_f32(src_split2.val[0], src_split2.val[0]);
-        v4sfx2 dst_split;
-        dst_split.val[0] = vfmaq_f32(split_square0, src_split.val[1], src_split.val[1]);
-        dst_split.val[1] = vfmaq_f32(split2_square0, src_split2.val[1], src_split2.val[1]);
-        vst1q_f32((dst + i), dst_split.val[0]);
-        vst1q_f32((dst + i + SSE_LEN_FLOAT), dst_split.val[1]);
-        j += 4 * SSE_LEN_FLOAT;
-    }
-
-    for (int i = stop_len; i < len; i++) {
-        dst[i] = src[i].re * src[i].re + (src[i].im * src[i].im);
-    }
-}
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
 
 static inline float32x4_t vrsqrtq_f32(float32x4_t a)
 {
@@ -190,63 +148,435 @@ static inline void print4i(v4si v)
 
 static inline void print4u(v4su v)
 {
-    uint32_t *p = (int32_t *) &v;
+    uint32_t *p = (uint32_t *) &v;
     printf("[%lu %lu, %lu, %lu]", p[0], p[1], p[2], p[3]);
 }
 
-static inline v4sf log10_ps(v4sf x)
-{
-    // printf("x ");print4_4digits(x);printf("\r\n");
-    v4si emm0;
-    mve_pred16_t invalid_mask = vcmpleq_f32(x, *(v4sf *) _ps_0);
-    x = vmaxnmq_f32(x, *(v4sf *) _ps_min_norm_pos); /* cut off denormalized stuff */
-    emm0 = vshrq_n_s32(vreinterpretq_s32_f32(x), 23);
-    // printf("emm0 ");print4i_4digits(emm0);printf("\r\n");
-    /* keep only the fractional part */
-    x = vandq_f32(x, *(v4sf *) _ps_inv_mant_mask);
-    x = vorrq_f32(x, *(v4sf *) _ps_0p5);
-    // printf("x2 ");print4_4digits(x);printf("\r\n");
-    emm0 = vsubq_n_s32(emm0, 0x7F);
-    v4sf e = vcvtq_f32_s32(emm0);
-    e = vaddq_n_f32(e, 1.0f);
-    // printf("e ");print4_4digits(e);printf("\r\n");
-    mve_pred16_t mask = vcmpltq_f32(x, *(v4sf *) _ps_cephes_SQRTHF);
-    x = vsubq_n_f32(x, 1.0f);
-    e = vsubq_m_n_f32(e, e, 1.0f, mask);
-    // printf("e2 ");print4_4digits(e);printf("\r\n");
-    x = vaddq_m_f32(x, x, x, mask);
-    // printf("x3 ");print4_4digits(x);printf("\r\n");
-    v4sf z = vmulq_f32(x, x);
-    // vfmasq_n_f32 : a*b + c (scalar)
+
+static inline void log_ps_common(v4sf *x, v4sf *out, mve_pred16_t* invalid_mask,\
+		v4sf *e, v4sf* z){
+    *x = vmaxnmq_f32(*x, *(v4sf *) _ps_min_norm_pos); /* force flush to zero on denormal values */
+	*invalid_mask = vcmpleq_f32(*x, *(v4sf *) _ps_0);
+	v4si ux = vreinterpretq_s32_f32(*x);
+	v4si emm0 = vshrq_n_s32(ux, 23);
+
+	/* keep only the fractional part */
+	ux = vandq_s32(ux, *(v4si *) _ps_inv_mant_mask);
+	ux = vorrq_s32(ux, vreinterpretq_s32_f32(*(v4sf *) _ps_0p5));
+	*x = vreinterpretq_f32_s32(ux);
+	emm0 = vsubq_n_s32(emm0, 0x7E);
+	*e = vcvtq_f32_s32(emm0);
+	/* part2:
+	 if( x < SQRTHF ) {
+	   e -= 1;
+	   x = x + x - 1.0;
+	 } else { x = x - 1.0; }
+  */
+	mve_pred16_t mask = vcmpltq_f32(*x, *(v4sf *) _ps_cephes_SQRTHF);
+	v4sf tmp = *x;
+	mve_pred16_t notmask = vpnot(mask);
+	*e = vsubq_m_n_f32(*e, *e, 1.0f, mask);
+
+    *x = vsubq_n_f32(*x, 1.0f);
+    *x = vaddq_m_f32(*x, *x, tmp, mask);
+
+    *z = vmulq_f32(*x, *x);
+
+#if 1
+    v4sf y = vfmasq_n_f32(*z, *(v4sf *) _ps_cephes_log_p0, c_cephes_log_p2);
+    y = vfmasq_n_f32(y, *z, c_cephes_log_p4);
+    y = vfmasq_n_f32(y, *z, c_cephes_log_p6);
+    y = vfmasq_n_f32(y, *z, c_cephes_log_p8);
+    v4sf yb = vfmasq_n_f32(*z, *(v4sf *) _ps_cephes_log_p1, c_cephes_log_p3);
+    yb = vfmasq_n_f32(yb, *z, c_cephes_log_p5);
+    yb = vfmasq_n_f32(yb, *z, c_cephes_log_p7);
+    y = vfmaq_f32(y, yb, *x);
+#else
     v4sf y = vfmasq_n_f32(x, *(v4sf *) _ps_cephes_log_p0, c_cephes_log_p1);
-    // printf("y ");print4_4digits(y);printf("\r\n");
     y = vfmasq_n_f32(y, x, c_cephes_log_p2);
-    // printf("y2 ");print4_4digits(y);printf("\r\n");
     y = vfmasq_n_f32(y, x, c_cephes_log_p3);
     y = vfmasq_n_f32(y, x, c_cephes_log_p4);
     y = vfmasq_n_f32(y, x, c_cephes_log_p5);
     y = vfmasq_n_f32(y, x, c_cephes_log_p6);
     y = vfmasq_n_f32(y, x, c_cephes_log_p7);
     y = vfmasq_n_f32(y, x, c_cephes_log_p8);
-    y = vmulq_f32(y, x);
-    y = vmulq_f32(y, z);
-    // printf("y3 ");print4_4digits(y);printf("\r\n");
-    //  vfmaq_n_f32 a + b*c (scalar)
-    y = vfmaq_n_f32(y, z, -0.5f);
-    // printf("y4 ");print4_4digits(y);printf("\r\n");
-    //  Could it be improved with more parallelism or would it worsen precision?
-    float32x4_t tmp = vaddq_f32(x, y);
+#endif
+    y = vmulq_f32(y, *x);
+    y = vmulq_f32(y, *z);
+    *out = y;
+}
 
-    z = vmulq_n_f32(tmp, c_cephes_L10EB);
-    // printf("z ");print4_4digits(z);printf("\r\n");
+
+static inline void set128f(float *dst, float value, int len)
+{
+    const v4sf tmp = vdupq_n_f32(value);
+
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+	for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+		vst1q_f32(dst + i, tmp);
+	}
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = value;
+    }
+}
+
+static inline void zero128f(float *dst, int len)
+{
+	set128f(dst, 0.0f, len);
+}
+
+static inline void copy128f(float *src, float *dst, int len)
+{
+    int stop_len = len / (2*SSE_LEN_FLOAT);
+    stop_len *= (2*SSE_LEN_FLOAT);
+
+    for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        v4sf src_tmp = vld1q_f32(src + i);
+        v4sf src_tmp2 = vld1q_f32(src + i + SSE_LEN_FLOAT);
+        vst1q_f32(dst + i, src_tmp);
+        vst1q_f32(dst + i + SSE_LEN_FLOAT, src_tmp2);
+    }
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i];
+    }
+}
+
+static inline void add128f(float *a, float *b, float *c, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        v4sf a_vec = vld1q_f32(a + i);
+        v4sf b_vec = vld1q_f32(b + i);
+        vst1q_f32(c + i, vaddq_f32(a_vec, b_vec));
+    }
+    for (int i = stop_len; i < len; i++) {
+        c[i] = a[i] + b[i];
+    }
+}
+
+static inline void mul128f(float *a, float *b, float *c, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        v4sf a_vec = vld1q_f32(a + i);
+        v4sf b_vec = vld1q_f32(b + i);
+        vst1q_f32(c + i, vmulq_f32(a_vec, b_vec));
+    }
+    for (int i = stop_len; i < len; i++) {
+        c[i] = a[i] * b[i];
+    }
+}
+
+static inline void sub128f(float *a, float *b, float *c, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        v4sf a_vec = vld1q_f32(a + i);
+        v4sf b_vec = vld1q_f32(b + i);
+        vst1q_f32(c + i, vsubq_f32(a_vec, b_vec));
+    }
+    for (int i = stop_len; i < len; i++) {
+        c[i] = a[i] - b[i];
+    }
+}
+
+static inline void div128f(float *a, float *b, float *c, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        v4sf a_vec = vld1q_f32(a + i);
+        v4sf b_vec = vld1q_f32(b + i);
+        vst1q_f32(c + i, vdivq_f32(a_vec, b_vec));
+    }
+    for (int i = stop_len; i < len; i++) {
+        c[i] = a[i] / b[i];
+    }
+}
+
+static inline void addc128f(float *a, float b, float *c, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+    v4sf b_vec = vdupq_n_f32(b);
+
+    for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        v4sf a_vec = vld1q_f32(a + i);
+        vst1q_f32(c + i, vaddq_f32(a_vec, b_vec));
+    }
+    for (int i = stop_len; i < len; i++) {
+        c[i] = a[i] + b;
+    }
+}
+
+static inline void subc128f(float *a, float b, float *c, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+    v4sf b_vec = vdupq_n_f32(b);
+
+    for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        v4sf a_vec = vld1q_f32(a + i);
+        vst1q_f32(c + i, vsubq_f32(a_vec, b_vec));
+    }
+    for (int i = stop_len; i < len; i++) {
+        c[i] = a[i] - b;
+    }
+}
+
+static inline void mulc128f(float *a, float b, float *c, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+    v4sf b_vec = vdupq_n_f32(b);
+
+    for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        v4sf a_vec = vld1q_f32(a + i);
+        vst1q_f32(c + i, vmulq_f32(a_vec, b_vec));
+    }
+    for (int i = stop_len; i < len; i++) {
+        c[i] = a[i] * b;
+    }
+}
+
+static inline void muladd128f(float *_a, float *_b, float *_c, float *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+	for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+		v4sf a = vld1q_f32(_a + i);
+		v4sf b = vld1q_f32(_b + i);
+		v4sf c = vld1q_f32(_c + i);
+		v4sf a2 = vld1q_f32(_a + i + SSE_LEN_FLOAT);
+		v4sf b2 = vld1q_f32(_b + i + SSE_LEN_FLOAT);
+		v4sf c2 = vld1q_f32(_c + i + SSE_LEN_FLOAT);
+		v4sf dst_tmp  = vfmaq_f32(c, a, b);
+		v4sf dst_tmp2 = vfmaq_f32(c2, a2, b2);
+		vst1q_f32(dst + i, dst_tmp);
+		vst1q_f32(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+	}
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = (_a[i] * _b[i]) + _c[i];
+    }
+}
+
+static inline void mulcadd128f(float *_a, float _b, float *_c, float *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+	for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+		v4sf a = vld1q_f32(_a + i);
+		v4sf c = vld1q_f32(_c + i);
+		v4sf a2 = vld1q_f32(_a + i + SSE_LEN_FLOAT);
+		v4sf c2 = vld1q_f32(_c + i + SSE_LEN_FLOAT);
+		v4sf dst_tmp  = vfmaq_n_f32(c, a, _b);
+		v4sf dst_tmp2 = vfmaq_n_f32(c2, a2, _b);
+		vst1q_f32(dst + i, dst_tmp);
+		vst1q_f32(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+	}
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b + _c[i];
+    }
+}
+
+static inline void mulcaddc128f(float *_a, float _b, float _c, float *dst, int len)
+{
+    v4sf b = vdupq_n_f32(_b);
+
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+	for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+		v4sf a = vld1q_f32(_a + i);
+		v4sf a2 = vld1q_f32(_a + i + SSE_LEN_FLOAT);
+		v4sf dst_tmp  = vfmasq_n_f32(a, b, _c);
+		v4sf dst_tmp2 = vfmasq_n_f32(a2, b, _c);
+		vst1q_f32(dst + i, dst_tmp);
+		vst1q_f32(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+	}
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = _a[i] * _b + _c;
+    }
+}
+
+static inline void cplxtoreal128f(complex32_t *src, float *dstRe, float *dstIm, int len)
+{
+    int stop_len = 2 * len / (4 * SSE_LEN_FLOAT);
+    stop_len *= 4 * SSE_LEN_FLOAT;
+
+    int j = 0;
+    for (int i = 0; i < stop_len; i += 4 * SSE_LEN_FLOAT) {
+        /*__builtin_prefetch(&src[i+SSE_LEN_FLOAT], 0, 3);
+        __builtin_prefetch(&dstRe[i+SSE_LEN_FLOAT], 1, 3);
+        __builtin_prefetch(&dstIm[i+SSE_LEN_FLOAT], 1, 3);*/
+        v4sfx2 vec1 = vld2q_f32((float const *) (src) + i);
+        v4sfx2 vec2 = vld2q_f32((float const *) (src) + i + 2 * SSE_LEN_FLOAT);
+        vst1q_f32(dstRe + j, vec1.val[0]);
+        vst1q_f32(dstIm + j, vec1.val[1]);
+        vst1q_f32(dstRe + j + SSE_LEN_FLOAT, vec2.val[0]);
+        vst1q_f32(dstIm + j + SSE_LEN_FLOAT, vec2.val[1]);
+        j += 2 * SSE_LEN_FLOAT;
+    }
+
+    for (int i = j; i < len; i++) {
+        dstRe[i] = src[i].re;
+        dstIm[i] = src[i].im;
+    }
+}
+
+static inline void realtocplx128f(float *srcRe, float *srcIm, complex32_t *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= 2 * SSE_LEN_FLOAT;
+
+    int j = 0;
+    for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+        /*__builtin_prefetch(&srcRe[i+SSE_LEN_FLOAT], 0, 3);
+        __builtin_prefetch(&srcIm[i+SSE_LEN_FLOAT], 0, 3);
+        __builtin_prefetch(&dst[i+SSE_LEN_FLOAT], 1, 3);*/
+        v4sf re = vld1q_f32(srcRe + i);
+        v4sf im = vld1q_f32(srcIm + i);
+        v4sf re2 = vld1q_f32(srcRe + i + SSE_LEN_FLOAT);
+        v4sf im2 = vld1q_f32(srcIm + i + SSE_LEN_FLOAT);
+        v4sfx2 reim = {{re, im}};
+        v4sfx2 reim2 = {{re2, im2}};
+        vst2q_f32((float *) (dst) + j, reim);
+        vst2q_f32((float *) (dst) + j + 2 * SSE_LEN_FLOAT, reim2);
+        j += 4 * SSE_LEN_FLOAT;
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i].re = srcRe[i];
+        dst[i].im = srcIm[i];
+    }
+}
+
+static inline void powerspect128f_interleaved(complex32_t *src, float *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= 2 * SSE_LEN_FLOAT;
+
+    int j = 0;
+    for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+        v4sfx2 src_split = vld2q_f32((float *) (src) + j);  // a0a1a2a3, b0b1b2b3
+        v4sfx2 src_split2 = vld2q_f32((float *) (src) + j + 2 * SSE_LEN_FLOAT);
+        v4sf split_square0 = vmulq_f32(src_split.val[0], src_split.val[0]);
+        v4sf split2_square0 = vmulq_f32(src_split2.val[0], src_split2.val[0]);
+        v4sfx2 dst_split;
+        dst_split.val[0] = vfmaq_f32(split_square0, src_split.val[1], src_split.val[1]);
+        dst_split.val[1] = vfmaq_f32(split2_square0, src_split2.val[1], src_split2.val[1]);
+        vst1q_f32((dst + i), dst_split.val[0]);
+        vst1q_f32((dst + i + SSE_LEN_FLOAT), dst_split.val[1]);
+        j += 4 * SSE_LEN_FLOAT;
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i].re * src[i].re + (src[i].im * src[i].im);
+    }
+}
+
+static inline void powerspect128f_split(float *srcRe, float *srcIm, float *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+	for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+		v4sf re_tmp = vld1q_f32(srcRe + i);
+		v4sf im_tmp = vld1q_f32(srcIm + i);
+		v4sf re_tmp2 = vld1q_f32(srcRe + i + SSE_LEN_FLOAT);
+		v4sf im_tmp2 = vld1q_f32(srcIm + i + SSE_LEN_FLOAT);
+		v4sf re_square = vmulq_f32(re_tmp, re_tmp);
+		v4sf re_square2 = vmulq_f32(re_tmp2, re_tmp2);
+		v4sf dst_tmp = vfmaq_f32(re_square, im_tmp, im_tmp);
+		v4sf dst_tmp2 = vfmaq_f32(re_square2, im_tmp2, im_tmp2);
+		vst1q_f32(dst + i, dst_tmp);
+		vst1q_f32(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+	}
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = srcRe[i] * srcRe[i] + (srcIm[i] * srcIm[i]);
+    }
+}
+
+static inline void magnitude128f_interleaved(complex32_t *src, float *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= 2 * SSE_LEN_FLOAT;
+
+    int j = 0;
+    for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+        v4sfx2 src_split = vld2q_f32((float *) (src) + j);  // a0a1a2a3, b0b1b2b3
+        v4sfx2 src_split2 = vld2q_f32((float *) (src) + j + 2 * SSE_LEN_FLOAT);
+        v4sf split_square0 = vmulq_f32(src_split.val[0], src_split.val[0]);
+        v4sf split2_square0 = vmulq_f32(src_split2.val[0], src_split2.val[0]);
+        v4sfx2 dst_split;
+        dst_split.val[0] = vfmaq_f32(split_square0, src_split.val[1], src_split.val[1]);
+        dst_split.val[1] = vfmaq_f32(split2_square0, src_split2.val[1], src_split2.val[1]);
+        dst_split.val[0] = vsqrtq_f32(dst_split.val[0]);
+        dst_split.val[1] = vsqrtq_f32(dst_split.val[1]);
+        vst1q_f32((dst + i), dst_split.val[0]);
+        vst1q_f32((dst + i + SSE_LEN_FLOAT), dst_split.val[1]);
+        j += 4 * SSE_LEN_FLOAT;
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i].re * src[i].re + (src[i].im * src[i].im);
+    }
+}
+
+static inline void magnitude128f_split(float *srcRe, float *srcIm, float *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+	for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+		v4sf re_tmp = vld1q_f32(srcRe + i);
+		v4sf im_tmp = vld1q_f32(srcIm + i);
+		v4sf re_tmp2 = vld1q_f32(srcRe + i + SSE_LEN_FLOAT);
+		v4sf im_tmp2 = vld1q_f32(srcIm + i + SSE_LEN_FLOAT);
+		v4sf re_square = vmulq_f32(re_tmp, re_tmp);
+		v4sf re_square2 = vmulq_f32(re_tmp2, re_tmp2);
+		v4sf dst_tmp = vfmaq_f32(re_square, im_tmp, im_tmp);
+		v4sf dst_tmp2 = vfmaq_f32(re_square2, im_tmp2, im_tmp2);
+		dst_tmp = vsqrtq_f32(dst_tmp);
+		dst_tmp2 = vsqrtq_f32(dst_tmp2);
+		vst1q_f32(dst + i, dst_tmp);
+		vst1q_f32(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+	}
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = srcRe[i] * srcRe[i] + (srcIm[i] * srcIm[i]);
+    }
+}
+
+static inline v4sf log10_ps(v4sf x)
+{
+	v4sf y, e, z;
+	mve_pred16_t invalid_mask;
+	log_ps_common(&x, &y, &invalid_mask, &e, &z);
+	y = vfmaq_n_f32(y, z, -0.5f);
+
+    // Could it be improved with more parallelism or would it worsen precision?
+    v4sf tmp2 = vaddq_f32(x, y);
+    z = vmulq_n_f32(tmp2, c_cephes_L10EB);
     z = vfmaq_n_f32(z, y, c_cephes_L10EA);
-    // printf("z2 ");print4_4digits(z);printf("\r\n");
     z = vfmaq_n_f32(z, x, c_cephes_L10EA);
-    // printf("z3 ");print4_4digits(z);printf("\r\n");
     z = vfmaq_n_f32(z, e, c_cephes_L102B);
-    // printf("z4 ");print4_4digits(z);printf("\r\n");
     x = vfmaq_n_f32(z, e, c_cephes_L102A);
-    // printf("x5 ");print4_4digits(x);printf("\r\n");
     x = vorrq_m_f32(x, x, *(v4sf *) _pi32_0xFFFFFFFF, invalid_mask);  // negative arg will be NAN
     return x;
 }
@@ -263,6 +593,39 @@ static inline void log10128f_precise(float *src, float *dst, int len)
     }
     for (int i = stop_len; i < len; i++) {
         dst[i] = log10f(src[i]);
+    }
+}
+
+static inline v4sf log2_ps(v4sf x)
+{
+	v4sf y, e, z;
+	mve_pred16_t invalid_mask;
+	log_ps_common(&x, &y, &invalid_mask, &e, &z);
+
+	y = vfmaq_n_f32(y, z, -0.5f);
+
+    v4sf tmp = vaddq_f32(x, y);
+    z = vmulq_n_f32(y, c_cephes_LOG2EA);
+    z = vfmaq_n_f32(z, x, c_cephes_LOG2EA);
+    z = vaddq_f32(z, tmp);
+    x = vaddq_f32(z, e);
+
+    x = vorrq_m_f32(x, x, *(v4sf *) _pi32_0xFFFFFFFF, invalid_mask);  // negative arg will be NAN
+    return x;
+}
+
+static inline void log2128f_precise(float *src, float *dst, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+    for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        v4sf vec = vld1q_f32(src + i);
+        vec = log2_ps(vec);
+        vst1q_f32(dst + i, vec);
+    }
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = log2f(src[i]);
     }
 }
 
@@ -388,6 +751,25 @@ static inline void sincos128f(float *src, float *dst_sin, float *dst_cos, int le
 
     for (int i = stop_len; i < len; i++) {
         mysincosf(src[i], dst_sin + i, dst_cos + i);
+    }
+}
+
+void sincos128f_interleaved(float *src, complex32_t *dst, int len)
+{
+    int stop_len = len / ( SSE_LEN_FLOAT);
+    stop_len *=  SSE_LEN_FLOAT;
+
+    int j = 0;
+    for (int i = 0; i < stop_len; i +=  SSE_LEN_FLOAT) {
+    	v4sf src_tmp = vld1q_f32((float *) (src) + i);
+        v4sfx2 dst_split;
+        sincos_ps(src_tmp, &dst_split.val[1], &dst_split.val[0]);
+        vst2q_f32((float *)dst + j, dst_split);
+        j += 2 * SSE_LEN_FLOAT;
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        mysincosf(src[i], &(dst[i].im), &(dst[i].re));
     }
 }
 
@@ -575,6 +957,30 @@ static inline void threshold128_ltabs_f(float *src, float *dst, int len, float v
     }
 }
 
+static inline void threshold128_gtabs_f(float *src, float *dst, int len, float value)
+{
+    const v4sf pval = vdupq_n_f32(value);
+
+    int stop_len = len / (SSE_LEN_FLOAT);
+    stop_len *= (SSE_LEN_FLOAT);
+
+    for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+        v4sf src_tmp = vld1q_f32(src + i);
+        v4sf src_sign = vandq_f32(src_tmp, *(v4sf *) _ps_sign_mask);     // extract sign
+        v4sf src_abs = vandq_f32(src_tmp, *(v4sf *) _ps_pos_sign_mask);  // take absolute value
+        v4sf dst_tmp = vminnmq_f32(src_abs, pval);
+        dst_tmp = veorq_f32(dst_tmp, src_sign);
+        vst1q_f32(dst + i, dst_tmp);
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        if (src[i] >= 0.0f) {
+            dst[i] = src[i] > value ? value : src[i];
+        } else {
+            dst[i] = src[i] < (-value) ? (-value) : src[i];
+        }
+    }
+}
 
 static inline void threshold128_lt_f(float *src, float *dst, int len, float value)
 {
@@ -594,6 +1000,27 @@ static inline void threshold128_lt_f(float *src, float *dst, int len, float valu
 
     for (int i = stop_len; i < len; i++) {
         dst[i] = src[i] > value ? src[i] : value;
+    }
+}
+
+static inline void threshold128_gt_f(float *src, float *dst, int len, float value)
+{
+    const v4sf tmp = vdupq_n_f32(value);
+
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+    for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+        v4sf src_tmp = vld1q_f32(src + i);
+        v4sf src_tmp2 = vld1q_f32(src + i + SSE_LEN_FLOAT);
+        v4sf dst_tmp = vminnmq_f32(src_tmp, tmp);
+        v4sf dst_tmp2 = vminnmq_f32(src_tmp2, tmp);
+        vst1q_f32(dst + i, dst_tmp);
+        vst1q_f32(dst + i + SSE_LEN_FLOAT, dst_tmp2);
+    }
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = src[i] < value ? src[i] : value;
     }
 }
 
@@ -751,51 +1178,13 @@ static inline void mean128f(float *src, float *dst, int len)
 
 static inline v4sf log_ps(v4sf x)
 {
-    x = vmaxnmq_f32(x, *(v4sf *) _ps_0); /* force flush to zero on denormal values */
-    mve_pred16_t invalid_mask = vcmpleq_f32(x, *(v4sf *) _ps_0);
-    v4si ux = vreinterpretq_s32_f32(x);
-    v4si emm0 = vshrq_n_s32(ux, 23);
-
-    /* keep only the fractional part */
-    ux = vandq_s32(ux, *(v4si *) _ps_inv_mant_mask);
-    ux = vorrq_s32(ux, vreinterpretq_s32_f32(*(v4sf *) _ps_0p5));
-    x = vreinterpretq_f32_s32(ux);
-
-    emm0 = vsubq_n_s32(emm0, 0x7F);
-    v4sf e = vcvtq_f32_s32(emm0);
-
-    e = vaddq_n_f32(e, 1.0f);
-
-    /* part2:
-     if( x < SQRTHF ) {
-       e -= 1;
-       x = x + x - 1.0;
-     } else { x = x - 1.0; }
-  */
-    mve_pred16_t mask = vcmpltq_f32(x, *(v4sf *) _ps_cephes_SQRTHF);
-    x = vsubq_n_f32(x, 1.0f);
-    e = vsubq_m_n_f32(e, e, 1.0f, mask);
-    x = vaddq_m_f32(x, x, x, mask);
-
-    v4sf z = vmulq_f32(x, x);
-    v4sf y = vfmasq_n_f32(x, *(v4sf *) _ps_cephes_log_p0, c_cephes_log_p1);
-    // printf("y ");print4_4digits(y);printf("\r\n");
-    y = vfmasq_n_f32(y, x, c_cephes_log_p2);
-    // printf("y2 ");print4_4digits(y);printf("\r\n");
-    y = vfmasq_n_f32(y, x, c_cephes_log_p3);
-    y = vfmasq_n_f32(y, x, c_cephes_log_p4);
-    y = vfmasq_n_f32(y, x, c_cephes_log_p5);
-    y = vfmasq_n_f32(y, x, c_cephes_log_p6);
-    y = vfmasq_n_f32(y, x, c_cephes_log_p7);
-    y = vfmasq_n_f32(y, x, c_cephes_log_p8);
-    y = vmulq_f32(y, x);
-    y = vmulq_f32(y, z);
+	v4sf y, e, z;
+	mve_pred16_t invalid_mask;
+	log_ps_common(&x, &y, &invalid_mask, &e, &z);
     y = vfmaq_n_f32(y, e, c_cephes_log_q1);
     y = vfmaq_n_f32(y, z, -0.5f);
-
     y = vfmaq_n_f32(y, e, c_cephes_log_q2);
     x = vaddq_f32(x, y);
-
     x = vorrq_m_f32(x, x, *(v4sf *) _pi32_0xFFFFFFFF, invalid_mask);  // negative arg will be NAN
     return x;
 }
@@ -1238,3 +1627,101 @@ static inline void convertFloat32ToI16_128(const float *__restrict__ src, int16_
         fesetround(rounding_ori);
     }
 }
+
+static inline v4sf sinhf_ps(v4sf x)
+{
+    v4sf z, z_first_branch, z_second_branch, tmp;
+    mve_pred16_t xsupmaxlogf, zsup1;
+    v4sf sign;
+
+    // x = xx; if x < 0, z = -x, else x
+    z = vandq_f32(*(v4sf *) _ps_pos_sign_mask, x);
+    sign = vandq_f32(x, *(v4sf *) _ps_sign_mask);
+
+    xsupmaxlogf = vcmpgtq_f32(z, *(v4sf *) _ps_MAXLOGF);
+
+    // First branch
+    zsup1 = vcmpgtq_f32(z, *(v4sf *) _ps_1);
+    z_first_branch = exp_ps(z);
+    tmp = vrecipq_f32(z_first_branch);
+    tmp = vmulq_n_f32(tmp, -0.5f);
+    z_first_branch = vfmaq_n_f32(tmp, z_first_branch, 0.5f);
+
+    z_first_branch = veorq_f32(z_first_branch, sign);
+
+    // Second branch
+    tmp = vmulq_f32(x, x);
+    z_second_branch = vfmasq_n_f32(tmp, *(v4sf *) _ps_SINH_P0, SINH_P1);
+    z_second_branch = vfmasq_n_f32(z_second_branch, tmp, SINH_P2);
+    z_second_branch = vmulq_f32(z_second_branch, tmp);
+    z_second_branch = vfmasq_f32(z_second_branch, x, x);
+
+    // Choose between first and second branch
+    z = vpselq_f32(z_first_branch, z_second_branch, zsup1);
+
+    // Set value to MAXNUMF if abs(x) > MAGLOGF
+    // Set value to -MAXNUMF if abs(x) > MAGLOGF and x < 0
+    tmp = veorq_f32(*(v4sf *) _ps_MAXNUMF, sign);
+    z = vpselq_f32(tmp, z, xsupmaxlogf);
+
+    return (z);
+}
+
+static inline void sinh128f(float *src, float *dst, int len)
+{
+    int stop_len = len / SSE_LEN_FLOAT;
+    stop_len *= SSE_LEN_FLOAT;
+
+	for (int i = 0; i < stop_len; i += SSE_LEN_FLOAT) {
+		v4sf src_tmp = vld1q_f32(src + i);
+		vst1q_f32(dst + i, sinhf_ps(src_tmp));
+	}
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = sinhf(src[i]);
+    }
+}
+
+static inline void maxevery128f(float *src1, float *src2, float *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+	for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+		v4sf src1_tmp = vld1q_f32(src1 + i);
+		v4sf src2_tmp = vld1q_f32(src2 + i);
+		v4sf src1_tmp2 = vld1q_f32(src1 + i + SSE_LEN_FLOAT);
+		v4sf src2_tmp2 = vld1q_f32(src2 + i + SSE_LEN_FLOAT);
+		v4sf max1 = vmaxnmq_f32(src1_tmp, src2_tmp);
+		v4sf max2 = vmaxnmq_f32(src1_tmp2, src2_tmp2);
+		vst1q_f32(dst + i, max1);
+		vst1q_f32(dst + i + SSE_LEN_FLOAT, max2);
+	}
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = fmaxf(src1[i],src2[i]);
+    }
+}
+
+static inline void minevery128f(float *src1, float *src2, float *dst, int len)
+{
+    int stop_len = len / (2 * SSE_LEN_FLOAT);
+    stop_len *= (2 * SSE_LEN_FLOAT);
+
+	for (int i = 0; i < stop_len; i += 2 * SSE_LEN_FLOAT) {
+		v4sf src1_tmp = vld1q_f32(src1 + i);
+		v4sf src2_tmp = vld1q_f32(src2 + i);
+		v4sf src1_tmp2 = vld1q_f32(src1 + i + SSE_LEN_FLOAT);
+		v4sf src2_tmp2 = vld1q_f32(src2 + i + SSE_LEN_FLOAT);
+		v4sf max1 = vminnmq_f32(src1_tmp, src2_tmp);
+		v4sf max2 = vminnmq_f32(src1_tmp2, src2_tmp2);
+		vst1q_f32(dst + i, max1);
+		vst1q_f32(dst + i + SSE_LEN_FLOAT, max2);
+	}
+
+    for (int i = stop_len; i < len; i++) {
+        dst[i] = fminf(src1[i],src2[i]);
+    }
+}
+
+#pragma GCC pop_options
