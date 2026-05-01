@@ -7,7 +7,13 @@
 
 #pragma once
 
-// JishinMaster : DTCollab sse2neon.h commit : b72d48ef491e3c471e10c86715361d421d54ccd7
+// JishinMaster : DTCollab sse2neon.h commit : 3b70b3727edc9a151c113814129258c3423a771c
+
+#define SSE2NEON_PRECISE_DIV 1 
+#define SSE2NEON_PRECISE_MINMAX 1
+#define SSE2NEON_PRECISE_MINMAX 1
+#define SSE2NEON_PRECISE_DIV 1
+#define SSE2NEON_PRECISE_SQRT 1
 #include "sse2neon.h"
 
 
@@ -33,8 +39,6 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-
-#include <arm_neon.h>
 
 // Round types
 /*#define _MM_ROUND_MASK 0x6000
